@@ -31,8 +31,17 @@ export default defineConfig(
 		}
 	},
 	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
+		rules: {
+			// The app is served from the root of its origin (no `paths.base`), so an address needs no `resolve()`.
+			'svelte/no-navigation-without-resolve': 'off',
+			// The Maps, Sets and Dates of the app are built inside `$derived` or plain functions and replaced as a whole, never changed in place — nothing to make reactive.
+			'svelte/prefer-svelte-reactivity': 'off',
+			// `cond && action()` and `a ? b() : c()` as a statement are a plain way to write a one-line branch here.
+			'@typescript-eslint/no-unused-expressions': ['error', { allowShortCircuit: true, allowTernary: true }],
+			// A non-breaking space (thousands separator, «№ 1», units) is written on purpose in strings, templates, patterns and comments.
+			'no-irregular-whitespace': ['error', { skipStrings: true, skipTemplates: true, skipRegExps: true, skipComments: true }],
+			// `_name` marks a parameter that a callback signature requires and the body does not use.
+			'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }]
+		}
 	}
 );

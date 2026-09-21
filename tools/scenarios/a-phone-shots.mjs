@@ -1,0 +1,22 @@
+// Телефон 390×844: колокольчик, форма новой сделки, диалог перехода, доска.
+import { BASE, accessToken } from '../lib.mjs';
+import { newBrowser, newPage } from './a-lib.mjs';
+const tok = await accessToken('kam');
+const find = async (q) => (await (await fetch(`${BASE}/api/deals?q=${q}&limit=1`, { headers: { Authorization: `Bearer ${tok}` } })).json()).items[0];
+const browser = await newBrowser();
+const page = await newPage(browser, { who: 'kam', width: 390, height: 844 });
+const shot = async (name) => { await page.waitForTimeout(900); await page.screenshot({ path: `.shots/a/phone-${name}.png` }); console.log('ok', name); };
+await page.goto(`${BASE}/deals`, { waitUntil: 'load' });
+await page.waitForTimeout(1500);
+await page.getByTestId('bell').click();
+await shot('bell');
+await page.keyboard.press('Escape');
+await page.mouse.click(200, 700);
+await page.goto(`${BASE}/deals?new=1`, { waitUntil: 'load' });
+await shot('new-deal');
+const d = await find('D-2026-000001');
+await page.goto(`${BASE}/deals/${d.id}`, { waitUntil: 'load' });
+await page.getByTestId('deal-primary-transition').click();
+await shot('transition');
+console.log('problems', JSON.stringify(page.__problems));
+await browser.close();

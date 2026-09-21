@@ -1,0 +1,10 @@
+import { newBrowser, newPage, BASE } from '../lib.mjs';
+const browser = await newBrowser();
+const page = await newPage(browser, { who: 'kam', width: 1440, height: 900 });
+page.on('console', (m) => m.type() !== 'debug' && console.log('console:', m.type(), m.text().slice(0, 400)));
+page.on('pageerror', (e) => console.log('pageerror:', String(e).slice(0, 600)));
+await page.goto(`${BASE}/deals`);
+await page.waitForTimeout(2500);
+console.log(await page.evaluate(() => [...document.querySelectorAll('[class*=atmr-popover]')].map((e) => e.className).join(' | ')));
+console.log(await page.evaluate(() => document.querySelector('.atmr-top-menu__utilities-container').innerHTML.replace(/<svg.*?<\/svg>/g, '<svg/>').slice(0, 600)));
+await browser.close();

@@ -1,34 +1,48 @@
 {
-	"name": "frontend",
+	"name": "rtk-crm-web",
 	"private": true,
-	"version": "0.0.1",
+	"version": "0.1.0",
+	"description": "CRM ИТ Школы Ростелекома — веб-клиент (SvelteKit SPA на дизайн-системе rt-ui)",
 	"type": "module",
 	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build",
-		"preview": "vite preview",
+		"dev": "vite dev --host 0.0.0.0 --port 5273 --strictPort",
+		"build": "vite build && node tools/postbuild.mjs",
+		"preview": "vite preview --host 0.0.0.0 --port 4273 --strictPort",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"lint": "eslint ."
+		"lint": "eslint .",
+		"test": "vitest run",
+		"gen:api": "node tools/gen-api.mjs"
+	},
+	"dependencies": {
+		"@lct-testkit/rt-ui": "file:./vendor/lct-testkit-rt-ui-0.1.0.tgz",
+		"@xyflow/svelte": "^1.0.0",
+		"dayjs": "^1.11.13",
+		"dompurify": "^3.2.6",
+		"marked": "^16.0.0",
+		"openapi-fetch": "^0.14.0",
+		"pdfjs-dist": "^5.4.0"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
-		"@sveltejs/adapter-auto": "^7.0.1",
+		"@sveltejs/adapter-static": "^3.0.8",
 		"@sveltejs/kit": "^2.63.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
-		"@tailwindcss/forms": "^0.5.11",
-		"@tailwindcss/typography": "^0.5.19",
-		"@tailwindcss/vite": "^4.3.0",
+		"@tailwindcss/typography": "^0.5.20",
+		"@tailwindcss/vite": "^4.3.3",
 		"@types/node": "^24",
 		"eslint": "^10.4.1",
 		"eslint-plugin-svelte": "^3.19.0",
 		"globals": "^17.6.0",
+		"openapi-typescript": "^7.9.0",
+		"playwright": "^1.55.0",
 		"svelte": "^5.56.1",
 		"svelte-check": "^4.6.0",
-		"tailwindcss": "^4.3.0",
+		"tailwindcss": "^4.3.3",
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.60.1",
-		"vite": "^8.0.16"
+		"vite": "^8.0.16",
+		"vitest": "^3.2.4"
 	}
 }

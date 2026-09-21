@@ -1,0 +1,8 @@
+node_modules
+.svelte-kit
+build
+.shots
+.git
+docs
+tools/scenarios
+*.log

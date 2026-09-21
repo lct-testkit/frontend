@@ -1,21 +1,36 @@
 import tailwindcss from '@tailwindcss/vite';
-import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 
-export default defineConfig({
-	plugins: [
-		tailwindcss(),
-		sveltekit({
-			compilerOptions: {
-				// Force runes mode for the project, except for libraries. Can be removed in svelte 6.
-				runes: ({ filename }) => filename.split(/[/\\]/).includes('node_modules') ? undefined : true
-			},
+// Dev proxy: the browser only ever talks to ONE origin (like behind Caddy in production).
+// changeOrigin: the backend's Keycloak derives the token issuer from Host/X-Forwarded-Host, and the API validates it against
+// its own public URL (http://localhost:8080/auth/...), so the proxy must present itself as the backend's host.
+// /api, /public, /health go to the FastAPI app, /auth to Keycloak — both are published by Caddy on :8080.
+export default defineConfig(({ mode }) => {
+	const env = loadEnv(mode, process.cwd(), '');
+	const backend = env.BACKEND_URL || 'http://localhost:8080';
+	const proxy = Object.fromEntries(
+		['/api', '/public', '/health', '/auth'].map((path) => [
+			path,
+			{ target: backend, changeOrigin: true, xfwd: false }
+		])
+	);
 
-			// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
-			// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
-			// See https://svelte.dev/docs/kit/adapters for more information about adapters.
-			adapter: adapter()
-		})
-	]
+	return {
+		plugins: [tailwindcss(), sveltekit()],
+		server: {
+			host: '0.0.0.0',
+			port: 5273,
+			strictPort: true,
+			proxy,
+			fs: { allow: ['.', '../rt-ui'] }
+		},
+		preview: { proxy },
+		// rt-ui ships plain-ESM/CJS helpers that must be pre-bundled for the browser (pnpm keeps them nested)
+		optimizeDeps: {
+			include: ['attr-accept', 'imask', 'card-validator', 'clsx', 'dayjs', 'virtua', '@popperjs/core'].map((d) => `@lct-testkit/rt-ui > ${d}`)
+		},
+		build: { target: 'es2022', chunkSizeWarningLimit: 900 },
+		test: { include: ['src/**/*.{test,spec}.ts'], environment: 'node' }
+	};
 });

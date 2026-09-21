@@ -1,0 +1,381 @@
+/*
+ * Tailwind v4 on top of the Rostelecom design system (rt-ui).
+ *
+ *  - Tailwind's Preflight is NOT imported: rt-ui is built against the browser defaults + its own base layer.
+ *  - rt-ui CSS lives in the `rtui` cascade layer BELOW `utilities`, so a utility (`w-full`, `mt-4`, `hidden`…) always wins
+ *    over a component rule. (Unlayered CSS would beat every layer — never import rt-ui CSS from JS.)
+ *  - Design tokens (`--atmr-*`, switched by the theme class on <body>) are mapped into Tailwind's theme below, so
+ *    `bg-surface text-muted border-line rounded-md` follow the active theme, light/dark/purple, with no dark: variants.
+ *  - Breakpoints = rt-ui's: phone < 768 (`max-md:`), tablet 768–1023 (`md:`), desktop ≥ 1024 (`lg:`).
+ */
+
+@layer theme, base, rtui, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import '@lct-testkit/rt-ui/styles/rt-ui.min.css' layer(rtui);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@plugin '@tailwindcss/typography';
+
+@theme inline {
+	--font-sans: var(--atmr-font-family-body);
+	--font-heading: var(--atmr-font-family-heading);
+
+	/* surfaces & text */
+	--color-page: var(--atmr-bg-page);
+	--color-page-filled: var(--atmr-bg-page-filled);
+	--color-surface: var(--atmr-bg-surface1);
+	--color-surface-2: var(--atmr-bg-surface2);
+	--color-surface-3: var(--atmr-bg-surface3);
+	--color-surface-4: var(--atmr-bg-surface4);
+	--color-elevated: var(--atmr-bg-elevated-xl);
+	--color-fg: var(--atmr-fg-default);
+	--color-muted: var(--atmr-fg-muted);
+	--color-soft: var(--atmr-fg-soft);
+	--color-disabled: var(--atmr-fg-disabled);
+	--color-line: var(--atmr-border-muted);
+	--color-line-strong: var(--atmr-border-default);
+
+	/* semantic colours: solid + soft container */
+	--color-accent: var(--atmr-accent-default);
+	--color-accent-hover: var(--atmr-accent-hover);
+	--color-accent-soft: var(--atmr-accent-container-soft);
+	--color-accent-100: var(--atmr-accent-100);
+	--color-accent-600: var(--atmr-accent-600);
+	--color-accent-900: var(--atmr-accent-900);
+	--color-on-accent: var(--atmr-accent-on-accent);
+	--color-danger: var(--atmr-error-default);
+	--color-danger-soft: var(--atmr-error-container-soft);
+	--color-on-danger: var(--atmr-error-on-error);
+	--color-success: var(--atmr-success-default);
+	--color-success-soft: var(--atmr-success-container-soft);
+	--color-warning: var(--atmr-warning-default);
+	--color-warning-soft: var(--atmr-warning-container-soft);
+	--color-info: var(--atmr-info-default);
+	--color-info-soft: var(--atmr-info-container-soft);
+	--color-neutral: var(--atmr-neutral-default);
+	--color-neutral-soft: var(--atmr-neutral-container-soft);
+
+	--radius-sm: var(--atmr-border-radius-s);
+	--radius-md: var(--atmr-border-radius-m);
+	--radius-lg: var(--atmr-border-radius-l);
+
+	--shadow-s: var(--atmr-shadow-bottom-s);
+	--shadow-m: var(--atmr-shadow-bottom-m);
+	--shadow-l: var(--atmr-shadow-bottom-l);
+}
+
+/* Typography = the design system's font shorthands (family + size + line-height + weight) */
+@utility t-h1 {
+	font: var(--atmr-font-heading-h1);
+}
+@utility t-h2 {
+	font: var(--atmr-font-heading-h2);
+}
+@utility t-h3 {
+	font: var(--atmr-font-heading-h3);
+}
+@utility t-h4 {
+	font: var(--atmr-font-heading-h4);
+}
+@utility t-h5 {
+	font: var(--atmr-font-heading-h5);
+}
+@utility t-body-l {
+	font: var(--atmr-font-body-l);
+}
+@utility t-body-m {
+	font: var(--atmr-font-body-m);
+}
+@utility t-body-s {
+	font: var(--atmr-font-body-s);
+}
+@utility t-body-l-strong {
+	font: var(--atmr-font-body-l-strong);
+}
+@utility t-body-m-strong {
+	font: var(--atmr-font-body-m-strong);
+}
+@utility t-body-s-strong {
+	font: var(--atmr-font-body-s-strong);
+}
+@utility t-desc-l {
+	font: var(--atmr-font-description-l);
+}
+@utility t-desc-l-strong {
+	font: var(--atmr-font-description-l-strong);
+}
+@utility t-desc-m {
+	font: var(--atmr-font-description-m);
+}
+@utility t-desc-s {
+	font: var(--atmr-font-description-s);
+}
+
+/* rows, cards and values: the same body font as t-body-m / t-body-m-strong (kept as names because screens already use them) */
+@utility t-row {
+	font: var(--atmr-font-body-m);
+}
+@utility t-row-strong {
+	font: var(--atmr-font-body-m-strong);
+}
+
+/* rendered markdown (comments, policy, help): typography plugin recoloured with tokens */
+@utility md {
+	@apply prose prose-sm max-w-none break-words;
+	--tw-prose-body: var(--atmr-fg-default);
+	--tw-prose-headings: var(--atmr-fg-default);
+	--tw-prose-lead: var(--atmr-fg-muted);
+	--tw-prose-links: var(--atmr-accent-default);
+	--tw-prose-bold: var(--atmr-fg-default);
+	--tw-prose-counters: var(--atmr-fg-muted);
+	--tw-prose-bullets: var(--atmr-fg-soft);
+	--tw-prose-hr: var(--atmr-border-muted);
+	--tw-prose-quotes: var(--atmr-fg-muted);
+	--tw-prose-quote-borders: var(--atmr-border-default);
+	--tw-prose-captions: var(--atmr-fg-muted);
+	--tw-prose-code: var(--atmr-fg-default);
+	--tw-prose-pre-code: var(--atmr-fg-default);
+	--tw-prose-pre-bg: var(--atmr-bg-surface3);
+	--tw-prose-th-borders: var(--atmr-border-default);
+	--tw-prose-td-borders: var(--atmr-border-muted);
+
+	/* inline code without the plugin's decorative backticks */
+	& code::before,
+	& code::after {
+		content: none;
+	}
+	& code {
+		@apply rounded-sm bg-surface-3 px-1 py-0.5 font-mono;
+	}
+}
+
+@layer base {
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+	html {
+		-webkit-text-size-adjust: 100%;
+		scrollbar-gutter: stable;
+	}
+	body {
+		@apply m-0 min-h-full min-w-0 overflow-x-hidden bg-page font-sans text-fg;
+		width: auto; /* rt-ui sizes body to fit-content in its playground; an app fills the window */
+	}
+	h1,
+	h2,
+	h3,
+	h4,
+	p {
+		@apply m-0;
+	}
+	a {
+		@apply text-accent no-underline hover:underline;
+	}
+	/* Preflight is not loaded: neutralise native button chrome (rt-ui buttons live in the `rtui` layer above this one) */
+	button {
+		@apply cursor-pointer border-0 bg-transparent p-0 font-[inherit] text-[inherit];
+	}
+	button:disabled {
+		@apply cursor-default;
+	}
+	input[type='search'] {
+		@apply appearance-none;
+	}
+	input[type='search']::-webkit-search-cancel-button {
+		@apply appearance-none;
+	}
+	:focus-visible {
+		@apply outline-2 outline-offset-2 outline-accent;
+	}
+	/* our own links and buttons: the focus ring grows in instead of popping (the DS controls do the same in `components` below): the resting state is an outline of
+	   zero width and no colour, so only width and colour change */
+	:where(a, button, summary, [role='button']):not(:focus-visible) {
+		outline: 0 solid transparent;
+		outline-offset: 2px;
+	}
+	:where(a, button, summary, [role='button']) {
+		transition:
+			outline-color var(--atmr-motion-duration-s) var(--atmr-motion-easing-productive-standard),
+			outline-width var(--atmr-motion-duration-s) var(--atmr-motion-easing-productive-standard);
+	}
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			scroll-behavior: auto !important;
+		}
+	}
+}
+
+/* Line spacing: 130 % of the font size EVERYWHERE (the DS default is 24 px on 16 px = 150 % for body text, 26 on 18, 20 on 14: it looked airy,
+   worst on a phone). The DS fonts are `font` shorthand tokens: family, weight and size stay, only the line height becomes 1.3.
+   Unlayered on purpose and more specific than the theme class, so it wins over the theme stylesheets in every theme and in portals (Modal, Drawer). */
+body[class*='Theme_root_'] {
+	--atmr-font-display-l-strong: 700 48px/1.3 'Rostelecom Basis';
+	--atmr-font-display-l: 500 48px/1.3 'Rostelecom Basis';
+	--atmr-font-display-m-strong: 700 42px/1.3 'Rostelecom Basis';
+	--atmr-font-display-m: 500 42px/1.3 'Rostelecom Basis';
+	--atmr-font-display-s-strong: 700 32px/1.3 'Rostelecom Basis';
+	--atmr-font-display-s: 500 32px/1.3 'Rostelecom Basis';
+	--atmr-font-heading-h1: 700 28px/1.3 'Rostelecom Basis';
+	--atmr-font-heading-h2: 700 22px/1.3 'Rostelecom Basis';
+	--atmr-font-heading-h3: 700 18px/1.3 'Rostelecom Basis';
+	--atmr-font-heading-h4: 700 16px/1.3 'Rostelecom Basis';
+	--atmr-font-heading-h5: 700 14px/1.3 'Rostelecom Basis';
+	--atmr-font-body-l-strong: 500 18px/1.3 'Rostelecom Basis';
+	--atmr-font-body-l: 400 18px/1.3 'Rostelecom Basis';
+	--atmr-font-body-m-strong: 500 16px/1.3 'Rostelecom Basis';
+	--atmr-font-body-m: 400 16px/1.3 'Rostelecom Basis';
+	--atmr-font-body-s-strong: 500 14px/1.3 'Rostelecom Basis';
+	--atmr-font-body-s: 400 14px/1.3 'Rostelecom Basis';
+	--atmr-font-description-l-strong: 500 12px/1.3 'Rostelecom Basis';
+	--atmr-font-description-l: 400 12px/1.3 'Rostelecom Basis';
+	--atmr-font-description-m-strong: 500 11.008px/1.3 'Rostelecom Basis';
+	--atmr-font-description-m: 400 11.008px/1.3 'Rostelecom Basis';
+	--atmr-font-description-s-strong: 500 10px/1.3 'Rostelecom Basis';
+	--atmr-font-description-s: 400 10px/1.3 'Rostelecom Basis';
+}
+
+/* overrides of rt-ui behaviour that Tailwind classes cannot reach (they live on elements the library renders itself) */
+@layer components {
+	/* two corner steps, no more: 8 px for controls and blocks inside surfaces (buttons, fields, banners, list items),
+	   12 px for the surfaces themselves (cards, dialogs, drawers); only pills (chips, avatars) are fully round.
+	   rt-ui's own scale also has 16 and 32 px (its drawer is 32): fold them into the surface step */
+	:root,
+	body {
+		--atmr-border-radius-xl: var(--atmr-border-radius-l);
+		--atmr-border-radius-2xl: var(--atmr-border-radius-l);
+	}
+	/* rt-ui lifts Select menus above a <Modal> only, but a <Drawer> sits at the same z-index: without this their menus and date pickers open behind it */
+	/* the last wizard step has no connector line and is laid out in what is left of the row: its number tile got squeezed into a 25×32 rectangle */
+	.atmr-wizard-horizontal-item__indicator {
+		flex-shrink: 0;
+	}
+	/* `.atmr-popover--inputDate` is ALSO a class of the date FIELD (the DS passes it to the input), so it is named together with `.atmr-popover`: only the popup is lifted,
+	   otherwise the field itself stays above the overlay of a dialog (a bright field on a dimmed page) */
+	.atmr-dropdown-menu,
+	.atmr-popover.atmr-popover--inputDate {
+		z-index: calc(var(--atmr-z-index-modal) + var(--atmr-z-index-dropdown));
+	}
+	/* text of a table starts on the same 16 px axis as tabs and cards (15 px + 1 px border); the DS default is 12 px */
+	.atmr-tablegrid {
+		--atmr-tablegrid-m-cell-padding-horizontal: 15px;
+		--atmr-tablegrid-m-header-padding-horizontal: 15px;
+	}
+	/* the tabs of a page stand in ONE row with its buttons (36 px on a desktop, 48 px on a phone: the height of the phone controls): the DS item is 61 px high, 20 px above and below the
+	   label. The label is 20.8 px (16 px on a 130 % line), so 7.6 px above and below make exactly 36 px, 13.6 px make 48 */
+	.atmr-tabs-group {
+		--atmr-tabitem-m-padding-top: 7.6px;
+		--atmr-tabitem-m-padding-bottom: 7.6px;
+	}
+	@media (max-width: 767px) {
+		.atmr-tabs-group {
+			--atmr-tabitem-m-padding-top: 13.6px;
+			--atmr-tabitem-m-padding-bottom: 13.6px;
+		}
+	}
+	/* status chips in a page header stand in a row with 36 px buttons: the same height (the DS Badge is 24 px high) */
+	.rtk-page-header .atmr-badge {
+		min-height: 36px;
+		padding-block: 0;
+		padding-inline: 12px;
+	}
+	.rtk-page-header .atmr-badge .atmr-badge__text {
+		font: var(--atmr-font-body-s);
+	}
+	/* Rings and borders of the DS controls come and go smoothly (the DS switches them at once). A ring is an `outline`; its resting state is an outline of zero width
+	   and no colour, so the DS focus rule only changes width and colour — that can be animated (`none` → `solid` cannot). Fills, borders and shadows move with it
+	   (hover, focus, error). `prefers-reduced-motion` cuts every transition to nothing in the base layer above. */
+	:is(
+			.atmr-button,
+			.atmr-icon-button,
+			.atmr-functionbutton,
+			.atmr-closebutton,
+			.atmr-segment,
+			.atmr-chip,
+			.atmr-tabs-item,
+			.atmr-breadcrumbs__item,
+			.atmr-input__container,
+			.atmr-checkbox__container,
+			.atmr-checkbox__innerframe,
+			.atmr-radiobutton__container,
+			.atmr-radiobutton__innerframe
+		) {
+		transition:
+			background-color var(--atmr-motion-duration-s) var(--atmr-motion-easing-productive-standard),
+			border-color var(--atmr-motion-duration-s) var(--atmr-motion-easing-productive-standard),
+			box-shadow var(--atmr-motion-duration-s) var(--atmr-motion-easing-productive-standard),
+			outline-color var(--atmr-motion-duration-s) var(--atmr-motion-easing-productive-standard),
+			outline-width var(--atmr-motion-duration-s) var(--atmr-motion-easing-productive-standard),
+			color var(--atmr-motion-duration-s) var(--atmr-motion-easing-productive-standard);
+	}
+	:is(.atmr-button__label, .atmr-functionbutton__label, .atmr-button svg, .atmr-icon-button svg, .atmr-functionbutton svg) {
+		transition:
+			color var(--atmr-motion-duration-s) var(--atmr-motion-easing-productive-standard),
+			fill var(--atmr-motion-duration-s) var(--atmr-motion-easing-productive-standard);
+	}
+	/* buttons and their kin: the ring is the element's own outline + a second, thin one on its ::before (the DS shows it with `display`, which cannot fade) */
+	:is(.atmr-button, .atmr-icon-button, .atmr-functionbutton, .atmr-closebutton, .atmr-segment, .atmr-chip, .atmr-tabs-item, .atmr-breadcrumbs__item):not(:focus-visible):not(
+			:has(:focus-visible)
+		) {
+		outline: 0 solid transparent;
+		outline-offset: var(--atmr-focus-contrast-extra-border-width);
+	}
+	:is(.atmr-button, .atmr-icon-button, .atmr-closebutton, .atmr-segment)::before {
+		display: block;
+		opacity: 0;
+		transition: opacity var(--atmr-motion-duration-s) var(--atmr-motion-easing-productive-standard);
+	}
+	:is(.atmr-button, .atmr-icon-button, .atmr-closebutton, .atmr-segment):is(:focus-visible, :has(:focus-visible))::before {
+		opacity: 1;
+	}
+	/* fields: the ring is an outline of the container */
+	.atmr-input:not(.atmr-input--disabled):not(.atmr-input--readOnly):not(.atmr-input--focus):not(:has(:focus-visible)) .atmr-input__container {
+		outline: 0 solid transparent;
+	}
+	/* a checkbox and a radio button: the ring is an outline of the box that follows the (invisible) native input */
+	.atmr-checkbox__input:not(:focus-visible) + .atmr-checkbox__container,
+	.atmr-radiobutton__input:not(:focus-visible) + .atmr-radiobutton__container {
+		outline: 0 solid transparent;
+	}
+	/* touch targets: a finger needs 44 px. The DS controls keep their looks (a 40 px floating button, a 32 px segment, a 36 px button, a 22 px checkbox), but on a device with a finger
+	   (`pointer: coarse`) each gets an invisible zone around it that brings the tappable area up to 44 px — nothing moves, nothing grows on the screen. */
+	@media (pointer: coarse) {
+		:is(.atmr-button, .atmr-icon-button, .atmr-functionbutton, .atmr-closebutton, .atmr-segment, .atmr-chip, .atmr-checkbox, .atmr-radiobutton, .atmr-switch) {
+			position: relative;
+		}
+		:is(.atmr-button, .atmr-icon-button, .atmr-functionbutton, .atmr-closebutton, .atmr-segment, .atmr-chip, .atmr-checkbox, .atmr-radiobutton, .atmr-switch)::after {
+			content: '';
+			position: absolute;
+			inset-block: calc(-1 * max(0px, (44px - 100%) / 2));
+			inset-inline: calc(-1 * max(0px, (44px - 100%) / 2));
+		}
+	}
+	/* the zoom buttons of the workflow canvas (a library that is not the design system): 26 px is too small for a finger */
+	@media (pointer: coarse) {
+		.svelte-flow__controls-button {
+			width: 40px !important; /* the library's own CSS is not layered, so it beats a plain rule here */
+			height: 40px !important;
+		}
+	}
+	/* touch targets: the DS top-bar icons are 36 px; on a phone they are 44 px (as in the DS CRM example) */
+	@media (max-width: 767px) {
+		.atmr-top-menu__utilities-icon {
+			width: 44px;
+			height: 44px;
+		}
+	}
+}
+
+/* before JS applies the stored theme: follow the OS so dark users do not get a white flash */
+@media (prefers-color-scheme: dark) {
+	body.Theme_root_rtk_default_light:not([data-theme-ready]) {
+		background: #16171b;
+	}
+}

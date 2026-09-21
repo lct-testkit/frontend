@@ -1,0 +1,20 @@
+# Static file server of the web image (internal network only; TLS, CSP and routing live in the main Caddy).
+{
+	admin off
+	auto_https off
+}
+
+:3000 {
+	root * /srv
+	encode zstd gzip
+
+	# runtime config and the SPA shell must never be cached; hashed assets are immutable
+	@config path /config.json /boot.js /index.html
+	header @config Cache-Control "no-cache"
+	@assets path /_app/immutable/* /fonts/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	# unknown paths → the SPA (client-side router)
+	try_files {path} /index.html
+	file_server
+}

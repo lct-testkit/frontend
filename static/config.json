@@ -1,0 +1,17 @@
+{
+	"mode": "demo",
+	"appName": "RTK School",
+	"keycloak": {
+		"path": "/auth",
+		"realm": "crm",
+		"clientId": "crm-bff",
+		"clientSecret": "crm-bff-secret"
+	},
+	"demoAccounts": [
+		{ "username": "kam.ivanov", "password": "Kam123456789!", "role": "KAM", "name": "Иван Иванов", "position": "Менеджер по вузам" },
+		{ "username": "head.petrov", "password": "Head12345678!", "role": "HEAD", "name": "Пётр Петров", "position": "Руководитель отдела" },
+		{ "username": "admin.crm", "password": "Admin12345678!", "role": "ADMIN", "name": "Алексей Администратов", "position": "Администратор платформы" },
+		{ "username": "admin.volkov", "password": "Volkov12345678!", "role": "ADMIN", "name": "Дмитрий Волков", "position": "Второй администратор" },
+		{ "username": "auditor.smirnov", "password": "Audit12345678!", "role": "AUDITOR", "name": "Сергей Смирнов", "position": "Аудитор" }
+	]
+}
