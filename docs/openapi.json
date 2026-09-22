@@ -3533,6 +3533,57 @@
             }
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "workflows"
+        ],
+        "summary": "Удалить черновик воронки",
+        "description": "Только для воронки в состоянии draft, которая никогда не публиковалась и на которую не заведено ни одной сделки — иначе 409 CRM-1207. Опубликованную воронку удалить нельзя ни при каких условиях, только архивировать статусы по одному (`POST .../statuses/{status_id}/archive`). Роль: запись воронок.",
+        "operationId": "delete_workflow_api_workflows__workflow_id__delete",
+        "parameters": [
+          {
+            "name": "workflow_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workflow Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/workflows/{workflow_id}/graph": {
@@ -7347,6 +7398,57 @@
             }
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "directions"
+        ],
+        "summary": "Удалить направление",
+        "description": "Только если нет дочерних направлений и ни один продукт на него не ссылается — иначе 409 CRM-1303. Роль: запись каталога.",
+        "operationId": "delete_direction_api_directions__direction_id__delete",
+        "parameters": [
+          {
+            "name": "direction_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Direction Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/loss-reasons": {
@@ -7542,6 +7644,57 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "loss-reasons"
+        ],
+        "summary": "Удалить причину отказа",
+        "description": "Только если причина не используется ни в одной сделке — иначе 409 CRM-1303. Роль: запись каталога.",
+        "operationId": "delete_loss_reason_api_loss_reasons__loss_reason_id__delete",
+        "parameters": [
+          {
+            "name": "loss_reason_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Loss Reason Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -8034,6 +8187,160 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RegionListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/organization-licenses": {
+      "get": {
+        "tags": [
+          "organization-licenses"
+        ],
+        "summary": "Список лицензий/договоров вуз-вендор-ПО",
+        "description": "Фильтр: organization_id. Роль: чтение каталога.",
+        "operationId": "list_organization_licenses_api_organization_licenses_get",
+        "parameters": [
+          {
+            "name": "organization_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Organization Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationLicenseListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/organization-licenses/{license_id}": {
+      "get": {
+        "tags": [
+          "organization-licenses"
+        ],
+        "summary": "Карточка лицензии/договора",
+        "operationId": "get_organization_license_api_organization_licenses__license_id__get",
+        "parameters": [
+          {
+            "name": "license_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "License Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationLicenseOut"
                 }
               }
             }
@@ -8851,6 +9158,59 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/registry/versions/{version_id}": {
+      "delete": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "Удалить версию реестра",
+        "description": "Нельзя удалить версию, которая сейчас импортируется, и нельзя удалить последнюю успешно завершённую версию — иначе 409 CRM-1303. Роль: ADMIN.",
+        "operationId": "delete_registry_version_api_admin_registry_versions__version_id__delete",
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Version Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -11032,6 +11392,64 @@
             }
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Удалить шаблон уведомления",
+        "description": "Можно всегда — это шаблон текста, не бизнес-сущность с историей. Если удаляемый шаблон был единственным активным для своей пары code+channel, ответ несёт предупреждение об этом (уведомления этого типа перестанут отправляться по каналу, пока не появится новый шаблон). Роль: управление шаблонами уведомлений.",
+        "operationId": "delete_notification_template_api_admin_notification_templates__template_id__delete",
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Template Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/reports": {
@@ -11210,6 +11628,66 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReportJobOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/{report_id}/data": {
+      "get": {
+        "tags": [
+          "reporting"
+        ],
+        "summary": "Данные отчёта в JSON",
+        "description": "Тот же набор данных, что рендерится в xlsx/pdf/png, в виде `{columns, rows}` — для виджетов дашбордов и клиентских диаграмм. Строится заново по параметрам задания при каждом запросе (свежие данные), не создаёт файл в S3 и не пишет событие аудита `REPORT_EXPORTED` — это чтение, не выгрузка. Права — как у `GET /api/reports/{report_id}`.",
+        "operationId": "get_report_data_api_reports__report_id__data_get",
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Report Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportDataOut"
                 }
               }
             }
@@ -17115,7 +17593,8 @@
             "type": "string",
             "enum": [
               "organization",
-              "product"
+              "product",
+              "license"
             ],
             "title": "Entity Type"
           },
@@ -19287,6 +19766,158 @@
         "title": "OrganizationCreateRequest",
         "description": "Раздел 6: либо ИНН, либо название и базовые реквизиты."
       },
+      "OrganizationLicenseListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OrganizationLicenseOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "OrganizationLicenseListResponse"
+      },
+      "OrganizationLicenseOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Organization Id"
+          },
+          "vendor": {
+            "type": "string",
+            "title": "Vendor"
+          },
+          "product_name": {
+            "type": "string",
+            "title": "Product Name"
+          },
+          "contract_number": {
+            "type": "string",
+            "title": "Contract Number"
+          },
+          "license_signed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License Signed At"
+          },
+          "license_valid_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License Valid Year"
+          },
+          "transfer_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "not_started",
+                  "in_progress",
+                  "transferred",
+                  "declined"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transfer Status"
+          },
+          "manager_full_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manager Full Name"
+          },
+          "responsible_contacts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Responsible Contacts"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "organization_id",
+          "vendor",
+          "product_name",
+          "contract_number",
+          "version",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "OrganizationLicenseOut"
+      },
       "OrganizationListResponse": {
         "properties": {
           "items": {
@@ -21068,6 +21699,59 @@
         ],
         "title": "RejectRequest"
       },
+      "ReportDataOut": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Columns"
+          },
+          "rows": {
+            "items": {
+              "items": {},
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "row_count": {
+            "type": "integer",
+            "title": "Row Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "columns",
+          "rows",
+          "generated_at",
+          "row_count"
+        ],
+        "title": "ReportDataOut",
+        "description": "rtk_requiriments.md разд. 6.4 («возможность формирования результирующего\njson-файла»; см. также backend-issues.md #19): тот же `ReportDataset`,\nчто рендерится в xlsx/pdf/png, отданный как JSON — для дашбордов и\nклиентских диаграмм. Строится заново по параметрам задания при каждом\nзапросе (свежие данные), не создаёт файл в S3 и не пишет `REPORT_EXPORTED`\n— это чтение, не выгрузка (`reporting.service.ReportJobService.get_data`)."
+      },
       "ReportDownloadResponse": {
         "properties": {
           "url": {
@@ -21107,7 +21791,8 @@
           "params": {
             "additionalProperties": true,
             "type": "object",
-            "title": "Params"
+            "title": "Params",
+            "description": "Параметры вида отчёта, накладываются поверх `default_params` шаблона. Специфичные для вида (например `months`/`limit`/`workflow_id`) — см. `GET /report-templates`. Общие для П1 (rtk_requiriments.md разд. 4, ФТ.1/ФТ.4), поддержаны почти всеми видами, кроме `learning_progress`: `date_from`/`date_to` (YYYY-MM-DD, период включительно), `organization_ids`/`direction_ids`/`product_ids`/`owner_ids` (списки UUID)."
           }
         },
         "type": "object",

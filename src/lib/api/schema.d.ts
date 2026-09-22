@@ -907,7 +907,11 @@ export type paths = {
         get: operations["get_workflow_graph_api_workflows__workflow_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Удалить черновик воронки
+         * @description Только для воронки в состоянии draft, которая никогда не публиковалась и на которую не заведено ни одной сделки — иначе 409 CRM-1207. Опубликованную воронку удалить нельзя ни при каких условиях, только архивировать статусы по одному (`POST .../statuses/{status_id}/archive`). Роль: запись воронок.
+         */
+        delete: operations["delete_workflow_api_workflows__workflow_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1496,7 +1500,11 @@ export type paths = {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Удалить направление
+         * @description Только если нет дочерних направлений и ни один продукт на него не ссылается — иначе 409 CRM-1303. Роль: запись каталога.
+         */
+        delete: operations["delete_direction_api_directions__direction_id__delete"];
         options?: never;
         head?: never;
         /** Обновить направление */
@@ -1531,7 +1539,11 @@ export type paths = {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Удалить причину отказа
+         * @description Только если причина не используется ни в одной сделке — иначе 409 CRM-1303. Роль: запись каталога.
+         */
+        delete: operations["delete_loss_reason_api_loss_reasons__loss_reason_id__delete"];
         options?: never;
         head?: never;
         /** Обновить причину отказа */
@@ -1617,6 +1629,43 @@ export type paths = {
         };
         /** Справочник регионов */
         get: operations["list_regions_api_regions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/organization-licenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Список лицензий/договоров вуз-вендор-ПО
+         * @description Фильтр: organization_id. Роль: чтение каталога.
+         */
+        get: operations["list_organization_licenses_api_organization_licenses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/organization-licenses/{license_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Карточка лицензии/договора */
+        get: operations["get_organization_license_api_organization_licenses__license_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1832,6 +1881,26 @@ export type paths = {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/registry/versions/{version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Удалить версию реестра
+         * @description Нельзя удалить версию, которая сейчас импортируется, и нельзя удалить последнюю успешно завершённую версию — иначе 409 CRM-1303. Роль: ADMIN.
+         */
+        delete: operations["delete_registry_version_api_admin_registry_versions__version_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2330,7 +2399,11 @@ export type paths = {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Удалить шаблон уведомления
+         * @description Можно всегда — это шаблон текста, не бизнес-сущность с историей. Если удаляемый шаблон был единственным активным для своей пары code+channel, ответ несёт предупреждение об этом (уведомления этого типа перестанут отправляться по каналу, пока не появится новый шаблон). Роль: управление шаблонами уведомлений.
+         */
+        delete: operations["delete_notification_template_api_admin_notification_templates__template_id__delete"];
         options?: never;
         head?: never;
         /** Обновить шаблон уведомления */
@@ -2364,6 +2437,26 @@ export type paths = {
         };
         /** Статус отчёта */
         get: operations["get_report_api_reports__report_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/{report_id}/data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Данные отчёта в JSON
+         * @description Тот же набор данных, что рендерится в xlsx/pdf/png, в виде `{columns, rows}` — для виджетов дашбордов и клиентских диаграмм. Строится заново по параметрам задания при каждом запросе (свежие данные), не создаёт файл в S3 и не пишет событие аудита `REPORT_EXPORTED` — это чтение, не выгрузка. Права — как у `GET /api/reports/{report_id}`.
+         */
+        get: operations["get_report_data_api_reports__report_id__data_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4283,7 +4376,7 @@ export type components = {
              * Entity Type
              * @enum {string}
              */
-            entity_type: "organization" | "product";
+            entity_type: "organization" | "product" | "license";
             /**
              * Mode
              * @default upsert
@@ -5004,6 +5097,56 @@ export type components = {
                 [key: string]: unknown;
             };
         };
+        /** OrganizationLicenseListResponse */
+        OrganizationLicenseListResponse: {
+            /** Items */
+            items: components["schemas"]["OrganizationLicenseOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** OrganizationLicenseOut */
+        OrganizationLicenseOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Vendor */
+            vendor: string;
+            /** Product Name */
+            product_name: string;
+            /** Contract Number */
+            contract_number: string;
+            /** License Signed At */
+            license_signed_at?: string | null;
+            /** License Valid Year */
+            license_valid_year?: number | null;
+            /** Transfer Status */
+            transfer_status?: ("not_started" | "in_progress" | "transferred" | "declined") | null;
+            /** Manager Full Name */
+            manager_full_name?: string | null;
+            /** Responsible Contacts */
+            responsible_contacts?: string | null;
+            /** Comment */
+            comment?: string | null;
+            /** Version */
+            version: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** OrganizationListResponse */
         OrganizationListResponse: {
             /** Items */
@@ -5547,6 +5690,32 @@ export type components = {
             /** Reason */
             reason: string;
         };
+        /**
+         * ReportDataOut
+         * @description rtk_requiriments.md разд. 6.4 («возможность формирования результирующего
+         *     json-файла»; см. также backend-issues.md #19): тот же `ReportDataset`,
+         *     что рендерится в xlsx/pdf/png, отданный как JSON — для дашбордов и
+         *     клиентских диаграмм. Строится заново по параметрам задания при каждом
+         *     запросе (свежие данные), не создаёт файл в S3 и не пишет `REPORT_EXPORTED`
+         *     — это чтение, не выгрузка (`reporting.service.ReportJobService.get_data`).
+         */
+        ReportDataOut: {
+            /** Title */
+            title: string;
+            /** Columns */
+            columns: string[];
+            /** Rows */
+            rows: unknown[][];
+            /** Note */
+            note?: string | null;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Row Count */
+            row_count: number;
+        };
         /** ReportDownloadResponse */
         ReportDownloadResponse: {
             /** Url */
@@ -5566,7 +5735,10 @@ export type components = {
              * @enum {string}
              */
             format: "xlsx" | "pdf" | "png";
-            /** Params */
+            /**
+             * Params
+             * @description Параметры вида отчёта, накладываются поверх `default_params` шаблона. Специфичные для вида (например `months`/`limit`/`workflow_id`) — см. `GET /report-templates`. Общие для П1 (rtk_requiriments.md разд. 4, ФТ.1/ФТ.4), поддержаны почти всеми видами, кроме `learning_progress`: `date_from`/`date_to` (YYYY-MM-DD, период включительно), `organization_ids`/`direction_ids`/`product_ids`/`owner_ids` (списки UUID).
+             */
             params?: {
                 [key: string]: unknown;
             };
@@ -8398,6 +8570,37 @@ export interface operations {
             };
         };
     };
+    delete_workflow_api_workflows__workflow_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     put_workflow_graph_api_workflows__workflow_id__graph_put: {
         parameters: {
             query?: never;
@@ -9923,6 +10126,37 @@ export interface operations {
             };
         };
     };
+    delete_direction_api_directions__direction_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                direction_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_direction_api_directions__direction_id__patch: {
         parameters: {
             query?: never;
@@ -10017,6 +10251,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["LossReasonOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_loss_reason_api_loss_reasons__loss_reason_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                loss_reason_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -10299,6 +10564,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RegionListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_organization_licenses_api_organization_licenses_get: {
+        parameters: {
+            query?: {
+                organization_id?: string | null;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationLicenseListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_organization_license_api_organization_licenses__license_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                license_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationLicenseOut"];
                 };
             };
             /** @description Validation Error */
@@ -10716,6 +11049,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RegistryVersionListResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_registry_version_api_admin_registry_versions__version_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -11793,6 +12157,39 @@ export interface operations {
             };
         };
     };
+    delete_notification_template_api_admin_notification_templates__template_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_notification_template_api_admin_notification_templates__template_id__patch: {
         parameters: {
             query?: never;
@@ -11920,6 +12317,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReportJobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_report_data_api_reports__report_id__data_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportDataOut"];
                 };
             };
             /** @description Validation Error */

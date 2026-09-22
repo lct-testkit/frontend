@@ -94,7 +94,7 @@ API-клиент и типы (`src/lib/api`), вход/сессия/права (
 * Dev-клиент: `pnpm dev` в `D:\testkit-lct\frontend` → `http://localhost:5273` (порт 5173 — чужой проект, не трогать). Бэкенд и Keycloak в Docker: `http://localhost:8080`.
 * Учётки (экран входа): `kam.ivanov`, `head.petrov`, `admin.crm`, `admin.volkov` (второй админ для «четырёх глаз»), `auditor.smirnov`.
 * Проверки: `pnpm check` (0 ошибок), `pnpm test` (230), `node tools/shot.mjs --as <роль> --url <путь> --sizes desktop,phone --theme rtk_default_dark`, `node tools/qa-all.mjs`. Скриншоты кладу в `.shots/` и **читаю глазами**.
-* Тестовые записи в демо-данных остались (нет ручек удаления).
+* Тестовые записи в демо-данных остались — `DELETE`-ручки появились 22.09.2026, накопленное руками ещё не почищено.
 
 ## 8. Открытые вопросы к заказчику
 

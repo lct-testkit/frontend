@@ -1,4 +1,4 @@
-# Эндпоинты бэкенда (173)
+# Эндпоинты бэкенда (181)
 
 _Сгенерировано tools/gen-api.mjs._
 
@@ -112,6 +112,7 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/directions` | Иерархия ИТ-направлений |
 | POST | `/api/directions` | Создать направление |
 | PATCH | `/api/directions/{direction_id}` | Обновить направление |
+| DELETE | `/api/directions/{direction_id}` | Удалить направление |
 
 ## files
 
@@ -176,6 +177,7 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/loss-reasons` | Справочник причин отказа |
 | POST | `/api/loss-reasons` | Создать причину отказа |
 | PATCH | `/api/loss-reasons/{loss_reason_id}` | Обновить причину отказа |
+| DELETE | `/api/loss-reasons/{loss_reason_id}` | Удалить причину отказа |
 
 ## me
 
@@ -196,6 +198,7 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/admin/notification-templates` | Список шаблонов уведомлений |
 | POST | `/api/admin/notification-templates` | Создать шаблон уведомления |
 | PATCH | `/api/admin/notification-templates/{template_id}` | Обновить шаблон уведомления |
+| DELETE | `/api/admin/notification-templates/{template_id}` | Удалить шаблон уведомления |
 | GET | `/api/me/notification-prefs` | Мои настройки уведомлений |
 | PUT | `/api/me/notification-prefs` | Обновить настройки уведомлений |
 | GET | `/api/notifications` | Мои уведомления |
@@ -208,6 +211,13 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/org-lookup/inn/{inn}` | Детали организации по ИНН |
 | GET | `/api/org-lookup/suggest` | Автоподстановка по названию или ИНН |
 | POST | `/api/org-lookup/validate` | Проверить контрольную сумму реквизита |
+
+## organization-licenses
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/api/organization-licenses` | Список лицензий/договоров вуз-вендор-ПО |
+| GET | `/api/organization-licenses/{license_id}` | Карточка лицензии/договора |
 
 ## organizations
 
@@ -241,6 +251,7 @@ _Сгенерировано tools/gen-api.mjs._
 |---|---|---|
 | POST | `/api/admin/registry/import` | Загрузить новую выгрузку ЕГРЮЛ |
 | GET | `/api/admin/registry/versions` | Список версий реестра |
+| DELETE | `/api/admin/registry/versions/{version_id}` | Удалить версию реестра |
 
 ## reporting
 
@@ -259,6 +270,7 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/reports` | Мои отчёты |
 | POST | `/api/reports` | Запустить отчёт |
 | GET | `/api/reports/{report_id}` | Статус отчёта |
+| GET | `/api/reports/{report_id}/data` | Данные отчёта в JSON |
 | GET | `/api/reports/{report_id}/download` | Ссылка на файл отчёта |
 
 ## signing
@@ -314,6 +326,7 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/workflows` | Список воронок |
 | POST | `/api/workflows` | Создать черновик воронки |
 | GET | `/api/workflows/{workflow_id}` | Граф воронки |
+| DELETE | `/api/workflows/{workflow_id}` | Удалить черновик воронки |
 | PUT | `/api/workflows/{workflow_id}/graph` | Сохранить черновик графа |
 | POST | `/api/workflows/{workflow_id}/publish` | Опубликовать воронку |
 | POST | `/api/workflows/{workflow_id}/statuses/{status_id}/archive` | Архивировать статус с переносом сделок |
