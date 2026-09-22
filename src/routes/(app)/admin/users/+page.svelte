@@ -36,7 +36,7 @@
 
 <Page>
 	<PageHeader title="Пользователи" />
-	<UsersList bind:this={list} primary={session.can('user:write') ? { label: 'Создать', icon: UserAdd, onclick: () => ((initial = {}), (creating = true)), testid: 'user-create' } : undefined} />
+	<UsersList bind:this={list} primary={session.can('user:write') ? { label: 'Создать пользователя', icon: UserAdd, onclick: () => ((initial = {}), (creating = true)), testid: 'user-create' } : undefined} />
 </Page>
 
 <UserCreateModal

@@ -17,9 +17,12 @@
 		open: boolean;
 		onClose: () => void;
 		onCreated: (agreement: EdmAgreement) => void;
+		/** deep link from «Оформить соглашение» on a blocked document (`DocumentPanel.svelte`): the side already known */
+		presetPartyType?: EdmPartyType;
+		presetPartyId?: string;
 	}
 
-	let { open, onClose, onCreated }: Props = $props();
+	let { open, onClose, onCreated, presetPartyType, presetPartyId }: Props = $props();
 
 	const PARTY_TYPES: EdmPartyType[] = ['organization', 'contact', 'user'];
 	const METHODS: EdmConclusionMethod[] = ['paper', 'ukep', 'offer_acceptance', 'employment'];
@@ -41,12 +44,12 @@
 	let fieldErrors = $state<Record<string, string>>({});
 	let failure = $state<string | null>(null);
 
-	// каждое открытие — чистая форма
+	// каждое открытие — чистая форма (кроме стороны, если пришла ссылкой из заблокированного документа)
 	$effect(() => {
 		if (!open) return;
-		partyType = 'organization';
-		partyId = null;
-		method = 'paper';
+		partyType = presetPartyType ?? 'organization';
+		partyId = presetPartyId ?? null;
+		method = defaultMethod(partyType);
 		number = '';
 		signedOn = validFrom = validTo = null;
 		file = null;

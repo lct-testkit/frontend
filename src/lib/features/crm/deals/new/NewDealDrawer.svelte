@@ -99,7 +99,7 @@
 		const body: DealCreate = {
 			title: title.trim(),
 			deal_type: type,
-			workflow_id: workflowId ?? (candidates.length > 1 ? undefined : undefined),
+			workflow_id: workflowId ?? undefined,
 			organization_id: type === 'b2b' ? orgId : null,
 			contact_id: contactId,
 			owner_id: canPickOwner ? owner : undefined,

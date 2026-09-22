@@ -80,11 +80,22 @@
 		}
 	}
 
+	/** После конфликта версий: берём актуальную версию записи (направлений мало — одна страница на весь справочник), введённое остаётся в форме. */
 	async function reloadVersion() {
-		onSaved();
-		conflict = false;
-		toast.info('Список обновлён', 'Откройте направление ещё раз, чтобы увидеть актуальные данные');
-		onClose();
+		if (!item) return;
+		try {
+			const res = await unwrap(api.GET('/api/directions', { params: { query: { limit: 200 } } }));
+			const fresh = res.items.find((d) => d.id === item.id);
+			if (fresh) {
+				version = fresh.version;
+				conflict = false;
+				toast.info('Загружена актуальная версия', 'Проверьте поля и сохраните ещё раз');
+			}
+		} catch (e) {
+			toast.error(e);
+		} finally {
+			onSaved();
+		}
 	}
 </script>
 

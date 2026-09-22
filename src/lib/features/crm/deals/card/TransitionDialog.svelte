@@ -6,6 +6,7 @@
 	import { ArrowRight, CheckSmall, CloseSmall } from '@lct-testkit/rt-ui/icons';
 	import { ApiError, api, errorMessage, ifMatch, unwrap } from '$lib/api';
 	import { CheckField, FormModal, Notice, StatusChip, toast } from '$lib/ui';
+	import { mayClose } from '$lib/ui/form-close';
 	import AreaField from '$lib/ui/fields/AreaField.svelte';
 	import DateField from '$lib/ui/fields/DateField.svelte';
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
@@ -178,10 +179,18 @@
 	const HINT_TARGET = { attachment: 'files', signature: 'signing', tasks: 'tasks', edit: 'edit' } as const;
 	const HINT_LINK = { attachment: 'К файлам', signature: 'К подписанию', tasks: 'К задачам', edit: 'Редактировать' } as const;
 
+	/** несохранённый ввод — как для закрытия диалога (`dirty` ниже), так и для ухода по ссылке-подсказке */
+	const inputDirty = $derived(comment.trim().length > 0);
+
+	/** ссылка-подсказка уходит со страницы диалога: тот же вопрос, что и при закрытии, иначе комментарий тихо теряется */
+	async function goNavigate(target: 'files' | 'signing' | 'tasks' | 'edit') {
+		if (await mayClose(inputDirty)) onNavigate?.(target);
+	}
+
 	/** кнопка-переход плашки («К файлам», «К подписанию»…); у остальных подсказок кнопки нет */
 	function navActions(kind: string | undefined): { label: string; onclick: () => void }[] {
 		if (!onNavigate || !kind || !(kind in HINT_TARGET)) return [];
-		return [{ label: HINT_LINK[kind as keyof typeof HINT_LINK], onclick: () => onNavigate(HINT_TARGET[kind as keyof typeof HINT_TARGET]) }];
+		return [{ label: HINT_LINK[kind as keyof typeof HINT_LINK], onclick: () => void goNavigate(HINT_TARGET[kind as keyof typeof HINT_TARGET]) }];
 	}
 
 </script>
@@ -204,7 +213,7 @@
 	{/if}
 {/snippet}
 
-<FormModal {open} size="m" {title} saveLabel={actionLabel} {danger} saveTestId="transition-submit" saving={busy} canSave={!form.blocked} dirty={open && comment.trim().length > 0} onSave={submit} {onClose}>
+<FormModal {open} size="m" {title} saveLabel={actionLabel} {danger} saveTestId="transition-submit" saving={busy} canSave={!form.blocked} dirty={open && inputDirty} onSave={submit} {onClose}>
 	<div class="flex flex-wrap items-center gap-2">
 		{#if current}<StatusChip label={current.name} color={current.color} tone={statusTone(current.type)} />{/if}
 		<Ico icon={ArrowRight} tone="soft" size={20} />

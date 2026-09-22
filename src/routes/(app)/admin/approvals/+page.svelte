@@ -10,7 +10,7 @@
 	import { approvalActions, approvalExecuteHref, describeApproval } from '$lib/features/identity/approvals';
 	import { approvalOperationLabel, approvalStatusMeta } from '$lib/features/identity/labels';
 	import ReasonModal from '$lib/features/identity/ReasonModal.svelte';
-	import { Btn, DateText, IconBtn, Page, PageHeader, DataTable, StatusChip, TabsBar, UserName, toast, type Col, TableCell } from '$lib/ui';
+	import { Btn, DateText, IconBtn, Page, PageHeader, DataTable, StatusChip, TabsBar, UserName, toast, confirm, type Col, TableCell } from '$lib/ui';
 
 	type Approval = components['schemas']['ApprovalOut'];
 
@@ -40,6 +40,8 @@
 	}
 
 	async function approve(a: Approval) {
+		// «Четыре глаза»: подтверждение и есть та самая вторая проверка — оно не должно уходить одним нечаянным кликом
+		if (!(await confirm({ title: `Подтвердить: ${describeApproval(a)}?`, message: 'Инициатор сможет выполнить операцию сразу после этого.', confirmLabel: 'Подтвердить' }))) return;
 		busy = a.id;
 		try {
 			replace(await unwrap(api.POST('/api/admin/approvals/{approval_id}/approve', { params: { path: { approval_id: a.id } } })));

@@ -148,6 +148,13 @@
 	& code {
 		@apply rounded-sm bg-surface-3 px-1 py-0.5 font-mono;
 	}
+	/* a help screenshot at its own pixel size overflows the card and gets clipped by its `overflow-hidden` — the plugin resets `max-width`
+	   for children of a figure, not a bare `<img>` dropped straight into the markdown (`![]()`), so it is set here */
+	& img {
+		max-width: 100%;
+		height: auto;
+		@apply rounded-md border border-line;
+	}
 }
 
 @layer base {
@@ -253,6 +260,14 @@ body[class*='Theme_root_'] {
 		--atmr-border-radius-2xl: var(--atmr-border-radius-l);
 	}
 	/* rt-ui lifts Select menus above a <Modal> only, but a <Drawer> sits at the same z-index: without this their menus and date pickers open behind it */
+	/* A confirm (e.g. "Закрыть без сохранения?") opened OVER an open Drawer (FormDrawer.mayClose) is mounted once, early, at the layout root
+	   (ConfirmHost), while a Drawer portals itself to the end of <body> each time it opens — same --atmr-z-index-modal on both, so on an equal
+	   z-index the later sibling in document order wins: the Drawer's own overlay ends up on top and swallows the confirm's clicks (and its Esc,
+	   since the dialog never becomes the front-most thing to receive it) — the confirm looks stuck. A Modal must always be able to sit above a
+	   Drawer, so it gets the same boost already used for a dropdown over a Modal. */
+	.atmr-modal-wrapper {
+		z-index: calc(var(--atmr-z-index-modal) + var(--atmr-z-index-dropdown));
+	}
 	/* the last wizard step has no connector line and is laid out in what is left of the row: its number tile got squeezed into a 25×32 rectangle */
 	.atmr-wizard-horizontal-item__indicator {
 		flex-shrink: 0;

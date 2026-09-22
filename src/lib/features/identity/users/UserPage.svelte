@@ -176,7 +176,7 @@
 					{#if status === 'blocked'}
 						<Btn {...outline} label="Разблокировать" onclick={() => (unblock = true)} data-testid="user-unblock" />
 					{/if}
-					{#if status === 'active' || status === 'blocked'}
+					{#if (status === 'active' || status === 'blocked') && !isMe}
 						<Btn {...outline} label="Сбросить пароль" onclick={() => ((suspect = false), (reset = true))} data-testid="user-reset" />
 					{/if}
 					{#if (status === 'active' || status === 'blocked') && !isMe}

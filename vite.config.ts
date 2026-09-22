@@ -5,12 +5,13 @@ import { defineConfig, loadEnv } from 'vite';
 // Dev proxy: the browser only ever talks to ONE origin (like behind Caddy in production).
 // changeOrigin: the backend's Keycloak derives the token issuer from Host/X-Forwarded-Host, and the API validates it against
 // its own public URL (http://localhost:8080/auth/...), so the proxy must present itself as the backend's host.
-// /api, /public, /health go to the FastAPI app, /auth to Keycloak — both are published by Caddy on :8080.
+// /api, /public, /health, /static (Swagger UI assets — mounted on the FastAPI app outside /api, see
+// app/api/docs.py) go to the FastAPI app, /auth to Keycloak — both are published by Caddy on :8080.
 export default defineConfig(({ mode }) => {
 	const env = loadEnv(mode, process.cwd(), '');
 	const backend = env.BACKEND_URL || 'http://localhost:8080';
 	const proxy = Object.fromEntries(
-		['/api', '/public', '/health', '/auth'].map((path) => [
+		['/api', '/public', '/health', '/auth', '/static'].map((path) => [
 			path,
 			{ target: backend, changeOrigin: true, xfwd: false }
 		])

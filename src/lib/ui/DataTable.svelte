@@ -209,6 +209,29 @@
 		io.observe(node);
 		return { destroy: () => io.disconnect() };
 	}
+
+	// The DS row (`role="row" tabindex="0"`) ships with `onkeydown={noop}` (vendored, can't patch) — focusable but Enter/Space do nothing.
+	// Delegate from the table area: only for the row itself (not a nested interactive cell like a checkbox or a link, which handle their
+	// own Enter/Space and must keep doing so). Call `onRowClick` directly — `row.click()` would only replay a synthetic DOM click, which
+	// this DS's delegated Svelte handlers silently ignore (confirmed live: it reaches the handler but never runs its reactive effects).
+	// The row's own `id` isn't exposed on the DOM, so map the focused row by its position among `[data-table-row="true"]` elements
+	// (the header row is always first, and TableGrid renders `rows` in order with no virtualization here).
+	// Wired with `use:` (imperative `addEventListener`, not a template `onkeydown`) — the area itself isn't the interactive element,
+	// the DS row already is (`role="row" tabindex="0"`), so a template attribute here would flag as a static-element handler.
+	function rowKeydown(node: HTMLElement) {
+		function onKeydown(event: KeyboardEvent) {
+			if (!onRowClick || (event.key !== 'Enter' && event.key !== ' ')) return;
+			const target = event.target as HTMLElement;
+			if (!target.matches?.('[data-table-row="true"]')) return;
+			event.preventDefault();
+			const all = node.querySelectorAll<HTMLElement>('[data-table-row="true"]');
+			const index = Array.prototype.indexOf.call(all, target) - 1;
+			const row = index >= 0 ? rows[index] : undefined;
+			if (row) onRowClick(row);
+		}
+		node.addEventListener('keydown', onKeydown);
+		return { destroy: () => node.removeEventListener('keydown', onKeydown) };
+	}
 </script>
 
 {#snippet selectAll()}
@@ -228,7 +251,7 @@
 	</div>
 {/snippet}
 
-<div bind:this={area} class={['w-full min-w-0', fill && 'md:min-h-0 md:flex-1 md:basis-0 md:overflow-hidden']} aria-busy={loading || undefined}>
+<div bind:this={area} class={['w-full min-w-0', fill && 'md:min-h-0 md:flex-1 md:basis-0 md:overflow-hidden']} aria-busy={loading || undefined} use:rowKeydown>
 	{#if error}
 		<ErrorState {error} {onRetry} />
 	{:else if loading && rows.length === 0}

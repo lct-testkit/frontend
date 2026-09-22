@@ -70,11 +70,18 @@ class NotificationsStore {
 		}
 	}
 
-	async markAll(): Promise<void> {
-		this.items = [];
-		this.more = false;
+	/** Пустые `filters` — как раньше, все непрочитанные; с ними — только те, что видны под текущими фильтрами страницы (остальные
+	 * непрочитанные остаются, поэтому счётчик колокольчика не обнуляется вслепую — он перечитывается с сервера). */
+	async markAll(filters?: { priority?: string; entity_type?: string }): Promise<void> {
+		const filtered = Boolean(filters?.priority || filters?.entity_type);
+		if (!filtered) {
+			this.items = [];
+			this.more = false;
+		}
 		try {
-			await unwrap(api.POST('/api/notifications/read', { body: {} }));
+			const priority = filters?.priority as 'normal' | 'high' | 'critical' | undefined;
+			await unwrap(api.POST('/api/notifications/read', { body: { priority, entity_type: filters?.entity_type } }));
+			if (filtered) await this.refresh();
 		} catch {
 			void this.refresh();
 		}

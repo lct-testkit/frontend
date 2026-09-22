@@ -27,7 +27,7 @@
 		.sort(([a], [b]) => a.localeCompare(b))
 		.map(([path, source]) => {
 			const slug = path.split('/').pop()!.replace(/^\d+-/, '').replace(/\.md$/, '');
-			return { slug, title: /^#\s+(.+)$/m.exec(source)?.[1] ?? slug, html: renderMarkdown(source.replace(/^#\s+.+\n+/, '')), needs: NEEDS[slug] };
+			return { slug, title: /^#\s+(.+)$/m.exec(source)?.[1] ?? slug, html: renderMarkdown(source.replace(/^#\s+.+\n+/, ''), { allowImages: true }), needs: NEEDS[slug] };
 		});
 
 	const bp = useBreakpoint();

@@ -44,7 +44,7 @@
 <svelte:head><title>Удаление ПДн · RTK School</title></svelte:head>
 
 <Page>
-	<PageHeader title="Удаление ПДн" primary={{ label: 'Запрос', onclick: () => (choosing = true), testid: 'erasure-new' }}>
+	<PageHeader title="Удаление ПДн" primary={{ label: 'Новый запрос', onclick: () => (choosing = true), testid: 'erasure-new' }}>
 		{#snippet tabs(underline)}
 			<TabsBar items={STATUS_TABS} value={statusTab(readQuery('status'))} label="Какие запросы показывать" {underline} onChange={(k) => void setQuery({ status: k === 'all' ? '' : k })} />
 		{/snippet}

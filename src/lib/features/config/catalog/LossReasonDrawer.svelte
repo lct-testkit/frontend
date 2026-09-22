@@ -90,11 +90,22 @@
 		}
 	}
 
-	function reload() {
-		onSaved();
-		conflict = false;
-		toast.info('Список обновлён', 'Откройте причину ещё раз, чтобы увидеть актуальные данные');
-		onClose();
+	/** После конфликта версий: берём актуальную версию записи, введённое остаётся в форме. */
+	async function reload() {
+		if (!item) return;
+		try {
+			const res = await unwrap(api.GET('/api/loss-reasons', {}));
+			const fresh = res.items.find((r) => r.id === item.id);
+			if (fresh) {
+				version = fresh.version;
+				conflict = false;
+				toast.info('Загружена актуальная версия', 'Проверьте поля и сохраните ещё раз');
+			}
+		} catch (e) {
+			toast.error(e);
+		} finally {
+			onSaved();
+		}
 	}
 </script>
 

@@ -59,7 +59,7 @@
 		<Skeleton kind="rows" rows={6} />
 	{:else if months.length === 0}
 		<EmptyState title="В {year} году дат нет">
-			{#snippet action()}{#if canWrite}<Btn label="Добавить дату" onclick={() => open(null)} />{/if}{/snippet}
+			{#snippet action()}{#if canWrite}<Btn label="Добавить дату" variant="outline" colorScheme="neutral" onclick={() => open(null)} />{/if}{/snippet}
 		</EmptyState>
 	{:else}
 		<div class="grid grid-cols-2 items-start gap-4 max-lg:grid-cols-1">

@@ -455,7 +455,7 @@ export interface LayoutOptions {
  * Завершающие статусы — в последнем столбце, недостижимые — в столбце перед ними, архивные — правее всех.
  */
 export function layoutByLevels(draft: GraphDraft, options: LayoutOptions = {}): Positions {
-	const colGap = options.colGap ?? 280;
+	const colGap = options.colGap ?? 340;
 	const rowGap = options.rowGap ?? 120;
 	const live = draft.statuses.filter((s) => !s.is_archived);
 	const archived = draft.statuses.filter((s) => s.is_archived);

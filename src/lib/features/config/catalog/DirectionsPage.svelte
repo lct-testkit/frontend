@@ -95,7 +95,7 @@
 			<div class="p-3"><Skeleton kind="rows" rows={6} /></div>
 		{:else if all.length === 0}
 			<EmptyState title="Направлений пока нет">
-				{#snippet action()}{#if canWrite}<Btn label="Новое направление" onclick={() => open(null)} />{/if}{/snippet}
+				{#snippet action()}{#if canWrite}<Btn label="Новое направление" variant="outline" colorScheme="neutral" onclick={() => open(null)} />{/if}{/snippet}
 			</EmptyState>
 		{:else if visible && visible.size === 0}
 			<EmptyState title="Ничего не найдено" compact />

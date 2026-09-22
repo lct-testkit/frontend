@@ -50,7 +50,7 @@
 		{:else}
 			<EmptyState title={emptyText}>
 				{#snippet action()}
-					{#if canWrite && onCreate}<Btn label={createLabel} icon={AddLarge} onclick={onCreate} />{/if}
+					{#if canWrite && onCreate}<Btn label={createLabel} icon={AddLarge} variant="outline" colorScheme="neutral" onclick={onCreate} />{/if}
 				{/snippet}
 			</EmptyState>
 		{/if}

@@ -81,7 +81,7 @@
 		{edgeTypes}
 		colorMode="light"
 		fitView={!many}
-		initialViewport={{ x: 40, y: 90, zoom: 0.8 }}
+		initialViewport={{ x: 40, y: 90, zoom: 0.7 }}
 		fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
 		minZoom={0.2}
 		maxZoom={1.6}

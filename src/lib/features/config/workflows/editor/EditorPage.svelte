@@ -218,7 +218,7 @@
 		{#if bp.isDesktop}
 			<div class="flex min-h-90 flex-1 gap-3">
 				<div class="relative min-w-0 flex-1 overflow-hidden rounded-lg border border-line bg-surface">
-					<Canvas {editor} interactive />
+					<Canvas {editor} interactive minimap />
 					<div class="pointer-events-none absolute inset-0 grid place-items-center"><div class="pointer-events-auto">{@render starter()}</div></div>
 				</div>
 				<aside class="w-96 flex-none overflow-hidden rounded-lg border border-line bg-surface max-xl:w-80" aria-label="Свойства">

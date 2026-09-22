@@ -114,7 +114,7 @@
 					<EmptyState title="Ничего не найдено" compact />
 				{:else}
 					<EmptyState title="Реестр не загружен" hint="Автоподстановка по ИНН заработает после первой выгрузки ФНС.">
-						{#snippet action()}<Btn label="Загрузить выгрузку" icon={Upload} onclick={() => (uploading = true)} />{/snippet}
+						{#snippet action()}<Btn label="Загрузить выгрузку" icon={Upload} variant="outline" colorScheme="neutral" onclick={() => (uploading = true)} />{/snippet}
 					</EmptyState>
 				{/if}
 			{/snippet}

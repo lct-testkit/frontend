@@ -130,7 +130,7 @@
 			{#if hasFilters}
 				<Btn label="Сбросить фильтры" variant="outline" colorScheme="neutral" onclick={() => setQuery({ q: null, type: null, region: null, status: null, accredited: null, owner: null })} />
 			{:else if canWrite}
-				<Btn label="Новая организация" icon={AddLarge} onclick={openCreate} />
+				<Btn label="Новая организация" icon={AddLarge} variant="outline" colorScheme="neutral" onclick={openCreate} />
 			{/if}
 		{/snippet}
 	</EmptyState>

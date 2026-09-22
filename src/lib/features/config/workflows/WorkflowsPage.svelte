@@ -100,7 +100,7 @@
 				<EmptyState title="Ничего не найдено" compact />
 			{:else}
 				<EmptyState title="Воронок пока нет">
-					{#snippet action()}{#if canWrite}<Btn label="Создать воронку" icon={AddLarge} onclick={() => (creating = true)} />{/if}{/snippet}
+					{#snippet action()}{#if canWrite}<Btn label="Создать воронку" icon={AddLarge} variant="outline" colorScheme="neutral" onclick={() => (creating = true)} />{/if}{/snippet}
 				</EmptyState>
 			{/if}
 		{/snippet}

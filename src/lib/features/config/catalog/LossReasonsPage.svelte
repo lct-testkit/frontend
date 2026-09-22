@@ -78,7 +78,7 @@
 		<Skeleton kind="rows" rows={6} />
 	{:else if items.length === 0}
 		<EmptyState title="Причин отказа пока нет">
-			{#snippet action()}{#if canWrite}<Btn label="Новая причина" onclick={() => open(null)} />{/if}{/snippet}
+			{#snippet action()}{#if canWrite}<Btn label="Новая причина" variant="outline" colorScheme="neutral" onclick={() => open(null)} />{/if}{/snippet}
 		</EmptyState>
 	{:else}
 		<div class="flex flex-col gap-4">

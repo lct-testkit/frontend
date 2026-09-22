@@ -16,13 +16,13 @@
 
 <div
 	class={[
-		'relative w-60 overflow-hidden rounded-md border bg-surface shadow-s',
+		'relative w-72 overflow-hidden rounded-md border bg-surface shadow-s',
 		selected ? 'border-accent ring-2 ring-accent-soft' : errors ? 'border-danger' : 'border-line',
 		status.is_archived && 'opacity-55'
 	]}
 >
 	<span class="absolute inset-y-0 left-0 w-1.5" style:background={statusColor(status)}></span>
-	<div class="flex flex-col gap-1 py-2 pr-3 pl-4">
+	<div class="flex flex-col gap-1 py-2 pr-4 pl-4">
 		<div class="flex items-start gap-1.5">
 			<span class="t-body-s-strong min-w-0 flex-1 wrap-anywhere">{status.name || 'Без названия'}</span>
 			{#if status.is_archived}

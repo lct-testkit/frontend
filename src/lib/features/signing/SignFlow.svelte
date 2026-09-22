@@ -86,7 +86,7 @@
 			<SignerList signers={page.signers} />
 		</section>
 
-		<details class="rounded-lg border border-line bg-surface px-4 py-3 max-md:px-3">
+		<details open class="rounded-lg border border-line bg-surface px-4 py-3 max-md:px-3">
 			<summary class="t-body-m cursor-pointer text-muted select-none">Условия подписания</summary>
 			<div class="mt-3 flex flex-col gap-3">
 				<p class="t-body-s m-0 whitespace-pre-line text-muted">{page.agreement_text}</p>

@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { Segment, SegmentedControl } from '@lct-testkit/rt-ui';
+	import { Refresh } from '@lct-testkit/rt-ui/icons';
 	import { session } from '$lib/auth/session.svelte';
 	import { landingFor } from '$lib/nav';
 	import { HomeData } from '$lib/features/home/home.svelte';
@@ -10,6 +11,7 @@
 	import { formatMoneyShort, formatNumber } from '$lib/utils/format';
 	import Card from '$lib/ui/Card.svelte';
 	import DateText from '$lib/ui/DateText.svelte';
+	import IconBtn from '$lib/ui/IconBtn.svelte';
 	import ListRow from '$lib/ui/ListRow.svelte';
 	import RowList from '$lib/ui/RowList.svelte';
 	import EmptyState from '$lib/ui/EmptyState.svelte';
@@ -33,6 +35,9 @@
 	});
 
 	const more = $derived(data.partial ? '+' : '');
+	// плитка объединяет «просрочено» и «скоро срок» (`data.attention`) в одно число, а быстрые вкладки списка — только по одной;
+	// ведём на то, что ближе к её собственной подсказке «просрочено: N» (просроченные, если они есть, иначе скоро истекающие)
+	const attentionHref = $derived(data.attention.some((d) => d.sla_state === 'breached') ? '/deals?quick=breached' : '/deals?quick=warning');
 	const SLA = { breached: { tone: 'error', label: 'Просрочено' }, warning: { tone: 'warning', label: 'Скоро срок' } } as const;
 	const PRIORITY_DOT: Record<string, string> = { critical: 'bg-danger', high: 'bg-warning', normal: 'bg-soft', low: 'bg-line-strong' };
 	let funnelType = $state<string | null>(null);
@@ -46,7 +51,7 @@
 {#if dashboard}
 	<Page>
 		<PageHeader title="Главная">
-			<!-- {#snippet actions()}<IconBtn icon={Refresh} label="Обновить" onclick={() => data.load()} />{/snippet} -->
+			{#snippet actions()}<IconBtn icon={Refresh} label="Обновить" loading={data.loading} onclick={() => data.load()} />{/snippet}
 		</PageHeader>
 
 		{#if data.error}
@@ -61,7 +66,7 @@
 						value={data.attention.length}
 						tone={data.attention.length ? 'danger' : 'neutral'}
 						hint={data.attention.length ? `просрочено: ${data.attention.filter((d) => d.sla_state === 'breached').length}` : undefined}
-						href="/deals?sla=attention"
+						href={attentionHref}
 						loading={data.loading}
 					/>
 					<Tile
@@ -84,6 +89,7 @@
 	<Card title="Требуют внимания"><EmptyState title="Просроченных сделок нет" compact /></Card>
 {:else}
 	<RowList title="Требуют внимания" count={data.attention.length}>
+		{#snippet action()}{#if data.attention.length > 6}<a class="t-body-s-strong text-accent" href={attentionHref}>Все</a>{/if}{/snippet}
 		{#each data.attention.slice(0, 6) as deal (deal.id)}
 			<ListRow title={deal.title} href="/deals/{deal.id}">
 				{#snippet description()}

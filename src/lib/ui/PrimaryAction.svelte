@@ -28,7 +28,14 @@
 {#snippet fabIcon()}<PrimaryIcon />{/snippet}
 
 {#if bp.isMobile}
-	<FloatingActionButton iconPrefix={fabIcon} aria-label={primary.label} title={primary.label} disabled={primary.disabled} onclick={primary.onclick} data-testid={primary.testid ?? 'primary-action'} />
+	<FloatingActionButton
+		iconPrefix={fabIcon}
+		aria-label={primary.label}
+		title={primary.label}
+		disabled={primary.disabled || primary.loading}
+		onclick={primary.onclick}
+		data-testid={primary.testid ?? 'primary-action'}
+	/>
 {:else}
 	<Btn label={primary.label} icon={primary.icon ?? AddLarge} onclick={primary.onclick} disabled={primary.disabled} loading={primary.loading} data-testid={primary.testid ?? 'primary-action'} />
 {/if}

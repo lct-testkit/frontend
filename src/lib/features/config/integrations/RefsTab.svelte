@@ -37,7 +37,12 @@
 	];
 </script>
 
-{#snippet entityCell(r: ExternalRef)}<TableCell><a class="t-body-m-strong" href={link(r) ?? '#'}>{entityName(r.entity_type)} · {r.entity_id.slice(-6)}</a></TableCell>{/snippet}
+{#snippet entityCell(r: ExternalRef)}
+	{@const href = link(r)}
+	<TableCell>
+		{#if href}<a class="t-body-m-strong" {href}>{entityName(r.entity_type)} · {r.entity_id.slice(-6)}</a>{:else}<span class="t-body-m-strong">{entityName(r.entity_type)} · {r.entity_id.slice(-6)}</span>{/if}
+	</TableCell>
+{/snippet}
 {#snippet sourceCell(r: ExternalRef)}
 	<TableCell>
 		<span class="flex min-w-0 flex-col"><span class="t-body-m-strong">{labelOf(INTEGRATION_SOURCES, r.source_code)}</span><span class="t-desc-m font-mono text-soft wrap-anywhere">{r.external_id}</span></span>
@@ -47,8 +52,9 @@
 {#snippet syncCell(r: ExternalRef)}<TableCell><span class="t-body-s">{#if r.last_synced_at}<DateText value={r.last_synced_at} time />{:else}—{/if} <span class="text-soft">· {labelOf(SYNC_DIRECTIONS, r.sync_direction).toLowerCase()}</span></span></TableCell>{/snippet}
 
 {#snippet card(r: ExternalRef)}
+	{@const href = link(r)}
 	<div class="flex min-w-0 flex-col gap-1">
-		<a class="t-body-m-strong" href={link(r) ?? '#'}>{entityName(r.entity_type)} · {r.entity_id.slice(-6)}</a>
+		{#if href}<a class="t-body-m-strong" {href}>{entityName(r.entity_type)} · {r.entity_id.slice(-6)}</a>{:else}<span class="t-body-m-strong">{entityName(r.entity_type)} · {r.entity_id.slice(-6)}</span>{/if}
 		<span class="t-desc-l text-muted">{labelOf(INTEGRATION_SOURCES, r.source_code)} · <span class="font-mono wrap-anywhere">{r.external_id}</span></span>
 		<span class="t-desc-m text-soft">{#if r.last_synced_at}<DateText value={r.last_synced_at} time />{/if} · {labelOf(SYNC_DIRECTIONS, r.sync_direction).toLowerCase()}</span>
 	</div>

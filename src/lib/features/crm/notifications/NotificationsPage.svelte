@@ -55,7 +55,7 @@
 	}
 
 	async function readAll() {
-		await notifications.markAll();
+		await notifications.markAll({ priority: priority || undefined, entity_type: entity || undefined });
 		await pager.reload();
 	}
 </script>

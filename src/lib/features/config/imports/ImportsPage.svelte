@@ -97,7 +97,7 @@
 					<EmptyState title="Ничего не найдено" compact />
 				{:else}
 					<EmptyState title="Импортов пока не было">
-						{#snippet action()}<Btn label="Новый импорт" icon={AddLarge} onclick={() => goto('/imports/new')} />{/snippet}
+						{#snippet action()}<Btn label="Новый импорт" icon={AddLarge} variant="outline" colorScheme="neutral" onclick={() => goto('/imports/new')} />{/snippet}
 					</EmptyState>
 				{/if}
 			{/snippet}

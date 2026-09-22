@@ -131,11 +131,22 @@
 		}
 	}
 
-	function reload() {
-		onSaved();
-		conflict = false;
-		toast.info('Список обновлён', 'Откройте поле ещё раз, чтобы увидеть актуальные данные');
-		onClose();
+	/** После конфликта версий: берём актуальную версию записи (тот же фильтр «для чего», что у страницы), введённое остаётся в форме. */
+	async function reload() {
+		if (!item) return;
+		try {
+			const res = await unwrap(api.GET('/api/custom-field-defs', { params: { query: { entity_type: item.entity_type } } }));
+			const fresh = res.items.find((f) => f.id === item.id);
+			if (fresh) {
+				version = fresh.version;
+				conflict = false;
+				toast.info('Загружена актуальная версия', 'Проверьте поля и сохраните ещё раз');
+			}
+		} catch (e) {
+			toast.error(e);
+		} finally {
+			onSaved();
+		}
 	}
 </script>
 

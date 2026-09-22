@@ -8,6 +8,7 @@
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { CloseLarge } from '@lct-testkit/rt-ui/icons';
 	import BtnSizeScope from './BtnSizeScope.svelte';
+	import { confirmState } from './confirm.svelte';
 	import IconBtn from './IconBtn.svelte';
 
 	interface Props {
@@ -29,7 +30,9 @@
 	const bp = useBreakpoint();
 	const WIDTH = { s: 420, m: 560, l: 760, xl: 980 } as const;
 	const margin = $derived(bp.isMobile ? 8 : 40);
-	const close = () => dismissible && onClose?.();
+	// see AppDrawer.svelte: a confirm stacked on top shares this z-index, so letting both react to the same Esc/overlay-click reopens an
+	// identical-looking confirm in the same tick instead of dismissing it
+	const close = () => dismissible && !confirmState.current && onClose?.();
 </script>
 
 <Modal

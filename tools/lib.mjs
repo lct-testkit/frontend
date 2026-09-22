@@ -38,11 +38,17 @@ async function tokensFor(who) {
 		username: account.username,
 		password: account.password
 	});
-	const response = await fetch(`${BASE}${kc.path}/realms/${kc.realm}/protocol/openid-connect/token`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-		body
-	});
+	// several pages of one role sign in at the same moment (tools/buttons.mjs): Keycloak now and then answers one of them 401 — try again
+	let response;
+	for (let attempt = 0; attempt < 5; attempt++) {
+		response = await fetch(`${BASE}${kc.path}/realms/${kc.realm}/protocol/openid-connect/token`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+			body
+		});
+		if (response.ok) break;
+		await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1) + Math.random() * 400));
+	}
 	if (!response.ok) throw new Error(`login ${who}: HTTP ${response.status} ${await response.text()}`);
 	const json = await response.json();
 	const now = Date.now();

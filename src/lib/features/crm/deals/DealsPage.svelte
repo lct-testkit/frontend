@@ -125,7 +125,7 @@
 		</EmptyState>
 	{:else}
 		<EmptyState title="Сделок пока нет" compact>
-			{#snippet action()}{#if canCreate}<Btn label="Новая сделка" icon={AddLarge} onclick={openCreate} />{/if}{/snippet}
+			{#snippet action()}{#if canCreate}<Btn label="Новая сделка" icon={AddLarge} variant="outline" colorScheme="neutral" onclick={openCreate} />{/if}{/snippet}
 		</EmptyState>
 	{/if}
 {/snippet}

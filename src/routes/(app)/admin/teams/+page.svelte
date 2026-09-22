@@ -143,7 +143,7 @@
 
 <Page>
 	<PageHeader title="Команды" />
-	<FilterBar search={q} placeholder="Название, руководитель или регион" onSearch={(v) => setQuery({ q: v || null })} primary={{ label: 'Команда', onclick: () => show(null), testid: 'team-create' }} />
+	<FilterBar search={q} placeholder="Название, руководитель или регион" onSearch={(v) => setQuery({ q: v || null })} primary={{ label: 'Новая команда', onclick: () => show(null), testid: 'team-create' }} />
 
 	{#if teams.loading && !teams.loaded}
 		<Skeleton kind="rows" rows={4} />
@@ -151,7 +151,7 @@
 		<ErrorState error={teams.error} onRetry={() => teams.load(true)} />
 	{:else if teams.items.length === 0}
 		<EmptyState title="Команд пока нет" hint="Команда определяет, чьи сделки видит руководитель.">
-			{#snippet action()}<Btn label="Создать команду" onclick={() => show(null)} />{/snippet}
+			{#snippet action()}<Btn label="Создать команду" variant="outline" colorScheme="neutral" onclick={() => show(null)} />{/snippet}
 		</EmptyState>
 	{:else if rows.length === 0}
 		<EmptyState title="Ничего не найдено" compact />

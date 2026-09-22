@@ -32,7 +32,7 @@
 		</div>
 	{:else if pager.items.length === 0}
 		<EmptyState title="Дашбордов пока нет">
-			{#snippet action()}{#if canCreate}<Btn label="Создать дашборд" icon={AddLarge} onclick={() => (creating = true)} />{/if}{/snippet}
+			{#snippet action()}{#if canCreate}<Btn label="Создать дашборд" icon={AddLarge} variant="outline" colorScheme="neutral" onclick={() => (creating = true)} />{/if}{/snippet}
 		</EmptyState>
 	{:else}
 		<ul class="m-0 grid list-none grid-cols-3 gap-3 p-0 max-lg:grid-cols-2 max-md:grid-cols-1">

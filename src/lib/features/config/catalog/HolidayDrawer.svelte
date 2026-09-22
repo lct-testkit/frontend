@@ -72,11 +72,22 @@
 		}
 	}
 
-	function reload() {
-		onSaved();
-		conflict = false;
-		toast.info('Список обновлён', 'Откройте дату ещё раз, чтобы увидеть актуальные данные');
-		onClose();
+	/** После конфликта версий: берём актуальную версию записи (без фильтра по году — дату конфликтующей записи мы не знаем заранее), введённое остаётся в форме. */
+	async function reload() {
+		if (!item) return;
+		try {
+			const res = await unwrap(api.GET('/api/holidays', {}));
+			const fresh = res.items.find((h) => h.id === item.id);
+			if (fresh) {
+				version = fresh.version;
+				conflict = false;
+				toast.info('Загружена актуальная версия', 'Проверьте поля и сохраните ещё раз');
+			}
+		} catch (e) {
+			toast.error(e);
+		} finally {
+			onSaved();
+		}
 	}
 </script>
 

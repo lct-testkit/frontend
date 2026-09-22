@@ -2,7 +2,7 @@
 	// Шаблоны уведомлений (админ): код события, канал, тема, «Активен» прямо в списке. Шаблонов немного — грузим все и ищем на клиенте.
 	import { onMount } from 'svelte';
 	import { ApiError, api, ifMatch, unwrap } from '$lib/api';
-	import { DateText, ErrorState, Page, PageHeader, StatusChip, type Col } from '$lib/ui';
+	import { DateText, ErrorState, Page, PageHeader, StatusChip, TableCell, type Col } from '$lib/ui';
 	import { session } from '$lib/auth/session.svelte';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { NOTIFICATION_CHANNELS, NOTIFICATION_EVENT_CODES, labelOf } from '../labels';
@@ -55,12 +55,12 @@
 </script>
 
 {#snippet codeCell(t: NotificationTemplate)}
-	<span class="flex min-w-0 flex-col"><span class="t-body-m-strong wrap-anywhere">{eventName(t.code) || t.code}</span><span class="t-desc-m font-mono text-soft">{t.code}</span></span>
+	<TableCell><span class="flex min-w-0 flex-col py-2"><span class="t-body-m-strong wrap-anywhere">{eventName(t.code) || t.code}</span><span class="t-desc-m font-mono text-soft">{t.code}</span></span></TableCell>
 {/snippet}
-{#snippet channelCell(t: NotificationTemplate)}<StatusChip label={labelOf(NOTIFICATION_CHANNELS, t.channel)} tone={t.channel === 'email' ? 'info' : t.channel === 'telegram' ? 'accent' : 'neutral'} />{/snippet}
-{#snippet subjectCell(t: NotificationTemplate)}<span class="t-body-s line-clamp-2 text-muted">{t.subject_template ?? '—'}</span>{/snippet}
-{#snippet updatedCell(t: NotificationTemplate)}<span class="t-body-s"><DateText value={t.updated_at} /></span>{/snippet}
-{#snippet activeCell(t: NotificationTemplate)}<SwitchCell checked={t.is_active} label={t.is_active ? 'Отключить шаблон' : 'Включить шаблон'} onToggle={(next) => toggle(t, next)} />{/snippet}
+{#snippet channelCell(t: NotificationTemplate)}<TableCell><StatusChip label={labelOf(NOTIFICATION_CHANNELS, t.channel)} tone={t.channel === 'email' ? 'info' : t.channel === 'telegram' ? 'accent' : 'neutral'} /></TableCell>{/snippet}
+{#snippet subjectCell(t: NotificationTemplate)}<TableCell><span class="t-body-s line-clamp-2 text-muted">{t.subject_template ?? '—'}</span></TableCell>{/snippet}
+{#snippet updatedCell(t: NotificationTemplate)}<TableCell><span class="t-body-s"><DateText value={t.updated_at} /></span></TableCell>{/snippet}
+{#snippet activeCell(t: NotificationTemplate)}<TableCell><SwitchCell checked={t.is_active} label={t.is_active ? 'Отключить шаблон' : 'Включить шаблон'} onToggle={(next) => toggle(t, next)} /></TableCell>{/snippet}
 
 {#snippet card(t: NotificationTemplate)}
 	<div class="flex min-w-0 flex-col gap-1.5">
