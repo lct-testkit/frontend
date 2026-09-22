@@ -18,7 +18,10 @@ COPY . .
 RUN pnpm build
 
 # ---- runtime -------------------------------------------------------------------------------------------------
-FROM caddy:2.8-alpine
+# 2.11, not 2.8: Trivy (22.09.2026) found 87 CVEs in 2.8.4 (5 CRITICAL) with fixes only released in the 2.11.x
+# line upstream — see .trivyignore for what's left (all transitive Go deps baked into the caddy binary itself,
+# not fixable from this Dockerfile; 0 CRITICAL, 0 in the Alpine OS layer).
+FROM caddy:2.11-alpine
 COPY --from=build /app/build /srv
 COPY deploy/Caddyfile.web /etc/caddy/Caddyfile
 COPY deploy/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
