@@ -1,0 +1,7 @@
+# Скрипты и Dockerfile исполняются в Linux-контейнерах/раннерах: CRLF в них ломает shebang и `set -e`.
+*.sh          text eol=lf
+Dockerfile*   text eol=lf
+*.yml         text eol=lf
+*.yaml        text eol=lf
+*.mjs         text eol=lf
+*.tgz         binary

@@ -85,7 +85,7 @@ pnpm dev
 | Markdown | `marked` · `dompurify` (комментарии и справка без raw HTML) | ^16.0.0 · ^3.2.6 |
 | Даты | `dayjs` — нужен компонентам rt-ui (`InputDate`, `PickerDate`), в `src` напрямую не импортируется | ^1.11.13 |
 | Проверки | `vitest` · `playwright` · `eslint` + `typescript-eslint` + `eslint-plugin-svelte` | ^3.2.4 · ^1.55.0 · ^10.4.1 |
-| Среда | pnpm 11.13.1 (в `Dockerfile`; в `package.json` не зафиксирован) · образ `node:22-alpine` | для `pnpm install` — по `engines` зависимостей (`engine-strict=true`): Node 20.19+, 22.13+ или 24+ |
+| Среда | pnpm 11.13.1 (`packageManager` в `package.json`, тот же в `Dockerfile` и CI) · образ `node:22-alpine` (по digest) | для `pnpm install` — по `engines` зависимостей (`engine-strict=true`): Node 20.19+, 22.13+ или 24+ |
 
 ## Примеры использования
 
@@ -313,6 +313,16 @@ pnpm gen:api
 
 ## Проверка качества
 
+**Гейты CI** (`.github/workflows/ci.yml`, обязательны для слияния и для публикации образа):
+
+| Job | Что проверяет |
+|---|---|
+| `lint · check · test · build` | `pnpm lint` (ESLint), `pnpm lint:styles` (**stylelint: цвета только из токенов темы** — без `#hex`/`rgb()`/именованных цветов, спека §12.6), `pnpm check` (svelte-check), `pnpm test:coverage` (пороги в `vite.config.ts`: lines 45%, branches 78%, functions 82% — по измеренной базе 49/83/88), `pnpm build`, `pnpm size` (**бюджет gzip-размера бандла**, `tools/bundle-budget.json` — косвенная защита требования «отклик ≤ 1 с»), `pnpm audit --prod` |
+| `контракт API · Dockerfile · секреты` | типы API не дрейфуют от `docs/openapi.json` (`gen-api` + `git diff --exit-code`); `docs/openapi.json` совпадает с `backend@main` (`tools/check-contract.mjs`, нужен секрет `BACKEND_READ_TOKEN`, ночью и на PR); hadolint; Trivy fs (уязвимости, секреты) |
+| публикация образа | только `main`, после обоих job'ов: общий конвейер в `lct-testkit/deploy` — сборка → Trivy до push → push → SBOM/provenance → cosign → dispatch |
+
+Локально то же самое: `pnpm lint && pnpm lint:styles && pnpm check && pnpm test:coverage && pnpm build && pnpm size`. Если рост бандла осознанный — `node tools/check-bundle-size.mjs --update` и объяснение в PR.
+
 Прогон от 22.09.2026 (папка `frontend`): `pnpm test` — 32 файла, 232 теста, все пройдены (Vitest 3.2.7); `pnpm check` — 2574 файла, 0 ошибок, 0 предупреждений. Тесты покрывают чистую логику: валидаторы ИНН, DSL и граф воронок, условия переходов, SLA, OTP и хэши подписи, аудит, согласования, увольнение, удаление ПДн, импорт, отчёты, запрет `rounded-s/m/l`. ESLint (`pnpm lint`) — правила и осознанные исключения в `eslint.config.js`.
 
 Инструменты `tools/*.mjs` работают против живого клиента: адрес — `APP_URL` (по умолчанию `http://localhost:5273`), вход по паролю, поэтому нужны demo-конфиг и запущенный бэкенд; используется системный Chrome. В Git Bash путь вроде `/deals` не портится: инструменты исправляют подмену `C:/Program Files/Git`. Скриншоты пишутся в `.shots/` (в git не попадает).
@@ -366,7 +376,7 @@ pnpm gen:api
 docker build -t rtk-crm-web .
 ```
 
-Два этапа: `node:22-alpine` с pnpm 11.13.1 (`pnpm install --frozen-lockfile`, `pnpm build`), затем `caddy:2.11-alpine` со статикой в `/srv` на порту 3000 (не 2.8 — Trivy 22.09.2026 нашёл там 87 CVE, 5 CRITICAL, см. `.trivyignore`); `HEALTHCHECK` читает `/config.json`. `deploy/docker-entrypoint.sh` при старте пишет `/srv/config.json`: в prod — без демо-учёток и client secret, в demo — оставляет запечённый конфиг и лишь выставляет `mode`. `deploy/Caddyfile.web` ставит `Cache-Control: no-cache` на `config.json`, `boot.js`, `index.html`, годовой `immutable` — на `_app/immutable/*` и `fonts/*`, а неизвестные пути отдаёт как `index.html` (роутер SPA). В контекст сборки не попадают `docs` и `tools/scenarios` (`.dockerignore`). Весь стек с клиентом поднимается профилем compose `web`; переключение demo и prod, переменные и запуск — [корневой README](../README.md#полноценная-версия).
+Два этапа (оба базовых образа закреплены по digest, обновляет Dependabot): `node:22-alpine` с pnpm 11.13.1 (`pnpm install --frozen-lockfile`, кэш-маунт pnpm store, `pnpm build`), затем `caddy:2.11-alpine` со статикой в `/srv` на порту 3000 **под непривилегированным пользователем `web` (UID 10001)** (не 2.8 — Trivy 22.09.2026 нашёл там 87 CVE, 5 CRITICAL, см. `.trivyignore`); `HEALTHCHECK` читает `/config.json`. `deploy/docker-entrypoint.sh` при старте пишет `/srv/config.json`: в prod — без демо-учёток и client secret, в demo — оставляет запечённый конфиг, выставляет `mode` и подставляет `clientSecret` из переменной `KEYCLOAK_CLIENT_SECRET` (стек, установленный со сгенерированными секретами, иначе не смог бы войти). `deploy/Caddyfile.web` ставит `Cache-Control: no-cache` на `config.json`, `boot.js`, `index.html`, годовой `immutable` — на `_app/immutable/*` и `fonts/*`, а неизвестные пути отдаёт как `index.html` (роутер SPA). В контекст сборки не попадают `docs` и `tools/scenarios` (`.dockerignore`). Весь стек с клиентом поднимается профилем compose `web`; переключение demo и prod, переменные и запуск — [корневой README](../README.md#полноценная-версия).
 
 ## Ограничения и известные проблемы
 

@@ -6,3 +6,7 @@ build
 docs
 tools/scenarios
 *.log
+.env
+.env.*
+.github
+coverage

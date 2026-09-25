@@ -16,6 +16,11 @@ JSON
 else
 	# demo: keep the baked accounts, only make the mode explicit
 	sed -i 's/"mode": *"[a-z]*"/"mode": "demo"/' /srv/config.json
+	# demo signs in with the password grant using the BFF client secret baked into config.json; when the stack was
+	# installed with generated secrets (deploy/scripts/gen_env.sh) the secret in Keycloak differs — take it from the env.
+	if [ -n "${KEYCLOAK_CLIENT_SECRET:-}" ]; then
+		sed -i "s/\"clientSecret\": *\"[^\"]*\"/\"clientSecret\": \"${KEYCLOAK_CLIENT_SECRET}\"/" /srv/config.json
+	fi
 fi
 
 echo "web: mode=$MODE"

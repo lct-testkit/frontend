@@ -1,4 +1,4 @@
-// Обёртка над pdfjs-dist v5: ленивый импорт (страницы без PDF не платят за библиотеку),
+// Обёртка над pdfjs-dist v6: ленивый импорт (страницы без PDF не платят за библиотеку),
 // воркер — локальный файл через Vite `?url` (без CDN, совместимо со строгим CSP `script-src 'self'`).
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import { canvasSize } from './pdf-layout';
