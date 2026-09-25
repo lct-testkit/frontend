@@ -23,7 +23,7 @@
 		"gen:api": "node tools/gen-api.mjs"
 	},
 	"dependencies": {
-		"@lct-testkit/rt-ui": "file:./vendor/lct-testkit-rt-ui-0.1.0.tgz",
+		"@lct-testkit/rt-ui": "0.1.1",
 		"@xyflow/svelte": "^1.0.0",
 		"dayjs": "^1.11.13",
 		"dompurify": "^3.2.6",

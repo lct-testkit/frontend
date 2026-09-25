@@ -24,7 +24,6 @@ vite.config.ts.timestamp-*
 
 # licensed font (provided by the customer) and the private rt-ui tarball
 /static/fonts
-/vendor
 
 # screenshots taken by tools/shot.mjs
 /.shots

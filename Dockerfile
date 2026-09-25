@@ -4,7 +4,8 @@
 #   docker run -p 3000:3000 -e APP_MODE=demo rtk-crm-web       # demo: account picker on the login screen
 #   docker run -p 3000:3000 -e APP_MODE=prod rtk-crm-web       # prod: Keycloak sign-in only, no demo credentials shipped
 #
-# The build needs ./vendor/lct-testkit-rt-ui-*.tgz (private design-system package) and, optionally,
+# The build needs read access to the private design-system package @lct-testkit/rt-ui (GitHub Packages): pass a token as the
+# BuildKit secret `npm_token` (docker build --secret id=npm_token,env=NODE_AUTH_TOKEN .), and, optionally,
 # ./static/fonts/*.woff (Rostelecom Basis, licensed, not in git; without it the fallback font is used).
 #
 # Supply chain: both base images are pinned by digest (dependabot bumps them), the package manager is
@@ -15,9 +16,12 @@ FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18
 RUN npm install -g pnpm@11.13.1
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-COPY vendor ./vendor
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+# The token goes into a throw-away USER-level npmrc (pnpm 11 ignores auth in a project .npmrc) that is deleted in the same RUN.
+RUN --mount=type=secret,id=npm_token \
+    --mount=type=cache,target=/root/.local/share/pnpm/store \
+    printf '//npm.pkg.github.com/:_authToken=%s\n' "$(cat /run/secrets/npm_token)" > /tmp/npmrc \
+    && NPM_CONFIG_USERCONFIG=/tmp/npmrc pnpm install --frozen-lockfile \
+    && rm -f /tmp/npmrc
 COPY . .
 RUN pnpm build
 
