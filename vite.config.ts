@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => {
 			port: 5273,
 			strictPort: true,
 			proxy,
-			fs: { allow: ['.', '../rt-ui'] }
+			fs: { allow: ['.'] }
 		},
 		preview: { proxy },
 		// rt-ui ships plain-ESM/CJS helpers that must be pre-bundled for the browser (pnpm keeps them nested)

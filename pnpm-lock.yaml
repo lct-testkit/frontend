@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@lct-testkit/rt-ui':
-        specifier: file:./vendor/lct-testkit-rt-ui-0.1.0.tgz
-        version: file:vendor/lct-testkit-rt-ui-0.1.0.tgz(svelte@5.57.1(@typescript-eslint/types@8.70.0))
+        specifier: 0.1.1
+        version: 0.1.1(svelte@5.57.1(@typescript-eslint/types@8.70.0))
       '@xyflow/svelte':
         specifier: ^1.0.0
         version: 1.6.6(svelte@5.57.1(@typescript-eslint/types@8.70.0))
@@ -53,7 +53,7 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: 3.2.7
-        version: 3.2.7(vitest@3.2.7(@types/node@24.13.6)(jiti@2.7.0)(lightningcss@1.33.0)(supports-color@10.2.2))
+        version: 3.2.7(supports-color@10.2.2)(vitest@3.2.7(@types/node@24.13.6)(jiti@2.7.0)(lightningcss@1.33.0)(supports-color@10.2.2))
       eslint:
         specifier: ^10.4.1
         version: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -74,7 +74,7 @@ importers:
         version: 2.0.0(postcss@8.5.28)
       stylelint:
         specifier: ^17.15.0
-        version: 17.15.0(typescript@6.0.3)
+        version: 17.15.0(supports-color@10.2.2)(typescript@6.0.3)
       svelte:
         specifier: ^5.56.1
         version: 5.57.1(@typescript-eslint/types@8.70.0)
@@ -430,9 +430,8 @@ packages:
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
-  '@lct-testkit/rt-ui@file:vendor/lct-testkit-rt-ui-0.1.0.tgz':
-    resolution: {integrity: sha512-lfxY6iBkUoGYoqHfTKZFr1T16Fe+qiY6T7yPVICIBDUy2UkceWss67e7n59+RPlNGsgoiDGf4ajNwUYAOyC/gA==, tarball: file:vendor/lct-testkit-rt-ui-0.1.0.tgz}
-    version: 0.1.0
+  '@lct-testkit/rt-ui@0.1.1':
+    resolution: {integrity: sha512-53+xGSLKhim2JcC95LxBTqdhTsDHQjrbh6DAFfnX27jMQL6CLB52Ulm3B9sVHFal7Qbo4yZmWPzBUM0fQ/dSeQ==, tarball: https://npm.pkg.github.com/download/@lct-testkit/rt-ui/0.1.1/7c2aa3ac7860843ba994a8fd48b9acae83d83a5e}
     peerDependencies:
       svelte: ^5.0.0
 
@@ -2771,7 +2770,7 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
-  '@lct-testkit/rt-ui@file:vendor/lct-testkit-rt-ui-0.1.0.tgz(svelte@5.57.1(@typescript-eslint/types@8.70.0))':
+  '@lct-testkit/rt-ui@0.1.1(svelte@5.57.1(@typescript-eslint/types@8.70.0))':
     dependencies:
       '@popperjs/core': 2.11.8
       attr-accept: 2.2.5
@@ -3258,7 +3257,7 @@ snapshots:
       '@typescript-eslint/types': 8.70.0
       eslint-visitor-keys: 5.0.1
 
-  '@vitest/coverage-v8@3.2.7(vitest@3.2.7(@types/node@24.13.6)(jiti@2.7.0)(lightningcss@1.33.0)(supports-color@10.2.2))':
+  '@vitest/coverage-v8@3.2.7(supports-color@10.2.2)(vitest@3.2.7(@types/node@24.13.6)(jiti@2.7.0)(lightningcss@1.33.0)(supports-color@10.2.2))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@bcoe/v8-coverage': 1.0.2
@@ -3266,7 +3265,7 @@ snapshots:
       debug: 4.4.3(supports-color@10.2.2)
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-report: 3.0.1
-      istanbul-lib-source-maps: 5.0.6
+      istanbul-lib-source-maps: 5.0.6(supports-color@10.2.2)
       istanbul-reports: 3.2.0
       magic-string: 0.30.21
       magicast: 0.3.5
@@ -3899,7 +3898,7 @@ snapshots:
       make-dir: 4.0.0
       supports-color: 7.2.0
 
-  istanbul-lib-source-maps@5.0.6:
+  istanbul-lib-source-maps@5.0.6(supports-color@10.2.2):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       debug: 4.4.3(supports-color@10.2.2)
@@ -4395,7 +4394,7 @@ snapshots:
     dependencies:
       js-tokens: 9.0.1
 
-  stylelint@17.15.0(typescript@6.0.3):
+  stylelint@17.15.0(supports-color@10.2.2)(typescript@6.0.3):
     dependencies:
       '@csstools/css-calc': 3.4.0(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.1))(@csstools/css-tokenizer@4.0.1)
       '@csstools/css-parser-algorithms': 4.0.0(@csstools/css-tokenizer@4.0.1)

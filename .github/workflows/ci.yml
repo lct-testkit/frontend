@@ -18,6 +18,7 @@ concurrency:
 
 permissions:
   contents: read
+  packages: read # чтение @lct-testkit/rt-ui из GitHub Packages
 
 env:
   HADOLINT_IMAGE: hadolint/hadolint:v2.12.0
@@ -27,22 +28,23 @@ jobs:
     name: lint · check · test · build
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # чтение @lct-testkit/rt-ui
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: pnpm/action-setup@d9184bf108216479bc5a137cc391f4d7b14c870b # v6.1.0
 
+      # registry-url + scope: setup-node пишет пользовательский .npmrc с токеном из NODE_AUTH_TOKEN (job env)
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@lct-testkit'
 
-      - name: Восстановить vendor/ (rt-ui)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash .github/scripts/restore-vendor.sh
-
-      - run: pnpm install --frozen-lockfile
+      - name: Установить зависимости (rt-ui — из GitHub Packages)
+        run: pnpm install --frozen-lockfile
 
       - name: ESLint
         run: pnpm lint
@@ -69,22 +71,23 @@ jobs:
     name: контракт API · Dockerfile · секреты
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # чтение @lct-testkit/rt-ui
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: pnpm/action-setup@d9184bf108216479bc5a137cc391f4d7b14c870b # v6.1.0
 
+      # registry-url + scope: setup-node пишет пользовательский .npmrc с токеном из NODE_AUTH_TOKEN (job env)
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@lct-testkit'
 
-      - name: Восстановить vendor/ (rt-ui)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash .github/scripts/restore-vendor.sh
-
-      - run: pnpm install --frozen-lockfile
+      - name: Установить зависимости (rt-ui — из GitHub Packages)
+        run: pnpm install --frozen-lockfile
 
       # schema.d.ts и индекс эндпоинтов — производные от docs/openapi.json; если кто-то
       # поправил схему руками или забыл перегенерировать — diff не пустой.
@@ -133,5 +136,8 @@ jobs:
     with:
       image: web
       event-type: frontend-image-built
-      prepare-script: .github/scripts/restore-vendor.sh
-    secrets: inherit
+    # Явно, а не inherit: NODE_AUTH_TOKEN (чтение приватного пакета rt-ui при сборке образа) — это GITHUB_TOKEN;
+    # доступ ему даёт настройка пакета «Manage Actions access» -> frontend.
+    secrets:
+      DEPLOY_DISPATCH_TOKEN: ${{ secrets.DEPLOY_DISPATCH_TOKEN }}
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

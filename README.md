@@ -47,7 +47,7 @@
 
 ## Быстрый старт
 
-Нужен работающий бэкенд (Docker, порт 8080) — как его поднять, описано в [корневом README](../README.md#быстрый-старт). Для `pnpm install` нужен пакет `vendor/lct-testkit-rt-ui-0.1.0.tgz`, для шрифта — `static/fonts/*.woff` (без них запасная гарнитура); оба файла выдаёт заказчик, в git их нет.
+Нужен работающий бэкенд (Docker, порт 8080) — как его поднять, описано в [корневом README](../README.md#быстрый-старт). Для `pnpm install` нужен токен чтения приватного пакета `@lct-testkit/rt-ui` из GitHub Packages (classic PAT со scope `read:packages`; один раз на машине: `pnpm config set "//npm.pkg.github.com/:_authToken" <токен>` — pnpm 11 не читает токен из `.npmrc` репозитория), для шрифта — `static/fonts/*.woff` (без него запасная гарнитура; шрифт выдаёт заказчик, в git его нет).
 
 ```bash
 pnpm install
@@ -79,7 +79,7 @@ pnpm dev
 | Сборка | `vite` · `@sveltejs/vite-plugin-svelte` | ^8.0.16 · ^7.1.2 |
 | Язык | `typescript` (`strict`) · `svelte-check` | ^6.0.3 · ^4.6.0 |
 | Стили | `tailwindcss` · `@tailwindcss/vite` · `@tailwindcss/typography` | ^4.3.3 · ^4.3.3 · ^0.5.20 |
-| Дизайн-система | `@lct-testkit/rt-ui` (порт на Svelte, [`../rt-ui`](../rt-ui)) | `file:./vendor/lct-testkit-rt-ui-0.1.0.tgz` |
+| Дизайн-система | `@lct-testkit/rt-ui` (порт на Svelte, [`../rt-ui`](../rt-ui)) | `0.1.1` из GitHub Packages (`.npmrc`) |
 | API | `openapi-fetch` · `openapi-typescript` (генерация типов) | ^0.14.0 · ^7.9.0 |
 | Граф воронки, PDF | `@xyflow/svelte` · `pdfjs-dist` | ^1.0.0 · ^5.4.0 |
 | Markdown | `marked` · `dompurify` (комментарии и справка без raw HTML) | ^16.0.0 · ^3.2.6 |
@@ -159,7 +159,6 @@ src/lib/utils/              format, markdown (marked + DOMPurify), query-state (
 src/lib/styles/             fonts.css: Rostelecom Basis и запасная гарнитура
 src/lib/content/help/       8 глав справки /help (Markdown)
 static/                     config.json, favicon.svg, logo.svg, robots.txt, fonts/ (не в git)
-vendor/                     lct-testkit-rt-ui-0.1.0.tgz — пакет дизайн-системы (не в git)
 deploy/                     Caddyfile.web, docker-entrypoint.sh — образ web
 tools/                      инструменты проверки, сеялка демо-данных, scenarios/ (Playwright)
 docs/                       документация клиента; docs/img — картинки этого файла
@@ -370,7 +369,7 @@ pnpm gen:api
 
 ## Образ web
 
-Клиент собирается в статический образ, который стоит за основным Caddy стека (`../backend/deploy/Caddyfile`: `/api`, `/public`, `/health` → FastAPI, `/auth` → Keycloak, остальное → `web`). Нужны `vendor/lct-testkit-rt-ui-*.tgz` и `static/fonts/*.woff` (выдаёт заказчик):
+Клиент собирается в статический образ, который стоит за основным Caddy стека (`../backend/deploy/Caddyfile`: `/api`, `/public`, `/health` → FastAPI, `/auth` → Keycloak, остальное → `web`). Нужны токен чтения пакета (`docker build --secret id=npm_token,env=NODE_AUTH_TOKEN`) и, по желанию, `static/fonts/*.woff` (выдаёт заказчик):
 
 ```bash
 docker build -t rtk-crm-web .
@@ -390,7 +389,7 @@ docker build -t rtk-crm-web .
 
 ## Шрифт и лицензия
 
-Rostelecom Basis и пакет `@lct-testkit/rt-ui` — материалы Ростелекома: `static/fonts` и `vendor/` не коммитятся (`.gitignore`), пакет `rt-ui` помечен `private`; без шрифта интерфейс использует запасную гарнитуру. Файла лицензии проекта в репозитории не найдено.
+Rostelecom Basis и пакет `@lct-testkit/rt-ui` — материалы Ростелекома: `static/fonts` не коммитится (`.gitignore`), пакет `rt-ui` приватный (GitHub Packages, доступ выдаётся репозиториям организации); без шрифта интерфейс использует запасную гарнитуру. Файла лицензии проекта в репозитории не найдено.
 
 | Документ | Что внутри |
 |---|---|
