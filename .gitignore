@@ -28,3 +28,6 @@ vite.config.ts.timestamp-*
 
 # screenshots taken by tools/shot.mjs
 /.shots
+
+# vitest coverage
+/coverage

@@ -391,6 +391,7 @@ body[class*='Theme_root_'] {
 /* before JS applies the stored theme: follow the OS so dark users do not get a white flash */
 @media (prefers-color-scheme: dark) {
 	body.Theme_root_rtk_default_light:not([data-theme-ready]) {
+		/* stylelint-disable-next-line color-no-hex -- намеренно: токены темы ещё не применены (это и есть «до JS»), нужен литерал */
 		background: #16171b;
 	}
 }

@@ -32,6 +32,18 @@ export default defineConfig(({ mode }) => {
 			include: ['attr-accept', 'imask', 'card-validator', 'clsx', 'dayjs', 'virtua', '@popperjs/core'].map((d) => `@lct-testkit/rt-ui > ${d}`)
 		},
 		build: { target: 'es2022', chunkSizeWarningLimit: 900 },
-		test: { include: ['src/**/*.{test,spec}.ts'], environment: 'node' }
+		test: {
+			include: ['src/**/*.{test,spec}.ts'],
+			environment: 'node',
+			coverage: {
+				// unit-тесты покрывают чистую логику (.ts); компоненты (.svelte) проверяются svelte-check и e2e
+				provider: 'v8',
+				include: ['src/lib/**/*.ts'],
+				exclude: ['src/lib/**/*.test.ts', 'src/lib/**/*.d.ts', 'src/lib/api/schema.d.ts'],
+				reporter: ['text-summary', 'lcov'],
+				// пороги по измеренной базе (2026-09-25: lines 49%, branches 83%, functions 88%) с запасом; поднимайте, не опускайте
+				thresholds: { lines: 45, statements: 45, branches: 78, functions: 82 }
+			}
+		}
 	};
 });

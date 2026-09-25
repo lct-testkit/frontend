@@ -54,7 +54,7 @@
 		})();
 		return () => {
 			ctrl.abort();
-			void doc?.destroy();
+			void doc?.loadingTask.destroy();
 		};
 	});
 
