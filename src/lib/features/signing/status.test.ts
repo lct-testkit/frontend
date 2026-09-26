@@ -20,6 +20,7 @@ describe('status meta', () => {
 	it('не падает на неизвестном статусе', () => {
 		expect(docStatusMeta('weird')).toMatchObject({ label: 'weird', tone: 'neutral' });
 		expect(verifyStatusMeta('nope').title).toBe('Статус неизвестен');
+		expect(verifyStatusMeta('tampered')).toMatchObject({ tone: 'error', label: 'Целостность нарушена' });
 	});
 });
 
