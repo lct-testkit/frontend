@@ -10,6 +10,7 @@
 	import { NAV, isActive, isVisible } from '$lib/nav';
 	import { session } from '$lib/auth/session.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
+	import { helpAttention } from '$lib/stores/help-attention.svelte';
 	import NotificationBell from '$lib/features/crm/notifications/NotificationBell.svelte';
 	import { signatureInbox } from '$lib/features/signing/inbox.svelte';
 	import GlobalSearch from './GlobalSearch.svelte';
@@ -35,6 +36,7 @@
 			// ignore
 		}
 		menuOpen = saved ? saved === '1' : window.innerWidth >= 1400;
+		helpAttention.init();
 		// counter next to «Подписание»: only for those who can sign
 		if (session.canAny('signature:sign', 'signature:create')) return signatureInbox.start();
 	});
@@ -53,6 +55,8 @@
 
 	const sections = $derived(NAV.map((s) => ({ ...s, items: s.items.filter((i) => isVisible(i, (p) => session.can(p))) })).filter((s) => s.items.length > 0));
 	const counters = $derived({ signing: signatureInbox.count });
+	// «Справка» просит внимания, пока её не открыли (после обновления глав — снова)
+	const attention = $derived({ help: helpAttention.show });
 
 	function go(href: string, event?: MouseEvent) {
 		if (event && (event.ctrlKey || event.metaKey || event.button === 1)) {
@@ -88,7 +92,7 @@
 
 <div class="flex h-dvh overflow-hidden bg-page text-fg">
 	{#if !bp.isMobile}
-		<SideNav class="h-full flex-none" {sections} isActive={(item) => isActive(item, page.url.pathname)} {counters} {expanded} onNavigate={go} onToggle={bp.isDesktop ? toggleMenu : undefined}>
+		<SideNav class="h-full flex-none" {sections} isActive={(item) => isActive(item, page.url.pathname)} {counters} {attention} {expanded} onNavigate={go} onToggle={bp.isDesktop ? toggleMenu : undefined}>
 			{#snippet brand()}{@render brandLink(!expanded)}{/snippet}
 		</SideNav>
 	{/if}
@@ -106,7 +110,7 @@
 			{#snippet utilities()}
 				{#if bp.isMobile}<GlobalSearch />{/if}
 				<NotificationBell />
-				<TopBarIcon icon={HelpStroke} label="Справка" onclick={() => goto('/help')} />
+				<TopBarIcon icon={HelpStroke} label="Справка" attention={helpAttention.show} onclick={() => goto('/help')} data-testid="help" />
 				{#if !bp.isMobile}<TopBarIcon icon={theme.mode === 'dark' ? Sun : DarkTheme} label={themeLabel} onclick={() => theme.toggleMode()} />{/if}
 			{/snippet}
 		</TopBar>
@@ -123,7 +127,7 @@
 
 {#if bp.isMobile}
 	<Drawer position="left" fullHeight dimension={Math.min(320, Math.max(240, bp.width - 56))} isOpened={navOpen} drawerClassName="p-0!" onClickOverlay={() => (navOpen = false)} onClose={() => (navOpen = false)}>
-		<SideNav class="h-full w-full border-r-0" {sections} isActive={(item) => isActive(item, page.url.pathname)} {counters} expanded onNavigate={go}>
+		<SideNav class="h-full w-full border-r-0" {sections} isActive={(item) => isActive(item, page.url.pathname)} {counters} {attention} expanded onNavigate={go}>
 			{#snippet brand()}{@render brandLink(false)}{/snippet}
 			{#snippet footer()}
 				<div class="box-border flex w-full items-center justify-between gap-3 px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">

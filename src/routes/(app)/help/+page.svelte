@@ -1,10 +1,13 @@
 <script lang="ts">
 	// In-app manual: short markdown articles (src/lib/content/help/*.md), one per topic. `?s=<slug>` deep-links a topic.
+	import { onMount, type Component } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Select } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { session } from '$lib/auth/session.svelte';
+	import DesignSystemShowcase from '$lib/features/help/DesignSystemShowcase.svelte';
+	import { helpAttention } from '$lib/stores/help-attention.svelte';
 	import { renderMarkdown } from '$lib/utils/markdown';
 	import Btn from '$lib/ui/Btn.svelte';
 	import Card from '$lib/ui/Card.svelte';
@@ -22,6 +25,8 @@
 	}
 
 	const NEEDS: Record<string, string[]> = { admin: ['user:read'], workflows: ['workflow:write'] };
+	// a chapter can carry a live component under its text (the design-system chapter shows the real rt-ui components)
+	const EXTRAS: Record<string, Component> = { 'design-system': DesignSystemShowcase };
 
 	const articles: Article[] = Object.entries(raw)
 		.sort(([a], [b]) => a.localeCompare(b))
@@ -31,8 +36,12 @@
 		});
 
 	const bp = useBreakpoint();
+	// открыли справку — метка «загляните» у её кнопки гаснет (до следующего обновления глав)
+	onMount(() => helpAttention.markSeen());
 	const visible = $derived(articles.filter((a) => !a.needs || session.canAny(...a.needs)));
 	const current = $derived(visible.find((a) => a.slug === page.url.searchParams.get('s')) ?? visible[0]);
+	// a chapter with a live component under its text takes the whole page width (the text stays a readable column)
+	const extra = $derived(current ? EXTRAS[current.slug] : undefined);
 
 	function open(slug: string) {
 		void goto(`?s=${slug}`, { replaceState: true, keepFocus: true, noScroll: true });
@@ -41,7 +50,7 @@
 
 <svelte:head><title>Справка · RTK School</title></svelte:head>
 
-<Page narrow>
+<Page narrow={!extra}>
 	<PageHeader title="Справка" />
 
 	{#if bp.isMobile}
@@ -79,7 +88,8 @@
 				<article class="flex flex-col gap-3">
 					<h2 class="t-h3">{current.title}</h2>
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -- the help articles are our own markdown, rendered through DOMPurify -->
-					<div class="md">{@html current.html}</div>
+					<div class={['md', extra && 'max-w-3xl']}>{@html current.html}</div>
+					{#if extra}{@const Extra = extra}<Extra />{/if}
 				</article>
 			</Card>
 		{/if}
