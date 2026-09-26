@@ -32,8 +32,8 @@
 	const bp = useBreakpoint();
 	const deal = $derived(card.deal!);
 	const buttons = $derived(classifyTransitions(card.transitions, (id) => workflows.status(id), card.status));
-	const canUpdate = $derived(session.can('deal:update'));
-	const canTransition = $derived(session.can('deal:transition'));
+	const canUpdate = $derived(session.can('deal:update') && card.writable);
+	const canTransition = $derived(session.can('deal:transition') && card.writable);
 	const canReassign = $derived(session.can('deal:reassign'));
 	const open = $derived(!card.closed);
 

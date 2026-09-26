@@ -34,6 +34,8 @@
 	let running = $state(false);
 	let outcome = $state<'done' | 'failed' | 'slow' | null>(null);
 	let outcomeText = $state('');
+	/** замечания сервера к графу после архивации (например, ветка осталась без выхода) */
+	let archiveWarnings = $state<string[]>([]);
 	let waited = 0;
 
 	const poller = createPoller(
@@ -106,6 +108,7 @@
 		running = true;
 		step = 3;
 		outcome = null;
+		archiveWarnings = [];
 		try {
 			const res = await unwrap(
 				api.POST('/api/workflows/{workflow_id}/statuses/{status_id}/archive', {
@@ -114,6 +117,7 @@
 					headers: ifMatch(editor.workflow.version)
 				})
 			);
+			archiveWarnings = (res.warnings ?? []).map(String);
 			if (res.job_status === 'completed') await finish('done', res.affected_count ? `Перенесено ${count(res.affected_count, ['сделка', 'сделки', 'сделок'])}.` : 'Статус в архиве.');
 			else if (res.job_status === 'failed') await finish('failed', 'Перенос сделок не удался. Статус не архивирован.');
 			else {
@@ -182,6 +186,7 @@
 			{:else if outcome === 'done'}
 				<span class="inline-flex size-12 items-center justify-center rounded-full bg-success-soft"><CheckLarge class="size-6 fill-success" /></span>
 				<p class="t-body-m">{outcomeText}</p>
+				{#each archiveWarnings as w (w)}<Notice tone="warning" class="shrink-0 w-full text-left">{w}</Notice>{/each}
 			{:else}
 				<Notice tone={outcome === 'failed' ? 'error' : 'warning'} class="shrink-0 w-full text-left">{outcomeText}</Notice>
 			{/if}
