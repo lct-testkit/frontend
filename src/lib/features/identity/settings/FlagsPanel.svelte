@@ -5,8 +5,12 @@
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { api, unwrap, type components } from '$lib/api';
 	import { DateText, EmptyState, ErrorState, Skeleton, toast } from '$lib/ui';
+	import FlagDrawer from './FlagDrawer.svelte';
 
 	type Flag = components['schemas']['FeatureFlagOut'];
+
+	// «Новый флаг» нажимают в шапке страницы, поэтому окно создания открывает родитель
+	let { createOpen = $bindable(false) }: { createOpen?: boolean } = $props();
 
 	const bp = useBreakpoint();
 
@@ -56,6 +60,8 @@
 		);
 	}
 </script>
+
+<FlagDrawer open={createOpen} onClose={() => (createOpen = false)} onCreated={(flag) => (flags = [flag, ...flags])} />
 
 {#if loading}
 	<Skeleton kind="list" rows={4} />

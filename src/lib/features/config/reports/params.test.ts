@@ -42,3 +42,23 @@ describe('normalizePosition', () => {
 		expect(normalizePosition({ w: 40, h: 0.2 })).toEqual({ x: 0, y: 0, w: 12, h: 1 });
 	});
 });
+
+describe('выгрузка учащихся в LMS (lms_users_upload)', () => {
+	const defs = paramsFor('lms_users_upload');
+
+	it('курс, поток и период — необязательные параметры', () => {
+		expect(defs.map((d) => d.key)).toEqual(['product_id', 'stream_number', 'date_from', 'date_to']);
+		expect(defs.every((d) => !d.required)).toBe(true);
+		expect(validateParams(defs, {})).toEqual({});
+	});
+
+	it('пустые значения в тело не попадают, заполненные — попадают как есть', () => {
+		expect(normalizeParams(defs, {})).toEqual({});
+		expect(normalizeParams(defs, { product_id: 'p1', stream_number: 2, date_from: '2026-03-01' })).toEqual({ product_id: 'p1', stream_number: 2, date_from: '2026-03-01' });
+	});
+
+	it('номер потока — целое от 1', () => {
+		expect(validateParams(defs, { stream_number: 0 }).stream_number).toBeTruthy();
+		expect(validateParams(defs, { stream_number: 1.5 }).stream_number).toBeTruthy();
+	});
+});

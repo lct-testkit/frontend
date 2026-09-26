@@ -187,6 +187,14 @@ export const ORG_FIELD_LABELS: Record<string, string> = {
 	registration_date: 'Дата регистрации'
 };
 
+/** Предпочитаемые способы связи с человеком (`contact_methods`) — в шаблоне «Вендоры» это колонка «Способ связи». */
+export const CONTACT_METHOD_LABELS: Record<string, string> = {
+	email: 'Почта',
+	phone: 'Звонок',
+	telegram: 'Чат в Telegram',
+	whatsapp: 'WhatsApp'
+};
+
 export const CONTACT_CHANNEL_LABELS: Record<string, string> = {
 	telegram: 'Telegram',
 	whatsapp: 'WhatsApp',

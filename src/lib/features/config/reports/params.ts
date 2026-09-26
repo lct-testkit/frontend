@@ -14,7 +14,7 @@ export const REPORT_STATUS_INFO: Record<ReportStatus, { label: string; tone: 'ne
 };
 export const isReportBusy = (status: string): boolean => status === 'queued' || status === 'processing';
 
-export type ReportParamKind = 'deal_type' | 'workflow' | 'int';
+export type ReportParamKind = 'deal_type' | 'workflow' | 'int' | 'product' | 'date';
 
 export interface ReportParamDef {
 	key: string;
@@ -34,7 +34,14 @@ export const REPORT_PARAMS: Record<string, ReportParamDef[]> = {
 		{ key: 'workflow_id', label: 'Воронка', kind: 'workflow', hint: 'Пусто — воронка по умолчанию для типа сделки' }
 	],
 	monthly_dynamics: [{ key: 'months', label: 'Месяцев', kind: 'int', min: 1, max: 36, default: 12, required: true }],
-	stuck_deals: [{ key: 'limit', label: 'Не больше строк', kind: 'int', min: 1, max: 5000, default: 500, required: true }]
+	stuck_deals: [{ key: 'limit', label: 'Не больше строк', kind: 'int', min: 1, max: 5000, default: 500, required: true }],
+	// Выгрузка учащихся в LMS: курс и поток, период по дате создания сделки; статусы сделок сервер берёт по умолчанию
+	lms_users_upload: [
+		{ key: 'product_id', label: 'Курс', kind: 'product', hint: 'Пусто — все курсы' },
+		{ key: 'stream_number', label: 'Номер потока', kind: 'int', min: 1, max: 1000, hint: 'Пусто — все потоки' },
+		{ key: 'date_from', label: 'Сделки с', kind: 'date' },
+		{ key: 'date_to', label: 'Сделки по', kind: 'date' }
+	]
 };
 
 /** Определения параметров шаблона с учётом `default_params` сервера. */

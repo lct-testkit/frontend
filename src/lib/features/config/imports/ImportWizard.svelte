@@ -16,6 +16,7 @@
 
 	onMount(() => {
 		if (jobId) void flow.restore(jobId);
+		else void flow.loadTypes();
 	});
 	onDestroy(() => flow.stop());
 </script>

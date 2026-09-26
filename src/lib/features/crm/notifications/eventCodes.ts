@@ -25,6 +25,7 @@ export const EVENT_CODES: EventCodeInfo[] = [
 	{ code: 'DEAL_REASSIGNED', label: 'Мне назначена сделка', group: 'deals' },
 	{ code: 'DEAL_SLA_WARNING', label: 'Истекает срок статуса (SLA)', group: 'deals' },
 	{ code: 'DEAL_SLA_BREACHED', label: 'Нарушен срок статуса (SLA)', group: 'deals' },
+	{ code: 'DEAL_MENTION', label: 'Меня упомянули в комментарии', group: 'deals' },
 	{ code: 'DEAL_EVENT', label: 'События по сделке из воронки', group: 'deals' },
 	{ code: 'USER_OFFBOARD_SUCCESSOR', label: 'Переданы сделки уволенного сотрудника', group: 'deals' },
 	{ code: 'ORG_REQUISITES_DRIFT_DETECTED', label: 'Изменились реквизиты организации', group: 'organizations' },

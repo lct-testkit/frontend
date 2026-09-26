@@ -172,5 +172,6 @@ export const NOTIFICATION_EVENT_CODES: readonly { key: string; value: string; va
 	{ key: 'DEAL_SLA_WARNING', value: 'SLA: истекает срок', variables: [] },
 	{ key: 'DEAL_SLA_BREACHED', value: 'SLA нарушен', variables: [] },
 	{ key: 'DEAL_REASSIGNED', value: 'Назначена сделка', variables: [] },
+	{ key: 'DEAL_MENTION', value: 'Упоминание в комментарии', variables: [] },
 	{ key: 'DEAL_EVENT', value: 'Событие по сделке', variables: [] }
 ];

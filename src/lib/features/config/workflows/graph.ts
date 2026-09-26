@@ -76,6 +76,8 @@ export interface SlaDraft {
 	status: string;
 	max_duration_hours: number;
 	warn_threshold_pct: number;
+	/** доля срока в процентах, после которой сделка эскалируется (100–1000; по умолчанию 150) */
+	escalate_threshold_pct: number;
 	escalate_to_role: string | null;
 	escalate_to_user_id: string | null;
 	channels: string[];
@@ -128,6 +130,7 @@ export interface ServerSlaRule {
 	status_id: string;
 	max_duration_hours: number;
 	warn_threshold_pct: number;
+	escalate_threshold_pct?: number;
 	escalate_to_role?: string | null;
 	escalate_to_user_id?: string | null;
 	channels: string[];
@@ -165,6 +168,8 @@ export interface GraphPayloadSla {
 	status: string;
 	max_duration_hours: number;
 	warn_threshold_pct: number;
+	/** доля срока в процентах, после которой сделка эскалируется (100–1000; по умолчанию 150) */
+	escalate_threshold_pct: number;
 	escalate_to_role: string | null;
 	escalate_to_user_id: string | null;
 	channels: string[];
@@ -212,6 +217,7 @@ export function fromServer(graph: ServerGraph): GraphDraft {
 			status: r.status_id,
 			max_duration_hours: r.max_duration_hours,
 			warn_threshold_pct: r.warn_threshold_pct,
+			escalate_threshold_pct: r.escalate_threshold_pct ?? 150,
 			escalate_to_role: r.escalate_to_role ?? null,
 			escalate_to_user_id: r.escalate_to_user_id ?? null,
 			channels: [...r.channels],
@@ -259,6 +265,7 @@ export function toServer(draft: GraphDraft): GraphPayload {
 				status: ref.get(r.status) as string,
 				max_duration_hours: r.max_duration_hours,
 				warn_threshold_pct: r.warn_threshold_pct,
+				escalate_threshold_pct: r.escalate_threshold_pct,
 				escalate_to_role: r.escalate_to_role,
 				escalate_to_user_id: r.escalate_to_user_id,
 				channels: [...r.channels],

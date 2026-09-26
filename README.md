@@ -7,16 +7,16 @@
 <sub>Команда **«Тесткит»** — [github.com/lct-testkit](https://github.com/lct-testkit)</sub>
 
 <!--STATS-->
-**47** экранов &nbsp;·&nbsp; **165** из **181** ручек API с экранами &nbsp;·&nbsp; **65** компонентов `lib/ui` &nbsp;·&nbsp; **15** блоков B1–B15 (приняты) &nbsp;·&nbsp; **232** теста клиента &nbsp;·&nbsp; **4** роли &nbsp;·&nbsp; **4** темы
+**47** экранов &nbsp;·&nbsp; **175** из **203** ручек API с экранами &nbsp;·&nbsp; **66** компонентов `lib/ui` &nbsp;·&nbsp; **15** блоков B1–B15 (приняты) &nbsp;·&nbsp; **248** тестов клиента &nbsp;·&nbsp; **4** роли &nbsp;·&nbsp; **4** темы
 <!--/STATS-->
 
-[Быстрый старт](#быстрый-старт) · [Примеры](#примеры-использования) · [Как устроено](#как-устроено) · [Блоки интерфейса](#блоки-интерфейса) · [Редактор воронки](#редактор-воронки-графовый-конструктор) · [Битрикс24](#интеграция-с-битрикс24) · [Соглашения](#соглашения) · [Проверка качества](#проверка-качества) · [Образ web](#образ-web) · [Корневой README](../README.md) · [Бэкенд](../backend/README.md)
+[Быстрый старт](#быстрый-старт) · [Примеры](#примеры-использования) · [Как устроено](#как-устроено) · [Блоки интерфейса](#блоки-интерфейса) · [Редактор воронки](#редактор-воронки-графовый-конструктор) · [Битрикс24](#интеграция-с-битрикс24) · [Соглашения](#соглашения) · [Проверка качества](#проверка-качества) · [Образ web](#образ-web) · [Корневой README](https://github.com/lct-testkit/.github#readme) · [Бэкенд](https://github.com/lct-testkit/backend#readme)
 
 | <img src="docs/img/crm-home-light.png" width="410" alt="Главная КАМ: плитки KPI, «Требуют внимания», задачи, воронка"> | <img src="docs/img/crm-board-light.png" width="410" alt="Сделки доской по статусам воронки"> |
 |:-:|:-:|
 | *Главная КАМ — светлая* | *Сделки доской по статусам воронки* |
 
-<sub>Экраны собраны из блоков `src/lib/ui` и компонентов rt-ui. Запуск бэкенда, стенд с образом `web`, порты, демо-данные и устранение неполадок — в [корневом README](../README.md).</sub>
+<sub>Экраны собраны из блоков `src/lib/ui` и компонентов rt-ui. Запуск бэкенда, стенд с образом `web`, порты, демо-данные и устранение неполадок — в [корневом README](https://github.com/lct-testkit/.github#readme).</sub>
 
 </div>
 
@@ -25,7 +25,7 @@
 * **Экран собирается из принятых блоков, а не наоборот.** 65 компонентов в `src/lib/ui` (53 общих и 12 полей форм) делались по одному, каждый блок принимал заказчик на живом стенде: **B1–B15 приняты**.
 * **Дизайн-система везде, где она что-то умеет.** Кнопки, поля, таблица `TableGrid`, окна, вкладки, тосты — компоненты rt-ui. Своё — раскладка, карточка-секция, аватар, скелетон, плитка KPI, ввод OTP: их в rt-ui нет.
 * **Tailwind v4 поверх rt-ui без сырого CSS.** Токены дизайн-системы вшиты в тему Tailwind: `bg-surface text-muted rounded-md` сами следуют четырём темам, `dark:`-вариантов нет. Слой rt-ui лежит ниже `utilities` — утилита всегда побеждает стиль компонента.
-* **Клиент типизирован по OpenAPI.** Типы генерируются из схемы бэкенда (181 операция). Ошибки — RFC 7807 в одну человеческую фразу; создание идёт с `Idempotency-Key`, правка — с `If-Match` (конфликт 409 — плашка «Обновить»); пагинация курсорная; CSRF.
+* **Клиент типизирован по OpenAPI.** Типы генерируются из схемы бэкенда (203 операции). Ошибки — RFC 7807 в одну человеческую фразу; создание идёт с `Idempotency-Key`, правка — с `If-Match` (конфликт 409 — плашка «Обновить»); пагинация курсорная; CSRF.
 * **Один бандл — два режима.** `demo` (выбор роли в один клик) и `prod` (вход через Keycloak, серверная сессия) переключает `/config.json`; пересобирать образ не нужно.
 * **Телефон — не уменьшенный десктоп.** Таблицы становятся карточками, главная кнопка плавающая или внизу, поля размера l (48 px), нажимаемые цели — до 44 px; это проверяет `taps.mjs`.
 * **Проверки ходят по живому клиенту.** `qa-all` (все маршруты × роли × размеры), `buttons` (каждая кнопка каждого экрана, изменения на сервере подменяются заглушкой), `tops`/`axes`/`guides` (выравнивание линиями), `taps`, 40 сценариев на живом бэкенде.
@@ -47,7 +47,7 @@
 
 ## Быстрый старт
 
-Нужен работающий бэкенд (Docker, порт 8080) — как его поднять, описано в [корневом README](../README.md#быстрый-старт). Для `pnpm install` нужен токен чтения приватного пакета `@lct-testkit/rt-ui` из GitHub Packages (classic PAT со scope `read:packages`; один раз на машине: `pnpm config set "//npm.pkg.github.com/:_authToken" <токен>` — pnpm 11 не читает токен из `.npmrc` репозитория), для шрифта — `static/fonts/*.woff` (без него запасная гарнитура; шрифт выдаёт заказчик, в git его нет).
+Нужен работающий бэкенд (Docker, порт 8080) — как его поднять, описано в [корневом README](https://github.com/lct-testkit/.github#быстрый-старт). Для `pnpm install` нужен токен чтения приватного пакета `@lct-testkit/rt-ui` из GitHub Packages (classic PAT со scope `read:packages`; один раз на машине: `pnpm config set "//npm.pkg.github.com/:_authToken" <токен>` — pnpm 11 не читает токен из `.npmrc` репозитория), для шрифта — `static/fonts/*.woff` (без него запасная гарнитура; шрифт выдаёт заказчик, в git его нет).
 
 ```bash
 pnpm install
@@ -57,7 +57,7 @@ pnpm install
 pnpm dev
 ```
 
-Откроется http://localhost:5273; `/api`, `/public`, `/health`, `/auth` проксируются на `BACKEND_URL` (по умолчанию http://localhost:8080). Экран входа в demo-режиме — «Выберите роль»; учётки (`kam.ivanov`, `head.petrov`, `admin.crm`, `admin.volkov`, `auditor.smirnov`) и пароли — только для демо, см. [корневой README](../README.md#адреса-порты-и-учётные-записи).
+Откроется http://localhost:5273; `/api`, `/public`, `/health`, `/auth` проксируются на `BACKEND_URL` (по умолчанию http://localhost:8080). Экран входа в demo-режиме — «Выберите роль»; учётки (`kam.ivanov`, `head.petrov`, `admin.crm`, `admin.volkov`, `auditor.smirnov`) и пароли — только для демо, см. [корневой README](https://github.com/lct-testkit/.github#адреса-порты-и-учётные-записи).
 
 ### Два режима
 
@@ -79,7 +79,7 @@ pnpm dev
 | Сборка | `vite` · `@sveltejs/vite-plugin-svelte` | ^8.0.16 · ^7.1.2 |
 | Язык | `typescript` (`strict`) · `svelte-check` | ^6.0.3 · ^4.6.0 |
 | Стили | `tailwindcss` · `@tailwindcss/vite` · `@tailwindcss/typography` | ^4.3.3 · ^4.3.3 · ^0.5.20 |
-| Дизайн-система | `@lct-testkit/rt-ui` (порт на Svelte, [`../rt-ui`](../rt-ui)) | `0.1.1` из GitHub Packages (`.npmrc`) |
+| Дизайн-система | `@lct-testkit/rt-ui` (порт на Svelte, [`../rt-ui`](https://github.com/lct-testkit/rt-ui#readme)) | `0.1.1` из GitHub Packages (`.npmrc`) |
 | API | `openapi-fetch` · `openapi-typescript` (генерация типов) | ^0.14.0 · ^7.9.0 |
 | Граф воронки, PDF | `@xyflow/svelte` · `pdfjs-dist` | ^1.0.0 · ^5.4.0 |
 | Markdown | `marked` · `dompurify` (комментарии и справка без raw HTML) | ^16.0.0 · ^3.2.6 |
@@ -153,11 +153,11 @@ src/lib/api/                client.ts (openapi-fetch + middleware), errors.ts (R
 src/lib/auth/               session.svelte.ts (профиль, session.can), tokens.ts (только demo), events.ts (401, согласие, смена пароля, блокировка)
 src/lib/config.ts, nav.ts   runtime-конфиг /config.json; меню, заголовки и посадочная страница по правам
 src/lib/features/<область>/ crm · config · identity · signing · home: логика (*.ts, *.svelte.ts, тесты рядом) и разметка экранов
-src/lib/ui/                 53 общих компонента (AppShell, TopBar, SideNav, Page, PageHeader, FilterBar, DataTable …) и ui/fields — 12 полей форм
-src/lib/stores/             theme.svelte.ts: четыре темы, класс Theme_root_<тема> на <body>
+src/lib/ui/                 54 общих компонента (AppShell, TopBar, SideNav, Page, PageHeader, FilterBar, DataTable …) и ui/fields — 12 полей форм
+src/lib/stores/             theme.svelte.ts: четыре темы, класс Theme_root_<тема> на <body>; help-attention.svelte.ts: точка «загляните» у справки, пока её не открыли
 src/lib/utils/              format, markdown (marked + DOMPurify), query-state (фильтры в адресной строке), debounce, platform
 src/lib/styles/             fonts.css: Rostelecom Basis и запасная гарнитура
-src/lib/content/help/       8 глав справки /help (Markdown)
+src/lib/content/help/       13 глав справки /help (Markdown)
 static/                     config.json, favicon.svg, logo.svg, robots.txt, fonts/ (не в git)
 deploy/                     Caddyfile.web, docker-entrypoint.sh — образ web
 tools/                      инструменты проверки, сеялка демо-данных, scenarios/ (Playwright)
@@ -173,6 +173,7 @@ docs/                       документация клиента; docs/img �
 | `identity` | профиль, сессии, пароль, пользователи, команды, согласования («четыре глаза»), аудит, увольнение, удаление ПДн, настройки |
 | `signing` | подписание ПЭП: мастер отправки, входящие, ввод кода OTP, просмотр PDF, проверка подписи, соглашения ЭДО |
 | `home` | данные главной: плитки KPI, «требуют внимания», воронка |
+| `help` | живые образцы rt-ui в главе «Дизайн-система» справки (`DesignSystemShowcase`): кнопки, поля, таблица, графики, темы, токены |
 
 ## Блоки интерфейса
 
@@ -238,7 +239,7 @@ sequenceDiagram
     A-->>K: 201, карточка сделки
     Note over W,DB: sweep_outbox_events, каждую минуту
     W->>DB: события pending и failed, срок повтора наступил
-    W->>W: BITRIX_CONNECTOR_ENABLED включён<br/>и источник bitrix24 активен?
+    W->>W: BITRIX_CONNECTOR_ENABLED включён,<br/>источник bitrix24 и флаг bitrix_connector активны?
     W->>B: POST rest/ID/КОД/crm.item.add.json<br/>entityTypeId 2, title, opportunity, currencyId, sourceDescription
     B-->>W: 200 OK, result.item.id = 2029
     W->>DB: external_refs (сделка и 2029, outbound)<br/>outbox_events.status = sent
@@ -268,11 +269,12 @@ flowchart LR
 
 ### Как включить
 
-Нужны все три условия:
+Нужны все условия:
 
-1. В `.env` бэкенда: `BITRIX_CONNECTOR_ENABLED=true` и `BITRIX_WEBHOOK_URL=https://<портал>/rest/<id>/<код>`, затем `docker compose up -d api worker`. Вебхук создаётся в самом Битриксе: «Разработчикам» → «Другое» → «Входящий вебхук», права — только **CRM**.
-2. В CRM под администратором: «Настройка» → «Интеграции» → «Источники» → переключатель «Bitrix24». Пока он выключен, события уходят в `dead` со `source_inactive`. Флаг функции `bitrix_connector` на экране «Настройки» доставку не меняет — он справочный.
-3. Тестируйте одной сделкой с очевидным названием. Удаление в Битрикс не синхронизируется — тестовую сделку там удаляют руками; после проверки источник выключают, а вебхук отзывают.
+1. В `.env` бэкенда: `BITRIX_CONNECTOR_ENABLED=true` и `BITRIX_WEBHOOK_URL=https://<портал>/rest/<id>/<код>`, затем `docker compose up -d api worker`. Вебхук создаётся в самом Битриксе: «Разработчикам» → «Другое» → «Входящий вебхук», права — только **CRM**. Код источника сделки (`sourceId`) настраивается переменной `BITRIX_SOURCE_ID`, по умолчанию `OTHER`.
+2. В CRM под администратором: «Настройка» → «Интеграции» → «Источники» → переключатель «Bitrix24». Пока он выключен, события уходят в `dead` со `source_inactive`.
+3. Флаг функции `bitrix_connector` на экране «Настройки» — третье условие: если строка флага есть и выключена, события уходят в `dead` с `feature_flag_disabled` (вернуть их в очередь можно запросом `POST /api/admin/integrations/outbox-events/{id}/retry`); если строки флага нет, доставку он не блокирует.
+4. Тестируйте одной сделкой с очевидным названием. Удаление в Битрикс не синхронизируется — тестовую сделку там удаляют руками; после проверки источник выключают, а вебхук отзывают.
 
 ### Прогон на живом портале, 25.09.2026
 
@@ -315,7 +317,7 @@ flowchart LR
 
 ### Что нашли по дороге
 
-* **Флаг функции `bitrix_connector` — ловушка интерфейса.** Он выглядит как главный выключатель, но код его не читает; доставку решают переменная окружения и переключатель источника ([`docs/backend-issues.md`](docs/backend-issues.md) №39).
+* **Флаг функции `bitrix_connector` был ловушкой интерфейса.** Он выглядел как главный выключатель, но код его не читал: при проверке его включили вместо источника, и доставки не было. С 25.09.2026 флаг — третье условие доставки ([`docs/backend-issues.md`](docs/backend-issues.md) №39).
 
 ## Соглашения
 
@@ -419,7 +421,7 @@ pnpm gen:api
 
 Локально то же самое: `pnpm lint && pnpm lint:styles && pnpm check && pnpm test:coverage && pnpm build && pnpm size`. Если рост бандла осознанный — `node tools/check-bundle-size.mjs --update` и объяснение в PR.
 
-Прогон от 22.09.2026 (папка `frontend`): `pnpm test` — 32 файла, 232 теста, все пройдены (Vitest 3.2.7); `pnpm check` — 2574 файла, 0 ошибок, 0 предупреждений. Тесты покрывают чистую логику: валидаторы ИНН, DSL и граф воронок, условия переходов, SLA, OTP и хэши подписи, аудит, согласования, увольнение, удаление ПДн, импорт, отчёты, запрет `rounded-s/m/l`. ESLint (`pnpm lint`) — правила и осознанные исключения в `eslint.config.js`.
+Прогон от 25.09.2026 (папка `frontend`): `pnpm test` — 32 файла, 232 теста, все пройдены (Vitest 3.2.7); `pnpm check` — 2577 файлов, 0 ошибок, 0 предупреждений; `pnpm lint` — без замечаний. Тесты покрывают чистую логику: валидаторы ИНН, DSL и граф воронок, условия переходов, SLA, OTP и хэши подписи, аудит, согласования, увольнение, удаление ПДн, импорт, отчёты, запрет `rounded-s/m/l`. ESLint (`pnpm lint`) — правила и осознанные исключения в `eslint.config.js`.
 
 Инструменты `tools/*.mjs` работают против живого клиента: адрес — `APP_URL` (по умолчанию `http://localhost:5273`), вход по паролю, поэтому нужны demo-конфиг и запущенный бэкенд; используется системный Chrome. В Git Bash путь вроде `/deals` не портится: инструменты исправляют подмену `C:/Program Files/Git`. Скриншоты пишутся в `.shots/` (в git не попадает).
 
@@ -439,8 +441,8 @@ pnpm gen:api
 | `sheet.mjs` | склеивает скриншоты папки в один лист | `node tools/sheet.mjs --dir ../frontend-shots/forms --match desktop-light --out ../frontend-shots/sheet-1.png` |
 | `probe.mjs` | выполняет JS на странице и печатает результат | `node tools/probe.mjs --as kam --url /contacts --js "document.title"` |
 | `ref-shot.mjs` | скриншоты витрины rt-ui — эталона для блоков (нужен `npm run dev` в `rt-ui`, порт 5180) | `node tools/ref-shot.mjs --url /examples/crm --sizes desktop,phone` |
-| `seed-demo.mjs` | демо-данные через API (идемпотентно), см. [корневой README](../README.md#демо-данные) | `node tools/seed-demo.mjs` |
-| `gen-api.mjs`, `coverage.mjs` | типы и схема из бэкенда; какие из 181 операции OpenAPI вызывает интерфейс (165 — разбор непокрытых в [`docs/STATUS.md`](docs/STATUS.md#покрытие-ручек-165-из-181-91)) | `node tools/coverage.mjs` |
+| `seed-demo.mjs` | демо-данные через API (идемпотентно), см. [корневой README](https://github.com/lct-testkit/.github#демо-данные) | `node tools/seed-demo.mjs` |
+| `gen-api.mjs`, `coverage.mjs` | типы и схема из бэкенда; какие из 203 операций OpenAPI вызывает интерфейс (175 — разбор непокрытых в [`docs/STATUS.md`](docs/STATUS.md#покрытие-ручек-175-из-203-86)) | `node tools/coverage.mjs` |
 
 Служебные файлы папки: `lib.mjs` (общие помощники, `APP_URL`, `PW_CHANNEL`, размеры, вход по паролю), `routes.mjs` (маршруты роли для `qa-all` и `buttons`), `postbuild.mjs` (шаг `pnpm build`), `edit-ui.mjs` (помощник правок, не проверка); `_x2.mjs` — черновой скрипт, не инструмент.
 
@@ -472,18 +474,18 @@ pnpm gen:api
 docker build -t rtk-crm-web .
 ```
 
-Два этапа (оба базовых образа закреплены по digest, обновляет Dependabot): `node:22-alpine` с pnpm 11.13.1 (`pnpm install --frozen-lockfile`, кэш-маунт pnpm store, `pnpm build`), затем `caddy:2.11-alpine` со статикой в `/srv` на порту 3000 **под непривилегированным пользователем `web` (UID 10001)** (не 2.8 — Trivy 22.09.2026 нашёл там 87 CVE, 5 CRITICAL, см. `.trivyignore`); `HEALTHCHECK` читает `/config.json`. `deploy/docker-entrypoint.sh` при старте пишет `/srv/config.json`: в prod — без демо-учёток и client secret, в demo — оставляет запечённый конфиг, выставляет `mode` и подставляет `clientSecret` из переменной `KEYCLOAK_CLIENT_SECRET` (стек, установленный со сгенерированными секретами, иначе не смог бы войти). `deploy/Caddyfile.web` ставит `Cache-Control: no-cache` на `config.json`, `boot.js`, `index.html`, годовой `immutable` — на `_app/immutable/*` и `fonts/*`, а неизвестные пути отдаёт как `index.html` (роутер SPA). В контекст сборки не попадают `docs` и `tools/scenarios` (`.dockerignore`). Весь стек с клиентом поднимается профилем compose `web`; переключение demo и prod, переменные и запуск — [корневой README](../README.md#полноценная-версия).
+Два этапа (оба базовых образа закреплены по digest, обновляет Dependabot): `node:22-alpine` с pnpm 11.13.1 (`pnpm install --frozen-lockfile`, кэш-маунт pnpm store, `pnpm build`), затем `caddy:2.11-alpine` со статикой в `/srv` на порту 3000 **под непривилегированным пользователем `web` (UID 10001)** (не 2.8 — Trivy 22.09.2026 нашёл там 87 CVE, 5 CRITICAL, см. `.trivyignore`); `HEALTHCHECK` читает `/config.json`. `deploy/docker-entrypoint.sh` при старте пишет `/srv/config.json`: в prod — без демо-учёток и client secret, в demo — оставляет запечённый конфиг, выставляет `mode` и подставляет `clientSecret` из переменной `KEYCLOAK_CLIENT_SECRET` (стек, установленный со сгенерированными секретами, иначе не смог бы войти). `deploy/Caddyfile.web` ставит `Cache-Control: no-cache` на `config.json`, `boot.js`, `index.html`, годовой `immutable` — на `_app/immutable/*` и `fonts/*`, а неизвестные пути отдаёт как `index.html` (роутер SPA). В контекст сборки не попадают `docs` и `tools/scenarios` (`.dockerignore`). Весь стек с клиентом поднимается профилем compose `web`; переключение demo и prod, переменные и запуск — [корневой README](https://github.com/lct-testkit/.github#полноценная-версия).
 
 ## Ограничения и известные проблемы
 
 * **Каталоги «Направления», «Причины отказа», «Календарь»** не переведены на `DataTable` (у них свой вид списка); каталог блоков `src/routes/dev` по плану удаляется перед выдачей (в production-сборку не попадает и сейчас).
 * **Редактор воронки на телефоне без перетаскивания** (по плану); «Сохранить» и «Опубликовать» стоят отдельным рядом под заголовком.
-* **Вебхуки внешних систем без экрана** (`POST /api/v1/integrations/{cms/leads, lms/progress, bitrix/webhook}`): подписаны секретом, которого в браузере быть не должно; на карточке источника есть «паспорт» с примером `curl`. Ещё без экрана сознательно — поток OIDC (3 ручки) и health-пробы (2): 8 из 181. Ещё 8 — новые ручки бэкенда 22.09.2026 (лицензии, данные отчёта в JSON, 5 `DELETE`), под них пока не строился UI — разбор в [`docs/STATUS.md`](docs/STATUS.md#покрытие-ручек-165-из-181-91).
+* **Вебхуки внешних систем без экрана** (`POST /api/v1/integrations/{cms/leads, lms/progress, bitrix/webhook}`): подписаны секретом, которого в браузере быть не должно; на карточке источника есть «паспорт» с примером `curl`. Ещё без экрана сознательно — поток OIDC (3 ручки) и health-пробы (2): 8 из 203. Ещё 20 — новые ручки бэкенда: 8 от 22.09.2026 (лицензии, данные отчёта в JSON, 5 `DELETE`) и 12 от 25.09.2026 (повтор доставки, предпросмотр шаблона, `PATCH /me`, счётчик уведомлений, PDF подписи с того же origin, переиздание ссылки, продукты сделки, `PATCH` воронки, задача переноса, карточка команды); под них пока не строился UI — разбор в [`docs/STATUS.md`](docs/STATUS.md#покрытие-ручек-175-из-203-86).
 * **Битрикс24 — только в одну сторону** (CRM → Битрикс): реальные события Битрикса в CRM не принимаются, стадии, ответственные и удаление не синхронизируются — [раздел выше](#интеграция-с-битрикс24).
 * **Ограничения бэкенда** ([`docs/backend-issues.md`](docs/backend-issues.md)): нет `DELETE` у праздников производственного календаря (остальные справочники и воронки уже получили); в демо остались тестовые записи прогонов сценариев — новыми `DELETE`-ручками ещё не почищены.
 * **Ловушки rt-ui**, на которые пришлось обходить ([`docs/REBUILD-PLAN.md`](docs/REBUILD-PLAN.md), §6): `Popover` с `showCloseButton` по умолчанию ничего не рисует; списки `Select` и `InputDate` внутри `Drawer` открываются под ним (обход — одна переменная в `Pick.svelte`); у `Accordion` нет `<button>` в заголовке; кнопки `InlineNotification` всегда «тихие».
 * **Нет анимаций окон и колец фокуса**, если в Windows отключены эффекты анимации: браузер сообщает `prefers-reduced-motion`, и дизайн-система отключает движение — так задумано.
-* **Справка `/help`** — 8 глав со скриншотами реального интерфейса ([`src/lib/content/help`](src/lib/content/help), [`static/help`](static/help)).
+* **Справка `/help`** — 13 глав: 8 пользовательских со скриншотами реального интерфейса, задачи и уведомления, интеграции (со скриншотами), клавиатура и темы, «О проекте» и глава «Дизайн-система» с живыми компонентами rt-ui ([`src/lib/content/help`](src/lib/content/help), [`static/help`](static/help)). Иконка «?» в шапке и пункт меню «Справка» несут акцентную точку, пока справку не открыли после обновления глав (`HELP_REV` в `stores/help-attention.svelte.ts`).
 
 ## Шрифт и лицензия
 
@@ -491,12 +493,12 @@ Rostelecom Basis и пакет `@lct-testkit/rt-ui` — материалы Ро�
 
 | Документ | Что внутри |
 |---|---|
-| [`docs/STATUS.md`](docs/STATUS.md) | состояние клиента, как посмотреть, покрытие ручек (165 из 181), как проверять, известные ограничения |
+| [`docs/STATUS.md`](docs/STATUS.md) | состояние клиента, как посмотреть, покрытие ручек (175 из 203), как проверять, известные ограничения |
 | [`docs/REBUILD-PLAN.md`](docs/REBUILD-PLAN.md) | замечания заказчика, блоки B1–B15 и критерии приёмки, правила раскладки (§9), что принято |
 | [`docs/USERFLOWS.md`](docs/USERFLOWS.md) | пользовательские потоки по ролям: задача, экраны, блоки, обязательные состояния |
 | [`docs/DS-MIGRATION.md`](docs/DS-MIGRATION.md) | что на что менять при переводе самописных элементов на rt-ui |
 | [`docs/backend-issues.md`](docs/backend-issues.md) | проблемы и несоответствия бэкенда, обходы (в том числе про сиды отчётов, уведомлений и интеграций) |
 | [`docs/LEAD-DECISIONS.md`](docs/LEAD-DECISIONS.md), [`docs/lead-requests.md`](docs/lead-requests.md) | общие решения и правки бэкенда, сделанные для клиента; запросы к общему слою |
-| [`docs/openapi.json`](docs/openapi.json), [`docs/api-endpoints.md`](docs/api-endpoints.md) | схема и индекс 181 операции; генерируются `pnpm gen:api` |
+| [`docs/openapi.json`](docs/openapi.json), [`docs/api-endpoints.md`](docs/api-endpoints.md) | схема и индекс 203 операций; генерируются `pnpm gen:api` |
 | [`docs/AGENT-BRIEF.md`](docs/AGENT-BRIEF.md), [`docs/plan-crm.md`](docs/plan-crm.md), [`docs/plan-config.md`](docs/plan-config.md), [`docs/plan-identity-signing.md`](docs/plan-identity-signing.md), [`docs/handoff-C.md`](docs/handoff-C.md) | история первой сборки, справочно |
-| [`../README.md`](../README.md) · [`../backend/README.md`](../backend/README.md) · [`../rt-ui/README.md`](../rt-ui/README.md) | продукт целиком и стенд · бэкенд · дизайн-система |
+| [`../README.md`](https://github.com/lct-testkit/.github#readme) · [`../backend/README.md`](https://github.com/lct-testkit/backend#readme) · [`../rt-ui/README.md`](https://github.com/lct-testkit/rt-ui#readme) | продукт целиком и стенд · бэкенд · дизайн-система |

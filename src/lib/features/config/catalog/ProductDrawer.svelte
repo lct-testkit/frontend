@@ -12,8 +12,10 @@
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import TextField from '$lib/ui/fields/TextField.svelte';
 	import Toggle from '$lib/ui/fields/Toggle.svelte';
+	import OrgPicker from '$lib/features/crm/shared/pickers/OrgPicker.svelte';
 	import { toFormFailure } from '../shared/form-errors';
 	import CustomFieldsInputs from './CustomFieldsInputs.svelte';
+	import ProductContacts from './ProductContacts.svelte';
 	import { checkCustomValues } from './custom-fields';
 	import { directionOptions } from './directions';
 	import { directions, ensureDirections } from './directions.svelte';
@@ -37,6 +39,8 @@
 	let currency = $state('RUB');
 	let validFrom = $state<string | null>(null);
 	let validTo = $state<string | null>(null);
+	/** организация-вендор продукта (файл «Вендоры»); пусто — вендор не указан */
+	let vendorId = $state<string | null>(null);
 	let isActive = $state(true);
 	let custom = $state<Record<string, unknown>>({});
 	let defs = $state<CustomFieldDef[]>([]);
@@ -59,6 +63,7 @@
 			code = p?.code ?? '';
 			name = p?.name ?? '';
 			directionId = p?.direction_id ?? null;
+			vendorId = p?.vendor_id ?? null;
 			format = p?.format ?? null;
 			price = p?.base_price != null ? Number(p.base_price) : null;
 			description = p?.description ?? '';
@@ -108,6 +113,7 @@
 				name: name.trim(),
 				description: description.trim() || null,
 				direction_id: directionId,
+				vendor_id: vendorId,
 				duration_hours: duration,
 				format: (format as 'online' | 'offline' | 'blended' | null) ?? null,
 				base_price: price,
@@ -128,7 +134,7 @@
 			}
 			onClose();
 		} catch (e) {
-			const failure = toFormFailure(e, ['code', 'name', 'direction_id', 'format', 'base_price', 'currency', 'duration_hours', 'valid_from', 'valid_to']);
+			const failure = toFormFailure(e, ['code', 'name', 'direction_id', 'vendor_id', 'format', 'base_price', 'currency', 'duration_hours', 'valid_from', 'valid_to']);
 			errors = { ...failure.fields };
 			formError = failure.form;
 			conflict = failure.conflict;
@@ -162,11 +168,15 @@
 	{/if}
 	<TextField label="Название" bind:value={name} error={errors.name} maxlength={255} autofocus={!isNew} />
 	<Pick label="Направление" bind:value={directionId} items={dirItems} error={errors.direction_id} clearable search emptyText={directions.loading ? 'Загрузка…' : 'Направлений нет'} />
+	<OrgPicker label="Вендор" value={vendorId} error={errors.vendor_id} hint="Компания, чей это продукт" onChange={(id) => (vendorId = id)} />
 	<FormRow>
 		<Pick label="Формат" bind:value={format} items={PRODUCT_FORMATS.map((f) => ({ key: f.key, value: f.value }))} clearable error={errors.format} />
 		<NumberField label="Цена, ₽" bind:value={price} error={errors.base_price} />
 	</FormRow>
 	<Toggle label="Активен" bind:checked={isActive} />
+	{#if item}
+		<FormSection title="Ответственные"><ProductContacts productId={item.id} /></FormSection>
+	{/if}
 	<FormSection collapsible open={!!(description || duration || validFrom || validTo)}>
 		<AreaField label="Описание" bind:value={description} />
 		<FormRow>

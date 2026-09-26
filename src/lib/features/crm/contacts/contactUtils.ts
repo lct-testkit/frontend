@@ -1,6 +1,6 @@
 // Контакты: значения формы ↔ тела запросов. E-mail и телефон в ответах API всегда маскированы (`+7 (9**) ***-**-67`, `i***@…`),
 // поэтому при правке шлём только то, что пользователь изменил, а маску не отправляем никогда.
-import type { components } from '$lib/api';
+import { ApiError, type components } from '$lib/api';
 import type { Contact } from '../types';
 
 type S = components['schemas'];
@@ -90,4 +90,28 @@ export function validateContact(v: ContactFormValues): Record<string, string> {
 	const phone = v.phone.trim();
 	if (phone && !isMasked(phone) && phone.replace(/\D/g, '').length < 10) errors.phone = 'Слишком короткий номер';
 	return errors;
+}
+
+export interface DuplicateCandidate {
+	/** `null` — контакт другого менеджера: карточка недоступна, сервер id не раскрывает */
+	id: string | null;
+	name?: string;
+	accessible: boolean;
+}
+
+/**
+ * Совпавшие записи из ответа `409 CRM-1301` (создание контакта или организации): «такой уже есть».
+ * `null` — это не ответ о дубле; пустой список — дубль есть, но описать его нечем.
+ */
+export function duplicateCandidates(error: unknown): DuplicateCandidate[] | null {
+	if (!(error instanceof ApiError) || error.code !== 'CRM-1301') return null;
+	const raw = error.extra.candidates;
+	if (!Array.isArray(raw)) return [];
+	return raw
+		.filter((c): c is Record<string, unknown> => !!c && typeof c === 'object')
+		.map((c) => ({
+			id: typeof c.id === 'string' ? c.id : null,
+			name: typeof c.name === 'string' ? c.name : undefined,
+			accessible: c.accessible === true && typeof c.id === 'string'
+		}));
 }

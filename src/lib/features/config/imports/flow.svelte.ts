@@ -6,6 +6,7 @@ import { uploadFile } from '$lib/api/upload';
 import { toast } from '$lib/ui';
 import type { ImportJob, ImportPreset, ImportProfile } from '../types';
 import { createPoller } from '../shared/polling.svelte';
+import { loadEntityTypes } from './job';
 import {
 	IMPORT_MAX_FILE_BYTES,
 	applyPreset,
@@ -14,6 +15,7 @@ import {
 	isImportBusy,
 	sourceFormatFromName,
 	type ImportEntity,
+	type ImportEntityType,
 	type ImportMode,
 	type MappingCheck
 } from './mapping';
@@ -22,6 +24,10 @@ export const WIZARD_STEPS = ['Файл', 'Сопоставление', 'Пров
 
 export class ImportFlow {
 	step = $state(0);
+	/** Типы сущностей с сервера: поля, форматы, что обязательно. Списки полей на клиенте не хранятся. */
+	entityTypes = $state<ImportEntityType[]>([]);
+	typesLoading = $state(false);
+	typesError = $state<unknown>(null);
 	entity = $state<ImportEntity>('organization');
 	mode = $state<ImportMode>('upsert');
 	file = $state<File | null>(null);
@@ -43,7 +49,8 @@ export class ImportFlow {
 	#ctrl: AbortController | null = null;
 
 	headers = $derived(this.profile?.headers ?? []);
-	check = $derived<MappingCheck>(checkMapping(this.mapping, this.headers, this.entity));
+	entityType = $derived(this.entityTypes.find((t) => t.code === this.entity) ?? null);
+	check = $derived<MappingCheck>(checkMapping(this.mapping, this.headers, this.entityType));
 	rollingBack = $derived(this.job?.status === 'rolling_back');
 
 	poller = createPoller(async () => {
@@ -54,6 +61,19 @@ export class ImportFlow {
 		this.step = 4;
 		return false;
 	});
+
+	async loadTypes(): Promise<void> {
+		if (this.entityTypes.length || this.typesLoading) return;
+		this.typesLoading = true;
+		this.typesError = null;
+		try {
+			this.entityTypes = await loadEntityTypes();
+		} catch (e) {
+			this.typesError = e;
+		} finally {
+			this.typesLoading = false;
+		}
+	}
 
 	stop(): void {
 		this.poller.stop();
@@ -66,6 +86,7 @@ export class ImportFlow {
 		this.loading = true;
 		this.error = null;
 		try {
+			await this.loadTypes();
 			const job = await unwrap(api.GET('/api/imports/{job_id}', { params: { path: { job_id: jobId } } }));
 			this.job = job;
 			this.entity = (job.entity_type as ImportEntity) ?? 'organization';
@@ -86,8 +107,10 @@ export class ImportFlow {
 
 	pickFile(file: File | null): void {
 		this.fileError = null;
-		if (file && !sourceFormatFromName(file.name)) {
-			this.fileError = 'Подходят файлы Excel (.xlsx, .xls) и CSV.';
+		const format = file ? sourceFormatFromName(file.name) : null;
+		const allowed = this.entityType?.source_formats;
+		if (file && (!format || (allowed && !allowed.includes(format)))) {
+			this.fileError = 'Подходят файлы Excel (.xlsx, .xls), CSV и JSON.';
 			file = null;
 		} else if (file && file.size > IMPORT_MAX_FILE_BYTES) {
 			this.fileError = 'Файл больше 50 МБ. Разбейте его на части.';

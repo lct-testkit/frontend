@@ -74,8 +74,10 @@
 	});
 
 	const sameInn = $derived(duplicates.find((c) => c.match === 'inn'));
+	// Без ИНН сервер отказывает при полном совпадении названия (409 CRM-1301, `match: same_name`): создать вторую карточку нельзя
+	const sameName = $derived(duplicates.find((c) => (c.match as string) === 'same_name'));
 	const similar = $derived(duplicates.filter((c) => c.match === 'similar_name'));
-	const blocked = $derived(!!sameInn || !!conflict);
+	const blocked = $derived(!!sameInn || !!sameName || !!conflict);
 	const dirty = $derived(open && step === 'form' && JSON.stringify(values) !== JSON.stringify({ ...emptyOrgForm(), inn: prefillInn, owner_id: null }));
 
 	function picked(entry: OrgLookupEntry) {
@@ -120,7 +122,9 @@
 			toast.success('Организация создана');
 			onCreated(org);
 		} catch (e) {
-			if (e instanceof ApiError && e.code === 'CRM-1302') {
+			if (e instanceof ApiError && e.code === 'CRM-1301' && Array.isArray(e.extra.candidates)) {
+				duplicates = e.extra.candidates as DuplicateCandidate[];
+			} else if (e instanceof ApiError && e.code === 'CRM-1302') {
 				conflict = { id: String(e.extra.organization_id ?? ''), deleted: e.extra.deleted === true };
 			} else if (e instanceof ApiError && e.isValidation) {
 				errors = { ...errors, ...e.fieldErrors() };
@@ -149,9 +153,10 @@
 	{:else}
 		{#if fromRegistry}<p class="t-desc-l m-0 text-muted">Данные подставлены из реестра ЕГРЮЛ — проверьте и создайте.</p>{/if}
 
-		{#if sameInn || conflict}
-			{@const id = sameInn?.id ?? conflict?.id ?? ''}
-			{@const noOpen = (sameInn && !sameInn.accessible) || conflict?.deleted}
+		{#if sameInn || sameName || conflict}
+			{@const hit = sameInn ?? sameName}
+			{@const id = hit?.id ?? conflict?.id ?? ''}
+			{@const noOpen = (hit && !hit.accessible) || conflict?.deleted}
 			<Notice class="shrink-0"
 				tone="warning"
 				role="alert"
@@ -162,12 +167,12 @@
 							...(session.can('deal:create') ? [{ label: 'Новая сделка', onclick: () => (onClose(), goto(`/deals?new=1&org=${id}`)) }] : [])
 						]}
 			>
-				{#if sameInn && !sameInn.accessible}
-					Организация с таким ИНН уже есть в системе, но недоступна вам. Обратитесь к руководителю.
+				{#if hit && !hit.accessible}
+					Организация с {sameInn ? 'таким ИНН' : 'таким названием'} уже есть в системе, но недоступна вам. Обратитесь к руководителю.
 				{:else if conflict?.deleted}
 					Карточка с таким ИНН была удалена. Восстановить её может администратор.
 				{:else}
-					Организация уже в системе{sameInn?.name ? `: ${sameInn.name}` : ''}.
+					Организация уже в системе{hit?.name ? `: ${hit.name}` : ''}.
 				{/if}
 			</Notice>
 		{:else if similar.length}
