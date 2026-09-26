@@ -36,7 +36,7 @@
 	const setTab = (next: string) => setQuery({ tab: next === 'overview' ? null : next }, { push: true });
 
 	const canSign = $derived(session.canAny('signature:create', 'signature:sign', 'signature:void'));
-	const canWrite = $derived(session.can('deal:update') && !card.closed);
+	const canWrite = $derived(session.can('deal:update') && !card.closed && card.writable);
 	const canFiles = $derived(session.can('file:upload') && !card.closed);
 
 	let commentCount = $state<number | null>(null);
@@ -104,7 +104,7 @@
 		{#if tab === 'overview'}
 			<DealOverview {card} />
 		{:else if tab === 'comments'}
-			<DealComments dealId={deal.id} canWrite={session.can('deal:update')} refreshKey={card.epoch} onCount={(n) => (commentCount = n)} />
+			<DealComments dealId={deal.id} canWrite={session.can('deal:update') && card.writable} refreshKey={card.epoch} onCount={(n) => (commentCount = n)} />
 		{:else if tab === 'files'}
 			<Attachments entityType="deal" entityId={deal.id} canEdit={canFiles} />
 		{:else if tab === 'tasks'}

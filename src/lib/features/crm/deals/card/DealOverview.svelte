@@ -97,6 +97,6 @@
 	</div>
 
 	<Card title="Участники">
-		<div class="flex flex-col gap-2"><DealParticipants dealId={deal.id} canEdit={session.can('deal:update') && !card.closed} /></div>
+		<div class="flex flex-col gap-2"><DealParticipants dealId={deal.id} canEdit={session.can('deal:update') && !card.closed && card.writable} /></div>
 	</Card>
 </div>

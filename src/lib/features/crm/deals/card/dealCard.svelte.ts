@@ -1,6 +1,8 @@
 // Состояние карточки сделки: сама сделка, продукты, доступные переходы, граф воронки. Все мутации (правка, переназначение, переход)
 // возвращают свежую сделку — её версия идёт в следующий `If-Match`, а конфликт версий (CRM-1002) поднимает баннер «Обновить».
 import { api, ifMatch, unwrap } from '$lib/api';
+import { session } from '$lib/auth/session.svelte';
+import { isWatcherOnly } from './access';
 import type { AvailableTransition, Deal, DealProduct } from '../../types';
 import { workflows } from '../workflows.svelte';
 
@@ -17,6 +19,8 @@ export class DealCardState {
 	error = $state<unknown>(null);
 	/** кто-то изменил сделку: показываем баннер с «Обновить» */
 	conflict = $state(false);
+	/** текущий пользователь — наблюдатель в этой сделке: сервер не даст ничего менять, поэтому кнопок нет */
+	watcherOnly = $state(false);
 	/** версия данных вкладок: растёт после переходов, чтобы история/обсуждение перечитались */
 	epoch = $state(0);
 
@@ -32,6 +36,11 @@ export class DealCardState {
 	get status() {
 		return workflows.status(this.deal?.status_id);
 	}
+	/** можно ли менять сделку по роли в ней (закрытость и права роли проверяются отдельно) */
+	get writable(): boolean {
+		return !this.watcherOnly;
+	}
+
 	get closed(): boolean {
 		return !!this.deal?.closed_at;
 	}
@@ -44,7 +53,7 @@ export class DealCardState {
 			const card = await unwrap(api.GET('/api/deals/{deal_id}', { params: { path: { deal_id: this.id } } }));
 			if (mine !== this.#seq) return;
 			this.#apply(card);
-			await Promise.all([workflows.ensure(card.deal.workflow_id), this.loadTransitions()]);
+			await Promise.all([workflows.ensure(card.deal.workflow_id), this.loadTransitions(), this.loadAccess()]);
 		} catch (e) {
 			if (mine === this.#seq) this.error = e;
 		} finally {
@@ -56,6 +65,16 @@ export class DealCardState {
 		this.deal = card.deal;
 		this.products = card.products ?? [];
 		this.counts = { comments: card.comments_count ?? 0, tasks: card.open_tasks_count ?? 0 };
+	}
+
+	/** Роль пользователя в сделке: наблюдатель только читает. Не удалось узнать — считаем, что права полные (решает сервер). */
+	async loadAccess(): Promise<void> {
+		try {
+			const { items } = await unwrap(api.GET('/api/deals/{deal_id}/participants', { params: { path: { deal_id: this.id } } }));
+			this.watcherOnly = isWatcherOnly(items, this.deal?.owner_id, session.me ? { id: session.me.id, role: session.role } : null);
+		} catch {
+			this.watcherOnly = false;
+		}
 	}
 
 	async loadTransitions(): Promise<void> {
