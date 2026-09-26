@@ -1,11 +1,26 @@
-// Импорт каталогов: целевые поля, автоподбор маппинга (зеркало backend/app/modules/imports/{fields,mapping}.py),
-// проверка маппинга, пресеты, фазы задания.
+// Импорт: режимы, форматы, подписи типов, проверка сопоставления, пресеты, фазы задания.
+// Поля типов и автоподбор колонок приходят с сервера (`GET /api/imports/entity-types`, `suggested_mapping` профиля):
+// копий списков полей и синонимов здесь нет — они уже расходились с бэкендом при каждом новом типе.
+import type { components } from '$lib/api';
 
-export const IMPORT_ENTITIES = ['organization', 'product'] as const;
-export type ImportEntity = (typeof IMPORT_ENTITIES)[number];
-export const IMPORT_ENTITY_LABELS: Record<ImportEntity, { label: string; plural: string; hint: string }> = {
+export type ImportEntityType = components['schemas']['ImportEntityTypeOut'];
+export type ImportFieldSpec = components['schemas']['ImportFieldOut'];
+/** Код типа сущности (`organization`, `vendor_contact`, …) в схеме создания задания. */
+export type ImportEntity = components['schemas']['ImportJobCreateRequest']['entity_type'];
+
+/** Короткая подпись и подсказка для списка и мастера; для неизвестного серверу типа берётся его собственная подпись. */
+export const IMPORT_ENTITY_INFO: Record<string, { label: string; plural: string; hint: string }> = {
 	organization: { label: 'Организации', plural: 'организаций', hint: 'Вузы и компании; ключ — ИНН' },
-	product: { label: 'Продукты', plural: 'продуктов', hint: 'Курсы и программы; ключ — код продукта' }
+	product: { label: 'Продукты', plural: 'продуктов', hint: 'Курсы и программы; ключ — код продукта' },
+	license: { label: 'Лицензии', plural: 'лицензий', hint: 'Договоры вуз — вендор — программное обеспечение' },
+	vendor_contact: { label: 'Вендоры', plural: 'вендоров', hint: 'Компания, продукты и ответственные — файл «Вендоры»' },
+	payment: { label: 'Оплаты', plural: 'оплат', hint: 'Оплаченные заказы физлиц: заявка, курс, поток — «Данные оплат»' },
+	learner: { label: 'Учащиеся LMS', plural: 'учащихся', hint: 'Шаблон LMS «Загрузка пользователей» с паспортом и дипломом' }
+};
+
+export const entityInfo = (type: Pick<ImportEntityType, 'code' | 'label'>): { label: string; hint: string } => {
+	const known = IMPORT_ENTITY_INFO[type.code];
+	return known ? { label: known.label, hint: known.hint } : { label: type.label, hint: '' };
 };
 
 export const IMPORT_MODES = ['upsert', 'insert', 'update'] as const;
@@ -16,14 +31,15 @@ export const IMPORT_MODE_LABELS: Record<ImportMode, { label: string; hint: strin
 	update: { label: 'Только обновить', hint: 'Строки без существующей записи считаются ошибкой' }
 };
 
-export const SOURCE_FORMATS = ['xlsx', 'xls', 'csv'] as const;
+export const SOURCE_FORMATS = ['xlsx', 'xls', 'csv', 'json'] as const;
 export type SourceFormat = (typeof SOURCE_FORMATS)[number];
 export const IMPORT_MAX_FILE_BYTES = 50 * 1024 * 1024;
 export const IMPORT_MAX_ROWS = 100_000;
 export const IMPORT_ACCEPT: Record<string, string[]> = {
 	'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
 	'application/vnd.ms-excel': ['.xls'],
-	'text/csv': ['.csv']
+	'text/csv': ['.csv'],
+	'application/json': ['.json']
 };
 
 /** Формат по расширению файла; `null` — формат не поддерживается. */
@@ -32,174 +48,47 @@ export function sourceFormatFromName(fileName: string): SourceFormat | null {
 	return (SOURCE_FORMATS as readonly string[]).includes(ext) ? (ext as SourceFormat) : null;
 }
 
-export type ImportFieldKind =
-	| 'text' | 'int' | 'decimal' | 'bool' | 'date' | 'email' | 'phone'
-	| 'inn' | 'kpp' | 'ogrn' | 'region_code' | 'direction_code' | 'org_type' | 'format';
-
-export interface ImportFieldSpec {
-	target: string;
-	label: string;
-	kind: ImportFieldKind;
-	required: boolean;
-}
-
-const f = (target: string, label: string, kind: ImportFieldKind, required = false): ImportFieldSpec => ({ target, label, kind, required });
-
-export const ORGANIZATION_FIELDS: readonly ImportFieldSpec[] = [
-	f('name', 'Наименование', 'text', true),
-	f('short_name', 'Краткое наименование', 'text'),
-	f('org_type', 'Тип организации', 'org_type'),
-	f('inn', 'ИНН', 'inn'),
-	f('kpp', 'КПП', 'kpp'),
-	f('ogrn', 'ОГРН', 'ogrn'),
-	f('legal_address', 'Юридический адрес', 'text'),
-	f('actual_address', 'Фактический адрес', 'text'),
-	f('region_code', 'Код региона', 'region_code'),
-	f('website', 'Сайт', 'text'),
-	f('main_phone', 'Телефон', 'phone'),
-	f('main_email', 'Email', 'email'),
-	f('students_count', 'Количество студентов', 'int')
-];
-
-export const PRODUCT_FIELDS: readonly ImportFieldSpec[] = [
-	f('code', 'Код', 'text', true),
-	f('name', 'Наименование', 'text', true),
-	f('description', 'Описание', 'text'),
-	f('direction_code', 'Код направления', 'direction_code'),
-	f('duration_hours', 'Длительность, часы', 'int'),
-	f('format', 'Формат', 'format'),
-	f('base_price', 'Цена', 'decimal'),
-	f('currency', 'Валюта', 'text')
-];
-
-const NATURAL_KEYS: Record<ImportEntity, string> = { organization: 'inn', product: 'code' };
-
-export function fieldsFor(entity: ImportEntity): readonly ImportFieldSpec[] {
-	return entity === 'organization' ? ORGANIZATION_FIELDS : PRODUCT_FIELDS;
-}
-export function naturalKeyFor(entity: ImportEntity): string {
-	return NATURAL_KEYS[entity];
-}
-
 /** Значение «не импортировать колонку» в Select маппинга. */
 export const SKIP_TARGET = '';
-
-// --- Автоподбор ----------------------------------------------------------------
-
-const SYNONYMS: Record<string, string> = {
-	наименование: 'name',
-	название: 'name',
-	'полное наименование': 'name',
-	организация: 'name',
-	вуз: 'name',
-	'краткое наименование': 'short_name',
-	'сокращённое наименование': 'short_name',
-	'сокращенное наименование': 'short_name',
-	инн: 'inn',
-	кпп: 'kpp',
-	огрн: 'ogrn',
-	'юридический адрес': 'legal_address',
-	адрес: 'legal_address',
-	'фактический адрес': 'actual_address',
-	сайт: 'website',
-	'веб-сайт': 'website',
-	телефон: 'main_phone',
-	email: 'main_email',
-	'e-mail': 'main_email',
-	почта: 'main_email',
-	'количество студентов': 'students_count',
-	'число студентов': 'students_count',
-	контингент: 'students_count',
-	код: 'code',
-	продукт: 'name',
-	направление: 'direction_code',
-	формат: 'format',
-	цена: 'base_price',
-	стоимость: 'base_price',
-	валюта: 'currency',
-	длительность: 'duration_hours',
-	часы: 'duration_hours'
-};
-
-export const normalizeHeader = (header: string): string => header.trim().toLowerCase().split(/\s+/).join(' ');
-
-export function levenshtein(a: string, b: string): number {
-	if (a === b) return 0;
-	if (!a) return b.length;
-	if (!b) return a.length;
-	let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
-	for (let i = 1; i <= a.length; i++) {
-		const current = [i, ...new Array<number>(b.length).fill(0)];
-		for (let j = 1; j <= b.length; j++) {
-			const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-			current[j] = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + cost);
-		}
-		previous = current;
-	}
-	return previous[b.length];
-}
-
-function bestFuzzyMatch(header: string, candidates: readonly ImportFieldSpec[]): ImportFieldSpec | null {
-	const normalized = normalizeHeader(header);
-	let best: { distance: number; spec: ImportFieldSpec } | null = null;
-	for (const spec of candidates) {
-		for (const candidate of [spec.target, spec.label.toLowerCase()]) {
-			const distance = levenshtein(normalized, candidate.toLowerCase());
-			const threshold = Math.max(1, Math.floor(candidate.length / 3));
-			if (distance <= threshold && (best === null || distance < best.distance)) best = { distance, spec };
-		}
-	}
-	return best?.spec ?? null;
-}
-
-/** `{колонка файла: код поля}` только для колонок, которым нашлось соответствие (как `suggest_mapping` на сервере). */
-export function suggestMapping(headers: readonly string[], fields: readonly ImportFieldSpec[]): Record<string, string> {
-	const mapping: Record<string, string> = {};
-	const used = new Set<string>();
-	for (const header of headers) {
-		const normalized = normalizeHeader(header);
-		const target = SYNONYMS[normalized] ?? fields.find((s) => s.target === normalized)?.target;
-		if (target && !used.has(target) && fields.some((s) => s.target === target)) {
-			mapping[header] = target;
-			used.add(target);
-		}
-	}
-	let remaining = fields.filter((s) => !used.has(s.target));
-	for (const header of headers) {
-		if (header in mapping) continue;
-		const match = bestFuzzyMatch(header, remaining);
-		if (match) {
-			mapping[header] = match.target;
-			used.add(match.target);
-			remaining = remaining.filter((s) => s.target !== match.target);
-		}
-	}
-	return mapping;
-}
 
 // --- Проверка и пресеты ---------------------------------------------------------
 
 export interface MappingCheck {
 	errors: string[];
-	warnings: string[];
+	/** Что ещё нужно сопоставить, чтобы строки можно было применить (те же названия, что в ответе сервера при сохранении). */
+	missing: string[];
 	/** Колонки файла без соответствия — будут пропущены. */
 	unmappedHeaders: string[];
 	/** Поля системы, выбранные для нескольких колонок. */
 	duplicateTargets: string[];
-	/** Обязательные поля сущности без колонки. */
-	missingRequired: string[];
 	ok: boolean;
 }
 
-/** Локальная проверка перед `PUT /mapping`: ключевое поле, дубли, обязательные поля. */
-export function checkMapping(mapping: Record<string, string>, headers: readonly string[], entity: ImportEntity): MappingCheck {
-	const fields = fieldsFor(entity);
-	const byTarget = new Map(fields.map((s) => [s.target, s] as const));
+// Те же формулировки, что в `imports/fields.py::missing_mapping_labels`: сервер сверяет ими и отвечает 422 при сохранении.
+const NAME_REQUIREMENT = 'ФИО (или Фамилия и Имя)';
+const CONTACT_REQUIREMENT = 'Email или Телефон';
+
+/** Чего не хватает в сопоставлении: обязательные поля типа, а для типов про людей — имя и способ связи. */
+export function missingRequirements(targets: readonly string[], type: ImportEntityType): string[] {
+	const has = (t: string) => targets.includes(t);
+	const known = new Set(type.fields.map((f) => f.target));
+	const missing = type.fields.filter((f) => f.required && !has(f.target)).map((f) => f.label);
+	// Тип «про людей» — тот, где есть поля контакта: у него имя и email/телефон нужны независимо от флагов `required`.
+	if (known.has('email') && known.has('phone') && (known.has('full_name') || known.has('last_name'))) {
+		if (!(has('full_name') || (has('last_name') && has('first_name')))) missing.push(NAME_REQUIREMENT);
+		if (!(has('email') || has('phone'))) missing.push(CONTACT_REQUIREMENT);
+	}
+	return missing;
+}
+
+/** Локальная проверка перед `PUT /mapping`: неизвестные поля, дубли, чего не хватает для применения. */
+export function checkMapping(mapping: Record<string, string>, headers: readonly string[], type: ImportEntityType | null): MappingCheck {
+	if (!type) return { errors: [], missing: [], unmappedHeaders: [...headers], duplicateTargets: [], ok: false };
+	const byTarget = new Map(type.fields.map((s) => [s.target, s] as const));
 	const active = Object.entries(mapping).filter(([header, target]) => target && headers.includes(header));
 	const targets = active.map(([, target]) => target);
 
 	const errors: string[] = [];
-	const warnings: string[] = [];
 	const unknown = targets.filter((t) => !byTarget.has(t));
 	if (unknown.length) errors.push(`Неизвестные поля: ${unknown.join(', ')}`);
 
@@ -208,16 +97,9 @@ export function checkMapping(mapping: Record<string, string>, headers: readonly 
 	const duplicateTargets = [...counts].filter(([, n]) => n > 1).map(([t]) => t);
 	for (const t of duplicateTargets) errors.push(`Поле «${byTarget.get(t)?.label ?? t}» выбрано для нескольких колонок`);
 
-	const key = naturalKeyFor(entity);
-	if (!targets.includes(key)) errors.push(`Не выбрана колонка для ключевого поля «${byTarget.get(key)?.label ?? key}»`);
-
-	const missingRequired = fields.filter((s) => s.required && !targets.includes(s.target)).map((s) => s.target);
-	for (const t of missingRequired) {
-		if (t !== key) warnings.push(`Обязательное поле «${byTarget.get(t)?.label ?? t}» не сопоставлено — строки без него будут отклонены при проверке`);
-	}
-
+	const missing = missingRequirements(targets, type);
 	const unmappedHeaders = headers.filter((h) => !mapping[h]);
-	return { errors, warnings, unmappedHeaders, duplicateTargets, missingRequired, ok: errors.length === 0 };
+	return { errors, missing, unmappedHeaders, duplicateTargets, ok: errors.length === 0 && missing.length === 0 };
 }
 
 /** Накладывает пресет на текущий маппинг: берутся только колонки, которые есть в файле; занятые поля не дублируются. */
@@ -272,3 +154,16 @@ export const canRollbackImport = (job: { status: string; rollback_available: boo
 	job.rollback_available && (job.status === 'completed' || job.status === 'completed_with_errors');
 export const canApplyImport = (job: { status: string; ok_rows: number; warn_rows: number }): boolean =>
 	job.status === 'validated' && job.ok_rows + job.warn_rows > 0;
+
+// --- Строки результата ---------------------------------------------------------------
+
+/** Статусы строки (`GET /imports/{id}/rows`): подпись и тон. */
+export const IMPORT_ROW_STATUS_INFO: Record<string, { label: string; tone: Tone }> = {
+	ok: { label: 'Без замечаний', tone: 'success' },
+	warn: { label: 'Предупреждение', tone: 'warning' },
+	error: { label: 'Ошибка', tone: 'error' },
+	skipped: { label: 'Пропущена', tone: 'neutral' },
+	rolled_back: { label: 'Откачена', tone: 'neutral' },
+	rollback_blocked: { label: 'Откат заблокирован', tone: 'warning' }
+};
+export const rowStatus = (status: string): { label: string; tone: Tone } => IMPORT_ROW_STATUS_INFO[status] ?? { label: status, tone: 'neutral' };

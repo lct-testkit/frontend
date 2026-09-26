@@ -63,6 +63,7 @@
 				<Field label="Обучающихся">{deal.students_planned ?? '—'}</Field>
 				<Field label="Плановая дата закрытия">{deal.expected_close_date ? formatDate(deal.expected_close_date) : '—'}</Field>
 				<Field label="Источник">{deal.source ? label(DEAL_SOURCE_LABELS, deal.source) : '—'}</Field>
+				{#if deal.order_number}<Field label="Номер заявки"><span class="font-mono wrap-anywhere">{deal.order_number}</span></Field>{/if}
 				<Field label="Создана"><DateText value={deal.created_at} time /></Field>
 				<Field label="Изменена"><DateText value={deal.updated_at} time /></Field>
 				{#if deal.closed_at}<Field label="Закрыта"><DateText value={deal.closed_at} time /></Field>{/if}
@@ -83,7 +84,7 @@
 				<ul class="m-0 list-none p-0">
 					{#each card.products as p (p.id)}
 						<li class="t-body-m grid grid-cols-[minmax(0,1fr)_4rem_7rem_4rem_7rem] items-center gap-x-3 border-b border-line px-4 py-2.5 last:border-b-0 max-md:grid-cols-2 max-md:gap-y-1">
-							<span class="min-w-0 break-words max-md:col-span-2">{productName(p.product_id)}</span>
+							<span class="min-w-0 break-words max-md:col-span-2">{productName(p.product_id)}{#if p.stream_number}<span class="t-desc-l text-muted"> · поток {p.stream_number}</span>{/if}</span>
 							<span class="text-right max-md:text-left"><span class="text-muted md:hidden">Кол-во: </span>{p.quantity}</span>
 							<span class="text-right"><Money value={p.price} currency={deal.currency} /></span>
 							<span class="text-right">{Number(p.discount_pct) ? `${formatNumber(p.discount_pct)}%` : '—'}</span>

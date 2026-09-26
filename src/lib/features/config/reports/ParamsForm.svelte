@@ -1,5 +1,8 @@
 <script lang="ts">
 	// Параметры отчёта по описанию шаблона (`paramsFor`): тип сделки, воронка, число (месяцев / строк).
+	import { onMount } from 'svelte';
+	import { api, unwrap } from '$lib/api';
+	import DateField from '$lib/ui/fields/DateField.svelte';
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import { DEAL_TYPES, DEAL_TYPE_LABELS } from '../workflows/graph';
@@ -19,6 +22,18 @@
 	}
 
 	let { defs, values = $bindable({}), errors = {}, workflows = [] }: Props = $props();
+
+	// Курсы для параметра «Курс» подгружаются, только если у шаблона такой параметр есть.
+	let products = $state<{ key: string; value: string }[]>([]);
+	onMount(async () => {
+		if (!defs.some((d) => d.kind === 'product')) return;
+		try {
+			const res = await unwrap(api.GET('/api/products', { params: { query: { is_active: true, limit: 100 } } }));
+			products = res.items.map((p) => ({ key: p.id, value: p.name }));
+		} catch {
+			products = [];
+		}
+	});
 
 	const set = (key: string, value: unknown) => (values = { ...values, [key]: value });
 	const dealType = $derived(String(values.deal_type ?? defs.find((d) => d.key === 'deal_type')?.default ?? ''));
@@ -44,6 +59,10 @@
 			error={errors[def.key]}
 			onChange={(v) => set(def.key, v ?? undefined)}
 		/>
+	{:else if def.kind === 'product'}
+		<Pick label={def.label} value={(values[def.key] as string | undefined) ?? null} clearable search hint={def.hint} items={products} emptyText="Продуктов нет" error={errors[def.key]} onChange={(v) => set(def.key, v ?? undefined)} />
+	{:else if def.kind === 'date'}
+		<DateField label={def.label} value={(values[def.key] as string | undefined) ?? null} error={errors[def.key]} onChange={(v) => set(def.key, v ?? undefined)} />
 	{:else}
 		<NumberField label={def.label} integer min={def.min} max={def.max} value={typeof values[def.key] === 'number' ? (values[def.key] as number) : null} error={errors[def.key]} onChange={(n) => set(def.key, n ?? undefined)} />
 	{/if}

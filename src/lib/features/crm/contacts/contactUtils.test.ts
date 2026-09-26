@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { ApiError } from '$lib/api';
 import type { Contact } from '../types';
-import { emptyContactForm, formFromContact, isMasked, toCreateBody, toPatchBody, validateContact } from './contactUtils';
+import { duplicateCandidates, emptyContactForm, formFromContact, isMasked, toCreateBody, toPatchBody, validateContact } from './contactUtils';
 
 const contact = {
 	id: '1',
@@ -52,5 +53,30 @@ describe('контакты: создание и проверка', () => {
 		const bad = validateContact({ ...emptyContactForm(), last_name: 'А', first_name: 'Б', email: 'нет', phone: '123' });
 		expect(Object.keys(bad).sort()).toEqual(['email', 'phone']);
 		expect(validateContact({ ...emptyContactForm(), last_name: 'А', first_name: 'Б', email: 'i***@a.ru', phone: '+7 (9**) ***-**-67' })).toEqual({});
+	});
+});
+
+describe('duplicateCandidates (409 CRM-1301)', () => {
+	const conflict = (candidates: unknown) => new ApiError({ status: 409, code: 'CRM-1301', extra: { candidates } });
+
+	it('доступный дубль — с id, чужой — без него', () => {
+		const found = duplicateCandidates(conflict([{ id: 'a1', match: 'email', accessible: true }, { id: null, match: 'phone', accessible: false }]));
+		expect(found).toEqual([
+			{ id: 'a1', name: undefined, accessible: true },
+			{ id: null, name: undefined, accessible: false }
+		]);
+	});
+
+	it('id без признака доступа не считается доступным', () => {
+		expect(duplicateCandidates(conflict([{ id: 'a1', accessible: false }]))?.[0].accessible).toBe(false);
+	});
+
+	it('дубль без описания кандидатов — пустой список, а не «не дубль»', () => {
+		expect(duplicateCandidates(new ApiError({ status: 409, code: 'CRM-1301' }))).toEqual([]);
+	});
+
+	it('другие ошибки — не дубль', () => {
+		expect(duplicateCandidates(new ApiError({ status: 409, code: 'CRM-1002' }))).toBeNull();
+		expect(duplicateCandidates(new Error('x'))).toBeNull();
 	});
 });

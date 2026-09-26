@@ -58,6 +58,7 @@
 	const columns: Col<Product>[] = [
 		{ key: 'code', title: 'Код', render: codeCell },
 		{ key: 'name', title: 'Название', width: 'minmax(200px, 2fr)', render: nameCell },
+		{ key: 'vendor', title: 'Вендор', width: 'minmax(140px, 1fr)', drop: 3, render: vendorCell },
 		{ key: 'direction', title: 'Направление', width: 'minmax(160px, 1fr)', drop: 2, render: dirCell },
 		{ key: 'format', title: 'Формат', drop: 1, render: formatCell },
 		{ key: 'price', title: 'Цена', align: 'right', render: priceCell },
@@ -67,6 +68,7 @@
 
 {#snippet codeCell(p: Product)}<TableCell><span class="t-body-s font-mono text-muted">{p.code}</span></TableCell>{/snippet}
 {#snippet nameCell(p: Product)}<TableCell><span class="t-body-m-strong">{p.name}</span></TableCell>{/snippet}
+{#snippet vendorCell(p: Product)}<TableCell><span class="t-body-s text-muted">{p.vendor_name ?? '—'}</span></TableCell>{/snippet}
 {#snippet dirCell(p: Product)}<TableCell><span class="t-body-s text-muted">{dirName(p.direction_id)}</span></TableCell>{/snippet}
 {#snippet formatCell(p: Product)}<TableCell><span class="t-body-s">{labelOf(PRODUCT_FORMATS, p.format)}</span></TableCell>{/snippet}
 {#snippet priceCell(p: Product)}<TableCell align="right">{#if p.base_price}<Money value={p.base_price} currency={p.currency} />{:else}<span class="text-soft">—</span>{/if}</TableCell>{/snippet}
@@ -83,6 +85,7 @@
 			{#if p.format}<StatusChip label={labelOf(PRODUCT_FORMATS, p.format)} tone="info" />{/if}
 			{#if p.base_price}<Money value={p.base_price} currency={p.currency} />{/if}
 		</div>
+		{#if p.vendor_name}<span class="t-desc-l text-soft">{p.vendor_name}</span>{/if}
 		{#if p.direction_id}<span class="t-desc-l text-soft">{dirName(p.direction_id)}</span>{/if}
 	</div>
 {/snippet}

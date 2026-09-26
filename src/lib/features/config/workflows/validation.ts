@@ -144,6 +144,9 @@ export function validateGraph(draft: GraphDraft, ctx: GraphValidationContext = {
 		if (!(Number.isInteger(r.warn_threshold_pct) && r.warn_threshold_pct >= 1 && r.warn_threshold_pct <= 100)) {
 			issues.push(issue('error', 'sla_invalid', `SLA статуса «${s?.name ?? '?'}»: порог предупреждения — от 1 до 100 %`, [r.status]));
 		}
+		if (!(Number.isInteger(r.escalate_threshold_pct) && r.escalate_threshold_pct >= 100 && r.escalate_threshold_pct <= 1000)) {
+			issues.push(issue('error', 'sla_invalid', `SLA статуса «${s?.name ?? '?'}»: порог эскалации — от 100 до 1000 %`, [r.status]));
+		}
 		if (r.is_active) activeSla.set(r.status, (activeSla.get(r.status) ?? 0) + 1);
 	}
 	for (const [key, count] of activeSla) {

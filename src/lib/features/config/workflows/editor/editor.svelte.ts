@@ -229,7 +229,7 @@ export class WorkflowEditor {
 		const current = this.draft.sla_rules.find((r) => r.status === statusKey);
 		const next: SlaDraft = current
 			? { ...current, ...patch }
-			: { key: newKey('sla'), status: statusKey, max_duration_hours: 72, warn_threshold_pct: 80, escalate_to_role: null, escalate_to_user_id: null, channels: ['in_app'], count_business_days: true, is_active: true, ...patch };
+			: { key: newKey('sla'), status: statusKey, max_duration_hours: 72, warn_threshold_pct: 80, escalate_threshold_pct: 150, escalate_to_role: null, escalate_to_user_id: null, channels: ['in_app'], count_business_days: true, is_active: true, ...patch };
 		this.commit({ ...this.draft, sla_rules: [...others, next] });
 	}
 

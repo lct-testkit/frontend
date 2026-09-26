@@ -36,9 +36,9 @@
 * **Дизайн-система**: везде, где в rt-ui есть компонент, используется он (`Button`, `Input`, `Select`, `Chip`, `Badge`, `InlineNotification`, `Modal`, `Drawer`, `TableGrid`, `Tabs`, `Wizard`, `Switch`, `Counter`…). Общие обёртки — `src/lib/ui` (`Notice`, `StatusChip`, `FilterChips`, `ResponsiveTable`…). Своё (Tailwind) — только раскладка, карточки-секции (в rt-ui нет `Card`) и кликабельные блоки целиком. Правила — `docs/DS-MIGRATION.md`.
 * **Адаптив**: таблица ↔ карточки на телефоне, панели на весь экран, проверено на 1440×900, 1280×600, 1024×768, 768×1024, 390×844, 360×640, 844×390; светлая/тёмная тема.
 
-## Покрытие ручек: 165 из 181 (91%)
+## Покрытие ручек: 175 из 203 (86%)
 
-`node tools/coverage.mjs`, перегенерировано 22.09.2026 после спринта бэкенд-агента (report-фильтры, лицензии, 5 `DELETE`). Без экрана сознательно (8):
+`node tools/coverage.mjs`, перегенерировано 26.09.2026 после приёма данных о людях (вендоры, оплаты, учащиеся LMS) и правок по отчёту внешнего тестирования; типы клиента перегенерированы из нового `openapi.json` (203 операции). Без экрана сознательно (8):
 
 | Ручки | Почему |
 |---|---|
@@ -54,9 +54,26 @@
 | `GET /api/reports/{report_id}/data` | JSON-данные отчёта без файла — дашборд поверх готового агрегата вместо xlsx/pdf |
 | `DELETE /api/workflows/{id}`, `/directions/{id}`, `/loss-reasons/{id}`, `/admin/notification-templates/{id}`, `/admin/registry/versions/{id}` | Кнопка «Удалить» на карточках соответствующих справочников (сейчас — только через API/Swagger) |
 
+Появилось на экранах 26.09.2026 (11): `GET /api/imports/entity-types` (поля и форматы типов импорта с сервера, без зашитых списков), `GET /api/imports/{id}/rows` (результат по строкам, вкладки «Ошибки / Предупреждения / Все»), `GET /api/contacts/{id}/products`, `GET/PUT /api/contacts/{id}/learner-profile` и `POST …/reveal` (карточка контакта: просмотр, «Показать», «Изменить»), `GET/PUT/DELETE /api/products/{id}/contacts…` (ответственные в форме продукта), `POST /api/admin/feature-flags` («Новый флаг»), отчёт `lms_users_upload` в «Отчётах»; 409 `CRM-1301` при создании контакта показывает «Такой контакт уже есть» со ссылкой на карточку.
+
+Без экрана пока — новые ручки бэкенда 25.09.2026 (12), UI под них не строился:
+
+| Ручки | Что нужно |
+|---|---|
+| `POST /api/admin/integrations/outbox-events/{id}/retry` | Кнопка «Повторить» на вкладке «Исходящие» для событий «Не доставлено» |
+| `POST /api/admin/notification-templates/preview` | Предпросмотр шаблона в форме шаблона уведомления |
+| `GET /api/admin/teams/{id}` | Карточка команды и `If-Match` для правки команды |
+| `PUT /api/deals/{id}/products` | Правка продуктов сделки в карточке |
+| `PATCH /api/me` | Правка имени, часового пояса и телефона в профиле |
+| `GET /api/notifications/unread-count`, `GET /api/notifications/event-codes` | Счётчик колокольчика без выборки 100 записей; список кодов событий вместо зашитого в `eventCodes.ts` |
+| `GET /api/signature-requests/{id}/file`, `GET /public/sign/{token}/file` | PDF в просмотре подписи с того же origin (`file_url`) вместо переписывания адреса S3 |
+| `POST /api/signature-requests/{id}/reissue-link` | «Ссылка подписанту» в карточке запроса |
+| `PATCH /api/workflows/{id}` | Переименование воронки и «по умолчанию» в списке воронок |
+| `GET /api/workflows/{id}/mapping-jobs/{job_id}` | Прогресс переноса сделок в мастере архивации вместо опроса воронки |
+
 ## Как проверять
 
-* `pnpm check` (0 ошибок), `pnpm lint` (0 ошибок), `pnpm test` (32 файла, 232 теста), `pnpm build` (+`tools/postbuild.mjs` для строгого CSP; каталог блоков `/dev/blocks` в сборку не попадает).
+* `pnpm check` (0 ошибок), `pnpm lint` (0 ошибок), `pnpm test` (35 файлов, 281 тест), `pnpm build` (+`tools/postbuild.mjs` для строгого CSP; каталог блоков `/dev/blocks` в сборку не попадает).
 * `node tools/qa-all.mjs` — все маршруты × роли × размеры, печатает только проблемы (в том числе обрезанные колонки таблиц); `APP_URL=http://localhost:4273 node tools/qa-all.mjs` — то же по production-сборке (`pnpm preview`).
 * `node tools/taps.mjs --as kam --urls /deals,/tasks` — нажимаемые элементы меньше 44×44 px на телефоне (на курсоре-пальце у мелких элементов есть невидимая зона до 44 px, `app.css`).
 * `node tools/buttons.mjs --as kam,head,admin,auditor` — обход каждой кнопки/ссылки/вкладки/пункта меню каждого экрана каждой ролью (и того, что внутри открывшихся окон, на три уровня); изменяющие запросы отвечает заглушка, реальные данные не трогаются. `node tools/buttons-report.mjs .shots/buttons` — читаемый разбор результата по корзинам (мёртвые кнопки, не закрывается по Escape, нет доступного имени и т.д.); один файл — один прогон, `--full` для полного списка.

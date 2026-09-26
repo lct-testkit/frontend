@@ -8,6 +8,7 @@
 	import PageHeader from '$lib/ui/PageHeader.svelte';
 	import TabsBar from '$lib/ui/TabsBar.svelte';
 
+	let createFlag = $state(false);
 	const tab = $derived(page.url.searchParams.get('tab') === 'system' ? 'system' : 'flags');
 	const open = (v: string) => void goto(`?tab=${v}`, { replaceState: true, keepFocus: true, noScroll: true });
 </script>
@@ -15,10 +16,10 @@
 <svelte:head><title>Настройки · RTK School</title></svelte:head>
 
 <Page narrow>
-	<PageHeader title="Настройки">
+	<PageHeader title="Настройки" primary={tab === 'flags' ? { label: 'Новый флаг', onclick: () => (createFlag = true) } : undefined}>
 		{#snippet tabs(underline)}
 			<TabsBar items={[{ key: 'flags', label: 'Флаги' }, { key: 'system', label: 'Система' }]} value={tab} {underline} onChange={open} label="Разделы настроек" />
 		{/snippet}
 	</PageHeader>
-	{#if tab === 'flags'}<FlagsPanel />{:else}<SettingsPanel />{/if}
+	{#if tab === 'flags'}<FlagsPanel bind:createOpen={createFlag} />{:else}<SettingsPanel />{/if}
 </Page>

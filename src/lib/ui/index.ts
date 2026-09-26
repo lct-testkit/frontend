@@ -1,4 +1,5 @@
 export { default as AppDrawer } from './AppDrawer.svelte';
+export { default as AttentionDot } from './AttentionDot.svelte';
 export { default as AppModal } from './AppModal.svelte';
 export { default as Avatar } from './Avatar.svelte';
 export { default as Btn } from './Btn.svelte';

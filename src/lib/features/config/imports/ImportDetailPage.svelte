@@ -10,9 +10,10 @@
 	import type { ImportJob } from '../types';
 	import { createResource } from '../shared/resource.svelte';
 	import { createPoller } from '../shared/polling.svelte';
+	import ImportRows from './ImportRows.svelte';
 	import JobSummary from './JobSummary.svelte';
-	import { entityLabel, isDraftJob, jobStatus, modeLabel, openErrorReport, resultHref } from './job';
-	import { canRollbackImport, fieldsFor, isImportBusy, type ImportEntity } from './mapping';
+	import { entityLabel, isDraftJob, jobStatus, loadEntityTypes, modeLabel, openErrorReport, resultHref, resultLabel } from './job';
+	import { canRollbackImport, isImportBusy, type ImportEntityType } from './mapping';
 
 	let { id }: { id: string } = $props();
 
@@ -22,7 +23,10 @@
 		job.set(fresh);
 		return isImportBusy(fresh.status);
 	});
+	let entityTypes = $state<ImportEntityType[]>([]);
 	onMount(async () => {
+		// подписи полей для сопоставления колонок; без них показываются коды полей
+		void loadEntityTypes().then((types) => (entityTypes = types)).catch(() => {});
 		const j = await job.reload();
 		if (j && isImportBusy(j.status)) poller.start();
 	});
@@ -32,7 +36,7 @@
 	const busy = $derived(j ? isImportBusy(j.status) : false);
 	const mapped = $derived.by(() => {
 		if (!j) return [];
-		const labels = new Map(fieldsFor(j.entity_type as ImportEntity).map((f) => [f.target, f.label]));
+		const labels = new Map((entityTypes.find((t) => t.code === j.entity_type)?.fields ?? []).map((f) => [f.target, f.label]));
 		return Object.entries(j.mapping ?? {}).map(([column, target]) => ({ column, label: labels.get(target) ?? target }));
 	});
 	let acting = $state(false);
@@ -53,7 +57,7 @@
 </script>
 
 <Page narrow class="max-w-4xl!">
-	<PageHeader title={j ? `Импорт: ${entityLabel(j.entity_type).toLowerCase()}` : 'Импорт'} back="/imports">
+	<PageHeader title={j ? `Импорт: ${entityLabel(j.entity_type)}` : 'Импорт'} back="/imports">
 		{#snippet meta()}{#if j}<StatusChip label={jobStatus(j.status).label} tone={jobStatus(j.status).tone} />{/if}{/snippet}
 	</PageHeader>
 
@@ -98,10 +102,14 @@
 				{#if isDraftJob(j)}
 					<Btn label="Продолжить" onclick={() => goto(`/imports/new?job=${j.id}`)} />
 				{:else if j.status !== 'rolled_back' && !busy}
-					<Btn label={`Открыть: ${entityLabel(j.entity_type).toLowerCase()}`} onclick={() => goto(resultHref(j.entity_type))} />
+					<Btn label={`Открыть: ${resultLabel(j.entity_type)}`} onclick={() => goto(resultHref(j.entity_type))} />
 				{/if}
 			</div>
 		</section>
+
+		{#if !busy && !isDraftJob(j) && j.total_rows > 0}
+			{#key j.status}<ImportRows jobId={j.id} total={j.total_rows} warn={j.warn_rows} error={j.error_rows} />{/key}
+		{/if}
 
 		{#if mapped.length}
 			<section class="flex flex-col gap-2" aria-label="Сопоставление колонок">

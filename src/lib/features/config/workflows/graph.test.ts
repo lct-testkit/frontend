@@ -75,7 +75,7 @@ describe('fromServer / toServer', () => {
 		const fresh = newStatus(draft, { name: 'Согласование КП' });
 		draft.statuses.push(fresh);
 		draft.transitions.push(newTransition(draft, 's2', fresh.key));
-		draft.sla_rules.push({ key: 'x', status: fresh.key, max_duration_hours: 24, warn_threshold_pct: 80, escalate_to_role: null, escalate_to_user_id: null, channels: ['in_app'], count_business_days: true, is_active: true });
+		draft.sla_rules.push({ key: 'x', status: fresh.key, max_duration_hours: 24, warn_threshold_pct: 80, escalate_threshold_pct: 150, escalate_to_role: null, escalate_to_user_id: null, channels: ['in_app'], count_business_days: true, is_active: true });
 
 		const payload = toServer(draft);
 		expect(payload.statuses.map((s) => s.code)).toEqual(['first', 'second', 'won', 'soglasovanie_kp']);
@@ -202,13 +202,13 @@ describe('validateGraph (зеркало _validate_graph_data)', () => {
 			[status('a', 'initial'), status('b'), status('won', 'won'), status('lost', 'lost')],
 			[transition('a', 'b'), transition('b', 'won', { conditions: wonGuard }), transition('a', 'lost', { requires_comment: true, conditions: lostGuard }), transition('b', 'lost', { requires_comment: true, conditions: lostGuard })]
 		);
-		draft.sla_rules.push({ key: 'r', status: 'b', max_duration_hours: 72, warn_threshold_pct: 80, escalate_to_role: 'HEAD', escalate_to_user_id: null, channels: ['in_app'], count_business_days: true, is_active: true });
+		draft.sla_rules.push({ key: 'r', status: 'b', max_duration_hours: 72, warn_threshold_pct: 80, escalate_threshold_pct: 150, escalate_to_role: 'HEAD', escalate_to_user_id: null, channels: ['in_app'], count_business_days: true, is_active: true });
 		expect(validateGraph(draft)).toEqual([]);
 	});
 
 	it('SLA: границы и дубли активных правил', () => {
 		const draft = draftOf([status('a', 'initial'), status('won', 'won')], [transition('a', 'won')]);
-		const rule = { key: 'r', status: 'a', max_duration_hours: 0, warn_threshold_pct: 150, escalate_to_role: null, escalate_to_user_id: null, channels: [], count_business_days: true, is_active: true };
+		const rule = { key: 'r', status: 'a', max_duration_hours: 0, warn_threshold_pct: 150, escalate_threshold_pct: 150, escalate_to_role: null, escalate_to_user_id: null, channels: [], count_business_days: true, is_active: true };
 		draft.sla_rules.push(rule, { ...rule, key: 'r2', max_duration_hours: 10, warn_threshold_pct: 50 });
 		const codes = validateGraph(draft).map((i) => i.code);
 		expect(codes.filter((c) => c === 'sla_invalid')).toHaveLength(2);

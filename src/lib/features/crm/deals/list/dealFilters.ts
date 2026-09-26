@@ -46,7 +46,8 @@ const endOfDay = (iso: string) => new Date(`${iso}T23:59:59.999`).toISOString();
 export interface DealQuery {
 	q?: string;
 	workflow_id?: string;
-	status_id?: string;
+	/** повторяемый параметр (несколько статусов); UI выбирает один */
+	status_id?: string[];
 	deal_type?: string;
 	priority?: string;
 	owner_id?: string;
@@ -63,7 +64,7 @@ export function toQuery(f: DealFilters, meId: string | null | undefined): DealQu
 	const query: DealQuery = {
 		q: f.q.trim() || undefined,
 		workflow_id: f.workflow || undefined,
-		status_id: f.status || undefined,
+		status_id: f.status ? [f.status] : undefined,
 		deal_type: f.type || undefined,
 		priority: f.priority || undefined,
 		owner_id: f.owner || undefined,

@@ -6,8 +6,9 @@
 	import { Btn, Notice, WizardCard, confirm } from '$lib/ui';
 	import { formatNumber } from '$lib/utils/format';
 	import type { ImportFlow } from './flow.svelte';
+	import ImportRows from './ImportRows.svelte';
 	import JobSummary from './JobSummary.svelte';
-	import { entityLabel, resultHref } from './job';
+	import { entityLabel, resultHref, resultLabel } from './job';
 	import { canRollbackImport } from './mapping';
 
 	let { flow }: { flow: ImportFlow } = $props();
@@ -20,7 +21,7 @@
 		if (!job) return;
 		const ok = await confirm({
 			title: 'Откатить импорт?',
-			message: `Созданные записи (${entityLabel(job.entity_type).toLowerCase()}) будут удалены, изменённые — возвращены к прежним значениям.`,
+			message: `Созданные записи (${entityLabel(job.entity_type)}) будут удалены, изменённые — возвращены к прежним значениям.`,
 			confirmLabel: 'Откатить',
 			danger: true
 		});
@@ -51,9 +52,10 @@
 			<h2 class="t-h4">{job.status === 'rolled_back' ? 'Импорт откачен' : job.status === 'completed_with_errors' ? 'Импорт завершён с пропусками' : 'Импорт завершён'}</h2>
 		</div>
 		{#if job.status !== 'rolled_back'}<JobSummary {job} done />{/if}
+		{#key job.status}<ImportRows jobId={job.id} total={job.total_rows} warn={job.warn_rows} error={job.error_rows} />{/key}
 		{#snippet actions()}
 			{#if job.status !== 'rolled_back'}
-				<Btn label={`Открыть: ${entityLabel(job.entity_type).toLowerCase()}`} onclick={() => goto(resultHref(job.entity_type))} />
+				<Btn label={`Открыть: ${resultLabel(job.entity_type)}`} onclick={() => goto(resultHref(job.entity_type))} />
 				<Btn label="Новый импорт" variant="outline" colorScheme="neutral" onclick={() => goto('/imports/new')} />
 			{:else}
 				<Btn label="Новый импорт" onclick={() => goto('/imports/new')} />

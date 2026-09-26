@@ -10,10 +10,12 @@ import { defineConfig, loadEnv } from 'vite';
 export default defineConfig(({ mode }) => {
 	const env = loadEnv(mode, process.cwd(), '');
 	const backend = env.BACKEND_URL || 'http://localhost:8080';
+	// API_URL — необязательно: API из другого места (собранный из исходников бэкенд на :8001), а вход (/auth) остаётся у стенда.
+	const api = env.API_URL || backend;
 	const proxy = Object.fromEntries(
 		['/api', '/public', '/health', '/auth', '/static'].map((path) => [
 			path,
-			{ target: backend, changeOrigin: true, xfwd: false }
+			{ target: path === '/auth' ? backend : api, changeOrigin: true, xfwd: false }
 		])
 	);
 

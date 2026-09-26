@@ -14,10 +14,12 @@
 	import Attachments from '../files/Attachments.svelte';
 	import Field from '../shared/Field.svelte';
 	import { contactCache, contactFullName, orgCache, orgLabel } from '../shared/entityCache.svelte';
-	import { CONTACT_CHANNEL_LABELS } from '../shared/labels';
+	import { CONTACT_CHANNEL_LABELS, CONTACT_METHOD_LABELS } from '../shared/labels';
 	import { pushRecent } from '../recent/localRecent';
 	import type { Contact, ContactChannel, Deal } from '../types';
 	import ContactEditDrawer from './ContactEditDrawer.svelte';
+	import ContactProductsCard from './ContactProductsCard.svelte';
+	import LearnerProfileCard from './LearnerProfileCard.svelte';
 
 	let { id }: { id: string } = $props();
 
@@ -106,6 +108,9 @@
 					</Field>
 					<Field label="E-mail">{revealed ? revealed.email || '—' : (contact.email ?? '—')}</Field>
 					<Field label="Телефон">{revealed ? formatPhone(revealed.phone) : formatPhone(contact.phone)}</Field>
+					{#if contact.contact_methods?.length}
+						<Field label="Предпочитаемая связь">{contact.contact_methods.map((m) => CONTACT_METHOD_LABELS[m] ?? m).join(', ')}</Field>
+					{/if}
 					{#if revealed}
 						{#each revealed.channels as ch (ch.id)}
 							<Field label={CONTACT_CHANNEL_LABELS[ch.type] ?? ch.type}>{ch.value}{ch.is_primary ? ' · основной' : ''}</Field>
@@ -122,6 +127,9 @@
 				{/if}
 			</Card>
 		</div>
+
+		<ContactProductsCard contactId={contact.id} />
+		{#if !contact.is_anonymized}<LearnerProfileCard contactId={contact.id} />{/if}
 
 		<Card title="Файлы"><Attachments entityType="contact" entityId={contact.id} canEdit={session.can('file:upload')} /></Card>
 

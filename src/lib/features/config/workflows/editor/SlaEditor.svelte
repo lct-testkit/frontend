@@ -87,6 +87,15 @@
 			]}
 			onChange={(v) => editor.setSla(status.key, { escalate_to_role: v })}
 		/>
+		<NumberField
+			label="Эскалировать при расходе, %"
+			integer
+			min={100}
+			max={1000}
+			value={rule.escalate_threshold_pct}
+			disabled={editor.readonly}
+			onChange={(n) => n !== null && editor.setSla(status.key, { escalate_threshold_pct: Math.min(1000, Math.max(100, n)) })}
+		/>
 		<MultiPick
 			label="Уведомлять через"
 			search={false}

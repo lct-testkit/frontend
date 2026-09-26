@@ -1,4 +1,4 @@
-# Эндпоинты бэкенда (181)
+# Эндпоинты бэкенда (203)
 
 _Сгенерировано tools/gen-api.mjs._
 
@@ -10,6 +10,7 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/admin/audit/export` | Экспорт журнала аудита |
 | GET | `/api/admin/audit/verify-chain` | Проверить цепочку аудита |
 | GET | `/api/admin/feature-flags` | Список флагов |
+| POST | `/api/admin/feature-flags` | Создать флаг |
 | PATCH | `/api/admin/feature-flags/{code}` | Изменить флаг |
 | GET | `/api/admin/system-settings` | Список настроек |
 | PUT | `/api/admin/system-settings/{key}` | Изменить настройку |
@@ -31,6 +32,7 @@ _Сгенерировано tools/gen-api.mjs._
 | POST | `/api/admin/organizations/{organization_id}/erasure-request` | Запрос на удаление/обезличивание ИП |
 | GET | `/api/admin/teams` | Список команд |
 | POST | `/api/admin/teams` | Создать команду |
+| GET | `/api/admin/teams/{team_id}` | Карточка команды |
 | PATCH | `/api/admin/teams/{team_id}` | Изменить команду |
 | GET | `/api/admin/users` | Список пользователей |
 | POST | `/api/admin/users` | Создать пользователя |
@@ -76,6 +78,10 @@ _Сгенерировано tools/gen-api.mjs._
 | POST | `/api/contacts` | Создать контакт |
 | GET | `/api/contacts/{contact_id}` | Карточка контакта |
 | PATCH | `/api/contacts/{contact_id}` | Обновить контакт |
+| GET | `/api/contacts/{contact_id}/learner-profile` | Профиль учащегося (маскированный) |
+| PUT | `/api/contacts/{contact_id}/learner-profile` | Обновить профиль учащегося |
+| POST | `/api/contacts/{contact_id}/learner-profile/reveal` | Раскрыть полный профиль учащегося |
+| GET | `/api/contacts/{contact_id}/products` | Продукты, за которые отвечает контакт |
 | POST | `/api/contacts/{contact_id}/reveal` | Раскрыть полные контактные данные |
 
 ## custom-field-defs
@@ -101,6 +107,7 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/deals/{deal_id}/participants` | Участники сделки |
 | POST | `/api/deals/{deal_id}/participants` | Добавить участника |
 | DELETE | `/api/deals/{deal_id}/participants/{participant_id}` | Удалить участника |
+| PUT | `/api/deals/{deal_id}/products` | Заменить продукты сделки |
 | POST | `/api/deals/{deal_id}/reassign` | Назначить ответственного |
 | POST | `/api/deals/{deal_id}/transition` | Перейти по статусу |
 | POST | `/api/deals/bulk/reassign` | Массовая передача сделок |
@@ -151,14 +158,17 @@ _Сгенерировано tools/gen-api.mjs._
 | PUT | `/api/imports/{job_id}/mapping` | Сохранить маппинг колонок |
 | GET | `/api/imports/{job_id}/profile` | Профиль файла: первые строки и подсказка маппинга |
 | POST | `/api/imports/{job_id}/rollback` | Откатить импорт |
+| GET | `/api/imports/{job_id}/rows` | Результаты по строкам |
+| GET | `/api/imports/entity-types` | Типы импорта и их поля |
 
 ## integrations-admin
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/api/admin/integrations/external-refs` | List External Refs |
-| GET | `/api/admin/integrations/inbound-messages` | List Inbound Messages |
-| GET | `/api/admin/integrations/outbox-events` | List Outbox Events |
+| GET | `/api/admin/integrations/external-refs` | Связи с внешними системами |
+| GET | `/api/admin/integrations/inbound-messages` | Входящие сообщения |
+| GET | `/api/admin/integrations/outbox-events` | Исходящие события |
+| POST | `/api/admin/integrations/outbox-events/{event_id}/retry` | Повторить доставку события |
 | GET | `/api/admin/integrations/sources` | List Sources |
 | PATCH | `/api/admin/integrations/sources/{code}` | Update Source |
 
@@ -184,6 +194,7 @@ _Сгенерировано tools/gen-api.mjs._
 | Метод | Путь | Описание |
 |---|---|---|
 | GET | `/api/me` | Профиль текущего пользователя |
+| PATCH | `/api/me` | Изменить свой профиль |
 | POST | `/api/me/consent` | Принять политику обработки ПДн |
 | POST | `/api/me/password` | Сменить пароль |
 | GET | `/api/me/policy` | Действующая политика обработки ПДн |
@@ -199,10 +210,13 @@ _Сгенерировано tools/gen-api.mjs._
 | POST | `/api/admin/notification-templates` | Создать шаблон уведомления |
 | PATCH | `/api/admin/notification-templates/{template_id}` | Обновить шаблон уведомления |
 | DELETE | `/api/admin/notification-templates/{template_id}` | Удалить шаблон уведомления |
+| POST | `/api/admin/notification-templates/preview` | Предпросмотр шаблона уведомления |
 | GET | `/api/me/notification-prefs` | Мои настройки уведомлений |
 | PUT | `/api/me/notification-prefs` | Обновить настройки уведомлений |
 | GET | `/api/notifications` | Мои уведомления |
+| GET | `/api/notifications/event-codes` | Коды событий для настроек уведомлений |
 | POST | `/api/notifications/read` | Отметить уведомления прочитанными |
+| GET | `/api/notifications/unread-count` | Число непрочитанных уведомлений |
 
 ## org-lookup
 
@@ -238,6 +252,9 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/products` | Справочник продуктов |
 | POST | `/api/products` | Создать продукт |
 | PATCH | `/api/products/{product_id}` | Обновить продукт |
+| GET | `/api/products/{product_id}/contacts` | Ответственные за продукт |
+| PUT | `/api/products/{product_id}/contacts/{contact_id}` | Назначить ответственного за продукт |
+| DELETE | `/api/products/{product_id}/contacts/{contact_id}` | Снять ответственного с продукта |
 
 ## regions
 
@@ -288,6 +305,8 @@ _Сгенерировано tools/gen-api.mjs._
 | POST | `/api/signature-documents/{document_id}/send` | Запустить сбор подписей |
 | POST | `/api/signature-documents/{document_id}/void` | Аннулировать документ |
 | POST | `/api/signature-requests/{request_id}/challenge` | Запросить одноразовый код |
+| GET | `/api/signature-requests/{request_id}/file` | PDF документа для просмотра (внутренний подписант) |
+| POST | `/api/signature-requests/{request_id}/reissue-link` | Переиздать ссылку внешнему подписанту |
 | POST | `/api/signature-requests/{request_id}/reject` | Отклонить документ |
 | POST | `/api/signature-requests/{request_id}/sign` | Подписать кодом подтверждения |
 | POST | `/api/signature-requests/{request_id}/view` | Отметить ознакомление (внутренний подписант) |
@@ -300,6 +319,7 @@ _Сгенерировано tools/gen-api.mjs._
 |---|---|---|
 | GET | `/public/sign/{token}` | Страница подписания (внешний подписант) |
 | POST | `/public/sign/{token}/challenge` | Запросить одноразовый код (внешний подписант) |
+| GET | `/public/sign/{token}/file` | PDF документа для просмотра (внешний подписант) |
 | POST | `/public/sign/{token}/reject` | Отклонить документ (внешний подписант) |
 | POST | `/public/sign/{token}/sign` | Подписать кодом подтверждения (внешний подписант) |
 | GET | `/public/verify/{signature_id}` | Проверить подпись публично |
@@ -326,8 +346,10 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/workflows` | Список воронок |
 | POST | `/api/workflows` | Создать черновик воронки |
 | GET | `/api/workflows/{workflow_id}` | Граф воронки |
+| PATCH | `/api/workflows/{workflow_id}` | Изменить имя и воронку по умолчанию |
 | DELETE | `/api/workflows/{workflow_id}` | Удалить черновик воронки |
 | PUT | `/api/workflows/{workflow_id}/graph` | Сохранить черновик графа |
+| GET | `/api/workflows/{workflow_id}/mapping-jobs/{job_id}` | Задача переноса сделок |
 | POST | `/api/workflows/{workflow_id}/publish` | Опубликовать воронку |
 | POST | `/api/workflows/{workflow_id}/statuses/{status_id}/archive` | Архивировать статус с переносом сделок |
 | GET | `/api/workflows/{workflow_id}/statuses/{status_id}/impact` | Предпросмотр архивирования статуса |

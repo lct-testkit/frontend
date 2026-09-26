@@ -7,20 +7,19 @@
 	import TextField from '$lib/ui/fields/TextField.svelte';
 	import Toggle from '$lib/ui/fields/Toggle.svelte';
 	import type { ImportFlow } from './flow.svelte';
-	import { fieldsFor, naturalKeyFor, sampleValues } from './mapping';
+	import { sampleValues } from './mapping';
 
 	let { flow }: { flow: ImportFlow } = $props();
 
-	const fields = $derived(fieldsFor(flow.entity));
-	const key = $derived(naturalKeyFor(flow.entity));
-	const items = $derived(fields.map((f) => ({ key: f.target, value: f.label, hint: f.target === key ? 'ключ записи' : f.required ? 'обязательное' : undefined })));
+	// Поля типа приходят с сервера (`GET /api/imports/entity-types`): у каждого своя подпись и признак «обязательное».
+	const items = $derived((flow.entityType?.fields ?? []).map((f) => ({ key: f.target, value: f.label, hint: f.required ? 'обязательное' : undefined })));
 	const rows = $derived(flow.headers.map((h, i) => ({ header: h, samples: sampleValues(flow.profile?.sample_rows ?? [], i, 3) })));
 	const duplicate = (target: string | undefined) => Boolean(target) && flow.check.duplicateTargets.includes(target as string);
 </script>
 
-{#if flow.error}
-	<WizardCard><ErrorState error={flow.error} onRetry={() => flow.loadProfile()} compact /></WizardCard>
-{:else if flow.loading || !flow.profile}
+{#if flow.error || flow.typesError}
+	<WizardCard><ErrorState error={flow.error ?? flow.typesError} onRetry={() => (flow.typesError ? flow.loadTypes() : flow.loadProfile())} compact /></WizardCard>
+{:else if flow.loading || !flow.profile || !flow.entityType}
 	<WizardCard><Skeleton kind="rows" rows={6} /></WizardCard>
 {:else}
 	<WizardCard>
@@ -41,9 +40,9 @@
 		{#each flow.check.errors as e (e)}
 			<Notice class="shrink-0" tone="error">{e}</Notice>
 		{/each}
-		{#each flow.check.warnings as w (w)}
-			<Notice class="shrink-0" tone="warning">{w}</Notice>
-		{/each}
+		{#if flow.check.missing.length}
+			<Notice class="shrink-0" tone="warning">Чтобы строки можно было загрузить, сопоставьте: {flow.check.missing.join(', ')}.</Notice>
+		{/if}
 
 		<div class="overflow-hidden rounded-lg border border-line bg-surface">
 			<div class="t-desc-l grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)] gap-x-4 bg-surface-2 px-4 py-2 text-muted max-md:hidden">
