@@ -18,6 +18,11 @@ class People {
 	/** undefined = never asked · null = asked, not found */
 	#cache = new SvelteMap<string, Person | null>();
 	#queue = new Set<string>();
+	// Batch already dispatched, response not back yet: id left `#queue` (the batch was cut and
+	// sent), but isn't in `#cache` yet either. Without this, a same-id `ensure()` in that window
+	// re-queues it and fires a second, overlapping request for the same id (same fix as the
+	// `inflight` map in features/signing/known.ts).
+	#inflight = new Set<string>();
 	#timer: ReturnType<typeof setTimeout> | undefined;
 
 	get(id: string | null | undefined): Person | null | undefined {
@@ -36,14 +41,19 @@ class People {
 	}
 
 	ensure(ids: (string | null | undefined)[]): void {
-		for (const id of ids) if (id && !this.#cache.has(id) && !this.#queue.has(id)) this.#queue.add(id);
+		for (const id of ids) {
+			if (id && !this.#cache.has(id) && !this.#queue.has(id) && !this.#inflight.has(id)) this.#queue.add(id);
+		}
 		if (this.#queue.size && this.#timer === undefined) this.#timer = setTimeout(() => void this.#flush(), 15);
 	}
 
 	async #flush(): Promise<void> {
 		this.#timer = undefined;
 		const batch = [...this.#queue].slice(0, 200);
-		for (const id of batch) this.#queue.delete(id);
+		for (const id of batch) {
+			this.#queue.delete(id);
+			this.#inflight.add(id);
+		}
 		if (!batch.length) return;
 		try {
 			const { data } = await api.GET('/api/users/directory', { params: { query: { ids: batch.join(',') } } });
@@ -51,6 +61,8 @@ class People {
 			for (const id of batch) this.#cache.set(id, found.get(id) ?? null);
 		} catch {
 			// leave unknown: the next `ensure` retries
+		} finally {
+			for (const id of batch) this.#inflight.delete(id);
 		}
 		if (this.#queue.size) this.#timer = setTimeout(() => void this.#flush(), 15);
 	}
