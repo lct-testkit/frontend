@@ -14,7 +14,7 @@ export const REPORT_STATUS_INFO: Record<ReportStatus, { label: string; tone: 'ne
 };
 export const isReportBusy = (status: string): boolean => status === 'queued' || status === 'processing';
 
-export type ReportParamKind = 'deal_type' | 'workflow' | 'int' | 'product' | 'date';
+export type ReportParamKind = 'deal_type' | 'workflow' | 'int' | 'product' | 'date' | 'organization_multi' | 'direction_multi' | 'product_multi' | 'owner_multi';
 
 export interface ReportParamDef {
 	key: string;
@@ -35,6 +35,18 @@ export const REPORT_PARAMS: Record<string, ReportParamDef[]> = {
 	],
 	monthly_dynamics: [{ key: 'months', label: 'Месяцев', kind: 'int', min: 1, max: 36, default: 12, required: true }],
 	stuck_deals: [{ key: 'limit', label: 'Не больше строк', kind: 'int', min: 1, max: 5000, default: 500, required: true }],
+	// Реестр сделок: единственный отчёт со всеми пятью гранями раздела 4 разом (вуз, направление,
+	// продукт, статус — уже колонка вывода, ответственный) — вуз/направление/продукт/ответственный тут
+	// фильтры, период — по дате создания сделки.
+	deal_register: [
+		{ key: 'date_from', label: 'Создана с', kind: 'date' },
+		{ key: 'date_to', label: 'Создана по', kind: 'date' },
+		{ key: 'organization_ids', label: 'Вузы', kind: 'organization_multi', hint: 'Пусто — все' },
+		{ key: 'direction_ids', label: 'Направления', kind: 'direction_multi', hint: 'Пусто — все' },
+		{ key: 'product_ids', label: 'Продукты', kind: 'product_multi', hint: 'Пусто — все' },
+		{ key: 'owner_ids', label: 'Ответственные', kind: 'owner_multi', hint: 'Пусто — все' },
+		{ key: 'limit', label: 'Не больше строк', kind: 'int', min: 1, max: 5000, default: 1000, required: true }
+	],
 	// Выгрузка учащихся в LMS: курс и поток, период по дате создания сделки; статусы сделок сервер берёт по умолчанию
 	lms_users_upload: [
 		{ key: 'product_id', label: 'Курс', kind: 'product', hint: 'Пусто — все курсы' },
