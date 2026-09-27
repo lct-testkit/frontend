@@ -79,6 +79,18 @@ export async function protocolLink(id: string): Promise<string> {
 	return out.download_url;
 }
 
+/** Штампованная копия документа (`signed_file_id`) — единственный файл, который реально проверяет
+ * «Найти подпись по файлу» (`verify_by_file` сверяет его хэш наравне с оригиналом). Протокол
+ * (`protocolLink` выше) для этого не годится — это отдельный сгенерированный PDF, не подписанный
+ * артефакт, и раньше был единственной кнопкой скачивания на этой странице (backend-issues). */
+export async function signedContainerLink(doc: SignatureDocument): Promise<string> {
+	if (!doc.signed_file_id) throw new Error('У документа нет штампованной копии');
+	const out = await unwrap(
+		api.GET('/api/files/{file_id}/download-url', { params: { path: { file_id: doc.signed_file_id }, query: { entity_type: doc.entity_type, entity_id: doc.entity_id } } })
+	);
+	return out.download_url;
+}
+
 export async function listTemplates(): Promise<SignatureTemplate[]> {
 	return (await unwrap(api.GET('/api/signature-templates'))).items;
 }

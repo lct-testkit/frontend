@@ -57,8 +57,8 @@ describe('documentActions', () => {
 		const kam = documentActions('rejected', { create: true, void: false });
 		expect(kam).toMatchObject({ canVoid: false, canRecreate: true, canSend: false });
 	});
-	it('подписанный — только протокол', () => {
-		expect(documentActions('signed', all)).toMatchObject({ canProtocol: true, canVoid: false, canSend: false });
+	it('подписанный — протокол и контейнер подписи (только он проходит проверку по файлу)', () => {
+		expect(documentActions('signed', all)).toMatchObject({ canProtocol: true, canSignedContainer: true, canVoid: false, canSend: false });
 	});
 });
 

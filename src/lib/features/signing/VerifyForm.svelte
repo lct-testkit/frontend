@@ -67,7 +67,7 @@
 
 <section class="flex flex-col gap-3 rounded-lg border border-line bg-surface p-5 max-md:p-4" aria-label="Поиск по файлу">
 	<h2 class="t-body-m-strong m-0">Найти подпись по файлу</h2>
-	<FileField label="Выберите исходный PDF" disabled={busy} onPick={byFile} onClear={clearFile} />
+	<FileField label="Выберите исходный документ или контейнер подписи" disabled={busy} onPick={byFile} onClear={clearFile} />
 	{#if busy}
 		<p class="t-body-s m-0 flex items-center gap-2 text-muted" role="status"><Loader size="2xs" />Проверяем…</p>
 	{:else if found}
