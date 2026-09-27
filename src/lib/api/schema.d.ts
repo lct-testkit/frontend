@@ -667,12 +667,16 @@ export type paths = {
         get: operations["get_team_api_admin_teams__team_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Удалить команду
+         * @description Мягкое удаление, только если в команде нет ни одного активного сотрудника и нет живых дочерних команд — иначе 409 CRM-1303. Открытые сделки участников отдельно не проверяются: у сделки нет ссылки на команду, только на владельца, а проверка «нет активных сотрудников» уже покрывает случай, когда сделками некому распоряжаться от имени команды. Роль: ADMIN.
+         */
+        delete: operations["delete_team_api_admin_teams__team_id__delete"];
         options?: never;
         head?: never;
         /**
          * Изменить команду
-         * @description Меняет название, родителя, руководителя или регион. `If-Match` с версией команды необязателен: с ним устаревшая версия даёт 409 (CRM-1002), без него правка применяется как раньше. Каждая правка поднимает `version`. Роль: ADMIN.
+         * @description Меняет название, родителя, руководителя или регион. Обязателен `If-Match` с текущей версией команды (без него — 422, как у сделок/организаций); устаревшая версия — 409 CRM-1002. Каждая правка поднимает `version`. Роль: ADMIN.
          */
         patch: operations["patch_team_api_admin_teams__team_id__patch"];
         trace?: never;
@@ -855,7 +859,10 @@ export type paths = {
         /** Вложения сущности */
         get: operations["list_attachments_api_attachments_get"];
         put?: never;
-        /** Привязать файл к сущности */
+        /**
+         * Привязать файл к сущности
+         * @description Поддерживает Idempotency-Key.
+         */
         post: operations["create_attachment_api_attachments_post"];
         delete?: never;
         options?: never;
@@ -1152,7 +1159,11 @@ export type paths = {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Удалить пользовательское поле
+         * @description Только если ни у одной сущности этого типа нет непустого значения по коду поля — иначе 409 CRM-1303. Роль: запись каталога.
+         */
+        delete: operations["delete_custom_field_def_api_custom_field_defs__field_id__delete"];
         options?: never;
         head?: never;
         /** Обновить пользовательское поле */
@@ -1333,7 +1344,10 @@ export type paths = {
          */
         get: operations["list_comments_api_deals__deal_id__comments_get"];
         put?: never;
-        /** Добавить комментарий */
+        /**
+         * Добавить комментарий
+         * @description Поддерживает Idempotency-Key.
+         */
         post: operations["create_comment_api_deals__deal_id__comments_post"];
         delete?: never;
         options?: never;
@@ -1612,7 +1626,11 @@ export type paths = {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Удалить дату календаря
+         * @description Ничего на дату календаря не ссылается — удаление без ограничений. Роль: запись каталога.
+         */
+        delete: operations["delete_holiday_api_holidays__holiday_id__delete"];
         options?: never;
         head?: never;
         /** Изменить дату календаря */
@@ -2299,6 +2317,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/organizations/{organization_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Восстановить удалённую организацию
+         * @description Возвращает мягко удалённую организацию в активное состояние (A-18). Активную организацию — 409 CRM-1304. Роль: ADMIN, HEAD.
+         */
+        post: operations["restore_organization_api_organizations__organization_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/organizations/{organization_id}/reveal": {
         parameters: {
             query?: never;
@@ -2350,7 +2388,11 @@ export type paths = {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Удалить продукт
+         * @description Только если продукт не указан ни в одной сделке — иначе 409 CRM-1303. Роль: запись каталога.
+         */
+        delete: operations["delete_product_api_products__product_id__delete"];
         options?: never;
         head?: never;
         /**
@@ -2537,6 +2579,26 @@ export type paths = {
          * @description Создаёт документ из шаблона (`template_code`, данные сущности подставляются автоматически) либо из уже загруженного PDF (`file_id`). Статус — `draft`, рассылка подписантам происходит отдельным вызовом `/send`. Роль: KAM (свои сделки), HEAD, ADMIN.
          */
         post: operations["create_document_api_signature_documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/signature-documents/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Пачка документов по списку id
+         * @description Карточки документов по `ids` (через запятую, до 100 уникальных — дубликаты схлопываются). Заменяет N запросов `GET /signature-documents/{document_id}` одним, когда вызывающая сторона уже знает интересующие id (вкладка «Документы» — свои созданные, свои задачи на подпись, для аудит-ролей — журнал), но списка «все мои документы» у бэкенда всё ещё нет (backend-issues C-5, часть про документы по пользователю — не про историю по сделке, та ручка уже выше). Права на каждый id — ровно как у одиночной карточки: недоступный или не найденный документ просто пропускается в ответе, запрос в целом не отказывает (тем же приёмом, что `fetchDocument` уже трактует 403/404 на фронте). Роль: KAM (свои сделки), HEAD, ADMIN — как и у одиночной карточки; этот маршрут объявлен раньше `/{document_id}`, чтобы `batch` не пытался распарситься как UUID.
+         */
+        get: operations["list_documents_batch_api_signature_documents_batch_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2772,7 +2834,10 @@ export type paths = {
         /** Список задач */
         get: operations["list_tasks_api_tasks_get"];
         put?: never;
-        /** Создать задачу */
+        /**
+         * Создать задачу
+         * @description Поддерживает Idempotency-Key.
+         */
         post: operations["create_task_api_tasks_post"];
         delete?: never;
         options?: never;
@@ -9501,6 +9566,35 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    delete_team_api_admin_teams__team_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                team_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     patch_team_api_admin_teams__team_id__patch: {
         parameters: {
             query?: never;
@@ -9925,6 +10019,8 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                /** @description Ключ идемпотентности, 8–255 символов. Повтор с тем же ключом и телом возвращает сохранённый ответ, с другим телом — 409 CRM-1003. Действует в пределах пользователя, хранится 24 часа. */
+                "Idempotency-Key"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -10559,6 +10655,35 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    delete_custom_field_def_api_custom_field_defs__field_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                field_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     update_custom_field_def_api_custom_field_defs__field_id__patch: {
         parameters: {
             query?: never;
@@ -11142,6 +11267,8 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                /** @description Ключ идемпотентности, 8–255 символов. Повтор с тем же ключом и телом возвращает сохранённый ответ, с другим телом — 409 CRM-1003. Действует в пределах пользователя, хранится 24 часа. */
+                "Idempotency-Key"?: string | null;
             };
             path: {
                 deal_id: string;
@@ -11738,6 +11865,35 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    delete_holiday_api_holidays__holiday_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                holiday_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
@@ -13105,6 +13261,37 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    restore_organization_api_organizations__organization_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationOut"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     reveal_organization_api_organizations__organization_id__reveal_post: {
         parameters: {
             query?: never;
@@ -13197,6 +13384,35 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    delete_product_api_products__product_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
@@ -13609,6 +13825,36 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    list_documents_batch_api_signature_documents_batch_get: {
+        parameters: {
+            query: {
+                /** @description UUID через запятую, до 100 уникальных */
+                ids: string;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignatureDocumentListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             422: components["responses"]["UnprocessableEntity"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalServerError"];
@@ -14038,6 +14284,8 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                /** @description Ключ идемпотентности, 8–255 символов. Повтор с тем же ключом и телом возвращает сохранённый ответ, с другим телом — 409 CRM-1003. Действует в пределах пользователя, хранится 24 часа. */
+                "Idempotency-Key"?: string | null;
             };
             path?: never;
             cookie?: never;

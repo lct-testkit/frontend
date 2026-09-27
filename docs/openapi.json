@@ -14418,7 +14418,7 @@
     }
   },
   "info": {
-    "description": "\nБэкенд CRM ИТ Школы Ростелекома.\n\n**Соглашения (раздел 2 спецификации)**\n\n* Все ошибки — RFC 7807 Problem Details с внутренним кодом вида `CRM-XXYY`.\n* Идентификаторы — UUIDv7, в JSON строками.\n* Даты — ISO 8601 с часовым поясом, внутри хранятся и отдаются в UTC.\n* Деньги — строка `\"150000.00\"` плюс отдельное поле `currency`.\n* Списки — курсорная пагинация: `limit` (максимум 100) и непрозрачный `cursor`,\n  ответ содержит `items` и `next_cursor`.\n* Обновления — оптимистичная блокировка через `If-Match` и поле `version`.\n* `Idempotency-Key` (8–255 символов, действует внутри пользователя, хранится 24 часа)\n  принимают только создание сделки, организации и контакта (`POST /api/deals`,\n  `/api/organizations`, `/api/contacts`) и вебхук `POST /api/v1/integrations/cms/leads`\n  (у вебхука обязателен). Повтор с тем же ключом и телом возвращает сохранённый ответ,\n  с другим телом — 409 CRM-1003. Остальные ручки заголовок не читают: переход сделки\n  защищён коротким блокирующим локом, а не ключом.\n* `request_id` проходит через логи, аудит и тело ошибки, отдаётся в `X-Request-Id`.\n\n**Аутентификация**\n\n* Браузер — серверная сессия: httpOnly-cookie `crm_sid`; на POST/PUT/PATCH/DELETE\n  нужен ещё заголовок `X-CSRF-Token` со значением cookie `crm_csrf` (иначе 403 CRM-1107).\n* Сервисные вызовы — `Authorization: Bearer`; в prod так ходит только роль INTEGRATION.\n* Без аутентификации (`security: []`): `/health/*`, `/api/auth/*`, `/public/*`; вебхуки\n  `/api/v1/integrations/*` подписываются HMAC тела запроса (заголовок `X-Signature`).\n\n**Ошибки.** Каждая операция описывает 400/401/403/404/409/422/429/500 как\n`application/problem+json` со схемой `Problem`; 4xx/5xx вне этого списка (413, 503)\nтоже приходят в этом формате.\n",
+    "description": "\nБэкенд CRM ИТ Школы Ростелекома.\n\n**Соглашения (раздел 2 спецификации)**\n\n* Все ошибки — RFC 7807 Problem Details с внутренним кодом вида `CRM-XXYY`.\n* Идентификаторы — UUIDv7, в JSON строками.\n* Даты — ISO 8601 с часовым поясом, внутри хранятся и отдаются в UTC.\n* Деньги — строка `\"150000.00\"` плюс отдельное поле `currency`.\n* Списки — курсорная пагинация: `limit` (максимум 100) и непрозрачный `cursor`,\n  ответ содержит `items` и `next_cursor`.\n* Обновления — оптимистичная блокировка через `If-Match` и поле `version`.\n* `Idempotency-Key` (8–255 символов, действует внутри пользователя, хранится 24 часа)\n  принимают ручки создания сделки, организации, контакта, комментария, задачи и\n  вложения (`POST /api/deals`, `/api/organizations`, `/api/contacts`,\n  `/api/deals/{deal_id}/comments`, `/api/tasks`, `/api/attachments`) и вебхук\n  `POST /api/v1/integrations/cms/leads` (у вебхука обязателен). Повтор с тем же\n  ключом и телом возвращает сохранённый ответ, с другим телом — 409 CRM-1003.\n  Остальные ручки заголовок не читают: переход сделки защищён коротким\n  блокирующим локом, а не ключом.\n* `request_id` проходит через логи, аудит и тело ошибки, отдаётся в `X-Request-Id`.\n\n**Аутентификация**\n\n* Браузер — серверная сессия: httpOnly-cookie `crm_sid`; на POST/PUT/PATCH/DELETE\n  нужен ещё заголовок `X-CSRF-Token` со значением cookie `crm_csrf` (иначе 403 CRM-1107).\n* Сервисные вызовы — `Authorization: Bearer`; в prod так ходит только роль INTEGRATION.\n* Без аутентификации (`security: []`): `/health/*`, `/api/auth/*`, `/public/*`; вебхуки\n  `/api/v1/integrations/*` подписываются HMAC тела запроса (заголовок `X-Signature`).\n\n**Ошибки.** Каждая операция описывает 400/401/403/404/409/422/429/500 как\n`application/problem+json` со схемой `Problem`; 4xx/5xx вне этого списка (413, 503)\nтоже приходят в этом формате.\n",
     "title": "CRM ИТ Школы Ростелекома — API",
     "version": "0.1.0"
   },
@@ -18100,6 +18100,77 @@
       }
     },
     "/api/admin/teams/{team_id}": {
+      "delete": {
+        "description": "Мягкое удаление, только если в команде нет ни одного активного сотрудника и нет живых дочерних команд — иначе 409 CRM-1303. Открытые сделки участников отдельно не проверяются: у сделки нет ссылки на команду, только на владельца, а проверка «нет активных сотрудников» уже покрывает случай, когда сделками некому распоряжаться от имени команды. Роль: ADMIN.",
+        "operationId": "delete_team_api_admin_teams__team_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Team Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "CsrfToken": [],
+            "SessionCookie": []
+          }
+        ],
+        "summary": "Удалить команду",
+        "tags": [
+          "admin-users"
+        ]
+      },
       "get": {
         "description": "Команда с версией и временем последней правки. Роль: ADMIN.",
         "operationId": "get_team_api_admin_teams__team_id__get",
@@ -18167,7 +18238,7 @@
         ]
       },
       "patch": {
-        "description": "Меняет название, родителя, руководителя или регион. `If-Match` с версией команды необязателен: с ним устаревшая версия даёт 409 (CRM-1002), без него правка применяется как раньше. Каждая правка поднимает `version`. Роль: ADMIN.",
+        "description": "Меняет название, родителя, руководителя или регион. Обязателен `If-Match` с текущей версией команды (без него — 422, как у сделок/организаций); устаревшая версия — 409 CRM-1002. Каждая правка поднимает `version`. Роль: ADMIN.",
         "operationId": "patch_team_api_admin_teams__team_id__patch",
         "parameters": [
           {
@@ -19363,6 +19434,7 @@
         ]
       },
       "post": {
+        "description": "Поддерживает Idempotency-Key.",
         "operationId": "create_attachment_api_attachments_post",
         "parameters": [
           {
@@ -19379,6 +19451,23 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "description": "Ключ идемпотентности, 8–255 символов. Повтор с тем же ключом и телом возвращает сохранённый ответ, с другим телом — 409 CRM-1003. Действует в пределах пользователя, хранится 24 часа.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
             }
           }
         ],
@@ -20963,6 +21052,77 @@
       }
     },
     "/api/custom-field-defs/{field_id}": {
+      "delete": {
+        "description": "Только если ни у одной сущности этого типа нет непустого значения по коду поля — иначе 409 CRM-1303. Роль: запись каталога.",
+        "operationId": "delete_custom_field_def_api_custom_field_defs__field_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "field_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Field Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "CsrfToken": [],
+            "SessionCookie": []
+          }
+        ],
+        "summary": "Удалить пользовательское поле",
+        "tags": [
+          "custom-field-defs"
+        ]
+      },
       "patch": {
         "operationId": "update_custom_field_def_api_custom_field_defs__field_id__patch",
         "parameters": [
@@ -22726,6 +22886,7 @@
         ]
       },
       "post": {
+        "description": "Поддерживает Idempotency-Key.",
         "operationId": "create_comment_api_deals__deal_id__comments_post",
         "parameters": [
           {
@@ -22752,6 +22913,23 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "description": "Ключ идемпотентности, 8–255 символов. Повтор с тем же ключом и телом возвращает сохранённый ответ, с другим телом — 409 CRM-1003. Действует в пределах пользователя, хранится 24 часа.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
             }
           }
         ],
@@ -24405,6 +24583,77 @@
       }
     },
     "/api/holidays/{holiday_id}": {
+      "delete": {
+        "description": "Ничего на дату календаря не ссылается — удаление без ограничений. Роль: запись каталога.",
+        "operationId": "delete_holiday_api_holidays__holiday_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "holiday_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Holiday Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "CsrfToken": [],
+            "SessionCookie": []
+          }
+        ],
+        "summary": "Удалить дату календаря",
+        "tags": [
+          "holidays"
+        ]
+      },
       "patch": {
         "operationId": "update_holiday_api_holidays__holiday_id__patch",
         "parameters": [
@@ -28008,6 +28257,86 @@
         ]
       }
     },
+    "/api/organizations/{organization_id}/restore": {
+      "post": {
+        "description": "Возвращает мягко удалённую организацию в активное состояние (A-18). Активную организацию — 409 CRM-1304. Роль: ADMIN, HEAD.",
+        "operationId": "restore_organization_api_organizations__organization_id__restore_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Organization Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "CsrfToken": [],
+            "SessionCookie": []
+          }
+        ],
+        "summary": "Восстановить удалённую организацию",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
     "/api/organizations/{organization_id}/reveal": {
       "post": {
         "description": "Для org_type='individual_entrepreneur' — полные телефон/email (dop.md §11.8). Для остальных типов маскировать нечего, но ручка работает единообразно. Каждый вызов пишет PII_REVEALED.",
@@ -28350,6 +28679,77 @@
       }
     },
     "/api/products/{product_id}": {
+      "delete": {
+        "description": "Только если продукт не указан ни в одной сделке — иначе 409 CRM-1303. Роль: запись каталога.",
+        "operationId": "delete_product_api_products__product_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Product Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "CsrfToken": [],
+            "SessionCookie": []
+          }
+        ],
+        "summary": "Удалить продукт",
+        "tags": [
+          "products"
+        ]
+      },
       "patch": {
         "description": "`valid_from` не позже `valid_to` (новая дата сверяется с сохранённой), иначе 422. `vendor_id: null` снимает вендора. Роль: запись каталога.",
         "operationId": "update_product_api_products__product_id__patch",
@@ -29364,6 +29764,72 @@
           }
         ],
         "summary": "Создать документ на подпись",
+        "tags": [
+          "signing"
+        ]
+      }
+    },
+    "/api/signature-documents/batch": {
+      "get": {
+        "description": "Карточки документов по `ids` (через запятую, до 100 уникальных — дубликаты схлопываются). Заменяет N запросов `GET /signature-documents/{document_id}` одним, когда вызывающая сторона уже знает интересующие id (вкладка «Документы» — свои созданные, свои задачи на подпись, для аудит-ролей — журнал), но списка «все мои документы» у бэкенда всё ещё нет (backend-issues C-5, часть про документы по пользователю — не про историю по сделке, та ручка уже выше). Права на каждый id — ровно как у одиночной карточки: недоступный или не найденный документ просто пропускается в ответе, запрос в целом не отказывает (тем же приёмом, что `fetchDocument` уже трактует 403/404 на фронте). Роль: KAM (свои сделки), HEAD, ADMIN — как и у одиночной карточки; этот маршрут объявлен раньше `/{document_id}`, чтобы `batch` не пытался распарситься как UUID.",
+        "operationId": "list_documents_batch_api_signature_documents_batch_get",
+        "parameters": [
+          {
+            "description": "UUID через запятую, до 100 уникальных",
+            "in": "query",
+            "name": "ids",
+            "required": true,
+            "schema": {
+              "description": "UUID через запятую, до 100 уникальных",
+              "title": "Ids",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignatureDocumentListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "summary": "Пачка документов по списку id",
         "tags": [
           "signing"
         ]
@@ -30474,6 +30940,7 @@
         ]
       },
       "post": {
+        "description": "Поддерживает Idempotency-Key.",
         "operationId": "create_task_api_tasks_post",
         "parameters": [
           {
@@ -30490,6 +30957,23 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "description": "Ключ идемпотентности, 8–255 символов. Повтор с тем же ключом и телом возвращает сохранённый ответ, с другим телом — 409 CRM-1003. Действует в пределах пользователя, хранится 24 часа.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
             }
           }
         ],

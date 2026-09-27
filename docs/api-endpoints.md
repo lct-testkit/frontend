@@ -1,4 +1,4 @@
-# Эндпоинты бэкенда (204)
+# Эндпоинты бэкенда (210)
 
 _Сгенерировано tools/gen-api.mjs._
 
@@ -34,6 +34,7 @@ _Сгенерировано tools/gen-api.mjs._
 | POST | `/api/admin/teams` | Создать команду |
 | GET | `/api/admin/teams/{team_id}` | Карточка команды |
 | PATCH | `/api/admin/teams/{team_id}` | Изменить команду |
+| DELETE | `/api/admin/teams/{team_id}` | Удалить команду |
 | GET | `/api/admin/users` | Список пользователей |
 | POST | `/api/admin/users` | Создать пользователя |
 | GET | `/api/admin/users/{user_id}` | Карточка пользователя |
@@ -91,6 +92,7 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/custom-field-defs` | Определения пользовательских полей |
 | POST | `/api/custom-field-defs` | Создать пользовательское поле |
 | PATCH | `/api/custom-field-defs/{field_id}` | Обновить пользовательское поле |
+| DELETE | `/api/custom-field-defs/{field_id}` | Удалить пользовательское поле |
 
 ## deals
 
@@ -144,6 +146,7 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/holidays` | Производственный календарь |
 | POST | `/api/holidays` | Добавить дату в календарь |
 | PATCH | `/api/holidays/{holiday_id}` | Изменить дату календаря |
+| DELETE | `/api/holidays/{holiday_id}` | Удалить дату календаря |
 
 ## imports
 
@@ -243,6 +246,7 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/organizations/{organization_id}` | Карточка организации |
 | PATCH | `/api/organizations/{organization_id}` | Обновить организацию |
 | POST | `/api/organizations/{organization_id}/apply-drift` | Принять изменения реквизитов |
+| POST | `/api/organizations/{organization_id}/restore` | Восстановить удалённую организацию |
 | POST | `/api/organizations/{organization_id}/reveal` | Раскрыть полные реквизиты организации |
 | GET | `/api/organizations/check-duplicate` | Проверить дубль по ИНН/ОГРН |
 
@@ -253,6 +257,7 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/products` | Справочник продуктов |
 | POST | `/api/products` | Создать продукт |
 | PATCH | `/api/products/{product_id}` | Обновить продукт |
+| DELETE | `/api/products/{product_id}` | Удалить продукт |
 | GET | `/api/products/{product_id}/contacts` | Ответственные за продукт |
 | PUT | `/api/products/{product_id}/contacts/{contact_id}` | Назначить ответственного за продукт |
 | DELETE | `/api/products/{product_id}/contacts/{contact_id}` | Снять ответственного с продукта |
@@ -305,6 +310,7 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/signature-documents/{document_id}/protocol` | Ссылка на протокол подписания |
 | POST | `/api/signature-documents/{document_id}/send` | Запустить сбор подписей |
 | POST | `/api/signature-documents/{document_id}/void` | Аннулировать документ |
+| GET | `/api/signature-documents/batch` | Пачка документов по списку id |
 | POST | `/api/signature-requests/{request_id}/challenge` | Запросить одноразовый код |
 | GET | `/api/signature-requests/{request_id}/file` | PDF документа для просмотра (внутренний подписант) |
 | POST | `/api/signature-requests/{request_id}/reissue-link` | Переиздать ссылку внешнему подписанту |
