@@ -38,6 +38,7 @@ export type LossReason = S['LossReasonOut'];
 export type OrgSuggestion = S['OrgSuggestionOut'];
 export type OrgDetails = S['OrgDetailsOut'];
 export type DuplicateCandidate = S['DuplicateCandidateOut'];
+export type OrganizationLicense = S['OrganizationLicenseOut'];
 
 /** Ответ `GET /api/me/recent` — у ручки нет `response_model`, поэтому в OpenAPI она нетипизирована. */
 export interface RecentItem {

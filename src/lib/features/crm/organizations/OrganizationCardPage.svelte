@@ -3,6 +3,7 @@
 		{ key: 'reqs', label: 'Реквизиты' },
 		{ key: 'contacts', label: 'Контакты' },
 		{ key: 'deals', label: 'Сделки' },
+		{ key: 'licenses', label: 'Лицензии' },
 		{ key: 'files', label: 'Файлы' }
 	];
 	// Карточка организации: реквизиты (с пометками «из ЕГРЮЛ» / «изменено вручную»), баннер расхождений с реестром, риск ликвидации,
@@ -25,6 +26,7 @@
 	import type { Organization } from '../types';
 	import DriftBanner from './DriftBanner.svelte';
 	import OrgForm from './OrgForm.svelte';
+	import OrgLicenses from './OrgLicenses.svelte';
 	import OrgLinked from './OrgLinked.svelte';
 	import { emptyOrgForm, formFromOrg, toPatchBody, type OrgFormValues } from './orgUtils';
 
@@ -40,7 +42,7 @@
 	let banner = $state<{ text: string; conflict: boolean } | null>(null);
 	let hideDrift = $state(false);
 
-	const TABS = ['reqs', 'contacts', 'deals', 'files'] as const;
+	const TABS = ['reqs', 'contacts', 'deals', 'licenses', 'files'] as const;
 	const tab = $derived.by(() => {
 		const raw = page.url.searchParams.get('tab');
 		return (TABS as readonly string[]).includes(raw ?? '') ? (raw as (typeof TABS)[number]) : 'reqs';
@@ -158,6 +160,8 @@
 			<OrgLinked orgId={org.id} kind="contacts" />
 		{:else if tab === 'deals'}
 			<OrgLinked orgId={org.id} kind="deals" />
+		{:else if tab === 'licenses'}
+			<OrgLicenses orgId={org.id} />
 		{:else}
 			<Attachments entityType="organization" entityId={org.id} canEdit={session.can('file:upload')} about="по организации" />
 		{/if}

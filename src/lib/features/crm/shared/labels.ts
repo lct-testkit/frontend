@@ -164,6 +164,20 @@ export const REGISTRY_STATUS_SCHEMES: Record<string, BadgeScheme> = {
 	invalid: 'neutral'
 };
 
+export const TRANSFER_STATUS_LABELS: Record<string, string> = {
+	not_started: 'Не начата',
+	in_progress: 'В процессе',
+	transferred: 'Передана',
+	declined: 'Не состоялась'
+};
+
+export const TRANSFER_STATUS_SCHEMES: Record<string, BadgeScheme> = {
+	not_started: 'neutral',
+	in_progress: 'info',
+	transferred: 'success',
+	declined: 'error'
+};
+
 export const ORG_FIELD_LABELS: Record<string, string> = {
 	name: 'Полное название',
 	short_name: 'Краткое название',
