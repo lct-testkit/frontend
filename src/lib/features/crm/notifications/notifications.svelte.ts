@@ -1,19 +1,21 @@
-// Уведомления пользователя для колокольчика: счётчик и последние непрочитанные. Счётчик считаем сами: `GET /notifications/unread-count` бэкенд отдаёт
-// с 25.09 (backend-issues A-24), но клиент пока берёт до 100 непрочитанных и показывает «99+». Опрос раз в минуту, пока вкладка видна.
+// Уведомления пользователя для колокольчика: точный счётчик и короткий список последних непрочитанных для превью в панели.
+// Счётчик — отдельной ручкой (`GET /notifications/unread-count`, без потолка страницы списка, backend-issues A-24), поэтому список
+// для превью запрашивается ровно в размере, который реально показывается (`PREVIEW_LIMIT`), а не с запасом ради подсчёта «99+».
+// Опрос раз в минуту, пока вкладка видна.
 import { api, unwrap } from '$lib/api';
 import type { NotificationItem } from '../types';
 import { eventCodeInfo } from './eventCodes';
 
-const LIMIT = 100;
+/** Столько показывает превью колокольчика (`NotificationBell`, `latest = items.slice(0, 10)`) */
+const PREVIEW_LIMIT = 10;
 const POLL_MS = 60_000;
 
 class NotificationsStore {
 	items = $state<NotificationItem[]>([]);
+	unreadCount = $state(0);
 	loading = $state(false);
 	loaded = $state(false);
 	error = $state<unknown>(null);
-	/** непрочитанных больше, чем мы загрузили */
-	more = $state(false);
 
 	#timer: ReturnType<typeof setInterval> | undefined;
 	#users = 0;
@@ -22,10 +24,10 @@ class NotificationsStore {
 	};
 
 	get unread(): number {
-		return this.items.length;
+		return this.unreadCount;
 	}
 	get badge(): string {
-		return this.unread === 0 ? '' : this.more || this.unread > 99 ? '99+' : String(this.unread);
+		return this.unreadCount === 0 ? '' : String(this.unreadCount);
 	}
 
 	/** Подписаться на опрос (колокольчик при монтировании); вернуть отписку. */
@@ -48,9 +50,12 @@ class NotificationsStore {
 	async refresh(): Promise<void> {
 		this.loading = true;
 		try {
-			const page = await unwrap(api.GET('/api/notifications', { params: { query: { is_read: false, limit: LIMIT } } }));
+			const [page, count] = await Promise.all([
+				unwrap(api.GET('/api/notifications', { params: { query: { is_read: false, limit: PREVIEW_LIMIT } } })),
+				unwrap(api.GET('/api/notifications/unread-count'))
+			]);
 			this.items = page.items;
-			this.more = !!page.next_cursor;
+			this.unreadCount = count.count;
 			this.error = null;
 			this.loaded = true;
 		} catch (e) {
@@ -63,6 +68,7 @@ class NotificationsStore {
 	async markRead(ids: string[]): Promise<void> {
 		if (!ids.length) return;
 		this.items = this.items.filter((n) => !ids.includes(n.id));
+		this.unreadCount = Math.max(0, this.unreadCount - ids.length);
 		try {
 			await unwrap(api.POST('/api/notifications/read', { body: { ids } }));
 		} catch {
@@ -76,7 +82,7 @@ class NotificationsStore {
 		const filtered = Boolean(filters?.priority || filters?.entity_type);
 		if (!filtered) {
 			this.items = [];
-			this.more = false;
+			this.unreadCount = 0;
 		}
 		try {
 			const priority = filters?.priority as 'normal' | 'high' | 'critical' | undefined;

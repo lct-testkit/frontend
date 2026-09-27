@@ -1,6 +1,8 @@
 <script lang="ts">
 	// Настройки уведомлений: по каждому событию — включено ли и по каким каналам; общие «тихие часы». Одна кнопка «Сохранить» (PUT списком).
-	// Список кодов бэкенд не-администратору не отдаёт, поэтому он зашит в eventCodes.ts; неизвестные сохранённые коды показываем в «Прочее».
+	// Список настраиваемых кодов — с бэкенда (`GET /notifications/event-codes`: коды с активным шаблоном, любой аутентифицированный);
+	// код из уже сохранённых настроек, которого в этом списке больше нет, всё равно показываем — иначе включённая правка исчезла бы молча.
+	// Русские подписи и группы — из eventCodes.ts (бэкенд отдаёт только код, не текст).
 	import { onMount } from 'svelte';
 	import { Checkbox, Switch } from '@lct-testkit/rt-ui';
 	import { api, unwrap } from '$lib/api';
@@ -9,7 +11,7 @@
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import { NOTIFICATION_CHANNEL_LABELS } from '../shared/labels';
 	import type { NotificationPref } from '../types';
-	import { EVENT_CODES, EVENT_GROUP_LABELS, eventCodeInfo, type EventCodeInfo, type EventGroup } from './eventCodes';
+	import { EVENT_GROUP_LABELS, eventCodeInfo, type EventCodeInfo, type EventGroup } from './eventCodes';
 
 	type Channel = 'in_app' | 'email' | 'telegram';
 	interface Row {
@@ -39,9 +41,10 @@
 		loading = true;
 		error = null;
 		try {
-			const saved = new Map((await unwrap(api.GET('/api/me/notification-prefs'))).items.map((p: NotificationPref) => [p.event_code, p]));
-			const known = new Set(EVENT_CODES.map((e) => e.code));
-			const codes = [...EVENT_CODES.map((e) => e.code), ...[...saved.keys()].filter((c) => !known.has(c))];
+			const [prefsRes, codesRes] = await Promise.all([unwrap(api.GET('/api/me/notification-prefs')), unwrap(api.GET('/api/notifications/event-codes'))]);
+			const saved = new Map(prefsRes.items.map((p: NotificationPref) => [p.event_code, p]));
+			const known = new Set(codesRes.items.map((e) => e.code));
+			const codes = [...codesRes.items.map((e) => e.code), ...[...saved.keys()].filter((c) => !known.has(c))];
 			rows = codes.map((code) => {
 				const p = saved.get(code);
 				return p ? { code, enabled: p.is_enabled, channels: p.channels as Channel[] } : { code, ...DEFAULT, channels: [...DEFAULT.channels] };
