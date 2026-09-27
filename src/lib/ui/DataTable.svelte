@@ -46,6 +46,7 @@
 	import EmptyState from './EmptyState.svelte';
 	import ErrorState from './ErrorState.svelte';
 	import Skeleton from './Skeleton.svelte';
+	import { preloadHref } from './preload-hover';
 	import { ariaSort, headerSortKey, nextSort } from './table-sort';
 
 	interface Props {
@@ -61,6 +62,8 @@
 		empty?: Snippet;
 		emptyText?: string;
 		onRowClick?: (row: Row) => void;
+		/** same target as `onRowClick`, as a URL: hovering a row preloads its page (rows aren't `<a>`s, so SvelteKit's own hover-preload never sees them) */
+		rowHref?: (row: Row) => string | undefined;
 		sort?: SortState | null;
 		onSort?: (next: SortState | null) => void;
 		hasMore?: boolean;
@@ -93,6 +96,7 @@
 		empty,
 		emptyText = 'Ничего не найдено',
 		onRowClick,
+		rowHref,
 		sort = null,
 		onSort,
 		hasMore = false,
@@ -111,6 +115,26 @@
 	}: Props = $props();
 
 	const bp = useBreakpoint();
+
+	// `rowHref`: preload a row's page on hover. The DS row (`_LayoutRow.svelte`) carries no id, only a
+	// `--row-index` custom property it uses to place itself in the CSS grid — the header row gets one too, always
+	// the smallest value present, so `thisIndex - headerIndex - 1` is the row's position in `rows` regardless of
+	// virtualization (only the visible window is in the DOM, but the header's index is the same fixed anchor
+	// either way). One delegated `pointerover` beats an action on every row.
+	function onRowsPointerOver(event: PointerEvent): void {
+		if (!rowHref || !area) return;
+		const rowEl = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-table-row]');
+		if (!rowEl) return;
+		const thisIndex = Number(rowEl.style.getPropertyValue('--row-index'));
+		if (!Number.isFinite(thisIndex)) return;
+		let headerIndex = Infinity;
+		for (const el of area.querySelectorAll<HTMLElement>('[data-table-row]')) {
+			const value = Number(el.style.getPropertyValue('--row-index'));
+			if (Number.isFinite(value) && value < headerIndex) headerIndex = value;
+		}
+		const row = rows[thisIndex - headerIndex - 1];
+		if (row) preloadHref(rowHref(row));
+	}
 
 	// the room the table really has (its own box, so a collapsed or expanded side menu is accounted for): columns that do not fit are dropped
 	// in `drop` order instead of being cut off or scrolled sideways
@@ -311,7 +335,9 @@
 	</div>
 {/snippet}
 
-<div bind:this={area} class={['w-full min-w-0', fill && 'md:min-h-0 md:flex-1 md:basis-0 md:overflow-hidden', embedded && 'dt-embedded', onRowClick && 'dt-rows-open', !onRowClick && !selectable && 'dt-static']} aria-busy={loading || undefined} use:rowKeydown use:headerSort={{ sortable: sortableKeys, sort, hints: headerHints }}>
+<!-- `pointerover` below is a perf hint only (preloads a row's page on hover): the rows themselves, not this div, stay the real click/keyboard target -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div bind:this={area} class={['w-full min-w-0', fill && 'md:min-h-0 md:flex-1 md:basis-0 md:overflow-hidden', embedded && 'dt-embedded', onRowClick && 'dt-rows-open', !onRowClick && !selectable && 'dt-static']} aria-busy={loading || undefined} onpointerover={rowHref ? onRowsPointerOver : undefined} use:rowKeydown use:headerSort={{ sortable: sortableKeys, sort, hints: headerHints }}>
 	{#if error}
 		<ErrorState {error} {onRetry} />
 	{:else if loading && rows.length === 0}

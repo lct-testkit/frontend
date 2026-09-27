@@ -118,6 +118,7 @@
 	error={pager.error}
 	onRetry={() => pager.reload()}
 	onRowClick={(r) => goto(`/admin/erasure/${r.id}`)}
+	rowHref={(r) => `/admin/erasure/${r.id}`}
 	hasMore={pager.hasMore}
 	loadingMore={pager.loadingMore}
 	onLoadMore={() => pager.loadMore()}

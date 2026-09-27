@@ -91,6 +91,7 @@
 			loadingMore={pager.loadingMore}
 			onLoadMore={() => pager.loadMore()}
 			onRowClick={open}
+			rowHref={(j) => (isDraftJob(j) ? `/imports/new?job=${j.id}` : `/imports/${j.id}`)}
 			ariaLabel="Задания импорта"
 		>
 			{#snippet empty()}

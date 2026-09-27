@@ -6,6 +6,7 @@
 	import type { NavItem, NavSection } from '$lib/nav';
 	import AttentionDot from './AttentionDot.svelte';
 	import NavIcon from './NavIcon.svelte';
+	import { preloadHref } from './preload-hover';
 
 	interface Props {
 		sections: NavSection[];
@@ -27,9 +28,19 @@
 	}
 
 	let { sections, isActive, counters = {}, attention = {}, expanded, onNavigate, onToggle, brand, footer, class: className = '' }: Props = $props();
+
+	// `SideMenuItem` is a button, not an `<a>` (`onNavigate` calls `goto()`): SvelteKit's own hover-preload never
+	// fires for it. `data-nav` already identifies each item's DOM node (see below), so one delegated `pointerover`
+	// on the whole menu preloads whichever item's href the pointer is over — cheaper than an action per item and
+	// immune to `SideMenuItem`'s own root element ever changing.
+	const hrefById = $derived(new Map(sections.flatMap((section) => section.items.map((item) => [item.id, item.href]))));
+	function onMenuPointerOver(event: PointerEvent): void {
+		const target = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-nav]');
+		if (target) preloadHref(hrefById.get(target.dataset.nav ?? ''));
+	}
 </script>
 
-<SideMenu class={className} isOpened={expanded}>
+<SideMenu class={className} isOpened={expanded} onpointerover={onMenuPointerOver}>
 	<SideMenuHeader>{@render brand()}</SideMenuHeader>
 
 	<SideMenuContent class="atmr-scroll-bar">

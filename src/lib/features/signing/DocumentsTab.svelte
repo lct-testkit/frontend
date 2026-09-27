@@ -99,4 +99,4 @@
 	</div>
 {/snippet}
 
-<DataTable id="signing-docs" rows={docs} {columns} {card} {loading} {error} onRetry={load} onRowClick={open} emptyText="Документов пока нет" ariaLabel="Документы" />
+<DataTable id="signing-docs" rows={docs} {columns} {card} {loading} {error} onRetry={load} onRowClick={open} rowHref={(doc) => `/signing/${doc.id}`} emptyText="Документов пока нет" ariaLabel="Документы" />
