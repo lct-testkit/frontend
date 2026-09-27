@@ -9,6 +9,7 @@
 	import IssuesList from './IssuesList.svelte';
 	import StatusPanel from './StatusPanel.svelte';
 	import TransitionPanel from './TransitionPanel.svelte';
+	import { workflowStateHint } from '../../hints';
 
 	interface Props {
 		editor: WorkflowEditor;
@@ -42,7 +43,7 @@
 					<dt class="t-desc-l text-muted">Тип сделки</dt>
 					<dd class="t-body-s m-0">{dealTypeLong(w.deal_type)}</dd>
 					<dt class="t-desc-l text-muted">Состояние</dt>
-					<dd class="m-0"><StatusChip label={stateLabel(w.state)} tone={stateTone(w.state)} /></dd>
+					<dd class="m-0"><StatusChip label={stateLabel(w.state)} tone={stateTone(w.state)} hint={workflowStateHint(w.state)} /></dd>
 					<dt class="t-desc-l text-muted">Состав</dt>
 					<dd class="t-body-s m-0">{statusesWord(editor.liveStatuses.length)}, {transitionsWord(editor.draft.transitions.length)}</dd>
 					{#if w.published_at}

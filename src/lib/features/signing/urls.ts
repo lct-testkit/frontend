@@ -1,5 +1,5 @@
 // Ссылки ПЭП: бэкенд формирует `sign_url`/`verify_url` на JSON-ручки `/public/...`
-// (backend-issues C-2/C-3), страницы SPA живут на `/sign/{token}` и `/verify/{id}`.
+// (backend-issues C-2/C-3: закрыто лидом, ссылки в PDF остаются на `/public/...`), страницы SPA живут на `/sign/{token}` и `/verify/{id}`.
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

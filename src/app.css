@@ -283,6 +283,43 @@ body[class*='Theme_root_'] {
 		--atmr-tablegrid-m-cell-padding-horizontal: 15px;
 		--atmr-tablegrid-m-header-padding-horizontal: 15px;
 	}
+	/* Table headers: what lights up is what reacts. The DS lights EVERY header cell up on hover and makes only the small arrow button clickable; DataTable makes the whole
+	   cell of a sortable column the click target, so only such a cell (the one that has the arrow button) gets the pointer and the hover fill. The rest are plain labels. */
+	.atmr-tablegrid__cell--header:not(:has(.atmr-tablegrid__sorting__button)):hover {
+		background-image: none;
+	}
+	.atmr-tablegrid__cell--header:has(.atmr-tablegrid__sorting__button) {
+		cursor: pointer;
+	}
+	.atmr-tablegrid__cell--header:has(.atmr-tablegrid__sorting__button):hover .atmr-tablegrid__sorting__button svg {
+		fill: var(--atmr-tablegrid-primary-header-icon-color-hover);
+	}
+	/* the keyboard ring goes round the whole cell (the same area that a click sorts), not round the 20 px arrow */
+	.atmr-tablegrid__cell--header:has(.atmr-tablegrid__sorting__button:focus-visible) {
+		outline: 2px solid var(--atmr-accent-default);
+		outline-offset: -2px;
+	}
+	.atmr-tablegrid__cell--header .atmr-tablegrid__sorting__button:focus-visible {
+		outline: none;
+	}
+	/* a table whose rows open something: the pointer over its body cells (the DS leaves the arrow there) */
+	.dt-rows-open .atmr-tablegrid__cell:not(.atmr-tablegrid__cell--header) {
+		cursor: pointer;
+	}
+	/* a table whose rows do nothing (no row click, no selection): the DS still lights a row up under the pointer, and a highlight promises a click. Its hover colour is the resting one */
+	.dt-static {
+		--atmr-tablegrid-primary-cell-bg-color-hover: var(--atmr-tablegrid-primary-cell-bg-color-default);
+	}
+	/* a table inside a card: the card draws the outer frame, so the DS footer bar does not close the table with a second line 4 px above the card edge */
+	.dt-embedded .atmr-tablegrid__footer__container {
+		border-bottom: 0;
+	}
+	/* a notice (icon on the left, coloured outline): the FIRST line of its text is centred on the 24 px icon. The DS gives only the title 2 px from the top (a 18.2 px line on a 24 px icon
+	   needs 2.9) and the text of a notice without a title nothing, so the text sat 1 px (title) to 3 px (text only) above the icon. `1lh` is the height of that line */
+	.atmr-inline-notification .atmr-inline-notification__inner > :is(.atmr-inline-notification__title, .atmr-inline-notification__subtitle):first-child {
+		padding-top: 3px;
+		padding-top: calc((24px - 1lh) / 2);
+	}
 	/* the tabs of a page stand in ONE row with its buttons (36 px on a desktop, 48 px on a phone: the height of the phone controls): the DS item is 61 px high, 20 px above and below the
 	   label. The label is 20.8 px (16 px on a 130 % line), so 7.6 px above and below make exactly 36 px, 13.6 px make 48 */
 	.atmr-tabs-group {
@@ -394,4 +431,46 @@ body[class*='Theme_root_'] {
 		/* stylelint-disable-next-line color-no-hex -- намеренно: токены темы ещё не применены (это и есть «до JS»), нужен литерал */
 		background: #16171b;
 	}
+}
+
+/* The required-field marker: an asterisk AFTER the label (the DS draws a dot before it). People look for «*» — an unpredictable form is worse than an "ugly" star. */
+@layer components {
+	.atmr-input.atmr-input--required .atmr-input__label::before,
+	.atmr-input.atmr-input--required:focus-within .atmr-input__label::before,
+	.atmr-input.atmr-input--required.atmr-input--has-value .atmr-input__label::before,
+	.atmr-input.atmr-input--required.atmr-input--has-placeholder .atmr-input__label::before {
+		content: '*';
+		order: 2;
+		width: auto;
+		height: auto;
+		border-radius: 0;
+		background: none;
+		color: var(--atmr-error-default);
+		font-weight: 600;
+		line-height: inherit;
+	}
+}
+
+/* the same asterisk for what is not an Input: the caption of a radio group, the label of a checkbox */
+@layer components {
+	.field-required::after {
+		content: '*';
+		margin-inline-start: 4px;
+		color: var(--atmr-error-default);
+		font-weight: 600;
+	}
+}
+
+/* the card list of a table on a phone (rt-ui/ext, its CSS is not layered, so this must not be either) inside a card-section: the section draws the only frame; the rows are not
+   boxed again, they are cut by a hairline and their text starts on the 16 px axis */
+.dt-embedded .rt-ext-cards {
+	gap: 0;
+}
+.dt-embedded .rt-ext-cards__item {
+	border-width: 1px 0 0;
+	border-radius: 0;
+	background: transparent;
+}
+.dt-embedded .rt-ext-cards__main {
+	padding-inline: 15px;
 }

@@ -9,6 +9,7 @@
 	import { Btn, DateText, ErrorState, Notice, Page, PageHeader, Skeleton, StatusChip, UserName, confirm, toast } from '$lib/ui';
 	import { ERASURE_STEPS, blockerAction, erasureActions, erasureStepIndex, graceCountdown } from '../erasure';
 	import { ERASURE_MODE_LABEL, ERASURE_SUBJECT_LABEL, blockerHint, erasureStatusMeta } from '../labels';
+	import { ERASURE_STATUS_HINTS } from '../hints';
 	import ReasonModal from '../ReasonModal.svelte';
 	import type { ErasureDetail, ErasureMode, ErasureSubjectType } from '../types';
 	import { ensureSubjects, subjectHref, subjectName } from './subject';
@@ -123,7 +124,7 @@
 		<ErrorState {error} onRetry={() => load()} />
 	{:else}
 		<PageHeader title="Запрос на удаление" back="/admin/erasure">
-			{#snippet meta()}<StatusChip label={statusMeta.label} tone={statusMeta.tone} />{/snippet}
+			{#snippet meta()}<StatusChip label={statusMeta.label} tone={statusMeta.tone} hint={ERASURE_STATUS_HINTS[request?.status as keyof typeof ERASURE_STATUS_HINTS]} />{/snippet}
 		</PageHeader>
 
 		{#if bp.isMobile}

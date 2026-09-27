@@ -83,9 +83,9 @@
 		}}
 	>
 		<h2 class="t-body-m-strong m-0">Сменить пароль</h2>
-		<TextField type={show ? 'text' : 'password'} label="Текущий пароль" value={current} error={errors.current} {iconSuffix} onClickIconSuffix={() => (show = !show)} disabled={!!wait} onInput={(v) => ((current = v), (errors = {}))} name="current-password" autocomplete="current-password" />
-		<TextField type={show ? 'text' : 'password'} label="Новый пароль" value={next} error={errors.next} disabled={!!wait} onInput={(v) => ((next = v), (errors = {}))} name="new-password" autocomplete="new-password" />
-		<TextField type={show ? 'text' : 'password'} label="Повторите новый пароль" value={repeat} error={errors.repeat} disabled={!!wait} onInput={(v) => ((repeat = v), (errors = {}))} name="new-password-repeat" autocomplete="new-password" />
+		<TextField type={show ? 'text' : 'password'} label="Текущий пароль" required value={current} error={errors.current} {iconSuffix} onClickIconSuffix={() => (show = !show)} disabled={!!wait} onInput={(v) => ((current = v), (errors = {}))} name="current-password" autocomplete="current-password" />
+		<TextField type={show ? 'text' : 'password'} label="Новый пароль" required value={next} error={errors.next} disabled={!!wait} onInput={(v) => ((next = v), (errors = {}))} name="new-password" autocomplete="new-password" />
+		<TextField type={show ? 'text' : 'password'} label="Повторите новый пароль" required value={repeat} error={errors.repeat} disabled={!!wait} onInput={(v) => ((repeat = v), (errors = {}))} name="new-password-repeat" autocomplete="new-password" />
 
 		<ul class="t-desc-l m-0 grid list-none grid-cols-2 gap-x-4 gap-y-1 p-0 max-md:grid-cols-1" aria-label="Требования к паролю">
 			{#each checks as c (c.code)}

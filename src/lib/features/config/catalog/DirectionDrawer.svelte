@@ -101,11 +101,11 @@
 
 <FormDrawer {open} title={isNew ? 'Новое направление' : name || 'Направление'} {saving} {formError} {conflict} onSave={save} {onClose} onReload={reloadVersion}>
 	{#if isNew}
-		<TextField label="Код" bind:value={code} error={errors.code} maxlength={64} autofocus />
+		<TextField label="Код" required bind:value={code} error={errors.code} maxlength={64} autofocus />
 	{:else}
 		<TextField label="Код" value={code} readonly hint="Код после создания не меняется" />
 	{/if}
-	<TextField label="Название" bind:value={name} error={errors.name} maxlength={255} autofocus={!isNew} />
+	<TextField label="Название" required bind:value={name} error={errors.name} maxlength={255} autofocus={!isNew} />
 	<Pick label="Входит в" bind:value={parent} items={parents} clearable search error={errors.parent_id} hint="Пусто — направление верхнего уровня" />
 	{#snippet extra()}
 		{#if item && onAddChild}<Btn label="Подраздел" icon={AddLarge} variant="outline" colorScheme="neutral" onclick={() => onAddChild(item.id)} />{/if}

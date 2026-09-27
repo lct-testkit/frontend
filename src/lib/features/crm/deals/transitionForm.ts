@@ -78,6 +78,8 @@ export interface TransitionFormField {
 	expected?: unknown;
 	currentValue: unknown;
 	options?: Array<{ key: string; value: string }>;
+	/** Поле из группы «одно из» (any): само по себе не обязательно, нужно заполнить хотя бы одно поле группы (см. unmetAlternatives). */
+	alternative?: boolean;
 }
 
 export type TransitionHintKind = 'attachment' | 'signature' | 'tasks' | 'products' | 'edit' | 'role' | 'other';
@@ -95,6 +97,8 @@ export interface TransitionForm {
 	needsComment: boolean;
 	/** Есть группа `any`, где условия альтернативны — показать «выполните одно из». */
 	groups: Array<{ mode: 'all' | 'any'; fields: string[] }>;
+	/** Группы «одно из» (any из двух и более веток): поля каждой группы, все листья — поля диалога (иначе решает бэкенд). */
+	alternatives: string[][];
 	/** Отправлять нельзя: роль не подходит или есть условие, которое нельзя закрыть в диалоге. */
 	blocked: boolean;
 	blockedReason?: string;
@@ -158,6 +162,29 @@ export function topLevelGroups(node: ConditionNode | null | undefined): Array<{ 
 		return groups;
 	}
 	return isLeaf(node) ? [{ mode: 'all', fields: [node.field] }] : [];
+}
+
+/** Группы «одно из» дерева: any из двух и более веток, в которых все листья закрываются полем диалога. */
+export function alternativeGroups(node: ConditionNode | null | undefined): string[][] {
+	if (!node || typeof node !== 'object' || !isGroup(node)) return [];
+	const out: string[][] = [];
+	const any = node.any ?? [];
+	if (any.length > 1) {
+		const fields = [...new Set(any.flatMap((b) => flattenLeaves(b).map((l) => l.field)))];
+		if (fields.every(isFillableField)) out.push(fields);
+	}
+	for (const branch of node.all ?? []) out.push(...alternativeGroups(branch));
+	return out;
+}
+
+/** Группы «одно из», где не заполнено ни одно поле и ни одно условие ещё не выполнено: их поля получают ошибку «заполните одно из». */
+export function unmetAlternatives(form: Pick<TransitionForm, 'alternatives'>, values: Record<string, unknown>, satisfiedFields: ReadonlySet<string>): Set<string> {
+	const bad = new Set<string>();
+	for (const group of form.alternatives) {
+		if (group.some((key) => satisfiedFields.has(key) || !isEmptyValue(values[key]))) continue;
+		for (const key of group) bad.add(key);
+	}
+	return bad;
 }
 
 const isEmptyValue = (value: unknown): boolean =>
@@ -255,6 +282,7 @@ export function buildTransitionForm({ transition, conditionTree, targetStatus, d
 	const defs = new Map(customFieldDefs.filter((d) => d.is_active !== false).map((d) => [CUSTOM_PREFIX + d.code, d]));
 	const fields = new Map<string, TransitionFormField>();
 	const hints: TransitionHint[] = [];
+	const alternatives = alternativeGroups(conditionTree ?? null);
 
 	const addField = (key: string, source: 'condition' | 'required_field', op = 'not_null', expected?: unknown) => {
 		if (fields.has(key)) return;
@@ -263,7 +291,9 @@ export function buildTransitionForm({ transition, conditionTree, targetStatus, d
 			key,
 			label: labelFor(key, def),
 			input: inputFor(key, op, def),
-			required: true,
+			// поле из группы «одно из» не обязательно само по себе: хватит любого поля группы
+			required: source === 'required_field' || !alternatives.some((g) => g.includes(key)),
+			alternative: source === 'condition' && alternatives.some((g) => g.includes(key)) ? true : undefined,
 			source,
 			expected: op === 'eq' ? expected : undefined,
 			currentValue: dealValue(deal, key),
@@ -291,6 +321,9 @@ export function buildTransitionForm({ transition, conditionTree, targetStatus, d
 		if (!isEmptyValue(dealValue(deal, field))) continue;
 		if (isFillableField(field)) {
 			addField(field, 'required_field');
+			// статус требует это поле само по себе, как бы ни читалась группа «одно из»
+			const known = fields.get(field);
+			if (known) fields.set(field, { ...known, required: true, alternative: undefined });
 		} else {
 			hints.push({ kind: 'edit', field, satisfied: false, text: `Заполните поле «${DEAL_FIELD_LABELS[field] ?? field}» в карточке сделки` });
 		}
@@ -317,6 +350,7 @@ export function buildTransitionForm({ transition, conditionTree, targetStatus, d
 		hints,
 		needsComment: transition.requires_comment,
 		groups: topLevelGroups(conditionTree ?? null),
+		alternatives,
 		blocked,
 		blockedReason
 	};
@@ -346,4 +380,11 @@ export function serializeTransitionFields(values: Record<string, unknown>, field
 		}
 	}
 	return out;
+}
+
+/** «Другая причина» (категория `other` причины отказа, вариант «Другое / Иная причина» в списке): к такому выбору нужно описание словами. */
+export function isOtherReason(name: string | null | undefined, category?: string | null): boolean {
+	// у причины отказа есть категория — ей и верим («Другой поставщик» — это категория competitor, а не «другая причина»)
+	if (category) return category === 'other';
+	return /^\s*(друг(ая|ое|ие)|ин(ая|ое|ые)|проч(ая|ее|ие)|other)(\s+причин[а-яё]*)?\s*$/i.test(name ?? '');
 }

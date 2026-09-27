@@ -1,6 +1,6 @@
 <script lang="ts">
 	// Мастер архивации статуса (4 шага): влияние → куда перенести сделки → предпросмотр → выполнение.
-	// Бэкенд не отдаёт ход переноса (backend-issues #1): после запроса опрашиваем воронку, пока статус не станет архивным.
+	// Ход переноса можно читать через `GET /workflows/{id}/mapping-jobs/{job_id}` (backend-issues #1, с 25.09), но мастер пока опрашивает воронку, пока статус не станет архивным.
 	import { onDestroy, untrack } from 'svelte';
 	import { Progress } from '@lct-testkit/rt-ui/ext';
 	import { CheckLarge } from '@lct-testkit/rt-ui/icons';
@@ -136,7 +136,7 @@
 	}
 </script>
 
-<AppModal {open} title={status ? `Архивация статуса «${status.name}»` : ''} size="m" dismissible={!running} onClose={onClose}>
+<AppModal {open} title={status ? `Архивация статуса «${status.name}»` : ''} size="m" dismissible={!running} dirty={step > 0 && outcome === null} {onClose}>
 	<WizardSteps steps={STEPS} current={step} compact />
 
 	{#if step === 0}
@@ -157,12 +157,12 @@
 		{/if}
 	{:else if step === 1}
 		<div class="flex flex-col gap-4">
-			<Pick label={deals > 0 ? 'Перенести сделки в статус' : 'Заменяющий статус'} bind:value={target} items={targetItems} search error={targetItems.length === 0 ? 'Нет подходящих статусов' : undefined} />
+			<Pick label={deals > 0 ? 'Перенести сделки в статус' : 'Заменяющий статус'} required bind:value={target} items={targetItems} search error={targetItems.length === 0 ? 'Нет подходящих статусов' : undefined} />
 			{#if targetStatus?.required_fields.length}
 				<p class="t-desc-l -mt-2 text-muted">В целевом статусе обязательны поля: {targetStatus.required_fields.join(', ')}. Сделки без них уйдут в резервный статус.</p>
 			{/if}
 			{#if deals > 0}
-				<Pick label="Резервный статус (необязательно)" bind:value={fallback} items={fallbackItems} clearable search hint="Для сделок, которым не хватает обязательных полей" />
+				<Pick label="Резервный статус" bind:value={fallback} items={fallbackItems} clearable search hint="Для сделок, которым не хватает обязательных полей" />
 				<RadioField
 					label="Срок SLA после переноса"
 					value={sla}

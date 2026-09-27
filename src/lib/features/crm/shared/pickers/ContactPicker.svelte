@@ -10,11 +10,12 @@
 		label?: string;
 		error?: string;
 		hint?: string;
+		required?: boolean;
 		disabled?: boolean;
 		onChange: (id: string | null) => void;
 	}
 
-	let { value = null, organizationId = null, label = 'Контакт', error, hint, disabled = false, onChange }: Props = $props();
+	let { value = null, organizationId = null, label = 'Контакт', error, hint, disabled = false, required = false, onChange }: Props = $props();
 
 	$effect(() => {
 		if (value) contactCache.ensure([value]);
@@ -32,4 +33,4 @@
 	}
 </script>
 
-<RemotePick {value} {selected} {search} refreshKey={organizationId} {label} {error} {hint} {disabled} placeholder="Фамилия или имя" emptyText="Контактов не найдено" onChange={(id) => onChange(id)} />
+<RemotePick {value} {selected} {search} refreshKey={organizationId} {label} {error} {hint} {disabled} {required} placeholder="Фамилия или имя" emptyText="Контактов не найдено" onChange={(id) => onChange(id)} />

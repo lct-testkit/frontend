@@ -3,7 +3,7 @@
 	import { untrack } from 'svelte';
 	import { Refresh } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
-	import { DateText, FilterBar, IconBtn, StatusChip, TableCell, type Col } from '$lib/ui';
+	import { DateText, FilterBar, IconBtn, Notice, StatusChip, TableCell, type Col } from '$lib/ui';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { INBOUND_STATUSES, INTEGRATION_SOURCES, labelOf } from '../labels';
 	import type { InboundMessage } from '../types';
@@ -11,6 +11,7 @@
 	import CatalogList from '../catalog/CatalogList.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import { LIMITS } from './limits';
+	import { inboundHint } from '../hints';
 
 	const source = $derived(readQuery('source') || null);
 	const limit = $derived(Number(readQuery('limit')) || 100);
@@ -40,7 +41,7 @@
 	</TableCell>
 {/snippet}
 {#snippet sigCell(m: InboundMessage)}<TableCell><StatusChip label={m.signature_valid ? 'Верна' : 'Неверна'} tone={m.signature_valid ? 'success' : 'error'} /></TableCell>{/snippet}
-{#snippet statusCell(m: InboundMessage)}<TableCell><StatusChip label={labelOf(INBOUND_STATUSES, m.status)} tone={tone(m.status)} title={m.error ?? undefined} /></TableCell>{/snippet}
+{#snippet statusCell(m: InboundMessage)}<TableCell><StatusChip label={labelOf(INBOUND_STATUSES, m.status)} tone={tone(m.status)} hint={inboundHint(m.status, m.error)} /></TableCell>{/snippet}
 {#snippet resultCell(m: InboundMessage)}
 	<TableCell>
 		{#if href(m)}<a class="t-body-s" href={href(m)}>Открыть {m.resulting_entity_type === 'deal' ? 'сделку' : 'контакт'}</a>
@@ -51,7 +52,7 @@
 
 {#snippet card(m: InboundMessage)}
 	<div class="flex min-w-0 flex-col gap-1.5">
-		<div class="flex items-start justify-between gap-2"><span class="t-body-m-strong">{labelOf(INTEGRATION_SOURCES, m.source_code)}</span><StatusChip label={labelOf(INBOUND_STATUSES, m.status)} tone={tone(m.status)} /></div>
+		<div class="flex items-start justify-between gap-2"><span class="t-body-m-strong">{labelOf(INTEGRATION_SOURCES, m.source_code)}</span><StatusChip label={labelOf(INBOUND_STATUSES, m.status)} tone={tone(m.status)} hint={inboundHint(m.status, m.error)} /></div>
 		<span class="t-desc-l text-muted"><DateText value={m.received_at} time /> · {m.message_type ?? m.external_id}</span>
 		<span class="flex flex-wrap items-center gap-2">
 			<StatusChip label={m.signature_valid ? 'Подпись верна' : 'Подпись неверна'} tone={m.signature_valid ? 'success' : 'error'} />
@@ -67,5 +68,6 @@
 {/snippet}
 {#snippet trailing()}<IconBtn icon={Refresh} label="Обновить" onclick={() => list.reload()} />{/snippet}
 
+<Notice class="shrink-0" tone="info">Журнал сообщений, которые внешние системы присылают в CRM. Здесь их можно только смотреть.</Notice>
 <FilterBar active={source ? 1 : 0} onReset={() => setQuery({ source: null })} {filters} {trailing} />
 <CatalogList rows={list.data ?? []} {columns} {card} loading={list.loading} error={list.error} onRetry={() => list.reload()} filtered={Boolean(source)} emptyText="Входящих сообщений нет" ariaLabel="Входящие сообщения" />

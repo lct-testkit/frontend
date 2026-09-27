@@ -5,6 +5,12 @@ export type StatusTone = 'neutral' | 'accent' | 'success' | 'warning' | 'error' 
 
 const TONE: Record<string, StatusTone> = { initial: 'neutral', intermediate: 'info', won: 'success', lost: 'error', parked: 'warning' };
 
+/** Название статуса для показа: воронки настраиваются вручную, а везде рядом названия с заглавной — первую букву делаем заглавной. */
+export const statusName = (name: string | null | undefined): string => {
+	const t = (name ?? '').trim();
+	return t ? t[0].toLocaleUpperCase('ru') + t.slice(1) : '';
+};
+
 export const statusTone = (type: string | null | undefined): StatusTone => TONE[type ?? ''] ?? 'neutral';
 
 export const isTerminal = (status: Pick<WorkflowStatus, 'type'> | null | undefined): boolean =>

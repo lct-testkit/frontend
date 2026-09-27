@@ -1,9 +1,9 @@
 <script lang="ts">
-	// Правка сделки: название, сумма, плановая дата, приоритет, организация/контакт, пользовательские поля воронки. PATCH с If-Match —
+	// Правка сделки, поля по смыслу: «Сделка» (название, организация, контакт, источник, обучающиеся), «Стоимость и сроки», «Внутренняя оценка» (приоритет — внутренняя оценка CRM, отдельно от денег), поля воронки. PATCH с If-Match —
 	// шлём только изменённое; конфликт версий показывает баннер «Обновить», введённое сохраняется (обновляется только версия).
 	import { onMount, untrack } from 'svelte';
 	import { ApiError, errorMessage } from '$lib/api';
-	import { CheckField, FormDrawer, FormRow, toast } from '$lib/ui';
+	import { CheckField, FormDrawer, FormRow, FormSection, toast } from '$lib/ui';
 	import DateField from '$lib/ui/fields/DateField.svelte';
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
@@ -166,31 +166,45 @@
 	onReload={refresh}
 	{onClose}
 >
-	<TextField label="Название" autofocus value={v.title} error={errors.title} onInput={(x) => ((v.title = x), (errors.title = ''))} />
-	{#if card.deal?.deal_type === 'b2b'}
-		<OrgPicker value={v.org} error={errors.organization_id} onChange={(id) => ((v.org = id), (v.contact = null))} />
-	{/if}
-	<ContactPicker value={v.contact} organizationId={v.org} onChange={(id) => (v.contact = id)} />
-	<FormRow>
-		<NumberField label="Сумма, ₽" value={v.amount} error={errors.amount} onChange={(x) => (v.amount = x)} />
-		<Pick label="Приоритет" items={priorityItems} value={v.priority} onChange={(x) => x && (v.priority = x)} />
-		<DateField label="Плановая дата закрытия" value={v.close} error={errors.expected_close_date} onChange={(x) => (v.close = x)} />
-		<NumberField integer label="Обучающихся" value={v.students} onChange={(x) => (v.students = x)} />
-	</FormRow>
-	<Pick label="Источник" items={sourceItems} clearable value={v.source} placeholder="Не указан" onChange={(x) => (v.source = x)} />
-
-	{#each defs as def (def.id)}
-		{@const value = v.custom[def.code]}
-		{#if def.field_type === 'bool'}
-			<CheckField label={def.label} checked={value === true} onChange={(x) => setCustom(def.code, x)} />
-		{:else if def.field_type === 'number'}
-			<NumberField label={def.label} value={typeof value === 'number' ? value : value ? Number(value) : null} onChange={(x) => setCustom(def.code, x)} />
-		{:else if def.field_type === 'date'}
-			<DateField label={def.label} value={typeof value === 'string' ? value : null} onChange={(x) => setCustom(def.code, x)} />
-		{:else if def.field_type === 'select' && options(def).length}
-			<Pick label={def.label} items={options(def)} clearable value={typeof value === 'string' ? value : null} onChange={(x) => setCustom(def.code, x)} />
-		{:else}
-			<TextField label={def.label} value={value === null || value === undefined ? '' : String(value)} onInput={(x) => setCustom(def.code, x)} />
+	<FormSection title="Сделка">
+		<TextField label="Название" required autofocus value={v.title} error={errors.title} onInput={(x) => ((v.title = x), (errors.title = ''))} />
+		{#if card.deal?.deal_type === 'b2b'}
+			<OrgPicker required value={v.org} error={errors.organization_id} onChange={(id) => ((v.org = id), (v.contact = null))} />
 		{/if}
-	{/each}
+		<ContactPicker value={v.contact} organizationId={v.org} onChange={(id) => (v.contact = id)} />
+		<FormRow>
+			<Pick label="Источник" items={sourceItems} clearable value={v.source} placeholder="Не указан" onChange={(x) => (v.source = x)} />
+			<NumberField integer label="Обучающихся" value={v.students} onChange={(x) => (v.students = x)} />
+		</FormRow>
+	</FormSection>
+
+	<FormSection title="Стоимость и сроки" class="mt-2">
+		<FormRow>
+			<NumberField label="Сумма, ₽" value={v.amount} error={errors.amount} onChange={(x) => (v.amount = x)} />
+			<DateField label="Плановая дата закрытия" value={v.close} error={errors.expected_close_date} onChange={(x) => (v.close = x)} />
+		</FormRow>
+	</FormSection>
+
+	<FormSection title="Внутренняя оценка" class="mt-2">
+		<Pick label="Приоритет" items={priorityItems} value={v.priority} onChange={(x) => x && (v.priority = x)} />
+	</FormSection>
+
+	{#if defs.length}
+		<FormSection title="Дополнительные поля" class="mt-2">
+			{#each defs as def (def.id)}
+				{@const value = v.custom[def.code]}
+				{#if def.field_type === 'bool'}
+					<CheckField label={def.label} required={def.is_required} checked={value === true} onChange={(x) => setCustom(def.code, x)} />
+				{:else if def.field_type === 'number'}
+					<NumberField label={def.label} required={def.is_required} value={typeof value === 'number' ? value : value ? Number(value) : null} onChange={(x) => setCustom(def.code, x)} />
+				{:else if def.field_type === 'date'}
+					<DateField label={def.label} required={def.is_required} value={typeof value === 'string' ? value : null} onChange={(x) => setCustom(def.code, x)} />
+				{:else if def.field_type === 'select' && options(def).length}
+					<Pick label={def.label} required={def.is_required} items={options(def)} clearable value={typeof value === 'string' ? value : null} onChange={(x) => setCustom(def.code, x)} />
+				{:else}
+					<TextField label={def.label} required={def.is_required} value={value === null || value === undefined ? '' : String(value)} onInput={(x) => setCustom(def.code, x)} />
+				{/if}
+			{/each}
+		</FormSection>
+	{/if}
 </FormDrawer>

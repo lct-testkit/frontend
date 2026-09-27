@@ -51,7 +51,8 @@ export function describeCondition(leaf: ConditionLike, defs: CustomFieldDef[] = 
 	}
 	switch (op) {
 		case 'not_null':
-			return `${label}: заполнено`;
+			// невыполненное условие — просьба, а не описание состояния: «Причина отказа: заполнено» у пустого поля читалось как «уже заполнено»
+			return leaf.satisfied === false ? `Заполните: ${label.charAt(0).toLowerCase()}${label.slice(1)}` : `${label}: заполнено`;
 		case 'is_null':
 			return `${label}: не заполнено`;
 		case 'exists':

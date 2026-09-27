@@ -153,14 +153,14 @@
 <FormDrawer {open} title={isNew ? 'Новое поле' : label || 'Поле'} {saving} {formError} {conflict} onSave={save} {onClose} onReload={reload}>
 	{#if isNew}
 		<Pick label="Для чего" bind:value={entity} items={CUSTOM_FIELD_ENTITIES.map((e) => ({ key: e.key, value: e.value }))} />
-		<TextField label="Код" bind:value={code} error={errors.code} maxlength={64} placeholder="contract_number" autofocus />
+		<TextField label="Код" required bind:value={code} error={errors.code} maxlength={64} placeholder="contract_number" autofocus />
 	{:else}
 		<div class="t-desc-l flex flex-wrap items-center gap-x-3 gap-y-1 text-muted">
 			<span>{labelOf(CUSTOM_FIELD_ENTITIES, entity)}</span>
 			<span class="font-mono">{code}</span>
 		</div>
 	{/if}
-	<TextField label="Подпись" bind:value={label} error={errors.label} maxlength={255} autofocus={!isNew} />
+	<TextField label="Подпись" required bind:value={label} error={errors.label} maxlength={255} autofocus={!isNew} />
 	{#if isNew}
 		<Pick label="Тип" bind:value={type} items={TYPES} />
 	{:else}

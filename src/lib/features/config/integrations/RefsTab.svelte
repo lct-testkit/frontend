@@ -3,7 +3,7 @@
 	import { untrack } from 'svelte';
 	import { Refresh } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
-	import { DateText, FilterBar, IconBtn, TableCell, type Col } from '$lib/ui';
+	import { DateText, FilterBar, IconBtn, Notice, TableCell, type Col } from '$lib/ui';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { INTEGRATION_SOURCES, SYNC_DIRECTIONS, labelOf } from '../labels';
 	import type { ExternalRef } from '../types';
@@ -67,5 +67,6 @@
 {/snippet}
 {#snippet trailing()}<IconBtn icon={Refresh} label="Обновить" onclick={() => list.reload()} />{/snippet}
 
+<Notice class="shrink-0" tone="info">Соответствие записей CRM и внешних систем: какая сделка или организация какой записи там отвечает. Создаются автоматически при обмене.</Notice>
 <FilterBar active={[source, entity].filter(Boolean).length} onReset={() => setQuery({ source: null, entity: null })} {filters} {trailing} />
 <CatalogList rows={list.data ?? []} {columns} {card} loading={list.loading} error={list.error} onRetry={() => list.reload()} filtered={Boolean(source || entity)} emptyText="Связей пока нет" ariaLabel="Связи с внешними системами" />

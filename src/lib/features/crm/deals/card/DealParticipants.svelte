@@ -79,7 +79,7 @@
 	{#if canEdit}
 		{#if adding}
 			<div class="flex flex-wrap items-end gap-2">
-				<div class="min-w-48 flex-1"><UserPicker label="Сотрудник" value={user} exclude={items.map((p) => p.user_id)} onChange={(id) => (user = id)} /></div>
+				<div class="min-w-48 flex-1"><UserPicker label="Сотрудник" required value={user} exclude={items.map((p) => p.user_id)} onChange={(id) => (user = id)} /></div>
 				<div class="w-44 max-md:w-full"><Pick label="Роль" items={roleItems} value={role} onChange={(v) => v && (role = v)} /></div>
 				<Btn label="Добавить" loading={busy} disabled={!user} onclick={add} />
 				<Btn label="Отмена" variant="ghost" colorScheme="neutral" onclick={() => (adding = false)} />

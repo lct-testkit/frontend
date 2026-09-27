@@ -98,10 +98,10 @@
 </script>
 
 <FormDrawer {open} title={task ? 'Задача' : 'Новая задача'} saveLabel={task ? 'Сохранить' : 'Создать'} saveTestId="task-submit" saving={busy} dirty={open && current !== initial} formError={failure} onSave={submit} {onClose}>
-	<TextField label="Название" autofocus={!task} value={title} error={errors.title} onInput={(v) => ((title = v), (errors.title = ''))} />
-	{#if !task && !dealId}<DealPicker value={deal} error={errors.deal_id} onChange={(id) => ((deal = id), (errors.deal_id = ''))} />{/if}
+	<TextField label="Название" required autofocus={!task} value={title} error={errors.title} onInput={(v) => ((title = v), (errors.title = ''))} />
+	{#if !task && !dealId}<DealPicker required value={deal} error={errors.deal_id} onChange={(id) => ((deal = id), (errors.deal_id = ''))} />{/if}
 	<AreaField label="Описание" rows={3} value={description} onInput={(v) => (description = v)} />
-	<UserPicker label="Исполнитель" roles={['KAM', 'HEAD']} value={assignee} error={errors.assignee_id} clearable={false} onChange={(id) => ((assignee = id), (errors.assignee_id = ''))} />
+	<UserPicker label="Исполнитель" required roles={['KAM', 'HEAD']} value={assignee} error={errors.assignee_id} clearable={false} onChange={(id) => ((assignee = id), (errors.assignee_id = ''))} />
 	<FormRow>
 		<DateField label="Срок" value={due} onChange={(v) => (due = v)} />
 		<Pick label="Приоритет" items={priorityItems} value={priority} onChange={(v) => v && (priority = v)} />

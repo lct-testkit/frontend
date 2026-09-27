@@ -30,8 +30,8 @@
 </script>
 
 <FormRow>
-	<TextField label="Фамилия" autofocus={!editing} value={values.last_name} error={errors.last_name} {disabled} onInput={(v) => (values.last_name = v)} />
-	<TextField label="Имя" value={values.first_name} error={errors.first_name} {disabled} onInput={(v) => (values.first_name = v)} />
+	<TextField label="Фамилия" required autofocus={!editing} value={values.last_name} error={errors.last_name} {disabled} onInput={(v) => (values.last_name = v)} />
+	<TextField label="Имя" required value={values.first_name} error={errors.first_name} {disabled} onInput={(v) => (values.first_name = v)} />
 	<TextField label="Отчество" value={values.middle_name} {disabled} onInput={(v) => (values.middle_name = v)} />
 	<TextField label="Должность" value={values.position} {disabled} onInput={(v) => (values.position = v)} />
 	{#if !organizationLocked}

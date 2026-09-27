@@ -17,8 +17,8 @@
 	import { LOSS_REASON_CATEGORY_LABELS } from '../../shared/labels';
 	import type { AvailableTransition, Deal, WorkflowGraph } from '../../types';
 	import { currentText, describeCondition, type ConditionLike } from '../conditions';
-	import { statusTone, transitionKind } from '../statusUtils';
-	import { buildTransitionForm, serializeTransitionFields, type TransitionFormField } from '../transitionForm';
+	import { statusName, statusTone, transitionKind } from '../statusUtils';
+	import { buildTransitionForm, isOtherReason, serializeTransitionFields, unmetAlternatives, type TransitionFormField } from '../transitionForm';
 
 	interface Props {
 		open: boolean;
@@ -43,6 +43,21 @@
 	const tree = $derived(graph?.transitions.find((t) => t.id === transition.id)?.conditions ?? null);
 	const form = $derived(buildTransitionForm({ transition: tr, conditionTree: tree, targetStatus: target, deal, customFieldDefs: defs }));
 	const kind = $derived(transitionKind(target, current));
+
+	/** выбрана «другая причина» (отказа или заморозки): бэкенд не хранит её отдельным полем, поэтому её вписывают в комментарий — он становится обязательным */
+	const otherReason = $derived(
+		form.fields.some((f) => {
+			const v = values[f.key];
+			if (f.input !== 'select' || !v) return false;
+			if (f.key === 'loss_reason_id') {
+				const r = lossReasons.value?.find((x) => x.id === v);
+				return isOtherReason(r?.name, r?.category);
+			}
+			const o = f.options?.find((x) => x.key === v);
+			return isOtherReason(o?.value, o?.key === 'other' ? 'other' : null);
+		})
+	);
+	const commentRequired = $derived(form.needsComment || otherReason);
 
 	let values = $state<Record<string, unknown>>({});
 	let comment = $state('');
@@ -77,6 +92,9 @@
 	const setValue = (key: string, value: unknown) => {
 		values[key] = value;
 		if (errors[key]) errors = { ...errors, [key]: '' };
+		// заполнили одно поле группы «одно из» — ошибка снимается со всех её полей
+		const group = form.alternatives.find((g) => g.includes(key));
+		if (group && value !== null && value !== '' && group.some((k) => errors[k])) errors = { ...errors, ...Object.fromEntries(group.map((k) => [k, ''])) };
 	};
 	const asNumber = (v: unknown): number | null => (v === null || v === undefined || v === '' ? null : Number.isFinite(Number(v)) ? Number(v) : null);
 	const asString = (v: unknown): string => (v === null || v === undefined ? '' : String(v));
@@ -87,6 +105,15 @@
 		if (!form.groups.length) return [{ mode: 'all' as const, leaves: tr.conditions }];
 		return form.groups.map((g) => ({ mode: g.mode, leaves: tr.conditions.filter((c) => g.fields.includes(c.field)) })).filter((g) => g.leaves.length);
 	});
+
+	// сообщения о переходе стоят в подвале окна (над кнопками), а не над полями: появившаяся плашка не сдвигает форму
+	const formError = $derived(
+		banner && !banner.conflict
+			? banner.unmet?.length
+				? `${banner.text} Что не выполнено — в списке выше.`
+				: banner.text
+			: null
+	);
 
 	const title = $derived(transition.name);
 	const danger = $derived(kind === 'lost');
@@ -104,7 +131,10 @@
 			const bad = f.input === 'bool' ? v !== (f.expected ?? true) : v === null || v === undefined || v === '';
 			if (f.required && bad) next[f.key] = f.input === 'bool' ? 'Нужно подтвердить' : 'Заполните поле';
 		}
-		if (form.needsComment && !comment.trim()) next.comment = 'Укажите комментарий';
+		// группа «одно из»: хватит любого поля, но не заполнено ни одно
+		const satisfiedNow = new Set(tr.conditions.filter((c) => c.satisfied).map((c) => c.field));
+		for (const key of unmetAlternatives(form, values, satisfiedNow)) next[key] = 'Заполните одно из полей';
+		if (commentRequired && !comment.trim()) next.comment = otherReason ? 'Опишите причину' : 'Укажите комментарий';
 		errors = next;
 		return Object.keys(next).length === 0;
 	}
@@ -137,7 +167,7 @@
 					banner = { tone: 'error', text: 'Нужен подписанный документ — вкладка «Подписание».' };
 					return;
 				case 'CRM-9503':
-					banner = { tone: 'warning', text: 'Сделку сейчас обрабатывает другой переход. Повторите попытку через пару секунд.' };
+					banner = { tone: 'warning', conflict: true, text: 'Сделку сейчас обрабатывает другой переход. Повторите попытку через пару секунд.' };
 					return;
 			}
 		}
@@ -201,9 +231,9 @@
 	{#if leaf.field.startsWith('attachments.') && !leaf.satisfied}<span class="text-muted"> · сервер пока не проверяет вложения</span>{/if}
 {/snippet}
 
-<!-- выполненное условие — тихая строка с галочкой; невыполненное — плашка Notice с кнопкой перехода («К файлам», «К подписанию»…); plain — строка без плашки (внутри баннера ошибки) -->
-{#snippet leafRow(leaf: ConditionLike, plain = false)}
-	{#if leaf.satisfied || plain}
+<!-- выполненное условие — тихая строка с галочкой; невыполненное — плашка Notice с кнопкой перехода («К файлам», «К подписанию»…) -->
+{#snippet leafRow(leaf: ConditionLike)}
+	{#if leaf.satisfied}
 		<li class="flex items-start gap-2">
 			<Ico icon={leaf.satisfied ? CheckSmall : CloseSmall} tone={leaf.satisfied ? 'success' : 'danger'} size={20} class="mt-px" />
 			<span class={['t-body-m min-w-0 flex-1 break-words', leaf.satisfied ? 'text-muted' : 'text-fg']}>{@render leafText(leaf)}</span>
@@ -213,23 +243,12 @@
 	{/if}
 {/snippet}
 
-<FormModal {open} size="m" {title} saveLabel={actionLabel} {danger} saveTestId="transition-submit" saving={busy} canSave={!form.blocked} dirty={open && inputDirty} onSave={submit} {onClose}>
+<FormModal {open} size="m" {title} saveLabel={actionLabel} {danger} saveTestId="transition-submit" saving={busy} canSave={!form.blocked} dirty={open && inputDirty} {formError} conflict={!!banner?.conflict} conflictText={banner?.text} reloadLabel="Обновить" onReload={refresh} onSave={submit} {onClose}>
 	<div class="flex flex-wrap items-center gap-2">
-		{#if current}<StatusChip label={current.name} color={current.color} tone={statusTone(current.type)} />{/if}
+		{#if current}<StatusChip label={statusName(current.name)} color={current.color} tone={statusTone(current.type)} />{/if}
 		<Ico icon={ArrowRight} tone="soft" size={20} />
-		{#if target}<StatusChip label={target.name} color={target.color} tone={statusTone(target.type)} />{/if}
+		{#if target}<StatusChip label={statusName(target.name)} color={target.color} tone={statusTone(target.type)} />{/if}
 	</div>
-
-	{#if banner}
-		<Notice class="shrink-0" tone={banner.tone} role="alert" actions={banner.conflict ? [{ label: 'Обновить', onclick: refresh }] : []}>
-			{banner.text}
-			{#if banner.unmet?.length}
-				<ul class="m-0 mt-2 flex list-none flex-col gap-1 p-0">
-					{#each banner.unmet as leaf, i (i)}{@render leafRow({ ...leaf, satisfied: false }, true)}{/each}
-				</ul>
-			{/if}
-		</Notice>
-	{/if}
 
 	{#if groups.length}
 		<div class="flex flex-col gap-2" data-testid="conditions">
@@ -259,7 +278,8 @@
 	{/each}
 
 	<AreaField
-		label={form.needsComment ? 'Комментарий (обязательно)' : 'Комментарий'}
+		label={otherReason ? 'Опишите причину' : 'Комментарий'}
+		required={commentRequired}
 		value={comment}
 		rows={2}
 		error={errors.comment || undefined}
@@ -274,20 +294,20 @@
 {#snippet fieldInput(field: TransitionFormField)}
 	{@const error = errors[field.key] || undefined}
 	{#if field.input === 'money'}
-		<NumberField label={field.label} value={asNumber(values[field.key])} {error} onChange={(v) => setValue(field.key, v)} />
+		<NumberField label={field.label} required={field.required} value={asNumber(values[field.key])} {error} onChange={(v) => setValue(field.key, v)} />
 	{:else if field.input === 'number'}
-		<NumberField integer label={field.label} value={asNumber(values[field.key])} {error} onChange={(v) => setValue(field.key, v)} />
+		<NumberField integer label={field.label} required={field.required} value={asNumber(values[field.key])} {error} onChange={(v) => setValue(field.key, v)} />
 	{:else if field.input === 'date'}
-		<DateField label={field.label} value={asString(values[field.key]) || null} {error} onChange={(v) => setValue(field.key, v)} />
+		<DateField label={field.label} required={field.required} value={asString(values[field.key]) || null} {error} onChange={(v) => setValue(field.key, v)} />
 	{:else if field.input === 'currency'}
-		<Pick label={field.label} items={CURRENCIES} value={asString(values[field.key]) || null} {error} onChange={(v) => setValue(field.key, v)} />
+		<Pick label={field.label} required={field.required} items={CURRENCIES} value={asString(values[field.key]) || null} {error} onChange={(v) => setValue(field.key, v)} />
 	{:else if field.input === 'select' && field.key === 'loss_reason_id'}
-		<Pick label={field.label} items={lossItems} search value={asString(values[field.key]) || null} {error} emptyText="Причин пока нет" onChange={(v) => setValue(field.key, v)} />
+		<Pick label={field.label} required={field.required} items={lossItems} search value={asString(values[field.key]) || null} {error} emptyText="Причин пока нет" onChange={(v) => setValue(field.key, v)} />
 	{:else if field.input === 'select'}
-		<Pick label={field.label} items={field.options ?? []} value={asString(values[field.key]) || null} {error} onChange={(v) => setValue(field.key, v)} />
+		<Pick label={field.label} required={field.required} items={field.options ?? []} value={asString(values[field.key]) || null} {error} onChange={(v) => setValue(field.key, v)} />
 	{:else if field.input === 'bool'}
-		<CheckField label={field.label} checked={values[field.key] === (field.expected ?? true)} {error} onChange={(v) => setValue(field.key, v ? (field.expected ?? true) : false)} />
+		<CheckField label={field.label} required={field.required} checked={values[field.key] === (field.expected ?? true)} {error} onChange={(v) => setValue(field.key, v ? (field.expected ?? true) : false)} />
 	{:else}
-		<TextField label={field.label} value={asString(values[field.key])} {error} onInput={(v) => setValue(field.key, v)} />
+		<TextField label={field.label} required={field.required} value={asString(values[field.key])} {error} onInput={(v) => setValue(field.key, v)} />
 	{/if}
 {/snippet}

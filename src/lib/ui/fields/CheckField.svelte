@@ -8,17 +8,21 @@
 		hint?: string;
 		error?: string;
 		disabled?: boolean;
+		/** marks the label with the asterisk (the box must be ticked to go on) */
+		required?: boolean;
 		class?: string;
 		onChange?: (checked: boolean) => void;
 	}
 
-	let { checked = $bindable(false), label, hint, error, disabled = false, class: className = '', onChange }: Props = $props();
+	let { checked = $bindable(false), label, hint, error, disabled = false, required = false, class: className = '', onChange }: Props = $props();
 </script>
+
+{#snippet labelRequired()}<span class="field-required">{label}</span>{/snippet}
 
 <div class={['flex min-w-0 flex-col gap-0.5', className]}>
 	<Checkbox
 		variant="primary"
-		{label}
+		label={required ? labelRequired : label}
 		{checked}
 		{disabled}
 		onChange={(v: boolean) => {

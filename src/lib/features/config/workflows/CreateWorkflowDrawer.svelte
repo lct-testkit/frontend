@@ -72,9 +72,10 @@
 </script>
 
 <FormDrawer {open} title="Новая воронка" width={440} {saving} {formError} saveLabel="Создать" onSave={save} {onClose}>
-	<TextField label="Название" value={name} error={errors.name} maxlength={255} autofocus onInput={rename} />
+	<TextField label="Название" required value={name} error={errors.name} maxlength={255} autofocus onInput={rename} />
 	<TextField
 		label="Код"
+		required
 		bind:value={code}
 		error={errors.code}
 		maxlength={64}

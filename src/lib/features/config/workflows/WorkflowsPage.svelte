@@ -14,6 +14,7 @@
 	import CreateWorkflowDrawer from './CreateWorkflowDrawer.svelte';
 	import { DEAL_TYPES, WORKFLOW_STATES, WORKFLOW_STATE_LABELS } from './graph';
 	import { dealTypeShort, stateLabel, stateTone } from './meta';
+	import { dealTypeHint, workflowStateHint } from '../hints';
 
 	const q = $derived(readQuery('q'));
 	const type = $derived(readQuery('type') || null);
@@ -48,11 +49,11 @@
 		</span>
 	</TableCell>
 {/snippet}
-{#snippet typeCell(w: Workflow)}<TableCell><StatusChip label={dealTypeShort(w.deal_type)} tone="info" /></TableCell>{/snippet}
+{#snippet typeCell(w: Workflow)}<TableCell><StatusChip label={dealTypeShort(w.deal_type)} tone="info" hint={dealTypeHint(w.deal_type)} /></TableCell>{/snippet}
 {#snippet stateCell(w: Workflow)}
 	<TableCell>
 		<span class="flex flex-wrap items-center gap-1.5">
-			<StatusChip label={stateLabel(w.state)} tone={stateTone(w.state)} />
+			<StatusChip label={stateLabel(w.state)} tone={stateTone(w.state)} hint={workflowStateHint(w.state)} />
 			{#if w.is_default}<StatusChip label="По умолчанию" tone="accent" />{/if}
 		</span>
 	</TableCell>
@@ -64,8 +65,8 @@
 	<div class="flex min-w-0 flex-col gap-1.5">
 		<span class="t-body-m-strong wrap-anywhere">{w.name}</span>
 		<div class="flex flex-wrap items-center gap-1.5">
-			<StatusChip label={dealTypeShort(w.deal_type)} tone="info" />
-			<StatusChip label={stateLabel(w.state)} tone={stateTone(w.state)} />
+			<StatusChip label={dealTypeShort(w.deal_type)} tone="info" hint={dealTypeHint(w.deal_type)} />
+			<StatusChip label={stateLabel(w.state)} tone={stateTone(w.state)} hint={workflowStateHint(w.state)} />
 			{#if w.is_default}<StatusChip label="По умолчанию" tone="accent" />{/if}
 		</div>
 		<span class="t-desc-l text-muted"><span class="font-mono">{w.code}</span>{w.published_at ? ' · ' : ''}{#if w.published_at}<DateText value={w.published_at} />{/if}</span>

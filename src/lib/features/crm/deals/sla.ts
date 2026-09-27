@@ -68,19 +68,19 @@ export function slaProgress(deal: SlaSource, now: number = Date.now()): SlaProgr
 }
 
 /**
- * Текст для индикатора: «осталось 2 д 3 ч», «просрочено на 5 ч», «на паузе», «—».
+ * Текст для индикатора: «Осталось 2 д 3 ч», «Просрочено на 5 ч», «На паузе», «—» (с заглавной, как названия статусов рядом).
  * `compact` (таблица, доска): «2 д 3 ч», «−5 ч», «пауза» — слова только в подсказке.
  */
 export function slaLabel(progress: SlaProgress, compact = false): string {
 	const short = (ms: number | null): string => (ms !== null && Math.abs(ms) < 60_000 ? '< 1 мин' : formatDurationShort(ms));
 	switch (progress.state) {
 		case 'paused':
-			return compact ? 'пауза' : 'на паузе';
+			return compact ? 'Пауза' : 'На паузе';
 		case 'breached':
-			return compact ? `−${short(progress.overdueMs)}` : `просрочено на ${formatDurationShort(progress.overdueMs)}`;
+			return compact ? `−${short(progress.overdueMs)}` : `Просрочено на ${formatDurationShort(progress.overdueMs)}`;
 		case 'warning':
 		case 'ok':
-			return compact ? short(progress.remainingMs) : `осталось ${formatDurationShort(progress.remainingMs)}`;
+			return compact ? short(progress.remainingMs) : `Осталось ${formatDurationShort(progress.remainingMs)}`;
 		default:
 			return '—';
 	}

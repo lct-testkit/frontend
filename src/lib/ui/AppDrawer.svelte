@@ -8,6 +8,7 @@
 	import { CloseLarge } from '@lct-testkit/rt-ui/icons';
 	import BtnSizeScope from './BtnSizeScope.svelte';
 	import { confirmState } from './confirm.svelte';
+	import { mayClose } from './form-close';
 	import IconBtn from './IconBtn.svelte';
 
 	interface Props {
@@ -16,6 +17,8 @@
 		/** px on desktop */
 		width?: number;
 		position?: 'right' | 'left';
+		/** a panel that is not a FormDrawer but holds input that would be lost: closing asks first */
+		dirty?: boolean;
 		onClose?: () => void;
 		children?: Snippet;
 		footer?: Snippet;
@@ -23,7 +26,7 @@
 		header?: Snippet;
 	}
 
-	let { open, title = '', width = 520, position = 'right', onClose, children, footer, header }: Props = $props();
+	let { open, title = '', width = 520, position = 'right', dirty = false, onClose, children, footer, header }: Props = $props();
 
 	const bp = useBreakpoint();
 	const dimension = $derived(bp.isMobile ? Math.max(bp.width, 320) : Math.min(width, Math.max(bp.width - 64, 360)));
@@ -32,19 +35,22 @@
 	// confirm share the DS's own z-index token, so its Esc/overlay-click firing at the same time as the confirm's own would resolve the pending
 	// confirm and immediately open an identical-looking one in the same tick — the dialog would look permanently stuck (see app.css, near
 	// `.atmr-modal-wrapper`)
+	async function attemptClose() {
+		if (await mayClose(dirty)) onClose?.();
+	}
 	function closeUnlessConfirming() {
-		if (!confirmState.current) onClose?.();
+		if (!confirmState.current) void attemptClose();
 	}
 </script>
 
-<Drawer fullHeight {position} {dimension} isOpened={open} drawerClassName="p-0!" onClickOverlay={closeUnlessConfirming} onEsc={closeUnlessConfirming}>
+<Drawer fullHeight {position} {dimension} isOpened={open} drawerClassName="p-0! max-md:rounded-none!" onClickOverlay={closeUnlessConfirming} onEsc={closeUnlessConfirming}>
 	<div class="flex h-full min-h-0 flex-col">
 		{#if header}
 			{@render header()}
 		{:else}
 			<div class="flex flex-none items-center justify-between gap-3 pt-4 pr-4 pb-2 pl-6 max-md:pt-3 max-md:pr-2 max-md:pb-1 max-md:pl-4">
 				<h2 class="t-h3 wrap-anywhere">{title}</h2>
-				<IconBtn icon={CloseLarge} label="Закрыть" onclick={() => onClose?.()} />
+				<IconBtn icon={CloseLarge} label="Закрыть" onclick={() => void attemptClose()} />
 			</div>
 		{/if}
 		<div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-6 pt-2 pb-6 max-md:px-4 max-md:pb-4">{@render children?.()}</div>

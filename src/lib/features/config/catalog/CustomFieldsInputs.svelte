@@ -19,22 +19,21 @@
 	let { defs, values = $bindable({}), errors = {} }: Props = $props();
 
 	const shown = $derived(defs.filter((d) => d.field_type !== 'file').sort((a, b) => a.sort_order - b.sort_order));
-	const title = (d: CustomFieldDef) => (d.is_required ? `${d.label} *` : d.label);
 	const set = (code: string, value: unknown) => (values = { ...values, [code]: value });
 </script>
 
 {#each shown as def (def.id)}
 	{#if def.field_type === 'number'}
-		<NumberField label={title(def)} value={typeof values[def.code] === 'number' ? (values[def.code] as number) : null} error={errors[def.code]} onChange={(v) => set(def.code, v)} />
+		<NumberField label={def.label} required={def.is_required} value={typeof values[def.code] === 'number' ? (values[def.code] as number) : null} error={errors[def.code]} onChange={(v) => set(def.code, v)} />
 	{:else if def.field_type === 'date'}
-		<DateField label={title(def)} value={(values[def.code] as string | null) ?? null} error={errors[def.code]} onChange={(v) => set(def.code, v)} />
+		<DateField label={def.label} required={def.is_required} value={(values[def.code] as string | null) ?? null} error={errors[def.code]} onChange={(v) => set(def.code, v)} />
 	{:else if def.field_type === 'bool'}
-		<Toggle label={title(def)} checked={values[def.code] === true} onChange={(v) => set(def.code, v)} />
+		<Toggle label={def.label} checked={values[def.code] === true} onChange={(v) => set(def.code, v)} />
 	{:else if def.field_type === 'select'}
-		<Pick label={title(def)} clearable items={choicesOf(def).map((c) => ({ key: c, value: c }))} value={(values[def.code] as string | null) ?? null} error={errors[def.code]} onChange={(v) => set(def.code, v)} />
+		<Pick label={def.label} required={def.is_required} clearable items={choicesOf(def).map((c) => ({ key: c, value: c }))} value={(values[def.code] as string | null) ?? null} error={errors[def.code]} onChange={(v) => set(def.code, v)} />
 	{:else if def.field_type === 'multiselect'}
-		<MultiPick label={title(def)} items={choicesOf(def).map((c) => ({ key: c, value: c }))} value={Array.isArray(values[def.code]) ? (values[def.code] as string[]) : []} error={errors[def.code]} onChange={(v) => set(def.code, v)} />
+		<MultiPick label={def.label} required={def.is_required} items={choicesOf(def).map((c) => ({ key: c, value: c }))} value={Array.isArray(values[def.code]) ? (values[def.code] as string[]) : []} error={errors[def.code]} onChange={(v) => set(def.code, v)} />
 	{:else}
-		<TextField label={title(def)} value={(values[def.code] as string | undefined) ?? ''} error={errors[def.code]} onInput={(v) => set(def.code, v || null)} />
+		<TextField label={def.label} required={def.is_required} value={(values[def.code] as string | undefined) ?? ''} error={errors[def.code]} onInput={(v) => set(def.code, v || null)} />
 	{/if}
 {/each}

@@ -32,7 +32,7 @@
 
 	let { pager, fill = false, selectable = false, selected = [], onSelect, actionBar, empty, compact = false, showOwner = false, embedded = false }: Props = $props();
 
-	// сервер не сортирует (backend-issues A-11): сортируем то, что уже загружено
+	// клиент сортирует то, что уже загружено; серверные `sort`, `total`, `is_closed` бэкенд отдаёт с 25.09 (backend-issues A-11), но список их пока не использует
 	let sort = $state<SortState | null>(null);
 
 	const rows = $derived.by(() => {
@@ -76,7 +76,7 @@
 		{ key: 'title', title: 'Сделка', width: 'minmax(160px, 3fr)', render: titleCell, sortable: true },
 		{ key: 'party', title: 'Организация', width: 'minmax(140px, 2fr)', render: partyCell, drop: 3 },
 		{ key: 'status', title: 'Статус', render: statusCell },
-		{ key: 'sla', title: 'Срок', render: slaCell, drop: 2 },
+		{ key: 'sla', title: 'Срок', hint: 'Срок (SLA): сколько сделка может пробыть в текущем статусе', render: slaCell, drop: 2 },
 		{ key: 'amount', title: 'Сумма', align: 'right' as const, render: amountCell, sortable: true },
 		...(showOwner ? [{ key: 'owner', title: 'Ответственный', render: ownerCell, drop: 4 }] : []),
 		{ key: 'updated_at', title: 'Изменён', render: updatedCell, sortable: true, drop: 1 }

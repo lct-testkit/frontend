@@ -18,6 +18,7 @@
 	import ApprovalPendingModal from '../ApprovalPendingModal.svelte';
 	import ErasureRequestModal from '../erasure/ErasureRequestModal.svelte';
 	import { roleLabel, userStatusMeta } from '../labels';
+	import { USER_STATUS_HINTS } from '../hints';
 	import ReasonModal from '../ReasonModal.svelte';
 	import { teams } from '../teams.svelte';
 	import type { UserCreated, UserOut } from '../types';
@@ -120,7 +121,7 @@
 		<ErrorState {error} onRetry={() => load()} />
 	{:else}
 		<PageHeader title={user.display_name || user.full_name} back="/admin/users">
-			{#snippet meta()}<StatusChip label={statusMeta.label} tone={statusMeta.tone} />{/snippet}
+			{#snippet meta()}<StatusChip label={statusMeta.label} tone={statusMeta.tone} hint={USER_STATUS_HINTS[user?.status as keyof typeof USER_STATUS_HINTS]} />{/snippet}
 			{#snippet actions()}
 				{#if session.can('user:write') && status !== 'anonymized'}
 					<Btn label="Изменить" icon={Edit} variant="secondary" colorScheme="neutral" onclick={() => (edit = true)} data-testid="user-edit" />
@@ -209,7 +210,7 @@
 			<DateField label="Разблокировать автоматически (справочно)" value={autoUnblock || null} onChange={(v) => (autoUnblock = v ?? '')} />
 		{/snippet}
 	</ReasonModal>
-	<ReasonModal open={unblock} title="Разблокировать пользователя" confirmLabel="Разблокировать" required={false} label="Причина (необязательно)" onSubmit={doUnblock} onClose={() => (unblock = false)} />
+	<ReasonModal open={unblock} title="Разблокировать пользователя" confirmLabel="Разблокировать" required={false} label="Причина" onSubmit={doUnblock} onClose={() => (unblock = false)} />
 	<ReasonModal
 		open={reset}
 		title="Сбросить пароль"

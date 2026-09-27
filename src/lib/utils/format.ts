@@ -147,9 +147,14 @@ export function formatDuration(ms: number): string {
 
 export function initials(fullName: string | null | undefined): string {
 	if (!fullName) return '?';
-	const parts = fullName.trim().split(/\s+/).filter(Boolean);
+	// the first LETTER of a word (not a bracket or a dash): «Демо-отчёты (сид)» is «ДС», not «Д(»
+	const parts = fullName
+		.trim()
+		.split(/\s+/)
+		.map((word) => word.match(/\p{L}/u)?.[0])
+		.filter((letter): letter is string => Boolean(letter));
 	if (parts.length === 0) return '?';
-	return (parts[0][0] + (parts.length > 1 ? parts[1][0] : '')).toUpperCase();
+	return (parts[0] + (parts.length > 1 ? parts[1] : '')).toUpperCase();
 }
 
 /** +7 (999) 123-45-67 for RU numbers; masked values (`+7 (9**) ***-**-12`) and foreign numbers pass through. */

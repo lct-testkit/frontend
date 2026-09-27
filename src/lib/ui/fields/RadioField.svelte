@@ -14,6 +14,8 @@
 		items: readonly RadioItem[];
 		/** the caption of the group (also its accessible name) */
 		label?: string;
+		/** marks the group caption with the asterisk (a choice is needed) */
+		required?: boolean;
 		error?: string;
 		disabled?: boolean;
 		/** 2 = two columns on a desktop (one on a phone) */
@@ -22,14 +24,14 @@
 		onChange?: (value: string) => void;
 	}
 
-	let { value = $bindable(null), items, label, error, disabled = false, columns = 1, class: className = '', onChange }: Props = $props();
+	let { value = $bindable(null), items, label, required = false, error, disabled = false, columns = 1, class: className = '', onChange }: Props = $props();
 </script>
 
 <div class={['flex min-w-0 flex-col gap-2', className]}>
-	{#if label}<span class="t-desc-l px-0.5 text-muted">{label}</span>{/if}
+	{#if label}<span class={['t-desc-l px-0.5 text-muted', required && 'field-required']}>{label}</span>{/if}
 	<RadioGroup
 		class={columns === 2 ? 'grid grid-cols-2 gap-x-4 gap-y-2 max-md:grid-cols-1' : 'flex flex-col gap-2'}
-		aria-label={label}
+		aria-label={required && label ? label + ", обязательное поле" : label}
 		disabledAll={disabled}
 		value={value ?? ''}
 		onChange={(v: string) => {

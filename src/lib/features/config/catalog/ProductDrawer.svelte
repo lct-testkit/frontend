@@ -162,11 +162,11 @@
 
 <FormDrawer {open} title={isNew ? 'Новый продукт' : name || 'Продукт'} {saving} {formError} {conflict} onSave={save} {onClose} onReload={reloadVersion}>
 	{#if isNew}
-		<TextField label="Код" bind:value={code} error={errors.code} maxlength={64} autofocus />
+		<TextField label="Код" required bind:value={code} error={errors.code} maxlength={64} autofocus />
 	{:else}
 		<TextField label="Код" value={code} readonly hint="Код после создания не меняется" />
 	{/if}
-	<TextField label="Название" bind:value={name} error={errors.name} maxlength={255} autofocus={!isNew} />
+	<TextField label="Название" required bind:value={name} error={errors.name} maxlength={255} autofocus={!isNew} />
 	<Pick label="Направление" bind:value={directionId} items={dirItems} error={errors.direction_id} clearable search emptyText={directions.loading ? 'Загрузка…' : 'Направлений нет'} />
 	<OrgPicker label="Вендор" value={vendorId} error={errors.vendor_id} hint="Компания, чей это продукт" onChange={(id) => (vendorId = id)} />
 	<FormRow>
@@ -181,7 +181,7 @@
 		<AreaField label="Описание" bind:value={description} />
 		<FormRow>
 			<NumberField label="Длительность, ч" bind:value={duration} integer error={errors.duration_hours} />
-			<TextField label="Валюта" bind:value={currency} error={errors.currency} maxlength={3} />
+			<TextField label="Валюта" required bind:value={currency} error={errors.currency} maxlength={3} />
 		</FormRow>
 		<FormRow>
 			<DateField label="Действует с" bind:value={validFrom} error={errors.valid_from} />

@@ -14,6 +14,7 @@
 	import { myRequests } from './api';
 	import { fetchDocuments, knownDocumentIds } from './known';
 	import { docStatusMeta, docTypeLabel, signerProgress } from './status';
+	import { DOC_STATUS_HINTS } from './hints';
 	import type { SignatureDocument } from './types';
 
 	let docs = $state<SignatureDocument[]>([]);
@@ -68,7 +69,7 @@
 {#snippet status(doc: SignatureDocument)}
 	<TableCell>
 		{@const meta = docStatusMeta(doc.status)}
-		<StatusChip label={meta.label} tone={meta.tone} />
+		<StatusChip label={meta.label} tone={meta.tone} hint={DOC_STATUS_HINTS[doc.status as keyof typeof DOC_STATUS_HINTS]} />
 	</TableCell>
 {/snippet}
 {#snippet signed(doc: SignatureDocument)}

@@ -10,6 +10,7 @@
 	import StatusChip from '$lib/ui/StatusChip.svelte';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { auditActionLabel, auditResultMeta, entityTypeLabel } from '../labels';
+	import { AUDIT_RESULT_HINTS } from '../hints';
 	import { shortId } from '../audit';
 	import type { AuditEntry } from '../types';
 	import AuditDetails from './AuditDetails.svelte';
@@ -57,7 +58,7 @@
 {#snippet result(e: AuditEntry)}
 	<TableCell>
 		{@const meta = auditResultMeta(e.result)}
-		<StatusChip label={meta.label} tone={meta.tone} />
+		<StatusChip label={meta.label} tone={meta.tone} hint={AUDIT_RESULT_HINTS[e.result as keyof typeof AUDIT_RESULT_HINTS]} />
 	</TableCell>
 {/snippet}
 {#snippet card(e: AuditEntry)}
@@ -65,7 +66,7 @@
 	<div class="flex flex-col gap-1 p-1">
 		<div class="flex items-start gap-2">
 			<span class="t-body-m-strong min-w-0 flex-1 break-words">{auditActionLabel(e.action)}</span>
-			<StatusChip label={meta.label} tone={meta.tone} />
+			<StatusChip label={meta.label} tone={meta.tone} hint={AUDIT_RESULT_HINTS[e.result as keyof typeof AUDIT_RESULT_HINTS]} />
 		</div>
 		<span class="t-desc-l text-muted">{e.actor_id ? people.name(e.actor_id) : 'Система'} · <DateText value={e.created_at} time /></span>
 	</div>

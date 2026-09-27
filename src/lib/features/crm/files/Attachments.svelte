@@ -21,12 +21,15 @@
 		canEdit?: boolean;
 		/** вложения добавились или пропали — родитель может обновить счётчик */
 		onChange?: (count: number) => void;
+		/** о чём документы (предложный падеж: «по сделке»); по умолчанию «по этой карточке» */
+		about?: string;
 	}
 
-	let { entityType, entityId, canEdit = false, onChange }: Props = $props();
+	let { entityType, entityId, canEdit = false, onChange, about = 'по этой карточке' }: Props = $props();
 
 	const ALLOWED = ['png', 'jpeg', 'jpg', 'pdf', 'zip', 'gz', 'gzip', 'rar', 'doc', 'docx', 'xls', 'xlsx', 'xml', 'csv'];
 	const MAX_BYTES = 50 * 1024 * 1024;
+	const hint = $derived(`Документы ${about}: договор, акт, отчёт и другое. Форматы: PDF, изображения, Word, Excel, XML, CSV, архивы.`);
 
 	let items = $state<Attachment[]>([]);
 	let loading = $state(true);
@@ -167,6 +170,8 @@
 			<span class="t-desc-l text-muted max-md:hidden">или перетащите сюда · до 50 МБ</span>
 		</div>
 
+		<p class="t-body-s m-0 text-muted">{hint}</p>
+
 		{#if pending.length}
 			<div class="flex flex-col gap-2 rounded-lg border border-line bg-surface p-3">
 				<Pick label="Категория" items={categoryItems} value={category} onChange={(v) => v && (category = v)} />
@@ -191,6 +196,8 @@
 			</div>
 		{/if}
 	{/if}
+
+	{#if !canEdit}<p class="t-body-s m-0 text-muted">{hint}</p>{/if}
 
 	{#if loading}
 		<Skeleton kind="rows" rows={3} />

@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 	import { Checkbox, Switch } from '@lct-testkit/rt-ui';
 	import { api, unwrap } from '$lib/api';
-	import { Btn, ErrorState, Page, PageHeader, Skeleton, toast } from '$lib/ui';
+	import { Btn, ErrorState, Notice, Page, PageHeader, Skeleton, toast } from '$lib/ui';
 	import Card from '$lib/ui/Card.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import { NOTIFICATION_CHANNEL_LABELS } from '../shared/labels';
@@ -99,8 +99,10 @@
 	{:else if error}
 		<ErrorState {error} onRetry={load} />
 	{:else}
+		<Notice class="shrink-0" tone="info">Событие — то, что происходит в системе, например смена статуса сделки. Переключатель «Получать» включает или выключает все уведомления об этом событии, флажки выбирают каналы доставки.</Notice>
+
 		<Card title="Тихие часы">
-			<div class="grid grid-cols-2 gap-3 max-md:grid-cols-1">
+			<div class="grid max-w-xl grid-cols-2 gap-3 max-md:grid-cols-1">
 				<Pick label="Не беспокоить с" items={hours} clearable value={from} placeholder="Всегда" onChange={(v) => (from = v)} />
 				<Pick label="до" items={hours} clearable value={to} placeholder="Всегда" onChange={(v) => (to = v)} />
 			</div>
@@ -124,7 +126,7 @@
 								{/each}
 							</span>
 							<span class="max-md:order-2" title={info.locked ? 'Уведомление о безопасности нельзя отключить' : undefined}>
-								<Switch checked={row.enabled} disabled={info.locked} aria-label={info.label} onChange={(v: boolean) => (row.enabled = v)} />
+								<Switch checked={row.enabled} disabled={info.locked} label="Получать" aria-label={info.label} onChange={(v: boolean) => (row.enabled = v)} />
 							</span>
 						</li>
 					{/each}

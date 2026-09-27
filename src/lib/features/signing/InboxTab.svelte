@@ -11,6 +11,7 @@
 	import StatusChip from '$lib/ui/StatusChip.svelte';
 	import { myRequests } from './api';
 	import { isRequestOpen, requestStatusMeta } from './status';
+	import { REQUEST_STATUS_HINTS } from './hints';
 	import type { SignatureRequest } from './types';
 
 	let { scope, onScope }: { scope: 'open' | 'all'; onScope: (next: 'open' | 'all') => void } = $props();
@@ -63,7 +64,7 @@
 {#snippet status(r: SignatureRequest)}
 	<TableCell>
 		{@const meta = requestStatusMeta(r.status)}
-		<StatusChip label={meta.label} tone={meta.tone} />
+		<StatusChip label={meta.label} tone={meta.tone} hint={REQUEST_STATUS_HINTS[r.status as keyof typeof REQUEST_STATUS_HINTS]} />
 	</TableCell>
 {/snippet}
 {#snippet go(r: SignatureRequest)}

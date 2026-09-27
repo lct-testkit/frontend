@@ -8,8 +8,9 @@
 	import { landingFor } from '$lib/nav';
 	import { HomeData } from '$lib/features/home/home.svelte';
 	import RecentList from '$lib/features/crm/recent/RecentList.svelte';
-	import { formatMoneyShort, formatNumber } from '$lib/utils/format';
+	import { formatDateTime, formatMoneyShort, formatNumber } from '$lib/utils/format';
 	import Card from '$lib/ui/Card.svelte';
+	import { slaHint } from '$lib/features/crm/shared/hints';
 	import DateText from '$lib/ui/DateText.svelte';
 	import IconBtn from '$lib/ui/IconBtn.svelte';
 	import ListRow from '$lib/ui/ListRow.svelte';
@@ -63,6 +64,7 @@
 					<Tile label="Сумма в работе" value={formatMoneyShort(data.activeAmount)} href="/deals" loading={data.loading} />
 					<Tile
 						label="SLA под угрозой"
+						tip="Сделки, у которых срок пребывания в статусе (SLA) почти истёк или уже вышел."
 						value={data.attention.length}
 						tone={data.attention.length ? 'danger' : 'neutral'}
 						hint={data.attention.length ? `просрочено: ${data.attention.filter((d) => d.sla_state === 'breached').length}` : undefined}
@@ -96,7 +98,7 @@
 					<span>{deal.number}</span>
 					{#if data.statuses[deal.status_id]}<span>{data.statuses[deal.status_id].name}</span>{/if}
 				{/snippet}
-				{#snippet suffix()}<StatusChip label={SLA[deal.sla_state as 'breached' | 'warning'].label} tone={SLA[deal.sla_state as 'breached' | 'warning'].tone} title={deal.sla_due_at ?? undefined} />{/snippet}
+				{#snippet suffix()}<StatusChip label={SLA[deal.sla_state as 'breached' | 'warning'].label} tone={SLA[deal.sla_state as 'breached' | 'warning'].tone} hint={slaHint(deal.sla_state, deal.sla_due_at ? formatDateTime(deal.sla_due_at) : null)} />{/snippet}
 			</ListRow>
 		{/each}
 	</RowList>

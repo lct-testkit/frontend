@@ -5,8 +5,17 @@ import type { OrgDetails, Organization } from '../types';
 
 type S = components['schemas'];
 
-/** Поля, которые заполняются из реестра и помечаются «из ЕГРЮЛ» / «изменено вручную». */
+/** Поля, которые заполняются из реестра и помечаются в названии «(из ЕГРЮЛ)» / «(изменено вручную)». */
 export const REGISTRY_FIELDS = ['name', 'short_name', 'kpp', 'ogrn', 'legal_address'] as const;
+
+/** Пометка поля из реестра: значение пришло из ЕГРЮЛ или его исправили руками. У карточки без сверки с реестром и у прочих полей пометки нет. */
+export function registryMark(org: Pick<Organization, 'verified_source' | 'manual_overrides'> | null | undefined, key: string): string | undefined {
+	if (!org?.verified_source || !(REGISTRY_FIELDS as readonly string[]).includes(key)) return undefined;
+	return org.manual_overrides.includes(key) ? 'изменено вручную' : 'из ЕГРЮЛ';
+}
+
+/** Название поля с пометкой в скобках: «Краткое название (из ЕГРЮЛ)» — пометка не занимает место подсказки под полем. */
+export const markedLabel = (label: string, mark?: string): string => (mark ? `${label} (${mark})` : label);
 
 export interface OrgFormValues {
 	name: string;

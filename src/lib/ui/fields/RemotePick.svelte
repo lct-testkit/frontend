@@ -25,12 +25,13 @@
 		error?: string;
 		hint?: string;
 		disabled?: boolean;
+		required?: boolean;
 		clearable?: boolean;
 		emptyText?: string;
 		onChange: (id: string | null, item?: RemoteItem) => void;
 	}
 
-	let { value = null, search, selected = null, refreshKey, label, placeholder = 'Начните вводить', error, hint, disabled = false, clearable = true, emptyText = 'Ничего не найдено', onChange }: Props = $props();
+	let { value = null, search, selected = null, refreshKey, label, placeholder = 'Начните вводить', error, hint, disabled = false, required = false, clearable = true, emptyText = 'Ничего не найдено', onChange }: Props = $props();
 
 	const bp = useBreakpoint();
 	// in the one-line filter row a field has no caption above it: the label is its placeholder
@@ -75,6 +76,7 @@
 	{error}
 	{hint}
 	{disabled}
+	{required}
 	{clearable}
 	{items}
 	value={value ?? ''}

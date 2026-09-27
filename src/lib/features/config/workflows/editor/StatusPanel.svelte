@@ -67,9 +67,10 @@
 <div class="flex flex-col gap-4">
 	<PanelIssues issues={errs} />
 
-	<TextField label="Название" value={status.name} disabled={editor.readonly} onInput={rename} autofocus={isNew} />
+	<TextField label="Название" required value={status.name} disabled={editor.readonly} onInput={rename} autofocus={isNew} />
 	<TextField
 		label="Код"
+		required={isNew}
 		value={status.code}
 		readonly={!isNew || editor.readonly}
 		hint={isNew ? 'Латиница, цифры и «_»' : 'После сохранения код не меняется'}

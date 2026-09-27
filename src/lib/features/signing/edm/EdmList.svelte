@@ -25,7 +25,11 @@
 	import { formatDate } from '$lib/utils/format';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { edmMethodLabel, edmPartyLabel, edmState, edmStateMeta } from '../status';
+	import { EDM_STATE_HINTS } from '../hints';
 	import type { EdmAgreement } from '../types';
+
+	// what the state means, plus why it was revoked
+	const edmHint = (a: EdmAgreement): string => `${EDM_STATE_HINTS[edmState(a)]}${a.revoke_reason ? ` Причина отзыва: ${a.revoke_reason}.` : ''}`;
 
 	const PARTIES = (['organization', 'contact', 'user'] as const).map((k) => ({ key: k, value: edmPartyLabel(k) }));
 
@@ -128,7 +132,7 @@
 {#snippet stateCell(a: EdmAgreement)}
 	<TableCell>
 		{@const meta = edmStateMeta(edmState(a))}
-		<span class="block py-2"><StatusChip label={meta.label} tone={meta.tone} title={a.revoke_reason ? `Причина отзыва: ${a.revoke_reason}` : undefined} /></span>
+		<span class="block py-2"><StatusChip label={meta.label} tone={meta.tone} hint={edmHint(a)} /></span>
 	</TableCell>
 {/snippet}
 {#snippet actionButtons(a: EdmAgreement)}
@@ -143,7 +147,7 @@
 	<div class="flex min-w-0 flex-col gap-1">
 		<div class="flex items-start justify-between gap-2">
 			<span class="t-body-s-strong min-w-0 wrap-anywhere">{subjectName(a.party_type, a.party_id)}</span>
-			<StatusChip label={meta.label} tone={meta.tone} />
+			<StatusChip label={meta.label} tone={meta.tone} hint={edmHint(a)} />
 		</div>
 		<span class="t-desc-l text-muted">{edmPartyLabel(a.party_type)} · {edmMethodLabel(a.conclusion_method)}{a.agreement_number ? ` · № ${a.agreement_number}` : ''}</span>
 		<span class="t-desc-l">{term(a)}</span>

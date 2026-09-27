@@ -95,12 +95,12 @@
 			{#each WIDGET_TYPES as t (t)}<Segment index={t} label={WIDGET_TYPE_LABELS[t]} />{/each}
 		</SegmentedControl>
 	</div>
-	<Pick label="Отчёт" search bind:value={code} items={available.map((t) => ({ key: t.code, value: t.name }))} error={errors.template_code} hint={type === 'report_chart' ? 'График доступен для отчётов с числовыми колонками' : undefined} />
+	<Pick label="Отчёт" required search bind:value={code} items={available.map((t) => ({ key: t.code, value: t.name }))} error={errors.template_code} hint={type === 'report_chart' ? 'График доступен для отчётов с числовыми колонками' : undefined} />
 	{#if code}
 		<ParamsForm {defs} bind:values {workflows} />
 		{#if type === 'stat_tile'}<Pick label="Показатель" bind:value={metric} items={metricItems} />{/if}
 	{/if}
-	<TextField label="Заголовок (необязательно)" bind:value={title} maxlength={120} />
+	<TextField label="Заголовок" bind:value={title} maxlength={120} />
 	<div class="flex flex-col gap-1.5">
 		<span class="t-desc-l text-muted">Ширина</span>
 		<SegmentedControl class="self-start" size="m" value={width} onChange={(v: string) => (width = v)}>

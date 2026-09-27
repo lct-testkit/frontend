@@ -12,6 +12,8 @@
 	import StatusChip from '$lib/ui/StatusChip.svelte';
 	import { renderMarkdown } from '$lib/utils/markdown';
 	import { roleLabel, userStatusMeta } from './labels';
+	import Term from '$lib/ui/Term.svelte';
+	import { USER_STATUS_HINTS, ROLE_HINTS } from './hints';
 	import ThemePicker from './ThemePicker.svelte';
 
 	const me = $derived(session.me);
@@ -49,8 +51,8 @@
 			<div class="min-w-0 flex-1">
 				<h2 class="t-h3 m-0 break-words">{me.display_name || me.full_name}</h2>
 				<div class="mt-1 flex flex-wrap items-center gap-2">
-					<StatusChip label={status.label} tone={status.tone} />
-					<span class="t-desc-l text-muted">{roleLabel(me.role)}</span>
+					<StatusChip label={status.label} tone={status.tone} hint={USER_STATUS_HINTS[me.status as keyof typeof USER_STATUS_HINTS]} />
+					<span class="t-desc-l text-muted"><Term label={roleLabel(me.role)} hint={ROLE_HINTS[me.role as keyof typeof ROLE_HINTS]} /></span>
 				</div>
 			</div>
 		</section>
