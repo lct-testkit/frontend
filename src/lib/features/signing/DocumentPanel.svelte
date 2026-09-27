@@ -13,7 +13,7 @@
 	import StatusChip from '$lib/ui/StatusChip.svelte';
 	import { toast } from '$lib/ui/toast.svelte';
 	import { formatDate, formatDateTime } from '$lib/utils/format';
-	import { protocolLink, sendDocument, voidDocument } from './api';
+	import { protocolLink, sendDocument, signedContainerLink, voidDocument } from './api';
 	import { putDocument } from './known';
 	import SignLinkModal from './SignLinkModal.svelte';
 	import SignerList from './SignerList.svelte';
@@ -90,6 +90,17 @@
 		}
 	}
 
+	// Отдельная от протокола кнопка: это единственный файл на странице, который проходит
+	// «Найти подпись по файлу» (см. `signedContainerLink`) — без неё пользователь видел только
+	// протокол и детерминированно получал hash_mismatch, пытаясь проверить именно им.
+	async function signedContainer() {
+		try {
+			window.open(await signedContainerLink(doc), '_blank', 'noopener');
+		} catch (e) {
+			toast.error(e, 'Файл недоступен');
+		}
+	}
+
 	async function doVoid(reason: string) {
 		apply(await voidDocument(doc.id, reason));
 		voidOpen = false;
@@ -145,7 +156,7 @@
 		</dl>
 	{/if}
 
-	{#if act.canSend || mine || act.canProtocol || act.canVoid || act.canRecreate || compact}
+	{#if act.canSend || mine || act.canProtocol || act.canSignedContainer || act.canVoid || act.canRecreate || compact}
 		<footer class="flex flex-wrap items-center gap-2">
 			{#if mine}
 				<Btn label="Подписать" icon={Pen} onclick={() => goto(`/signing/requests/${mine.id}`)} data-testid="doc-sign" />
@@ -157,6 +168,7 @@
 				<Btn label="Отправить заново" variant="secondary" colorScheme="neutral" onclick={() => onRecreate(doc)} />
 			{/if}
 			<span class="ml-auto flex items-center gap-1">
+				{#if act.canSignedContainer}<IconBtn icon={Download} label="Контейнер подписи (для проверки)" onclick={signedContainer} />{/if}
 				{#if act.canProtocol}<IconBtn icon={Download} label="Протокол подписания" onclick={protocol} />{/if}
 				{#if act.canVoid}<IconBtn icon={Stop} label="Аннулировать" danger onclick={() => (voidOpen = true)} />{/if}
 				{#if compact}<IconBtn icon={ArrowRight} label="Открыть документ" onclick={() => goto(`/signing/${doc.id}`)} />{/if}

@@ -55,7 +55,7 @@ const VERIFY_STATUS: Record<VerifyStatus, StatusMeta & { title: string; hint: st
 		label: 'Не совпадает',
 		tone: 'error',
 		title: 'Файл не совпадает ни с одной подписью',
-		hint: 'Проверяйте исходный PDF без штампа: у копии со штампом другой хэш.'
+		hint: 'Подойдёт как исходный документ, так и штампованная копия («Контейнер подписи») — а вот протокол подписания не годится, его хэш здесь не проверяется.'
 	},
 	tampered: {
 		label: 'Целостность нарушена',
@@ -182,6 +182,11 @@ export interface DocumentActions {
 	canSend: boolean;
 	canVoid: boolean;
 	canProtocol: boolean;
+	/** Штампованная копия (`signed_file_id`) — единственный файл на этой странице, который
+	 * реально проходит «Найти подпись по файлу» (см. `signedContainerLink` в `api.ts`). Без
+	 * этой кнопки протокол был единственным видимым download'ом, и пользователь верифицировал
+	 * не тот файл — детерминированный `hash_mismatch` на самом обычном сценарии. */
+	canSignedContainer: boolean;
 	/** Документ завершён неудачно — предложить «отправить заново» (новый документ). */
 	canRecreate: boolean;
 	needsAgreement: boolean;
@@ -194,6 +199,7 @@ export function documentActions(status: string, perms: DocumentPermissions): Doc
 		canSend: perms.create && (s === 'draft' || s === 'blocked_no_agreement'),
 		canVoid: perms.void && (s === 'draft' || s === 'pending' || s === 'partially_signed' || s === 'blocked_no_agreement'),
 		canProtocol: s === 'signed',
+		canSignedContainer: s === 'signed',
 		canRecreate: perms.create && (s === 'rejected' || s === 'expired' || s === 'void'),
 		needsAgreement: s === 'blocked_no_agreement'
 	};
