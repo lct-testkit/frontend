@@ -328,7 +328,7 @@ flowchart LR
 * **Три состояния у каждого экрана:** загрузка (`Skeleton` того же места и высоты), пусто (что делать: одно действие), ошибка (человеческая фраза и «Повторить», для 5xx — код обращения).
 * **Фильтры живут в адресной строке** (`utils/query-state.svelte.ts`): ссылка воспроизводит вид, «Назад» и перезагрузка работают.
 * **Права:** интерфейс скрывает недоступное по `scopes` из `/api/me` (`session.can('deal:update')`), но авторитет — бэкенд. Ctrl+K ловится по `e.code === 'KeyK'` и работает в любой раскладке.
-* **Утверждённые блоки не меняются без запроса заказчика.** Там, где в rt-ui есть компонент, используется он ([`docs/DS-MIGRATION.md`](docs/DS-MIGRATION.md)); свой код объясняется строкой комментария. Пакетный менеджер — pnpm.
+* **Утверждённые блоки не меняются без запроса заказчика.** Там, где в rt-ui есть компонент, используется он; свой код объясняется строкой комментария. Пакетный менеджер — pnpm.
 
 ## API-клиент и авторизация
 
@@ -496,9 +496,6 @@ Rostelecom Basis и пакет `@lct-testkit/rt-ui` — материалы Ро�
 | [`docs/STATUS.md`](docs/STATUS.md) | состояние клиента, как посмотреть, покрытие ручек (175 из 203), как проверять, известные ограничения |
 | [`docs/REBUILD-PLAN.md`](docs/REBUILD-PLAN.md) | замечания заказчика, блоки B1–B15 и критерии приёмки, правила раскладки (§9), что принято |
 | [`docs/USERFLOWS.md`](docs/USERFLOWS.md) | пользовательские потоки по ролям: задача, экраны, блоки, обязательные состояния |
-| [`docs/DS-MIGRATION.md`](docs/DS-MIGRATION.md) | что на что менять при переводе самописных элементов на rt-ui |
 | [`docs/backend-issues.md`](docs/backend-issues.md) | проблемы и несоответствия бэкенда, обходы (в том числе про сиды отчётов, уведомлений и интеграций) |
-| [`docs/LEAD-DECISIONS.md`](docs/LEAD-DECISIONS.md), [`docs/lead-requests.md`](docs/lead-requests.md) | общие решения и правки бэкенда, сделанные для клиента; запросы к общему слою |
 | [`docs/openapi.json`](docs/openapi.json), [`docs/api-endpoints.md`](docs/api-endpoints.md) | схема и индекс 203 операций; генерируются `pnpm gen:api` |
-| [`docs/AGENT-BRIEF.md`](docs/AGENT-BRIEF.md), [`docs/plan-crm.md`](docs/plan-crm.md), [`docs/plan-config.md`](docs/plan-config.md), [`docs/plan-identity-signing.md`](docs/plan-identity-signing.md), [`docs/handoff-C.md`](docs/handoff-C.md) | история первой сборки, справочно |
 | [`../README.md`](https://github.com/lct-testkit/.github#readme) · [`../backend/README.md`](https://github.com/lct-testkit/backend#readme) · [`../rt-ui/README.md`](https://github.com/lct-testkit/rt-ui#readme) | продукт целиком и стенд · бэкенд · дизайн-система |
