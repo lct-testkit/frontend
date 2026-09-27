@@ -26,7 +26,7 @@ env:
 jobs:
   check:
     name: lint · check · test · build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, lct]
     timeout-minutes: 25
     env:
       NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # чтение @lct-testkit/rt-ui
@@ -69,7 +69,7 @@ jobs:
 
   contract:
     name: контракт API · Dockerfile · секреты
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, lct]
     timeout-minutes: 15
     env:
       NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # чтение @lct-testkit/rt-ui
