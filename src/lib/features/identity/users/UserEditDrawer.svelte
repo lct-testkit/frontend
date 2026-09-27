@@ -6,6 +6,7 @@
 	import { confirm } from '$lib/ui/confirm.svelte';
 	import { ASSIGNABLE_ROLES, ROLE_LABEL, roleLabel } from '../labels';
 	import { teams } from '../teams.svelte';
+	import { timezoneOptions } from '../timezones';
 	import type { Role, UserOut } from '../types';
 
 	interface Props {
@@ -18,8 +19,6 @@
 	}
 
 	let { open, user, onClose, onSaved, onStale }: Props = $props();
-
-	const ZONES = ['Europe/Kaliningrad', 'Europe/Moscow', 'Europe/Samara', 'Asia/Yekaterinburg', 'Asia/Omsk', 'Asia/Krasnoyarsk', 'Asia/Irkutsk', 'Asia/Yakutsk', 'Asia/Vladivostok', 'Asia/Magadan', 'Asia/Kamchatka'];
 
 	let displayName = $state('');
 	let position = $state('');
@@ -50,7 +49,7 @@
 	});
 
 	const roles = ASSIGNABLE_ROLES.map((r) => ({ key: r, value: ROLE_LABEL[r] }));
-	const zones = $derived((ZONES.includes(user.timezone) ? ZONES : [user.timezone, ...ZONES]).map((z) => ({ key: z, value: z })));
+	const zones = $derived(timezoneOptions(user.timezone));
 	const locales = [
 		{ key: 'ru', value: 'Русский' },
 		{ key: 'en', value: 'English' }

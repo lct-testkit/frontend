@@ -1,7 +1,8 @@
 <script lang="ts">
-	// Вкладка «Профиль»: кто я в системе (только чтение — `PATCH /me` в бэкенде нет) и оформление.
+	// Вкладка «Профиль»: кто я в системе, свои данные (имя, часовой пояс, телефон — `PATCH /api/me`) и оформление.
+	// Роль, email и статус меняет только администратор — этой ручке они не переданы вовсе (422 «лишнее поле»).
 	import { onMount } from 'svelte';
-	import { api } from '$lib/api';
+	import { ApiError, api, errorMessage, unwrap } from '$lib/api';
 	import { people } from '$lib/api/people.svelte';
 	import { session } from '$lib/auth/session.svelte';
 	import { POLICY_TEXT } from '$lib/content/policy';
@@ -9,17 +10,30 @@
 	import Avatar from '$lib/ui/Avatar.svelte';
 	import Btn from '$lib/ui/Btn.svelte';
 	import DateText from '$lib/ui/DateText.svelte';
+	import Pick from '$lib/ui/fields/Pick.svelte';
+	import TextField from '$lib/ui/fields/TextField.svelte';
+	import FormRow from '$lib/ui/FormRow.svelte';
+	import Notice from '$lib/ui/Notice.svelte';
 	import StatusChip from '$lib/ui/StatusChip.svelte';
+	import { toast } from '$lib/ui/toast.svelte';
 	import { renderMarkdown } from '$lib/utils/markdown';
 	import { roleLabel, userStatusMeta } from './labels';
 	import Term from '$lib/ui/Term.svelte';
 	import { USER_STATUS_HINTS, ROLE_HINTS } from './hints';
+	import { buildMePatch, profileFormFromMe, validatePhone, type ProfileFormValues } from './profileForm';
 	import ThemePicker from './ThemePicker.svelte';
+	import { timezoneOptions } from './timezones';
 
 	const me = $derived(session.me);
 	const status = $derived(userStatusMeta(me?.status ?? ''));
 	let policyOpen = $state(false);
 	let teamName = $state<string | null>(null);
+
+	let base = $state<ProfileFormValues>({ displayName: '', timezone: '', phone: '' });
+	let values = $state<ProfileFormValues>({ displayName: '', timezone: '', phone: '' });
+	let phoneError = $state<string | undefined>(undefined);
+	let formError = $state<string | null>(null);
+	let saving = $state(false);
 
 	onMount(() => {
 		if (me?.manager_id) people.ensure([me.manager_id]);
@@ -31,17 +45,57 @@
 		}
 	});
 
+	// форма заполняется один раз, когда профиль пришёл (а не при каждом изменении session.me — иначе, например, перезагрузка
+	// профиля из PasswordPanel после смены пароля стёрла бы то, что здесь ещё не сохранено); после своего сохранения — явно, ниже
+	let formReady = false;
+	$effect(() => {
+		if (!me || formReady) return;
+		formReady = true;
+		base = profileFormFromMe(me);
+		values = { ...base };
+	});
+
 	const rows = $derived(
 		me
 			? [
 					{ label: 'Email', value: me.email ?? '—' },
 					{ label: 'Роль', value: roleLabel(me.role) },
-					...(teamName ? [{ label: 'Команда', value: teamName }] : []),
-					...(me.manager_id ? [{ label: 'Руководитель', value: people.name(me.manager_id) }] : []),
-					{ label: 'Часовой пояс', value: me.timezone }
+					...(teamName ? [{ label: 'Команда', value: teamName }] : [])
 				]
 			: []
 	);
+
+	const dirty = $derived(Object.keys(buildMePatch(base, values)).length > 0);
+
+	async function save() {
+		phoneError = validatePhone(values.phone);
+		if (phoneError || !dirty || saving) return;
+		saving = true;
+		formError = null;
+		try {
+			const next = await unwrap(api.PATCH('/api/me', { body: buildMePatch(base, values) }));
+			session.me = next; // без перезагрузки: имя в шапке и везде, где читают session.me, обновится само
+			base = profileFormFromMe(next);
+			values = { ...base };
+			toast.success('Профиль сохранён');
+		} catch (e) {
+			if (e instanceof ApiError && e.isValidation) {
+				const fields = e.fieldErrors();
+				phoneError = fields.phone ?? undefined;
+				formError = fields.phone ? null : errorMessage(e);
+			} else {
+				formError = errorMessage(e);
+			}
+		} finally {
+			saving = false;
+		}
+	}
+
+	function reset() {
+		values = { ...base };
+		phoneError = undefined;
+		formError = null;
+	}
 </script>
 
 {#if me}
@@ -71,6 +125,22 @@
 					<Btn label="Читать политику" variant="ghost" size="s" onclick={() => (policyOpen = true)} />
 				</dd>
 			</dl>
+		</section>
+
+		<section class="flex flex-col gap-4 rounded-lg border border-line bg-surface p-4 max-md:p-3">
+			<h2 class="t-body-m-strong m-0">Изменить профиль</h2>
+			<div class="flex max-w-[560px] flex-col gap-4">
+				<TextField label="Отображаемое имя" placeholder={me.full_name} hint="Если оставить пустым, показывается ФИО." maxlength={255} value={values.displayName} disabled={saving} onInput={(v) => (values.displayName = v)} />
+				<FormRow>
+					<Pick label="Часовой пояс" items={timezoneOptions(values.timezone)} value={values.timezone} disabled={saving} onChange={(v) => v && (values.timezone = v)} />
+					<TextField label="Телефон" hint="Нужен для кода подтверждения подписи по SMS." inputmode="tel" placeholder="+7 900 000-00-00" value={values.phone} error={phoneError} disabled={saving} onInput={(v) => ((values.phone = v), (phoneError = undefined))} onEnter={save} />
+				</FormRow>
+				{#if formError}<Notice class="shrink-0" tone="error" role="alert">{formError}</Notice>{/if}
+				<div class="flex gap-2">
+					<Btn label="Сохранить" loading={saving} disabled={!dirty || !!phoneError} onclick={save} data-testid="profile-save" />
+					{#if dirty}<Btn label="Отмена" variant="ghost" colorScheme="neutral" disabled={saving} onclick={reset} />{/if}
+				</div>
+			</div>
 		</section>
 
 		<section class="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 max-md:p-3">
