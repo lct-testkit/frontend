@@ -1,7 +1,9 @@
-// Каталог кодов событий уведомлений для страницы настроек (`PUT /api/me/notification-prefs`).
-// Бэкенд не отдаёт список кодов не-администратору (шаблоны — только `/admin/notification-templates`), поэтому
-// список зеркалит backend/app/modules/notification/seed.py и коды, которые вызываются из crm/catalog/registry/signing.
-// Неизвестный код из уже сохранённых настроек показывается как есть (группа «Прочее»).
+// Русские подписи и группы кодов событий уведомлений. Какие коды вообще настраиваемы (у каких есть активный шаблон) —
+// с 25.09 отдаёт `GET /api/notifications/event-codes` (backend-issues A-24; страница настроек, `NotificationSettingsPage.svelte`,
+// строит список строк по нему). Тексты для показа бэкенд не отдаёт — только код, поэтому подписи и группировка остаются здесь;
+// это же справочник использует `notificationTitle()` для заголовка уведомления по `template_code`, в том числе для уже
+// пришедших уведомлений, чей код мог с тех пор перестать быть «активным». Неизвестный код (в том числе только что заведённый на
+// бэкенде, но ещё не описанный тут) показывается как есть, группа «Прочее».
 
 export type EventGroup = 'deals' | 'organizations' | 'signing' | 'account' | 'other';
 
@@ -21,7 +23,8 @@ export const EVENT_GROUP_LABELS: Record<EventGroup, string> = {
 	other: 'Прочее'
 };
 
-export const EVENT_CODES: EventCodeInfo[] = [
+/** Справочник подписей — не список настраиваемых кодов (тот теперь только с бэкенда, см. заголовок файла). */
+const EVENT_CODE_LABELS: EventCodeInfo[] = [
 	{ code: 'DEAL_REASSIGNED', label: 'Мне назначена сделка', group: 'deals' },
 	{ code: 'DEAL_SLA_WARNING', label: 'Истекает срок статуса (SLA)', group: 'deals' },
 	{ code: 'DEAL_SLA_BREACHED', label: 'Нарушен срок статуса (SLA)', group: 'deals' },
@@ -42,11 +45,12 @@ export const EVENT_CODES: EventCodeInfo[] = [
 	{ code: 'USER_ACCOUNT_BLOCKED', label: 'Учётная запись заблокирована', group: 'account', locked: true },
 	{ code: 'USER_ACCOUNT_UNBLOCKED', label: 'Учётная запись разблокирована', group: 'account', locked: true },
 	{ code: 'USER_ROLE_CHANGED', label: 'Изменена роль', group: 'account', locked: true },
+	{ code: 'USER_INVITE_EXPIRED', label: 'Приглашение не принято за 30 дней', group: 'account' },
 	{ code: 'ERASURE_REQUEST_BLOCKED', label: 'Запрос на удаление данных заблокирован', group: 'account' },
 	{ code: 'ERASURE_COMPLETED', label: 'Запрос на удаление данных исполнен', group: 'account' }
 ];
 
-const BY_CODE = new Map(EVENT_CODES.map((e) => [e.code, e]));
+const BY_CODE = new Map(EVENT_CODE_LABELS.map((e) => [e.code, e]));
 
 export function eventCodeInfo(code: string): EventCodeInfo {
 	return BY_CODE.get(code) ?? { code, label: code, group: 'other' };
