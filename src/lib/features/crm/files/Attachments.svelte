@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Вложения сущности (сделка, организация, контакт): список по категориям, загрузка в три шага
 	// (upload-intent → PUT в хранилище → commit → привязка), скачивание, отвязка (только тому, у кого право `file:delete`).
-	// Имя файла бэкенд во вложении не отдаёт, поэтому кладём его в `description` при привязке (backend-issues A-31).
+	// Имя, размер и тип файла бэкенд отдаёт в `attachment.file`; у старых вложений без него — имя из `description`, заданное при привязке.
 	import { onMount } from 'svelte';
 	import { Download, Trash, Upload } from '@lct-testkit/rt-ui/icons';
 	import { Progress } from '@lct-testkit/rt-ui/ext';
@@ -13,6 +13,7 @@
 	import { formatBytes } from '$lib/utils/format';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import { ATTACHMENT_CATEGORY_LABELS } from '../shared/labels';
+	import { fileKind } from './file-kind';
 	import type { Attachment } from '../types';
 
 	interface Props {
@@ -74,6 +75,7 @@
 	}
 	onMount(() => void load());
 
+	const nameOf = (a: Attachment) => a.file?.original_filename || a.description || 'Файл';
 	const extOf = (name: string) => name.split('.').pop()?.toLowerCase() ?? '';
 
 	function pick(files: FileList | File[] | null) {
@@ -129,7 +131,7 @@
 	}
 
 	async function remove(a: Attachment) {
-		if (!(await confirm({ title: `Отвязать «${a.description || 'файл'}»?`, confirmLabel: 'Отвязать', danger: true }))) return;
+		if (!(await confirm({ title: `Отвязать «${nameOf(a)}»?`, confirmLabel: 'Отвязать', danger: true }))) return;
 		try {
 			await unwrap(api.DELETE('/api/attachments/{attachment_id}', { params: { path: { attachment_id: a.id } } }));
 			items = items.filter((x) => x.id !== a.id);
@@ -213,8 +215,10 @@
 					{#each group.rows as a (a.id)}
 						<li class="flex min-h-12 items-center gap-3 border-b border-line px-3 py-2 last:border-b-0">
 							<span class="flex min-w-0 flex-1 flex-col">
-								<span class="t-body-m truncate" title={a.description ?? undefined}>{a.description || 'Файл'}</span>
-								<span class="t-desc-l text-muted"><DateText value={a.created_at} time />{#if a.uploaded_by} · {people.name(a.uploaded_by)}{/if}</span>
+								<span class="t-body-m truncate" title={nameOf(a)}>{nameOf(a)}</span>
+								<span class="t-desc-l text-muted">
+									{#if a.file}{formatBytes(a.file.size_bytes)} · {fileKind(a.file.mime_type, a.file.original_filename)} · {/if}<DateText value={a.created_at} time />{#if a.uploaded_by} · {people.name(a.uploaded_by)}{/if}
+								</span>
 							</span>
 							{#if canDownload}<IconBtn icon={Download} label="Скачать" onclick={() => download(a)} />{/if}
 							{#if canRemove}<IconBtn icon={Trash} label="Отвязать" danger onclick={() => remove(a)} />{/if}

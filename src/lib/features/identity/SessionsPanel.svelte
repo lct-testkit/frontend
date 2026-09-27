@@ -5,6 +5,7 @@
 	import { Desktop, Mobile, SignOut } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
+	import Btn from '$lib/ui/Btn.svelte';
 	import { confirm } from '$lib/ui/confirm.svelte';
 	import DateText from '$lib/ui/DateText.svelte';
 	import EmptyState from '$lib/ui/EmptyState.svelte';
@@ -22,6 +23,8 @@
 	let loading = $state(true);
 	let error = $state<unknown>(null);
 	let busy = $state<string | null>(null);
+	let endingOthers = $state(false);
+	const hasOthers = $derived(items.some((x) => !x.is_current));
 
 	async function load() {
 		loading = true;
@@ -50,7 +53,7 @@
 		try {
 			await unwrap(api.DELETE('/api/me/sessions/{sid}', { params: { path: { sid: s.sid } } }));
 			if (s.is_current) {
-				session.reset(null);
+				await session.logout(); // also drops the locally stored Bearer tokens
 				await goto('/login');
 				return;
 			}
@@ -62,6 +65,26 @@
 			busy = null;
 		}
 	}
+
+	async function endOthers() {
+		const ok = await confirm({
+			title: 'Завершить остальные сессии?',
+			message: 'Все другие устройства будут отключены, эта сессия останется.',
+			confirmLabel: 'Завершить остальные',
+			danger: true
+		});
+		if (!ok) return;
+		endingOthers = true;
+		try {
+			const res = await unwrap(api.POST('/api/me/sessions/terminate-others'));
+			toast.success(res.terminated ? `Завершено сессий: ${res.terminated}` : 'Других сессий нет');
+			await load();
+		} catch (e) {
+			toast.error(e);
+		} finally {
+			endingOthers = false;
+		}
+	}
 </script>
 
 {#if loading}
@@ -69,8 +92,13 @@
 {:else if error}
 	<ErrorState {error} onRetry={load} />
 {:else if items.length === 0}
-	<EmptyState compact title="Других активных сессий нет" />
+	<EmptyState compact title="Активных сессий нет" />
 {:else}
+	{#if hasOthers}
+		<div class="mb-3 flex justify-end">
+			<Btn label="Завершить остальные" variant="outline" colorScheme="neutral" disabled={endingOthers} onclick={endOthers} />
+		</div>
+	{/if}
 	<ul class="m-0 flex list-none flex-col gap-2 p-0">
 		{#each items as s (s.sid)}
 			{@const Icon = mobile(s) ? Mobile : Desktop}
@@ -79,7 +107,7 @@
 				<div class="min-w-0 flex-1">
 					<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
 						<span class="t-body-m-strong">{describeUserAgent(s.user_agent, s.device)}</span>
-						{#if s.is_current}<StatusChip label="Эта сессия" tone="success" />{/if}
+						{#if s.is_current}<StatusChip label="Это устройство" tone="success" />{/if}
 					</div>
 					<p class="t-desc-l m-0 text-muted">
 						{s.ip ?? 'IP неизвестен'} · вход <DateText value={s.created_at} time /> · активность <DateText value={s.last_seen_at} relative />

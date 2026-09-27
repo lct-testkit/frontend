@@ -1131,7 +1131,10 @@ export type paths = {
         /** Определения пользовательских полей */
         get: operations["list_custom_field_defs_api_custom_field_defs_get"];
         put?: never;
-        /** Создать пользовательское поле */
+        /**
+         * Создать пользовательское поле
+         * @description Определение поля задаёт и проверку значений в `custom_fields` сделок, организаций и продуктов (при создании и PATCH — 422 с `errors[].field = custom_fields.<код>`). `select`/`multiselect`: варианты в `options.choices`; `number`: `validation.min` и `validation.max`; `string`: `validation.max_length` и `validation.pattern` (regexp, поиск по значению); `date` — `ГГГГ-ММ-ДД`; `bool` — true/false. Значения ключей без определения (и выключенных полей) сохраняются без проверки; `null` сбрасывает значение. `is_required` проверяется при создании записи (кроме `bool` и служебной учётки интеграции), а при PATCH — только для присланного ключа. Роль: `catalog:write`.
+         */
         post: operations["create_custom_field_def_api_custom_field_defs_post"];
         delete?: never;
         options?: never;
@@ -1981,11 +1984,31 @@ export type paths = {
         };
         /**
          * Активные сессии
-         * @description Список серверных сессий пользователя из Redis: устройство, IP, User-Agent, время создания и последняя активность. Токены не возвращаются, а `sid` — не значение session-cookie, а необратимый публичный идентификатор сессии: по нему работает `DELETE /me/sessions/{sid}`. Роль: любой аутентифицированный пользователь.
+         * @description Список входов пользователя: серверные сессии из Redis (устройство, IP, User-Agent, время создания и последняя активность) и, для входа по Bearer-токену без серверной сессии, сессии Keycloak (устройство и User-Agent там неизвестны). Токены не возвращаются, а `sid` — не значение session-cookie, а необратимый публичный идентификатор сессии: по нему работает `DELETE /me/sessions/{sid}`. Роль: любой аутентифицированный пользователь.
          */
         get: operations["list_sessions_api_me_sessions_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/sessions/terminate-others": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Завершить все остальные сессии
+         * @description Гасит все сессии пользователя, кроме текущей: серверные (и их сессии в Keycloak) и, при входе по Bearer, остальные сессии Keycloak. Текущая сессия остаётся рабочей. Идемпотентно: если других сессий нет, возвращает `terminated: 0`. Факт пишется в аудит (одна запись с числом завершённых сессий). Роль: любой аутентифицированный.
+         */
+        post: operations["terminate_other_sessions_api_me_sessions_terminate_others_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3271,6 +3294,20 @@ export type components = {
              */
             file_id: string;
         };
+        /**
+         * AttachmentFileInfo
+         * @description Сведения о файле вложения: чтобы список показывал имя и размер, а не голый `file_id`.
+         */
+        AttachmentFileInfo: {
+            /** Mime Type */
+            mime_type: string;
+            /** Original Filename */
+            original_filename: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Status */
+            status: string;
+        };
         /** AttachmentListResponse */
         AttachmentListResponse: {
             /** Items */
@@ -3296,6 +3333,7 @@ export type components = {
             entity_id: string;
             /** Entity Type */
             entity_type: string;
+            file?: components["schemas"]["AttachmentFileInfo"] | null;
             /**
              * File Id
              * Format: uuid
@@ -6774,6 +6812,19 @@ export type components = {
         SessionListResponse: {
             /** Items */
             items: components["schemas"]["SessionInfo"][];
+        };
+        /**
+         * SessionsTerminatedResponse
+         * @description Итог «завершить остальные сессии»: сколько входов погашено (0 — уже нечего гасить).
+         */
+        SessionsTerminatedResponse: {
+            /**
+             * Ok
+             * @default true
+             */
+            ok: boolean;
+            /** Terminated */
+            terminated: number;
         };
         /** SignRequest */
         SignRequest: {
@@ -12473,6 +12524,35 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    terminate_other_sessions_api_me_sessions_terminate_others_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionsTerminatedResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["UnprocessableEntity"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalServerError"];
