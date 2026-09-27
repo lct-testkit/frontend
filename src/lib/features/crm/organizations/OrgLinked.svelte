@@ -44,7 +44,7 @@
 		/>
 	{:else}
 		{#if session.can('deal:create')}
-			<div><Btn label="Новая сделка" icon={AddLarge} onclick={() => goto(`/deals?new=1&org=${orgId}`)} /></div>
+			<div class="max-md:hidden"><Btn label="Новая сделка" icon={AddLarge} onclick={() => goto(`/deals?new=1&org=${orgId}`)} /></div>
 		{/if}
 		<DealsTable pager={deals}>
 			{#snippet empty()}<EmptyState title="Сделок пока нет" compact />{/snippet}

@@ -7,6 +7,7 @@
 	import DateField from '$lib/ui/fields/DateField.svelte';
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
+	import MultiPick from '$lib/ui/fields/MultiPick.svelte';
 	import TextField from '$lib/ui/fields/TextField.svelte';
 	import ContactPicker from '../../shared/pickers/ContactPicker.svelte';
 	import OrgPicker from '../../shared/pickers/OrgPicker.svelte';
@@ -105,7 +106,7 @@
 		for (const def of defs) {
 			const a = base.custom[def.code] ?? null;
 			const b = v.custom[def.code] ?? null;
-			if (a !== b) custom[def.code] = b === '' ? null : b;
+			if (JSON.stringify(a) !== JSON.stringify(b)) custom[def.code] = b === '' ? null : b;
 		}
 		if (Object.keys(custom).length) body.custom_fields = custom;
 		return body;
@@ -193,16 +194,19 @@
 		<FormSection title="Дополнительные поля" class="mt-2">
 			{#each defs as def (def.id)}
 				{@const value = v.custom[def.code]}
+				{@const err = errors[`custom_fields.${def.code}`]}
 				{#if def.field_type === 'bool'}
 					<CheckField label={def.label} required={def.is_required} checked={value === true} onChange={(x) => setCustom(def.code, x)} />
 				{:else if def.field_type === 'number'}
-					<NumberField label={def.label} required={def.is_required} value={typeof value === 'number' ? value : value ? Number(value) : null} onChange={(x) => setCustom(def.code, x)} />
+					<NumberField label={def.label} required={def.is_required} value={typeof value === 'number' ? value : value ? Number(value) : null} error={err} onChange={(x) => setCustom(def.code, x)} />
 				{:else if def.field_type === 'date'}
-					<DateField label={def.label} required={def.is_required} value={typeof value === 'string' ? value : null} onChange={(x) => setCustom(def.code, x)} />
+					<DateField label={def.label} required={def.is_required} value={typeof value === 'string' ? value : null} error={err} onChange={(x) => setCustom(def.code, x)} />
 				{:else if def.field_type === 'select' && options(def).length}
-					<Pick label={def.label} required={def.is_required} items={options(def)} clearable value={typeof value === 'string' ? value : null} onChange={(x) => setCustom(def.code, x)} />
+					<Pick label={def.label} required={def.is_required} items={options(def)} clearable value={typeof value === 'string' ? value : null} error={err} onChange={(x) => setCustom(def.code, x)} />
+				{:else if def.field_type === 'multiselect' && options(def).length}
+					<MultiPick label={def.label} required={def.is_required} items={options(def)} value={Array.isArray(value) ? (value as string[]) : []} error={err} onChange={(x) => setCustom(def.code, x)} />
 				{:else}
-					<TextField label={def.label} required={def.is_required} value={value === null || value === undefined ? '' : String(value)} onInput={(x) => setCustom(def.code, x)} />
+					<TextField label={def.label} required={def.is_required} value={value === null || value === undefined ? '' : String(value)} error={err} onInput={(x) => setCustom(def.code, x)} />
 				{/if}
 			{/each}
 		</FormSection>
