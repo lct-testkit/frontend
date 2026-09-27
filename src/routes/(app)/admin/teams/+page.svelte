@@ -1,10 +1,14 @@
 <script lang="ts">
 	// Команды: дерево (родитель → дочерние), руководитель, регион. От дерева зависит область видимости руководителя.
+	// Правка — по актуальной карточке (`GET /admin/teams/{id}`, не по строке из уже загрученного списка) и с `If-Match`: конфликт (409, CRM-1002)
+	// обрабатывается так же, как в ProductDrawer.svelte и редакторах справочников (catalog/*Drawer.svelte) — перечитать, оставить введённое.
 	import { onMount, untrack } from 'svelte';
-	import { ApiError, api, errorMessage, unwrap, type components } from '$lib/api';
+	import { api, ifMatch, unwrap, type components } from '$lib/api';
 	import { teams } from '$lib/features/identity/teams.svelte';
+	import { toFormFailure } from '$lib/features/config/shared/form-errors';
 	import { Btn, DataTable, DateText, EmptyState, ErrorState, FilterBar, FormDrawer, Page, PageHeader, Pick, Skeleton, TableCell, TextField, UserName, UserPicker, toast, type Col } from '$lib/ui';
 	import { people } from '$lib/api/people.svelte';
+	import { formatDateTime } from '$lib/utils/format';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 
 	type Team = components['schemas']['TeamOut'];
@@ -64,9 +68,13 @@
 	let parentId = $state<string | null>(null);
 	let headId = $state<string | null>(null);
 	let regionId = $state<string | null>(null);
+	let version = $state(0);
 	let saving = $state(false);
 	let fieldErrors = $state<Record<string, string>>({});
 	let failure = $state<string | null>(null);
+	let conflict = $state(false);
+	/** обновляем версию/время правки в фоне сразу после открытия — тише, чем крутить скелетон в панели, которая уже показывает данные из списка */
+	let refreshing = $state(false);
 
 	function show(team: Team | null) {
 		untrack(() => {
@@ -75,10 +83,43 @@
 			parentId = team?.parent_id ?? null;
 			headId = team?.head_id ?? null;
 			regionId = team?.region_id ?? null;
+			version = team?.version ?? 0;
 			fieldErrors = {};
 			failure = null;
+			conflict = false;
 			open = true;
 		});
+		if (team) void refreshTeam(team.id);
+	}
+
+	/** Актуальная карточка по id — и сразу при открытии панели (строка в списке могла устареть), и после конфликта версий. */
+	async function refreshTeam(id: string): Promise<Team | null> {
+		refreshing = true;
+		try {
+			const fresh = await unwrap(api.GET('/api/admin/teams/{team_id}', { params: { path: { team_id: id } } }));
+			teams.put(fresh);
+			if (editing?.id === id) {
+				editing = fresh;
+				version = fresh.version;
+			}
+			return fresh;
+		} catch {
+			return null; // список уже показывал те же данные; сохранение и конфликт версий всё равно проверяются на сервере
+		} finally {
+			refreshing = false;
+		}
+	}
+
+	/** После конфликта версий (409, CRM-1002): берём актуальную версию, введённое остаётся в форме — тот же приём, что в ProductDrawer.svelte. */
+	async function reloadVersion() {
+		if (!editing) return;
+		const fresh = await refreshTeam(editing.id);
+		if (fresh) {
+			conflict = false;
+			toast.info('Загружена актуальная версия', 'Проверьте поля и сохраните ещё раз');
+		} else {
+			toast.error('Не удалось загрузить актуальную версию');
+		}
 	}
 
 	/** a team cannot become a child of itself or of its own descendants */
@@ -104,17 +145,20 @@
 		saving = true;
 		fieldErrors = {};
 		failure = null;
+		conflict = false;
 		const body = { name: name.trim(), parent_id: parentId, head_id: headId, region_id: regionId };
 		try {
 			const team = editing
-				? await unwrap(api.PATCH('/api/admin/teams/{team_id}', { params: { path: { team_id: editing.id } }, body }))
+				? await unwrap(api.PATCH('/api/admin/teams/{team_id}', { params: { path: { team_id: editing.id } }, body, headers: ifMatch(version) }))
 				: await unwrap(api.POST('/api/admin/teams', { body }));
 			teams.put(team);
 			toast.success(editing ? 'Команда сохранена' : 'Команда создана');
 			open = false;
 		} catch (e) {
-			if (e instanceof ApiError && e.isValidation) fieldErrors = e.fieldErrors();
-			failure = errorMessage(e);
+			const result = toFormFailure(e, ['name', 'head_id', 'parent_id', 'region_id']);
+			fieldErrors = result.fields;
+			failure = result.form;
+			conflict = result.conflict;
 		} finally {
 			saving = false;
 		}
@@ -167,6 +211,8 @@
 	{saving}
 	dirty={open && (name.trim() !== (editing?.name ?? '') || parentId !== (editing?.parent_id ?? null) || headId !== (editing?.head_id ?? null) || regionId !== (editing?.region_id ?? null))}
 	formError={failure && !Object.keys(fieldErrors).length ? failure : null}
+	{conflict}
+	onReload={reloadVersion}
 	onSave={save}
 	onClose={() => (open = false)}
 >
@@ -174,4 +220,7 @@
 	<Pick label="Родительская команда" placeholder="Нет" items={parentOptions} value={parentId} clearable onChange={(v) => (parentId = v)} />
 	<UserPicker label="Руководитель" value={headId} roles={['HEAD', 'ADMIN']} error={fieldErrors.head_id} onChange={(id) => (headId = id)} />
 	<Pick label="Регион" placeholder="Не задан" items={regions} value={regionId} clearable search onChange={(v) => (regionId = v)} />
+	{#if editing}
+		<p class="t-desc-l m-0 text-muted">Создана {formatDateTime(editing.created_at)} · изменена {formatDateTime(editing.updated_at)}{refreshing ? ' · обновляем…' : ''}</p>
+	{/if}
 </FormDrawer>
