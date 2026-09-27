@@ -48,6 +48,17 @@ export function internalAdapter(requestId: string): SignAdapter {
 export const getDocument = (id: string): Promise<SignatureDocument> =>
 	unwrap(api.GET('/api/signature-documents/{document_id}', { params: { path: { document_id: id } } }));
 
+/**
+ * Пачка карточек по id — один запрос вместо N (C-5). Недоступные/не найденные id бэкенд сам не
+ * включает в ответ (тихо, не 404 на весь запрос) — вызывающая сторона (`known.ts`) не отличает
+ * это от «пока не долетело». До 100 id за раз (лимит бэкенда, `_MAX_BATCH_IDS`); разбивку на
+ * несколько запросов при большем количестве делает `known.ts`, здесь — ровно один HTTP-вызов.
+ */
+export const getDocumentsBatch = (ids: string[]): Promise<SignatureDocument[]> =>
+	unwrap(api.GET('/api/signature-documents/batch', { params: { query: { ids: ids.join(',') } } })).then(
+		(page) => page.items
+	);
+
 /** История документов сущности (сделки): включая аннулированные, отклонённые и просроченные. */
 export async function listDocuments(entityType: 'deal' | 'erasure_request' | 'report_job', entityId: string, limit = 50): Promise<SignatureDocument[]> {
 	const page = await unwrap(api.GET('/api/signature-documents', { params: { query: { entity_type: entityType, entity_id: entityId, limit } } }));
