@@ -32,7 +32,7 @@
 
 	let { pager, fill = false, selectable = false, selected = [], onSelect, actionBar, empty, compact = false, showOwner = false, embedded = false }: Props = $props();
 
-	// сервер не сортирует (backend-issues A-11): сортируем то, что уже загружено
+	// клиент сортирует то, что уже загружено; серверные `sort`, `total`, `is_closed` бэкенд отдаёт с 25.09 (backend-issues A-11), но список их пока не использует
 	let sort = $state<SortState | null>(null);
 
 	const rows = $derived.by(() => {

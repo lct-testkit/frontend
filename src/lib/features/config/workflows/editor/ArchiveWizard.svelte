@@ -1,6 +1,6 @@
 <script lang="ts">
 	// Мастер архивации статуса (4 шага): влияние → куда перенести сделки → предпросмотр → выполнение.
-	// Бэкенд не отдаёт ход переноса (backend-issues #1): после запроса опрашиваем воронку, пока статус не станет архивным.
+	// Ход переноса можно читать через `GET /workflows/{id}/mapping-jobs/{job_id}` (backend-issues #1, с 25.09), но мастер пока опрашивает воронку, пока статус не станет архивным.
 	import { onDestroy, untrack } from 'svelte';
 	import { Progress } from '@lct-testkit/rt-ui/ext';
 	import { CheckLarge } from '@lct-testkit/rt-ui/icons';
