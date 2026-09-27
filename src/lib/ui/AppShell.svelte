@@ -90,7 +90,7 @@
 	</a>
 {/snippet}
 
-<div class="flex h-dvh overflow-hidden bg-page text-fg">
+<div class="fixed inset-0 flex overflow-hidden bg-page text-fg">
 	{#if !bp.isMobile}
 		<SideNav class="h-full flex-none" {sections} isActive={(item) => isActive(item, page.url.pathname)} {counters} {attention} {expanded} onNavigate={go} onToggle={bp.isDesktop ? toggleMenu : undefined}>
 			{#snippet brand()}{@render brandLink(!expanded)}{/snippet}
