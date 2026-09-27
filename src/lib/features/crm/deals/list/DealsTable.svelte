@@ -133,6 +133,7 @@
 	error={pager.error}
 	onRetry={() => pager.reload()}
 	onRowClick={open}
+	rowHref={(row) => `/deals/${row.id}`}
 	{sort}
 	onSort={(next) => (sort = next)}
 	hasMore={pager.hasMore}

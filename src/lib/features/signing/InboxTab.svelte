@@ -99,6 +99,7 @@
 	{error}
 	onRetry={load}
 	onRowClick={open}
+	rowHref={(r) => (actionable(r) ? `/signing/requests/${r.id}` : `/signing/${r.document_id}`)}
 	emptyText={scope === 'open' ? 'Нет документов, ожидающих вашей подписи' : 'Запросов на подпись пока не было'}
 	ariaLabel="Мне на подпись"
 />

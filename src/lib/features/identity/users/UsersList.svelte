@@ -97,6 +97,7 @@
 	error={pager.error}
 	onRetry={() => pager.reload()}
 	onRowClick={open}
+	rowHref={(u) => `/admin/users/${u.id}`}
 	hasMore={pager.hasMore}
 	loadingMore={pager.loadingMore}
 	onLoadMore={() => pager.loadMore()}

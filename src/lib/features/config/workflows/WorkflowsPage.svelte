@@ -94,6 +94,7 @@
 		loadingMore={pager.loadingMore}
 		onLoadMore={() => pager.loadMore()}
 		onRowClick={(w) => goto(`/workflows/${w.id}`)}
+		rowHref={(w) => `/workflows/${w.id}`}
 		ariaLabel="Воронки"
 	>
 		{#snippet empty()}

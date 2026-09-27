@@ -77,6 +77,7 @@
 	error={pager.error}
 	onRetry={() => pager.reload()}
 	onRowClick={open}
+	rowHref={(row) => `/contacts/${row.id}`}
 	hasMore={pager.hasMore}
 	loadingMore={pager.loadingMore}
 	onLoadMore={() => pager.loadMore()}
