@@ -111,11 +111,11 @@
 
 <FormDrawer {open} title={isNew ? 'Новая причина отказа' : name || 'Причина отказа'} {saving} {formError} {conflict} onSave={save} {onClose} onReload={reload}>
 	{#if isNew}
-		<TextField label="Код" bind:value={code} error={errors.code} maxlength={64} autofocus />
+		<TextField label="Код" required bind:value={code} error={errors.code} maxlength={64} autofocus />
 	{:else}
 		<TextField label="Код" value={code} readonly hint="Код после создания не меняется" />
 	{/if}
-	<TextField label="Название" bind:value={name} error={errors.name} maxlength={255} autofocus={!isNew} />
-	<Pick label="Категория" bind:value={category} items={LOSS_REASON_CATEGORIES.map((c) => ({ key: c.key, value: c.value }))} error={errors.category} />
+	<TextField label="Название" required bind:value={name} error={errors.name} maxlength={255} autofocus={!isNew} />
+	<Pick label="Категория" required bind:value={category} items={LOSS_REASON_CATEGORIES.map((c) => ({ key: c.key, value: c.value }))} error={errors.category} />
 	<Toggle label="Активна" bind:checked={isActive} />
 </FormDrawer>

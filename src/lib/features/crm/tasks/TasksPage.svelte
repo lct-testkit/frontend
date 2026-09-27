@@ -16,6 +16,7 @@
 	import type { Task } from '../types';
 	import TaskDrawer from './TaskDrawer.svelte';
 	import TaskRow from './TaskRow.svelte';
+	import { TaskCounts } from './taskCounts.svelte';
 	import { DUE_GROUP_LABELS, DUE_GROUP_ORDER, dueGroup } from './taskUtils';
 
 	const view = $derived(page.url.searchParams.get('view') ?? 'open');
@@ -46,6 +47,12 @@
 		void preloadDeals(tasks.map((t) => t.deal_id)).catch(() => {});
 	});
 
+	const counts = new TaskCounts();
+	$effect(() => {
+		const base = { assignee_id: params.assignee_id, priority: params.priority };
+		if (meId && session.can('deal:read')) untrack(() => void counts.load(base));
+	});
+
 	let drawer = $state<{ task: Task | null } | null>(null);
 
 	// ссылка из уведомления `/tasks?task=<id>`: открыть задачу, как только список загружен
@@ -60,13 +67,13 @@
 		}
 	});
 
-	const viewTabs = [
-		{ key: 'open', label: 'Открытые' },
-		{ key: 'in_progress', label: 'В работе' },
-		{ key: 'overdue', label: 'Просроченные' },
-		{ key: 'done', label: 'Выполненные' },
-		{ key: 'all', label: 'Все' }
-	];
+	const viewTabs = $derived([
+		{ key: 'open', label: 'Открытые', count: counts.counts.open },
+		{ key: 'in_progress', label: 'В работе', count: counts.counts.in_progress },
+		{ key: 'overdue', label: 'Просроченные', count: counts.counts.overdue },
+		{ key: 'done', label: 'Выполненные', count: counts.counts.done },
+		{ key: 'all', label: 'Все', count: counts.counts.all }
+	]);
 	const priorityItems = Object.entries(PRIORITY_LABELS).map(([key, value]) => ({ key, value }));
 	const filterCount = $derived([priority, canPickAssignee && assignee].filter(Boolean).length);
 
@@ -75,6 +82,7 @@
 	);
 
 	function saved(task: Task) {
+		void counts.load({ assignee_id: params.assignee_id, priority: params.priority });
 		if (pager.items.some((t) => t.id === task.id)) pager.patch((t) => t.id === task.id, task);
 		else pager.prepend(task);
 		drawer = null;
@@ -117,7 +125,7 @@
 			{#each groups as group (group.key)}
 				<RowList title={DUE_GROUP_LABELS[group.key]} count={group.tasks.length} danger={group.key === 'overdue'}>
 					{#each group.tasks as task (task.id)}
-						<TaskRow {task} showDeal showAssignee={canPickAssignee} onOpen={(t) => (drawer = { task: t })} onChanged={(t) => pager.patch((x) => x.id === t.id, t)} />
+						<TaskRow {task} showDeal showAssignee={canPickAssignee} onOpen={(t) => (drawer = { task: t })} onChanged={(t) => (pager.patch((x) => x.id === t.id, t), void counts.load({ assignee_id: params.assignee_id, priority: params.priority }))} />
 					{/each}
 				</RowList>
 			{/each}

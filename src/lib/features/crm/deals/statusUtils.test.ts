@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AvailableTransition, WorkflowGraph, WorkflowStatus } from '../types';
-import { classifyTransitions, isTerminal, steps, terminals, transitionKind } from './statusUtils';
+import { classifyTransitions, isTerminal, statusName, steps, terminals, transitionKind } from './statusUtils';
 
 const st = (id: string, type: string, sort: number, extra: Partial<WorkflowStatus> = {}): WorkflowStatus => ({
 	id,
@@ -77,5 +77,14 @@ describe('classifyTransitions', () => {
 		const res = classifyTransitions([tr('fwd', 'c', { role_allowed: false })], statusOf, current);
 		expect(res.primary).toBeNull();
 		expect(res.more).toHaveLength(1);
+	});
+});
+
+describe('statusName', () => {
+	it('первая буква заглавная, остальное как есть', () => {
+		expect(statusName('на паузе')).toBe('На паузе');
+		expect(statusName('Заморожена')).toBe('Заморожена');
+		expect(statusName('  отказ ')).toBe('Отказ');
+		expect(statusName(null)).toBe('');
 	});
 });

@@ -5,6 +5,8 @@
 		/** row field to show (and the column's unique name) */
 		key: string;
 		title: string;
+		/** what the title means (an abbreviation): shown as the tooltip of the header cell */
+		hint?: string;
 		/**
 		 * The width of the column. Omitted / `'auto'` = it FITS ITS CONTENT (the widest cell or the title, never more — no empty space);
 		 * `'minmax(180px, 2fr)'` = it takes a share of the free space (give this to the one or two columns that hold long text: a title, an organization);
@@ -25,10 +27,9 @@
 		showFrom?: 'wide' | 'desktop' | 'tablet';
 	}
 
-	export interface SortState {
-		key: string;
-		dir: 'asc' | 'desc';
-	}
+	import type { SortState as TableSort } from './table-sort';
+
+	export type SortState = TableSort;
 </script>
 
 <script lang="ts" generics="Row extends { id: string | number }">
@@ -45,6 +46,7 @@
 	import EmptyState from './EmptyState.svelte';
 	import ErrorState from './ErrorState.svelte';
 	import Skeleton from './Skeleton.svelte';
+	import { ariaSort, headerSortKey, nextSort } from './table-sort';
 
 	interface Props {
 		rows: Row[];
@@ -66,6 +68,8 @@
 		onLoadMore?: () => void;
 		/** «Найдено: 1 240» — when the backend knows the total; otherwise the footer counts what is loaded */
 		total?: number;
+		/** no footer line at all (a short fixed list without paging, where «Показано: N» says nothing) */
+		noFooter?: boolean;
 		selectable?: boolean;
 		selected?: string[];
 		onSelectionChange?: (keys: string[]) => void;
@@ -92,6 +96,7 @@
 		sort = null,
 		onSort,
 		hasMore = false,
+		noFooter = false,
 		loadingMore = false,
 		onLoadMore,
 		total,
@@ -178,10 +183,64 @@
 	});
 
 	function cycle(key: string) {
-		if (!onSort) return;
-		if (!sort || sort.key !== key) onSort({ key, dir: 'asc' });
-		else if (sort.dir === 'asc') onSort({ key, dir: 'desc' });
-		else onSort(null);
+		onSort?.(nextSort(sort, key));
+	}
+
+	// A sortable header sorts when you click ANYWHERE in its cell, not only on the small arrows (the DS makes only the arrow button clickable, yet lights the
+	// whole cell up on hover). The DS has no header click handler, so one listener on the table area looks for the header cell under the pointer. The cell is
+	// also given what a screen reader needs (`columnheader` + `aria-sort`, a name for the icon-only button); the look — pointer, hover only on sortable
+	// headers, focus ring on the whole cell — is in app.css. The arrow button stays the keyboard target (Tab, then Enter / Space).
+	const sortableKeys = $derived(new Set(visible.filter((c) => c.sortable && onSort).map((c) => c.key)));
+	const headerHints = $derived(Object.fromEntries(visible.filter((c) => c.hint).map((c) => [c.key, c.hint as string])));
+	const HEADER_CELL = '.atmr-tablegrid__cell--header[data-header-cell-name]';
+
+	interface HeaderSort {
+		sortable: ReadonlySet<string>;
+		sort: SortState | null;
+		hints?: Record<string, string>;
+	}
+
+	function headerSort(node: HTMLElement, initial: HeaderSort) {
+		let current = initial;
+		function decorate() {
+			for (const cell of node.querySelectorAll<HTMLElement>(HEADER_CELL)) {
+				const key = cell.dataset.headerCellName;
+				if (key === undefined) continue;
+				const hint = current.hints?.[key];
+				if (hint && cell.getAttribute('title') !== hint) cell.setAttribute('title', hint);
+				if (!current.sortable.has(key)) continue;
+				const title = cell.querySelector('.atmr-tablegrid__cell__headline__text')?.textContent?.trim() ?? '';
+				cell.setAttribute('role', 'columnheader');
+				cell.setAttribute('aria-sort', ariaSort(current.sort, key));
+				cell.querySelector('.atmr-tablegrid__sorting__button')?.setAttribute('aria-label', `Сортировать: ${title}`);
+			}
+		}
+		function onClick(event: MouseEvent) {
+			const target = event.target instanceof Element ? event.target : null;
+			const cell = target?.closest<HTMLElement>(HEADER_CELL);
+			if (!target || !cell || !node.contains(cell)) return;
+			// not a sort: the DS sort button (sorts itself), the column resize handle (a drag that ends in a click), a text selection made by dragging
+			const ignored =
+				target.closest('.atmr-tablegrid__sorting__button, .atmr-tablegrid__resizable__block') !== null ||
+				(window.getSelection()?.toString().length ?? 0) > 0;
+			const key = headerSortKey(cell.dataset.headerCellName, current.sortable, ignored);
+			if (key !== null) cycle(key);
+		}
+		// the DS renders the header cells itself (again when columns are dropped or come back): decorate whatever it puts in
+		const observer = new MutationObserver(decorate);
+		observer.observe(node, { childList: true, subtree: true });
+		node.addEventListener('click', onClick);
+		decorate();
+		return {
+			update(next: HeaderSort) {
+				current = next;
+				decorate();
+			},
+			destroy() {
+				observer.disconnect();
+				node.removeEventListener('click', onClick);
+			}
+		};
 	}
 
 	const gridColumns = $derived<TableGridColumn<Row>[]>(
@@ -243,7 +302,8 @@
 {/snippet}
 
 {#snippet footer()}
-	<div class="-ml-px flex min-h-10 items-center justify-between gap-3">
+	<!-- one quiet line (the DS bar already pads it 12 px above and below): as high as a table row; only the «Показать ещё» button makes it taller -->
+	<div class="-ml-px flex items-center justify-between gap-3">
 		<span class="t-body-s text-muted">{count}</span>
 		{#if hasMore}
 			<div use:inview><Btn label="Показать ещё" variant="outline" colorScheme="neutral" loading={loadingMore} onclick={() => onLoadMore?.()} /></div>
@@ -251,7 +311,7 @@
 	</div>
 {/snippet}
 
-<div bind:this={area} class={['w-full min-w-0', fill && 'md:min-h-0 md:flex-1 md:basis-0 md:overflow-hidden']} aria-busy={loading || undefined} use:rowKeydown>
+<div bind:this={area} class={['w-full min-w-0', fill && 'md:min-h-0 md:flex-1 md:basis-0 md:overflow-hidden', embedded && 'dt-embedded', onRowClick && 'dt-rows-open', !onRowClick && !selectable && 'dt-static']} aria-busy={loading || undefined} use:rowKeydown use:headerSort={{ sortable: sortableKeys, sort, hints: headerHints }}>
 	{#if error}
 		<ErrorState {error} {onRetry} />
 	{:else if loading && rows.length === 0}
@@ -284,7 +344,7 @@
 			}}
 			renders={{
 				emptyTable: rows.length === 0 ? emptyView : undefined,
-				footer: rows.length > 0 ? footer : undefined,
+				footer: rows.length > 0 && !noFooter ? footer : undefined,
 				actionBar: selectable && actionBar ? actionBar : undefined
 			}}
 		/>

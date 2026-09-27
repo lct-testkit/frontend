@@ -106,7 +106,7 @@
 		{:else if tab === 'comments'}
 			<DealComments dealId={deal.id} canWrite={session.can('deal:update') && card.writable} refreshKey={card.epoch} onCount={(n) => (commentCount = n)} />
 		{:else if tab === 'files'}
-			<Attachments entityType="deal" entityId={deal.id} canEdit={canFiles} />
+			<Attachments entityType="deal" entityId={deal.id} canEdit={canFiles} about="по сделке" />
 		{:else if tab === 'tasks'}
 			<DealTasks dealId={deal.id} canWrite={canWrite} refreshKey={card.epoch} onCount={(n) => (taskCount = n)} />
 		{:else if tab === 'history'}

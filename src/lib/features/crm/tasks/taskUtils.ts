@@ -39,3 +39,17 @@ export function dueGroup(task: Pick<Task, 'status' | 'due_at'>, now: number = Da
 }
 
 export const DUE_GROUP_ORDER: DueGroup[] = ['overdue', 'today', 'week', 'later', 'none'];
+
+export type TaskView = 'open' | 'in_progress' | 'overdue' | 'done' | 'all';
+
+/** The API filters of a tab of the tasks page. */
+export function viewQuery(view: string): { status?: 'open' | 'in_progress' | 'done'; overdue?: true } {
+	if (view === 'open' || view === 'in_progress' || view === 'done') return { status: view };
+	if (view === 'overdue') return { overdue: true };
+	return {};
+}
+
+/** The API returns no totals: a count is the size of one page of up to `limit` tasks; a full page with a next cursor reads «100+». */
+export function countLabel(loaded: number, hasMore: boolean, limit = 100): number | string {
+	return hasMore ? `${Math.min(loaded, limit)}+` : loaded;
+}

@@ -62,7 +62,7 @@
 </script>
 
 <FormDrawer {open} title="Новый флаг" saveLabel="Создать" {saving} {formError} onSave={save} {onClose}>
-	<TextField label="Код" bind:value={code} error={errors.code} maxlength={63} autofocus hint="Например, new_deal_card" />
+	<TextField label="Код" required bind:value={code} error={errors.code} maxlength={63} autofocus hint="Например, new_deal_card" />
 	<TextField label="Описание" bind:value={description} error={errors.description} maxlength={1000} />
 	<Toggle label="Включить сразу" bind:checked={enabled} hint="Иначе флаг создаётся выключенным" />
 </FormDrawer>

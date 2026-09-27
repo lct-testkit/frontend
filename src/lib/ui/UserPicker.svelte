@@ -18,13 +18,14 @@
 		error?: string;
 		hint?: string;
 		disabled?: boolean;
+		required?: boolean;
 		clearable?: boolean;
 		size?: 's' | 'm' | 'l';
 		/** ids that must not be offered (e.g. the person being replaced) */
 		exclude?: string[];
 	}
 
-	let { value = null, onChange, label, placeholder = 'Начните вводить имя', roles, error, hint, disabled = false, clearable = true, size, exclude = [] }: Props = $props();
+	let { value = null, onChange, label, placeholder = 'Начните вводить имя', roles, error, hint, disabled = false, required = false, clearable = true, size, exclude = [] }: Props = $props();
 
 	const bp = useBreakpoint();
 
@@ -74,6 +75,7 @@
 	{error}
 	{hint}
 	{disabled}
+	{required}
 	{clearable}
 	{items}
 	value={value ?? null}

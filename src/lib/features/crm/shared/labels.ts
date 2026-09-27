@@ -23,7 +23,7 @@ export const SLA_STATE_LABELS: Record<string, string> = {
 	ok: 'В норме',
 	warning: 'Истекает',
 	breached: 'Нарушен',
-	paused: 'На паузе'
+	paused: 'Остановлен'
 };
 
 export const SIGNATURE_STATUS_LABELS: Record<string, string> = {

@@ -147,11 +147,11 @@
 >
 	<Pick label="Кто сторона" items={partyItems} value={partyType} onChange={(v) => v && pickType(v as EdmPartyType)} />
 	{#if partyType === 'organization'}
-		<OrgPicker value={partyId} error={fieldErrors.party_id} onChange={(id) => ((partyId = id), delete fieldErrors.party_id)} />
+		<OrgPicker required value={partyId} error={fieldErrors.party_id} onChange={(id) => ((partyId = id), delete fieldErrors.party_id)} />
 	{:else if partyType === 'contact'}
-		<ContactPicker value={partyId} error={fieldErrors.party_id} onChange={(id) => ((partyId = id), delete fieldErrors.party_id)} />
+		<ContactPicker required value={partyId} error={fieldErrors.party_id} onChange={(id) => ((partyId = id), delete fieldErrors.party_id)} />
 	{:else}
-		<UserPicker label="Сотрудник" value={partyId} error={fieldErrors.party_id} onChange={(id) => ((partyId = id), delete fieldErrors.party_id)} />
+		<UserPicker label="Сотрудник" required value={partyId} error={fieldErrors.party_id} onChange={(id) => ((partyId = id), delete fieldErrors.party_id)} />
 	{/if}
 	<Pick label="Как заключено" items={methodItems} value={method} onChange={(v) => v && (method = v as EdmConclusionMethod)} />
 	<TextField label="Номер соглашения" value={number} error={fieldErrors.agreement_number} onInput={(v) => (number = v)} />

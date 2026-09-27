@@ -97,6 +97,25 @@
 	</Card>
 </DemoState>
 
+<DemoState title="Обязательные поля: звёздочка после подписи у каждого вида" bare>
+	<Card title="TextField, Pick, MultiPick, DateField, NumberField, AreaField, RadioField, CheckField, FileField">
+		<div class="grid grid-cols-3 items-start gap-x-3 gap-y-4 max-lg:grid-cols-2 max-md:grid-cols-1">
+			<TextField label="Название" required value="" />
+			<Pick label="Статус" required items={STATUS_ITEMS} value={null} placeholder="Не выбран" />
+			<MultiPick label="Города" required items={CITY_ITEMS} value={[]} placeholder="Не выбраны" />
+			<DateField label="Плановая дата закрытия" required value={null} />
+			<NumberField label="Сумма, ₽" required value={null} />
+			<TextField label="Заполнено" required value="Есть значение" />
+		</div>
+		<div class="mt-4 flex max-w-xl flex-col gap-4">
+			<AreaField label="Комментарий" required rows={2} value="" />
+			<RadioField label="Тип сделки" required value={null} items={[{ key: 'b2b', label: 'Организация' }, { key: 'b2c', label: 'Физлицо' }]} />
+			<CheckField label="Понимаю, что действие необратимо" required checked={false} />
+			<FileField label="Перетащите файл сюда" required hint="Excel или CSV, до 50 МБ" onPick={() => {}} />
+		</div>
+	</Card>
+</DemoState>
+
 <DemoState title="Даты периодом и загрузка файла" bare>
 	<Card title="RangeField, FileField">
 		<div class="flex max-w-xl flex-col gap-4">

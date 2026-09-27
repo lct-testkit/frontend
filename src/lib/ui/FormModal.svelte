@@ -4,6 +4,7 @@
 	import AppModal from './AppModal.svelte';
 	import FormFooter from './FormFooter.svelte';
 	import { mayClose } from './form-close';
+	import { watchDirty } from './form-dirty';
 
 	interface Props {
 		open: boolean;
@@ -15,6 +16,7 @@
 		canSave?: boolean;
 		/** false = only «Отмена» (a step of a form that has nothing to save yet) */
 		showSave?: boolean;
+		/** left out, the form finds it out itself: its values differ from the moment it opened */
 		dirty?: boolean;
 		saveTestId?: string;
 		/** a red main button (a destructive action) */
@@ -35,19 +37,23 @@
 		header?: Snippet;
 	}
 
-	let { open, title, size = 'm', saving = false, saveLabel = 'Сохранить', cancelLabel = 'Отмена', canSave = true, showSave = true, danger = false, dirty = false, saveTestId, formError = null, conflict = false, conflictText = undefined, reloadLabel = undefined, dismissible = true, onSave, onClose, onReload, children, extra, header }: Props = $props();
+	let { open, title, size = 'm', saving = false, saveLabel = 'Сохранить', cancelLabel = 'Отмена', canSave = true, showSave = true, danger = false, dirty = undefined, saveTestId, formError = null, conflict = false, conflictText = undefined, reloadLabel = undefined, dismissible = true, onSave, onClose, onReload, children, extra, header }: Props = $props();
 
 	const formId = `fm-${Math.random().toString(36).slice(2, 8)}`;
 
+	let autoDirty = $state(false);
+	const isDirty = $derived(dirty ?? autoDirty);
+
 	async function close() {
 		if (saving) return;
-		if (await mayClose(dirty)) onClose();
+		if (await mayClose(isDirty)) onClose();
 	}
 </script>
 
 <AppModal {open} {title} {size} {dismissible} onClose={close} {header}>
 	<form
 		id={formId}
+		use:watchDirty={{ open, onChange: (d) => (autoDirty = d) }}
 		class="flex flex-col gap-4"
 		onsubmit={(e) => {
 			e.preventDefault();

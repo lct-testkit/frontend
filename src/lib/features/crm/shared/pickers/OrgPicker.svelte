@@ -9,11 +9,12 @@
 		label?: string;
 		error?: string;
 		hint?: string;
+		required?: boolean;
 		disabled?: boolean;
 		onChange: (id: string | null) => void;
 	}
 
-	let { value = null, label = 'Организация', error, hint, disabled = false, onChange }: Props = $props();
+	let { value = null, label = 'Организация', error, hint, disabled = false, required = false, onChange }: Props = $props();
 
 	$effect(() => {
 		if (value) orgCache.ensure([value]);
@@ -31,4 +32,4 @@
 	}
 </script>
 
-<RemotePick {value} {selected} {search} {label} {error} {hint} {disabled} placeholder="Название или ИНН" emptyText="Организаций не найдено" onChange={(id) => onChange(id)} />
+<RemotePick {value} {selected} {search} {label} {error} {hint} {disabled} {required} placeholder="Название или ИНН" emptyText="Организаций не найдено" onChange={(id) => onChange(id)} />

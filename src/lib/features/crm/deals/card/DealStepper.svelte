@@ -5,8 +5,9 @@
 	import { untrack } from 'svelte';
 	import { api, unwrap } from '$lib/api';
 	import { StatusChip, StatusSteps, type Step } from '$lib/ui';
+	import { statusTypeHint } from '../../shared/hints';
 	import type { AvailableTransition, Deal, WorkflowGraph } from '../../types';
-	import { isTerminal, statusTone, steps } from '../statusUtils';
+	import { isTerminal, statusName, statusTone, steps } from '../statusUtils';
 
 	interface Props {
 		graph: WorkflowGraph | undefined;
@@ -48,7 +49,7 @@
 			const transition = transitions.find((t) => t.to_status_id === step.id && t.role_allowed);
 			return {
 				id: step.id,
-				name: step.name,
+				name: statusName(step.name),
 				state: i < index ? 'done' : i === index ? (terminal ? 'stopped' : 'current') : 'future',
 				onclick: transition ? () => onStep?.(transition) : undefined
 			};
@@ -58,6 +59,6 @@
 
 <StatusSteps steps={view}>
 	{#snippet end()}
-		{#if terminal}<StatusChip label={terminal.name} color={terminal.color} tone={statusTone(terminal.type)} />{/if}
+		{#if terminal}<StatusChip label={statusName(terminal.name)} color={terminal.color} tone={statusTone(terminal.type)} hint={statusTypeHint(terminal.type)} />{/if}
 	{/snippet}
 </StatusSteps>

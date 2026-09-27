@@ -40,10 +40,10 @@
 		}}
 	/>
 	{#if type === 'user'}
-		<UserPicker label="Сотрудник" value={id} onChange={(v) => (id = v)} />
+		<UserPicker label="Сотрудник" required value={id} onChange={(v) => (id = v)} />
 	{:else if type === 'contact'}
-		<ContactPicker value={id} onChange={(v) => (id = v)} />
+		<ContactPicker required value={id} onChange={(v) => (id = v)} />
 	{:else}
-		<OrgPicker label="ИП" value={id} onChange={(v) => (id = v)} />
+		<OrgPicker label="ИП" required value={id} onChange={(v) => (id = v)} />
 	{/if}
 </FormModal>

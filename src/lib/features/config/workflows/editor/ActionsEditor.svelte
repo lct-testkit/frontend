@@ -77,9 +77,10 @@
 			</div>
 
 			{#if action.type === 'create_task'}
-				<TextField label="Заголовок задачи" value={action.title} {disabled} onInput={(v) => update(i, { title: v })} />
+				<TextField label="Заголовок задачи" required value={action.title} {disabled} onInput={(v) => update(i, { title: v })} />
 				<Pick
 					label="Исполнитель"
+					required
 					items={ASSIGNEES}
 					{disabled}
 					value={action.assignee_role ? `role:${action.assignee_role}` : action.assignee ? `assignee:${action.assignee}` : null}
@@ -94,11 +95,11 @@
 					<Pick label="Приоритет" items={TASK_PRIORITIES.map((p) => ({ key: p, value: TASK_PRIORITY_LABELS[p] }))} value={action.priority ?? 'normal'} {disabled} onChange={(v) => v && update(i, { priority: v })} />
 				</div>
 			{:else if action.type === 'notify'}
-				<Pick label="Событие" search items={eventItems(action.event_code)} value={action.event_code || null} {disabled} onChange={(v) => v && update(i, { event_code: v })} />
+				<Pick label="Событие" required search items={eventItems(action.event_code)} value={action.event_code || null} {disabled} onChange={(v) => v && update(i, { event_code: v })} />
 				<MultiPick label="Кому" search={false} items={NOTIFY_RECIPIENTS.map((r) => ({ key: r, value: NOTIFY_RECIPIENT_LABELS[r] }))} value={action.recipients ?? []} {disabled} onChange={(v) => update(i, { recipients: v.length ? v : undefined })} />
 				<MultiPick label="Через" search={false} items={NOTIFY_CHANNELS.map((c) => ({ key: c, value: NOTIFY_CHANNEL_LABELS[c] }))} value={action.channels ?? []} {disabled} onChange={(v) => update(i, { channels: v.length ? v : undefined })} />
 			{:else if action.type === 'request_signature'}
-				<Pick label="Документ" search items={templateItems(action.template)} value={action.template || null} {disabled} emptyText="Шаблонов нет" onChange={(v) => v && update(i, { template: v })} />
+				<Pick label="Документ" required search items={templateItems(action.template)} value={action.template || null} {disabled} emptyText="Шаблонов нет" onChange={(v) => v && update(i, { template: v })} />
 				<div class="flex flex-col gap-1.5">
 					<span class="t-desc-l text-muted">Подписанты</span>
 					{#each action.signers ?? [] as signer, k (k)}

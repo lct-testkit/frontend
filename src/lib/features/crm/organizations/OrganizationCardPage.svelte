@@ -13,13 +13,14 @@
 	import { Refresh } from '@lct-testkit/rt-ui/icons';
 	import { ApiError, api, errorMessage, ifMatch, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
-	import { Btn, ErrorState, IconBtn, Notice, Page, PageHeader, Skeleton, StatusChip, TabsBar, toast } from '$lib/ui';
+	import { Btn, ErrorState, IconBtn, Notice, Page, PageHeader, Skeleton, StatusChip, TabsBar, Term, toast } from '$lib/ui';
 	import Card from '$lib/ui/Card.svelte';
 	import { formatDate } from '$lib/utils/format';
 	import { setQuery } from '$lib/utils/query-state.svelte';
 	import Attachments from '../files/Attachments.svelte';
 	import { pushRecent } from '../recent/localRecent';
 	import { orgCache, orgTitle } from '../shared/entityCache.svelte';
+	import { registryStatusHint } from '../shared/hints';
 	import { ORG_TYPE_LABELS, REGISTRY_STATUS_LABELS, REGISTRY_STATUS_SCHEMES } from '../shared/labels';
 	import type { Organization } from '../types';
 	import DriftBanner from './DriftBanner.svelte';
@@ -115,7 +116,7 @@
 		<PageHeader title={orgTitle(org)} back="/organizations" primary={session.can('deal:create') ? { label: 'Новая сделка', onclick: () => goto(`/deals?new=1&org=${org!.id}`), testid: 'org-new-deal' } : undefined}>
 			{#snippet meta()}
 				<StatusChip label={ORG_TYPE_LABELS[org!.org_type] ?? org!.org_type} tone="neutral" />
-				{#if org!.registry_status}<StatusChip label={REGISTRY_STATUS_LABELS[org!.registry_status!] ?? org!.registry_status!} tone={REGISTRY_STATUS_SCHEMES[org!.registry_status!] ?? 'neutral'} />{/if}
+				{#if org!.registry_status}<StatusChip label={REGISTRY_STATUS_LABELS[org!.registry_status!] ?? org!.registry_status!} tone={REGISTRY_STATUS_SCHEMES[org!.registry_status!] ?? 'neutral'} hint={registryStatusHint(org!.registry_status!)} />{/if}
 				{#if org!.is_accredited}<StatusChip label={org!.accreditation_until ? `Аккредитация до ${formatDate(org!.accreditation_until)}` : 'Аккредитована'} tone="info" />{/if}
 			{/snippet}
 			{#snippet actions()}
@@ -123,8 +124,8 @@
 			{/snippet}
 		</PageHeader>
 		<p class="t-body-s m-0 -mt-2 flex flex-wrap gap-x-4 text-muted max-md:t-desc-l">
-			{#if org.inn}<span>ИНН {org.inn}</span>{/if}
-			{#if org.registry_checked_at}<span>проверено по ЕГРЮЛ {formatDate(org.registry_checked_at)}</span>{/if}
+			{#if org.inn}<span><Term term="ИНН" /> {org.inn}</span>{/if}
+			{#if org.registry_checked_at}<span>проверено по <Term term="ЕГРЮЛ" /> {formatDate(org.registry_checked_at)}</span>{/if}
 		</p>
 
 		{#if risk}
@@ -140,7 +141,7 @@
 
 		{#if tab === 'reqs'}
 			<Card>
-				<div class="flex flex-col gap-4">
+				<div class="flex max-w-3xl flex-col gap-4">
 					{#if banner}
 						<Notice class="shrink-0" tone={banner.conflict ? 'warning' : 'error'} role="alert" actions={banner.conflict ? [{ label: 'Обновить', onclick: () => ((banner = null), load(true)) }] : []}>{banner.text}</Notice>
 					{/if}
@@ -158,7 +159,7 @@
 		{:else if tab === 'deals'}
 			<OrgLinked orgId={org.id} kind="deals" />
 		{:else}
-			<Attachments entityType="organization" entityId={org.id} canEdit={session.can('file:upload')} />
+			<Attachments entityType="organization" entityId={org.id} canEdit={session.can('file:upload')} about="по организации" />
 		{/if}
 	{/if}
 </Page>

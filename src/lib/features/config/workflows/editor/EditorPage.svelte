@@ -1,12 +1,12 @@
 <script lang="ts">
 	// Редактор воронки: холст (десктоп) + панель свойств; на телефоне и планшете — просмотр холста и списки. Черновик → проверка → публикация.
 	import { onMount } from 'svelte';
-	import { beforeNavigate, goto } from '$app/navigation';
 	import { Chip, DropdownMenu } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { AttentionMark, CheckStatistics, MenuKebab } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { Btn, ErrorState, IconBtn, Notice, Page, PageHeader, Skeleton, StatusChip, confirm, toast } from '$lib/ui';
+	import { useLeaveGuard } from '$lib/ui/leave-guard.svelte';
 	import AppDrawer from '$lib/ui/AppDrawer.svelte';
 	import { toServer, type StatusDraft } from '../graph';
 	import { dealTypeShort, hasUnpublishedChanges, stateLabel, stateTone } from '../meta';
@@ -17,6 +17,7 @@
 	import MobileLists from './MobileLists.svelte';
 	import PublishDialog from './PublishDialog.svelte';
 	import SidePanel from './SidePanel.svelte';
+	import { dealTypeHint, workflowStateHint } from '../../hints';
 
 	let { id }: { id: string } = $props();
 
@@ -38,24 +39,7 @@
 	});
 
 	// несохранённые правки: и переход по ссылкам приложения, и закрытие вкладки
-	let leaving = false;
-	beforeNavigate((nav) => {
-		if (leaving || !editor.dirty || nav.willUnload || !nav.to) return;
-		nav.cancel();
-		const to = nav.to.url;
-		void confirm({ title: 'Выйти без сохранения?', message: 'Несохранённые правки воронки будут потеряны.', confirmLabel: 'Выйти', danger: true }).then((yes) => {
-			if (!yes) return;
-			leaving = true;
-			void goto(to);
-		});
-	});
-	$effect(() => {
-		const warn = (e: BeforeUnloadEvent) => {
-			if (editor.dirty) e.preventDefault();
-		};
-		window.addEventListener('beforeunload', warn);
-		return () => window.removeEventListener('beforeunload', warn);
-	});
+	useLeaveGuard(() => editor.dirty, 'Несохранённые правки воронки будут потеряны.');
 
 	const w = $derived(editor.workflow);
 	const unpublished = $derived(w ? hasUnpublishedChanges(w) : false);
@@ -130,8 +114,8 @@
 	{:else}
 		{#snippet issueIcon()}<AttentionMark class="size-4 fill-danger" />{/snippet}
 		{#snippet chips()}
-				<StatusChip label={stateLabel(w.state)} tone={stateTone(w.state)} />
-				<StatusChip label={dealTypeShort(w.deal_type)} tone="info" />
+				<StatusChip label={stateLabel(w.state)} tone={stateTone(w.state)} hint={workflowStateHint(w.state)} />
+				<StatusChip label={dealTypeShort(w.deal_type)} tone="info" hint={dealTypeHint(w.deal_type)} />
 				{#if w.is_default}<StatusChip label="По умолчанию" tone="accent" />{/if}
 				{#if editor.dirty}
 					<StatusChip label="Не сохранено" tone="warning" />

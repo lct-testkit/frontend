@@ -8,6 +8,7 @@
 	import { shortHash } from '../../signing/urls';
 	import { formatChanges, fieldLabel, shortId } from '../audit';
 	import { auditActionLabel, auditResultMeta, entityTypeLabel, roleLabel } from '../labels';
+	import { AUDIT_RESULT_HINTS } from '../hints';
 	import { describeUserAgent } from '../sessions';
 	import type { AuditEntry } from '../types';
 	import { entityHref } from './audit-query';
@@ -29,7 +30,7 @@
 <AppDrawer open={!!entry} title={e ? auditActionLabel(e.action) : ''} width={560} {onClose}>
 	{#if e && result}
 		<div class="flex flex-wrap items-center gap-2">
-			<StatusChip label={result.label} tone={result.tone} />
+			<StatusChip label={result.label} tone={result.tone} hint={AUDIT_RESULT_HINTS[e.result as keyof typeof AUDIT_RESULT_HINTS]} />
 			<span class="t-desc-l text-muted">{formatDateTime(e.created_at)}</span>
 		</div>
 

@@ -32,7 +32,7 @@
 <div class="flex flex-col gap-4">
 	<PanelIssues issues={errs} />
 
-	<TextField label="Название" value={transition.name} disabled={off} autofocus onInput={(v) => editor.updateTransition(transition.key, { name: v })} />
+	<TextField label="Название" required value={transition.name} disabled={off} autofocus onInput={(v) => editor.updateTransition(transition.key, { name: v })} />
 
 	<div class="flex flex-wrap items-center gap-2">
 		<Chip class="max-w-full" size="s" variant="secondary" selected={false} label={editor.statusName(transition.from)} onclick={() => editor.select({ kind: 'status', key: transition.from })} />

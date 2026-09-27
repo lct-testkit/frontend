@@ -6,6 +6,7 @@
 	import { Download } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { Btn, DateText, ErrorState, Page, PageHeader, Skeleton, StatusChip, confirm, toast } from '$lib/ui';
+	import { importJobHint } from './hints';
 	import UserName from '$lib/ui/UserName.svelte';
 	import type { ImportJob } from '../types';
 	import { createResource } from '../shared/resource.svelte';
@@ -58,7 +59,7 @@
 
 <Page narrow class="max-w-4xl!">
 	<PageHeader title={j ? `Импорт: ${entityLabel(j.entity_type)}` : 'Импорт'} back="/imports">
-		{#snippet meta()}{#if j}<StatusChip label={jobStatus(j.status).label} tone={jobStatus(j.status).tone} />{/if}{/snippet}
+		{#snippet meta()}{#if j}<StatusChip label={jobStatus(j.status).label} tone={jobStatus(j.status).tone} hint={importJobHint(j.status)} />{/if}{/snippet}
 	</PageHeader>
 
 	{#if job.error}

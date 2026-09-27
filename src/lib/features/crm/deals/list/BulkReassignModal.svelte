@@ -46,6 +46,6 @@
 </script>
 
 <FormModal {open} size="s" title="Передать сделки" saveLabel="Передать" saving={busy} dirty={open && (!!successor || !!reason.trim())} formError={error} onSave={submit} {onClose}>
-	<UserPicker label="Кому передать" roles={['KAM', 'HEAD']} value={successor} onChange={(id) => (successor = id)} />
-	<AreaField label="Причина" placeholder="Например, уход в отпуск" value={reason} onInput={(v) => (reason = v)} onSubmit={submit} />
+	<UserPicker label="Кому передать" required roles={['KAM', 'HEAD']} value={successor} onChange={(id) => (successor = id)} />
+	<AreaField label="Причина" required placeholder="Например, уход в отпуск" value={reason} onInput={(v) => (reason = v)} onSubmit={submit} />
 </FormModal>

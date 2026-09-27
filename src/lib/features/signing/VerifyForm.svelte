@@ -60,7 +60,7 @@
 			submit();
 		}}
 	>
-		<TextField label="Идентификатор подписи" size="l" bind:value error={error ?? undefined} autocomplete="off" onInput={() => (error = null)} />
+		<TextField label="Идентификатор подписи" required size="l" bind:value error={error ?? undefined} autocomplete="off" onInput={() => (error = null)} />
 		<Btn type="submit" label="Проверить" size="l" block />
 	</form>
 </section>

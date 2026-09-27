@@ -73,6 +73,6 @@
 
 <FormModal {open} {title} size="s" saveLabel={confirmLabel} {danger} saveTestId="reason-confirm" saving={busy} dirty={open && reason.trim().length > 0} onSave={submit} {onClose}>
 	{#if note}<p class="t-body-s m-0 text-muted">{note}</p>{/if}
-	<AreaField {label} {placeholder} rows={3} maxlength={maxLength} value={reason} error={error ?? undefined} onInput={(v) => ((reason = v), (error = null))} onSubmit={submit} />
+	<AreaField {label} {required} {placeholder} rows={3} maxlength={maxLength} value={reason} error={error ?? undefined} onInput={(v) => ((reason = v), (error = null))} onSubmit={submit} />
 	{@render extra?.()}
 </FormModal>

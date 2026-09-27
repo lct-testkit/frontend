@@ -3,6 +3,10 @@
 export interface LearnerFieldDef {
 	key: string;
 	label: string;
+	/** как вводить: подсказка под полем формы (формат проверяет сервер) */
+	format?: string;
+	/** поле занимает всю ширину формы (длинный текст); остальные встают по два в ряд */
+	wide?: boolean;
 }
 export interface LearnerSection {
 	key: string;
@@ -10,49 +14,81 @@ export interface LearnerSection {
 	fields: LearnerFieldDef[];
 }
 
-const f = (key: string, label: string): LearnerFieldDef => ({ key, label });
+const f = (key: string, label: string, opts: Pick<LearnerFieldDef, 'format' | 'wide'> = {}): LearnerFieldDef => ({ key, label, ...opts });
+const DATE = 'ДД.ММ.ГГГГ';
 
+/**
+ * Секции идут в том порядке, в каком человек заполняет анкету: кто он, документ (паспорт и СНИЛС), где прописан, чему учился (образование и диплом).
+ * Все поля необязательные: сервер требует только правильный вид того, что введено (`catalog/learner.py`).
+ */
 export const LEARNER_SECTIONS: readonly LearnerSection[] = [
 	{
 		key: 'person',
-		title: 'Общие данные',
-		fields: [f('sex', 'Пол'), f('birth_date', 'Дата рождения'), f('snils', 'СНИЛС'), f('education_label', 'Образование')]
+		title: 'Основное',
+		fields: [f('sex', 'Пол', { format: 'Выберите из списка' }), f('birth_date', 'Дата рождения', { format: DATE })]
 	},
 	{
 		key: 'passport',
-		title: 'Паспорт',
+		title: 'Паспорт и СНИЛС',
 		fields: [
-			f('passport_series', 'Серия'),
-			f('passport_number', 'Номер'),
-			f('passport_issued_by', 'Кем выдан'),
-			f('passport_issued_at', 'Дата выдачи'),
-			f('passport_dept_code', 'Код подразделения')
+			f('passport_series', 'Серия', { format: '4 цифры' }),
+			f('passport_number', 'Номер', { format: '6 цифр' }),
+			f('passport_issued_by', 'Кем выдан', { wide: true }),
+			f('passport_issued_at', 'Дата выдачи', { format: DATE }),
+			f('passport_dept_code', 'Код подразделения', { format: '6 цифр' }),
+			f('snils', 'СНИЛС', { format: '11 цифр, дефисы можно', wide: true })
 		]
 	},
 	{
 		key: 'registration',
-		title: 'Регистрация',
-		fields: [f('reg_zip', 'Индекс'), f('reg_region', 'Регион'), f('reg_city', 'Населённый пункт'), f('reg_street', 'Улица'), f('reg_house', 'Дом'), f('reg_apartment', 'Квартира')]
+		title: 'Адрес регистрации',
+		fields: [
+			f('reg_zip', 'Индекс', { format: '6 цифр' }),
+			f('reg_region', 'Регион', { format: 'Область, край, республика' }),
+			f('reg_city', 'Населённый пункт'),
+			f('reg_street', 'Улица'),
+			f('reg_house', 'Дом'),
+			f('reg_apartment', 'Квартира')
+		]
 	},
 	{
 		key: 'diploma',
-		title: 'Диплом',
+		title: 'Образование и диплом',
 		fields: [
-			f('diploma_profession', 'Профессия'),
-			f('diploma_institution', 'Учебное заведение'),
-			f('diploma_surname', 'Фамилия в дипломе'),
-			f('diploma_series', 'Серия'),
-			f('diploma_number', 'Номер'),
-			f('diploma_reg_number', 'Регистрационный номер'),
-			f('diploma_issued_at', 'Дата выдачи')
+			f('education_label', 'Образование', { wide: true }),
+			f('diploma_profession', 'Профессия по диплому', { wide: true }),
+			f('diploma_institution', 'Учебное заведение', { wide: true }),
+			f('diploma_surname', 'Фамилия в дипломе', { wide: true }),
+			f('diploma_series', 'Серия диплома', { format: 'Как в дипломе' }),
+			f('diploma_number', 'Номер диплома', { format: 'Как в дипломе' }),
+			f('diploma_reg_number', 'Регистрационный номер', { format: 'Как в дипломе' }),
+			f('diploma_issued_at', 'Дата выдачи', { format: DATE })
 		]
 	},
 	{
 		key: 'dative',
-		title: 'Для документов (родительный падеж)',
-		fields: [f('last_name_dative', 'Фамилия'), f('first_name_dative', 'Имя'), f('middle_name_dative', 'Отчество')]
+		title: 'ФИО в дательном падеже',
+		fields: [f('last_name_dative', 'Фамилия', { wide: true }), f('first_name_dative', 'Имя', { wide: true }), f('middle_name_dative', 'Отчество', { wide: true })]
 	}
 ];
+
+/** Поля секции рядами для формы: широкое поле — свой ряд, соседние узкие — по два. */
+export function fieldRows(fields: readonly LearnerFieldDef[]): LearnerFieldDef[][] {
+	const rows: LearnerFieldDef[][] = [];
+	let open: LearnerFieldDef[] | null = null;
+	for (const field of fields) {
+		if (field.wide) {
+			rows.push([field]);
+			open = null;
+		} else if (open && open.length < 2) {
+			open.push(field);
+		} else {
+			open = [field];
+			rows.push(open);
+		}
+	}
+	return rows;
+}
 
 const SEX: Record<string, string> = { M: 'Мужской', F: 'Женский' };
 

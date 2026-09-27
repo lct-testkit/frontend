@@ -5,6 +5,7 @@
 	import { api, unwrap } from '$lib/api';
 	import { createPager } from '$lib/api/pager.svelte';
 	import { DataTable, EmptyState, StatusChip, TableCell, type Col } from '$lib/ui';
+	import { importRowHint } from './hints';
 	import TabsBar from '$lib/ui/TabsBar.svelte';
 	import type { components } from '$lib/api';
 	import { rowStatus } from './mapping';
@@ -63,7 +64,7 @@
 </script>
 
 {#snippet numberCell(r: Row)}<TableCell><span class="t-body-s tabular-nums">{r.row_number}</span></TableCell>{/snippet}
-{#snippet statusCell(r: Row)}<TableCell><StatusChip label={rowStatus(r.status).label} tone={rowStatus(r.status).tone} /></TableCell>{/snippet}
+{#snippet statusCell(r: Row)}<TableCell><StatusChip label={rowStatus(r.status).label} tone={rowStatus(r.status).tone} hint={importRowHint(r.status)} /></TableCell>{/snippet}
 {#snippet whoCell(r: Row)}<TableCell><span class="t-body-s truncate" title={summary(r)}>{summary(r) || '—'}</span></TableCell>{/snippet}
 {#snippet remarksCell(r: Row)}<TableCell><span class="t-body-s truncate" title={remarks(r)}>{remarks(r)}</span></TableCell>{/snippet}
 
@@ -71,7 +72,7 @@
 	<div class="flex min-w-0 flex-col gap-1.5">
 		<div class="flex items-start justify-between gap-2">
 			<span class="t-body-m-strong">Строка {r.row_number}</span>
-			<StatusChip label={rowStatus(r.status).label} tone={rowStatus(r.status).tone} />
+			<StatusChip label={rowStatus(r.status).label} tone={rowStatus(r.status).tone} hint={importRowHint(r.status)} />
 		</div>
 		{#if summary(r)}<span class="t-desc-l wrap-anywhere text-muted">{summary(r)}</span>{/if}
 		{#each r.errors ?? [] as e (e)}<span class="t-desc-l wrap-anywhere">{e}</span>{/each}

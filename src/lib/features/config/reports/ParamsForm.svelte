@@ -43,6 +43,7 @@
 	{#if def.kind === 'deal_type'}
 		<Pick
 			label={def.label}
+			required={def.required}
 			value={String(values[def.key] ?? def.default ?? 'b2b')}
 			items={DEAL_TYPES.map((t) => ({ key: t, value: DEAL_TYPE_LABELS[t] }))}
 			error={errors[def.key]}
@@ -51,6 +52,7 @@
 	{:else if def.kind === 'workflow'}
 		<Pick
 			label={def.label}
+			required={def.required}
 			value={(values[def.key] as string | undefined) ?? null}
 			clearable
 			search
@@ -60,10 +62,10 @@
 			onChange={(v) => set(def.key, v ?? undefined)}
 		/>
 	{:else if def.kind === 'product'}
-		<Pick label={def.label} value={(values[def.key] as string | undefined) ?? null} clearable search hint={def.hint} items={products} emptyText="Продуктов нет" error={errors[def.key]} onChange={(v) => set(def.key, v ?? undefined)} />
+		<Pick label={def.label} required={def.required} value={(values[def.key] as string | undefined) ?? null} clearable search hint={def.hint} items={products} emptyText="Продуктов нет" error={errors[def.key]} onChange={(v) => set(def.key, v ?? undefined)} />
 	{:else if def.kind === 'date'}
-		<DateField label={def.label} value={(values[def.key] as string | undefined) ?? null} error={errors[def.key]} onChange={(v) => set(def.key, v ?? undefined)} />
+		<DateField label={def.label} required={def.required} value={(values[def.key] as string | undefined) ?? null} error={errors[def.key]} onChange={(v) => set(def.key, v ?? undefined)} />
 	{:else}
-		<NumberField label={def.label} integer min={def.min} max={def.max} value={typeof values[def.key] === 'number' ? (values[def.key] as number) : null} error={errors[def.key]} onChange={(n) => set(def.key, n ?? undefined)} />
+		<NumberField label={def.label} required={def.required} integer min={def.min} max={def.max} value={typeof values[def.key] === 'number' ? (values[def.key] as number) : null} error={errors[def.key]} onChange={(n) => set(def.key, n ?? undefined)} />
 	{/if}
 {/each}

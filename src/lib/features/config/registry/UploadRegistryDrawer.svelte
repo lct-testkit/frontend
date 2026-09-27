@@ -64,7 +64,7 @@
 	}
 </script>
 
-<FormDrawer {open} title="Загрузить выгрузку" width={460} {saving} {formError} saveLabel="Загрузить" canSave={file !== null} onSave={save} {onClose}>
+<FormDrawer {open} title="Загрузить выгрузку" width={460} {saving} {formError} saveLabel="Загрузить" canSave={file !== null} dirty={file !== null} onSave={save} {onClose}>
 	<Pick
 		label="Источник"
 		value={source}
@@ -75,6 +75,7 @@
 		<FileField
 			accept={{ 'text/xml': ['.xml'], 'application/xml': ['.xml'], 'application/zip': ['.zip'], 'application/x-zip-compressed': ['.zip'] }}
 			label="Перетащите файл выгрузки"
+			required
 			hint="XML или ZIP с XML, выгрузка ЕГРЮЛ ФНС"
 			disabled={saving}
 			loading={saving}

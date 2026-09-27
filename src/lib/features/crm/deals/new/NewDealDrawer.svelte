@@ -1,5 +1,5 @@
 <script lang="ts">
-	// Новая сделка: минимум полей (название, тип, организация или клиент, сумма, приоритет), остальное — в «Дополнительно» и в карточке.
+	// Новая сделка: минимум полей (название, тип, организация или клиент, сумма и срок), остальное — в «Дополнительно» и в карточке.
 	// Enter отправляет, Esc закрывает; создание защищено Idempotency-Key (новый ключ — при изменении данных).
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -158,7 +158,7 @@
 	onSave={submit}
 	{onClose}
 >
-	<TextField label="Название" autofocus value={title} error={errors.title} onInput={(v) => ((title = v), (errors.title = ''))} />
+	<TextField label="Название" required autofocus value={title} error={errors.title} onInput={(v) => ((title = v), (errors.title = ''))} />
 
 	<SegmentedControl value={type} size="m" onChange={setType} aria-label="Тип сделки">
 		<Segment index="b2b" label="Организация" />
@@ -167,7 +167,7 @@
 
 	{#if type === 'b2b'}
 		<div class="flex flex-col gap-1">
-			<OrgPicker value={orgId} error={errors.organization_id} onChange={(id) => ((orgId = id), (contactId = null), (errors.organization_id = ''))} />
+			<OrgPicker required value={orgId} error={errors.organization_id} onChange={(id) => ((orgId = id), (contactId = null), (errors.organization_id = ''))} />
 			<div class="self-start"><Btn label="Нет в списке? Найти по ИНН" size="s" variant="ghost" onclick={() => (orgDrawer = true)} /></div>
 		</div>
 		{#if orgId}
@@ -175,14 +175,14 @@
 		{/if}
 	{:else}
 		<div class="flex flex-col gap-1">
-			<ContactPicker label="Клиент" value={contactId} error={errors.contact_id} onChange={(id) => ((contactId = id), (errors.contact_id = ''))} />
+			<ContactPicker label="Клиент" required value={contactId} error={errors.contact_id} onChange={(id) => ((contactId = id), (errors.contact_id = ''))} />
 			<div class="self-start"><Btn label="Новый клиент" size="s" variant="ghost" onclick={() => (contactDrawer = true)} /></div>
 		</div>
 	{/if}
 
 	<FormRow>
 		<NumberField label="Сумма, ₽" value={amount} error={errors.amount} onChange={(v) => (amount = v)} />
-		<Pick label="Приоритет" items={priorityItems} value={priority} onChange={(v) => v && (priority = v)} />
+		<DateField label="Плановая дата закрытия" value={closeDate} onChange={(v) => (closeDate = v)} />
 	</FormRow>
 
 	{#if canPickOwner}<UserPicker label="Ответственный" roles={['KAM', 'HEAD']} value={owner} onChange={(id) => (owner = id)} hint="По умолчанию — вы" />{/if}
@@ -192,7 +192,7 @@
 
 	<FormSection collapsible>
 		<FormRow>
-			<DateField label="Плановая дата закрытия" value={closeDate} onChange={(v) => (closeDate = v)} />
+			<Pick label="Приоритет" items={priorityItems} value={priority} onChange={(v) => v && (priority = v)} />
 			{#if type === 'b2b'}<NumberField integer label="Обучающихся" value={students} onChange={(v) => (students = v)} />{/if}
 		</FormRow>
 		<MultiPick label="Продукты" placeholder="Не выбраны" items={productItems} bind:value={picked} emptyText="Продуктов пока нет" />

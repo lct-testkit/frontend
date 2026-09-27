@@ -7,12 +7,13 @@
 	import { ArrowRight, Contacts, Edit, Government, MenuKebab, Refresh, UserAdd } from '@lct-testkit/rt-ui/icons';
 	import { people } from '$lib/api/people.svelte';
 	import { session } from '$lib/auth/session.svelte';
-	import { Avatar, Btn, IconBtn, Money, PageHeader, StatusChip, UserName } from '$lib/ui';
+	import { Avatar, Btn, IconBtn, KeyValue, KeyValueList, Money, PageHeader, StatusChip, UserName } from '$lib/ui';
 	import { formatDate } from '$lib/utils/format';
 	import Ico from '../../shared/Ico.svelte';
 	import PriorityChip from '../../shared/PriorityChip.svelte';
 	import SlaIndicator from '../../shared/SlaIndicator.svelte';
 	import { contactCache, contactLabel, orgCache, orgLabel } from '../../shared/entityCache.svelte';
+	import { signatureStatusHint } from '../../shared/hints';
 	import { SIGNATURE_STATUS_LABELS, SIGNATURE_STATUS_SCHEMES } from '../../shared/labels';
 	import type { AvailableTransition } from '../../types';
 	import DealStatusChip from '../DealStatusChip.svelte';
@@ -68,28 +69,47 @@
 	}
 
 	const showSignature = $derived(deal.signature_status !== 'none');
+	/** заморозка тоже ставит closed_at, но это пауза, а не закрытие сделки */
+	const frozen = $derived(card.status?.type === 'parked');
 </script>
 
 <PageHeader title={deal.title} subtitle={deal.number} back="/deals">
 	{#snippet details()}
-		<span class="inline-flex flex-wrap items-center gap-2">
-			<DealStatusChip statusId={deal.status_id} />
-			{#if deal.closed_at}<span class="t-desc-l text-muted">закрыта {formatDate(deal.closed_at)}</span>{:else}<SlaIndicator {deal} />{/if}
-			<PriorityChip priority={deal.priority} hideNormal />
-			{#if showSignature}<StatusChip label={SIGNATURE_STATUS_LABELS[deal.signature_status] ?? deal.signature_status} tone={SIGNATURE_STATUS_SCHEMES[deal.signature_status] ?? 'neutral'} />{/if}
-		</span>
-		<span class="inline-flex items-center gap-1.5">
-			<Avatar name={people.name(deal.owner_id)} size={20} />
-			<UserName id={deal.owner_id} />
-		</span>
-		{#if deal.organization_id}
-			<a class="inline-flex items-center gap-1.5 text-fg relative after:absolute after:inset-x-0 after:-inset-y-4 after:content-['']" href="/organizations/{deal.organization_id}"><Ico icon={Government} tone="soft" size={16} />{orgLabel(deal.organization_id)}</a>
-		{/if}
-		{#if deal.contact_id}
-			<a class="inline-flex items-center gap-1.5 text-fg relative after:absolute after:inset-x-0 after:-inset-y-4 after:content-['']" href="/contacts/{deal.contact_id}"><Ico icon={Contacts} tone="soft" size={16} />{contactLabel(deal.contact_id)}</a>
-		{/if}
-		<span class="font-medium text-fg"><Money value={deal.amount} currency={deal.currency} /></span>
-		{#if deal.expected_close_date}<span>до {formatDate(deal.expected_close_date)}</span>{/if}
+		<!-- строка статусов, ниже — две колонки «подпись — значение»: слева кто (ответственный, организация, контакт), справа деньги и срок (сумма крупнее) -->
+		<div class="flex basis-full flex-col gap-3 text-fg">
+			<span class="inline-flex flex-wrap items-center gap-2">
+				<DealStatusChip statusId={deal.status_id} />
+				{#if frozen}{:else if deal.closed_at}<span class="t-desc-l text-muted">закрыта {formatDate(deal.closed_at)}</span>{:else}<SlaIndicator {deal} />{/if}
+				<PriorityChip priority={deal.priority} hideNormal />
+				{#if showSignature}<StatusChip label={SIGNATURE_STATUS_LABELS[deal.signature_status] ?? deal.signature_status} tone={SIGNATURE_STATUS_SCHEMES[deal.signature_status] ?? 'neutral'} hint={signatureStatusHint(deal.signature_status)} />{/if}
+			</span>
+			<KeyValueList columns={2} class="max-w-3xl gap-x-8 gap-y-3">
+					<KeyValue label="Ответственный">
+						<span class="inline-flex min-h-6 items-center gap-1.5">
+							<span class="inline-flex size-6 shrink-0 items-center justify-center"><Avatar name={people.name(deal.owner_id)} size={24} /></span>
+							<UserName id={deal.owner_id} />
+						</span>
+					</KeyValue>
+					<KeyValue label="Сумма"><span class="t-h3 leading-6"><Money value={deal.amount} currency={deal.currency} /></span></KeyValue>
+					{#if deal.organization_id}
+						<KeyValue label="Организация">
+							<a class="relative inline-flex min-h-6 items-center gap-1.5 text-fg after:absolute after:inset-x-0 after:-inset-y-4 after:content-['']" href="/organizations/{deal.organization_id}"><span class="inline-flex size-5 shrink-0 items-center justify-center"><Ico icon={Government} tone="soft" size={16} /></span>{orgLabel(deal.organization_id)}</a>
+						</KeyValue>
+					{:else if deal.contact_id}
+						<KeyValue label="Контакт">
+							<a class="relative inline-flex min-h-6 items-center gap-1.5 text-fg after:absolute after:inset-x-0 after:-inset-y-4 after:content-['']" href="/contacts/{deal.contact_id}"><span class="inline-flex size-5 shrink-0 items-center justify-center"><Ico icon={Contacts} tone="soft" size={16} /></span>{contactLabel(deal.contact_id)}</a>
+						</KeyValue>
+					{:else}
+						<div class="max-md:hidden"></div>
+					{/if}
+					<KeyValue label="Плановая дата закрытия" value={deal.expected_close_date ? formatDate(deal.expected_close_date) : null} />
+					{#if deal.organization_id && deal.contact_id}
+						<KeyValue label="Контакт">
+							<a class="relative inline-flex min-h-6 items-center gap-1.5 text-fg after:absolute after:inset-x-0 after:-inset-y-4 after:content-['']" href="/contacts/{deal.contact_id}"><span class="inline-flex size-5 shrink-0 items-center justify-center"><Ico icon={Contacts} tone="soft" size={16} /></span>{contactLabel(deal.contact_id)}</a>
+						</KeyValue>
+					{/if}
+			</KeyValueList>
+		</div>
 	{/snippet}
 
 	{#snippet actions()}

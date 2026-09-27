@@ -105,13 +105,13 @@
 </script>
 
 <FormModal {open} title="Новый сотрудник" size="m" saveLabel="Создать" saveTestId="user-create-submit" saving={busy} {dirty} formError={errors.form} onSave={submit} {onClose}>
-	<TextField label="Фамилия и имя" autofocus value={fullName} error={errors.full_name} onInput={(v) => ((fullName = v), delete errors.full_name)} />
-	<TextField label="Email" type="email" value={email} error={errors.email} onInput={(v) => ((email = v), delete errors.email)} />
+	<TextField label="Фамилия и имя" required autofocus value={fullName} error={errors.full_name} onInput={(v) => ((fullName = v), delete errors.full_name)} />
+	<TextField label="Email" required type="email" value={email} error={errors.email} onInput={(v) => ((email = v), delete errors.email)} />
 	{#if duplicate}<a class="t-body-s" href="/admin/users/{duplicate}">Открыть существующего пользователя</a>{/if}
 	<Pick label="Роль" items={roles} value={role} onChange={(v) => v && (role = v as Role)} />
 
 	<FormSection collapsible open={role === 'HEAD'}>
-		<Pick label="Команда" items={teams.options} value={teamId} clearable error={errors.team_id} onChange={(v) => ((teamId = v), delete errors.team_id)} />
+		<Pick label="Команда" required={role === 'HEAD'} items={teams.options} value={teamId} clearable error={errors.team_id} onChange={(v) => ((teamId = v), delete errors.team_id)} />
 		<UserPicker label="Руководитель" roles={['HEAD', 'ADMIN']} value={managerId} onChange={(id) => (managerId = id)} />
 		<TextField label="Должность" value={position} maxlength={255} onInput={(v) => (position = v)} />
 		<Toggle label="Требовать второй фактор (TOTP)" checked={totp} onChange={(v) => (totp = v)} />

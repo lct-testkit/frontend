@@ -87,14 +87,14 @@
 </script>
 
 <FormDrawer {open} title={source?.name ?? 'Источник'} width={520} {saving} {formError} onSave={save} {onClose}>
-	<TextField label="Название" bind:value={name} error={errors.name} maxlength={255} autofocus />
+	<TextField label="Название" required bind:value={name} error={errors.name} maxlength={255} autofocus />
 	<TextField label="Адрес (base URL)" bind:value={baseUrl} error={errors.base_url} placeholder="https://…" />
 	<Pick label="Авторизация" bind:value={authType} clearable items={AUTH_TYPES.map((a) => ({ key: a.key, value: a.value }))} />
 	<TextField label="Ссылка на секрет" bind:value={credentialsRef} error={errors.credentials_ref} placeholder="CMS_WEBHOOK_SECRET" hint="Имя переменной окружения на сервере. Сам секрет здесь не хранится" />
 	<AreaField label="Дополнительные настройки (JSON)" bind:value={configText} error={errors.config} rows={5} maxRows={12} />
 
 	{#if passport}
-		<FormSection collapsible title="Как подключить" open>
+		<FormSection collapsible title="Как подключить">
 			<div class="flex flex-col gap-3">
 				<div class="flex flex-col gap-1">
 					<span class="t-desc-l text-muted">Адрес вебхука (POST)</span>

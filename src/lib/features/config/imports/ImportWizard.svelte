@@ -5,6 +5,7 @@
 	import { ApiError } from '$lib/api';
 	import { ErrorState, Page, PageHeader, WizardSteps } from '$lib/ui';
 	import { session } from '$lib/auth/session.svelte';
+	import { useLeaveGuard } from '$lib/ui/leave-guard.svelte';
 	import { ImportFlow, WIZARD_STEPS } from './flow.svelte';
 	import StepCheck from './StepCheck.svelte';
 	import StepDone from './StepDone.svelte';
@@ -12,6 +13,8 @@
 	import StepMapping from './StepMapping.svelte';
 
 	const flow = new ImportFlow();
+	// файл выбран или загружен, но импорт ещё не запущен: уход со страницы бросит начатое
+	useLeaveGuard(() => (flow.step === 0 ? !!flow.file : flow.step < 3), 'Начатый импорт не будет запущен.');
 	const jobId = $derived(page.url.searchParams.get('job'));
 
 	onMount(() => {

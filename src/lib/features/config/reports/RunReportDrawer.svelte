@@ -62,6 +62,7 @@
 	showSave={run.phase !== 'running'}
 	canSave={run.phase === 'done' || !run.cooldown}
 	saving={busy}
+	dirty={run.phase === 'form' ? undefined : false}
 	onSave={run.phase === 'done' ? () => run.download() : start}
 	onClose={() => (busy ? undefined : onClose())}
 >

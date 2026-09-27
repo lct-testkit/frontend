@@ -1,4 +1,4 @@
-# Эндпоинты бэкенда (203)
+# Эндпоинты бэкенда (204)
 
 _Сгенерировано tools/gen-api.mjs._
 
@@ -201,6 +201,7 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/me/recent` | Последние открытые объекты |
 | GET | `/api/me/sessions` | Активные сессии |
 | DELETE | `/api/me/sessions/{sid}` | Завершить сессию |
+| POST | `/api/me/sessions/terminate-others` | Завершить все остальные сессии |
 
 ## notifications
 

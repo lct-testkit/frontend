@@ -16,6 +16,7 @@
 	import SendWizard from './SendWizard.svelte';
 	import SignLinkModal from './SignLinkModal.svelte';
 	import { docStatusMeta } from './status';
+	import { DOC_STATUS_HINTS } from './hints';
 	import type { SignLink, SignatureDocument } from './types';
 
 	let { dealId }: { dealId: string } = $props();
@@ -88,9 +89,9 @@
 <section class="flex flex-col gap-3" aria-label="Подписание" data-testid="deal-signatures">
 	<div class="flex flex-wrap items-center gap-2">
 		<h2 class="t-h4 m-0">Подписание</h2>
-		{#if dealStatus !== 'none'}<StatusChip label={statusMeta.label} tone={statusMeta.tone} />{/if}
+		{#if dealStatus !== 'none'}<StatusChip label={statusMeta.label} tone={statusMeta.tone} hint={DOC_STATUS_HINTS[dealStatus as keyof typeof DOC_STATUS_HINTS]} />{/if}
 		{#if canCreate}
-			<Btn class="ml-auto max-md:w-full" label="Отправить на подпись" icon={Send} size="s" variant={docs.length ? 'secondary' : 'primary'} colorScheme={docs.length ? 'neutral' : 'accent'} onclick={() => (wizard = true)} data-testid="open-send-wizard" />
+			<Btn class="ml-auto max-md:w-full" label="Отправить на подпись" icon={Send} size="auto" variant={docs.length ? 'secondary' : 'primary'} colorScheme={docs.length ? 'neutral' : 'accent'} onclick={() => (wizard = true)} data-testid="open-send-wizard" />
 		{/if}
 	</div>
 

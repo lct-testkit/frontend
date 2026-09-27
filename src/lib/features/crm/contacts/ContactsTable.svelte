@@ -8,6 +8,7 @@
 	import { formatPhone } from '$lib/utils/format';
 	import { orgCache, orgLabel, contactFullName } from '../shared/entityCache.svelte';
 	import type { Contact } from '../types';
+	import { contactMark } from './contactHints';
 
 	interface Props {
 		pager: Pager<Contact>;
@@ -35,7 +36,7 @@
 		...(showOrganization ? [{ key: 'org', title: 'Организация', width: 'minmax(160px, 1.4fr)', render: orgCell, drop: 4 }] : []),
 		{ key: 'email', title: 'E-mail', render: emailCell, drop: 1 },
 		{ key: 'phone', title: 'Телефон', render: phoneCell, drop: 2 },
-		{ key: 'dm', title: 'ЛПР', render: dmCell }
+		{ key: 'dm', title: 'ЛПР', hint: 'Лицо, принимающее решения в организации', render: dmCell }
 	]);
 </script>
 
@@ -48,15 +49,17 @@
 {#snippet phoneCell(row: Contact)}<TableCell><span class="whitespace-nowrap text-muted">{formatPhone(row.phone)}</span></TableCell>{/snippet}
 {#snippet dmCell(row: Contact)}
 	<TableCell>
-		{#if row.is_anonymized}<StatusChip label="Обезличен" tone="neutral" />{:else if row.is_decision_maker}<StatusChip label="ЛПР" tone="info" />{:else}<span class="text-soft">—</span>{/if}
+		{@const mark = contactMark(row)}
+		{#if mark}<StatusChip label={mark.label} tone={mark.tone} hint={mark.hint} />{:else}<span class="text-soft">—</span>{/if}
 	</TableCell>
 {/snippet}
 
 {#snippet card(row: Contact)}
+	{@const mark = contactMark(row)}
 	<div class="flex min-w-0 flex-col gap-1">
 		<div class="flex items-start justify-between gap-2">
 			<span class="t-row-strong break-words">{contactFullName(row)}</span>
-			{#if row.is_decision_maker}<StatusChip label="ЛПР" tone="info" />{/if}
+			{#if mark}<StatusChip label={mark.label} tone={mark.tone} hint={mark.hint} />{/if}
 		</div>
 		{#if row.position}<span class="t-desc-l text-muted">{row.position}</span>{/if}
 		{#if showOrganization && row.organization_id}<span class="t-desc-l truncate text-muted">{orgLabel(row.organization_id)}</span>{/if}

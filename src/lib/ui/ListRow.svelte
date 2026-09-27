@@ -26,7 +26,7 @@
 
 	let { title, muted = false, description, prefix, suffix, onclick, href, selected = false, unread = false }: Props = $props();
 
-	const base = $derived(['t-row max-w-full min-w-0 text-left break-words text-fg', unread && 'font-semibold', muted && 'text-muted line-through']);
+	const base = $derived([unread ? 't-row-strong' : 't-row', 'max-w-full min-w-0 text-left break-words text-fg', muted && 'text-muted line-through']);
 	// the cover of the whole row: only the focusable title has it
 	const cover = 'after:absolute after:inset-0 after:content-[""]';
 </script>

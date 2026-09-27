@@ -14,6 +14,7 @@
 	import { REGISTRY_SOURCES, REGISTRY_STATUSES, isRegistryBusy, labelOf } from '../labels';
 	import type { RegistryVersion } from '../types';
 	import { createPoller } from '../shared/polling.svelte';
+	import { registryVersionHint } from '../hints';
 	import UploadRegistryDrawer from './UploadRegistryDrawer.svelte';
 
 	const pager = createPager<RegistryVersion>((cursor, signal) => unwrap(api.GET('/api/admin/registry/versions', { params: { query: { limit: 50, cursor } }, signal })).then((r) => ({ items: r.items ?? [], next_cursor: r.next_cursor })));
@@ -62,7 +63,7 @@
 		</span>
 	</TableCell>
 {/snippet}
-{#snippet statusCell(v: RegistryVersion)}<TableCell><StatusChip label={labelOf(REGISTRY_STATUSES, v.status)} tone={tone(v.status)} /></TableCell>{/snippet}
+{#snippet statusCell(v: RegistryVersion)}<TableCell><StatusChip label={labelOf(REGISTRY_STATUSES, v.status)} tone={tone(v.status)} hint={registryVersionHint(v.status)} /></TableCell>{/snippet}
 {#snippet entriesCell(v: RegistryVersion)}<TableCell align="right"><span class="t-body-s tabular-nums">{v.status === 'completed' ? formatNumber(v.entries_count) : '—'}</span></TableCell>{/snippet}
 {#snippet whenCell(v: RegistryVersion)}<TableCell><span class="t-body-s"><DateText value={v.imported_at ?? v.created_at} time /></span></TableCell>{/snippet}
 {#snippet byCell(v: RegistryVersion)}<TableCell><span class="t-body-s"><UserName id={v.imported_by} /></span></TableCell>{/snippet}
@@ -76,7 +77,7 @@
 	<div class="flex min-w-0 flex-col gap-1.5">
 		<div class="flex items-start justify-between gap-2">
 			<span class="t-body-m-strong">{labelOf(REGISTRY_SOURCES, v.source)}</span>
-			<StatusChip label={labelOf(REGISTRY_STATUSES, v.status)} tone={tone(v.status)} />
+			<StatusChip label={labelOf(REGISTRY_STATUSES, v.status)} tone={tone(v.status)} hint={registryVersionHint(v.status)} />
 		</div>
 		<span class="t-desc-l text-muted"><DateText value={v.imported_at ?? v.created_at} time />{v.status === 'completed' ? ` · ${formatNumber(v.entries_count)} записей` : ''}</span>
 		{#if v.error}<span class="t-desc-l text-danger wrap-anywhere">{v.error}</span>{/if}

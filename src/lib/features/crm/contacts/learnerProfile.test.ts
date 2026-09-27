@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LEARNER_SECTIONS, displayValue, filledFields } from './learnerProfile';
+import { LEARNER_SECTIONS, displayValue, fieldRows, filledFields } from './learnerProfile';
 
 describe('профиль учащегося', () => {
 	it('пол показывается словами', () => {
@@ -27,6 +27,20 @@ describe('профиль учащегося', () => {
 		expect(new Set(keys).size).toBe(keys.length);
 		// 25 полей профиля из шаблона LMS; вместо кода образования показывается его подпись
 		expect(keys).toHaveLength(25);
+	});
+});
+
+describe('ряды формы', () => {
+	it('широкое поле — свой ряд, узкие встают по два', () => {
+		const rows = fieldRows([{ key: 'a', label: 'A' }, { key: 'b', label: 'B' }, { key: 'c', label: 'C', wide: true }, { key: 'd', label: 'D' }, { key: 'e', label: 'E' }, { key: 'f', label: 'F' }]);
+		expect(rows.map((r) => r.map((x) => x.key).join(''))).toEqual(['ab', 'c', 'de', 'f']);
+	});
+
+	it('СНИЛС стоит в секции паспорта, образование — вместе с дипломом', () => {
+		const section = (key: string) => LEARNER_SECTIONS.find((s) => s.key === key)!.fields.map((x) => x.key);
+		expect(section('passport')).toContain('snils');
+		expect(section('diploma')).toContain('education_label');
+		expect(section('person')).not.toContain('education_label');
 	});
 });
 

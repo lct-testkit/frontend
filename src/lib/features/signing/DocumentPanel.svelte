@@ -18,6 +18,7 @@
 	import SignLinkModal from './SignLinkModal.svelte';
 	import SignerList from './SignerList.svelte';
 	import { docStatusMeta, docTypeLabel, documentActions, requestStatusMeta } from './status';
+	import { DOC_STATUS_HINTS } from './hints';
 	import type { SignLink, SignatureDocument } from './types';
 
 	interface Props {
@@ -106,7 +107,7 @@
 			{/if}
 			<p class="t-desc-l m-0 text-muted">{meta}</p>
 		</div>
-		<StatusChip label={status.label} tone={status.tone} />
+		<StatusChip label={status.label} tone={status.tone} hint={DOC_STATUS_HINTS[doc.status as keyof typeof DOC_STATUS_HINTS]} />
 	</header>
 
 	{#if doc.status === 'blocked_no_agreement'}

@@ -6,6 +6,7 @@
 	import { api, unwrap } from '$lib/api';
 	import { createPager } from '$lib/api/pager.svelte';
 	import { Btn, DataTable, DateText, EmptyState, ErrorState, FilterBar, Page, PageHeader, StatusChip, TableCell, type Col } from '$lib/ui';
+	import { importJobHint } from './hints';
 	import { people } from '$lib/api/people.svelte';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import UserName from '$lib/ui/UserName.svelte';
@@ -45,7 +46,7 @@
 		</span>
 	</TableCell>
 {/snippet}
-{#snippet statusCell(j: ImportJob)}<TableCell><StatusChip label={jobStatus(j.status).label} tone={jobStatus(j.status).tone} /></TableCell>{/snippet}
+{#snippet statusCell(j: ImportJob)}<TableCell><StatusChip label={jobStatus(j.status).label} tone={jobStatus(j.status).tone} hint={importJobHint(j.status)} /></TableCell>{/snippet}
 {#snippet rowsCell(j: ImportJob)}
 	<TableCell>
 		<span class="t-body-s tabular-nums" title="без замечаний · с предупреждениями · с ошибками">
@@ -61,7 +62,7 @@
 	<div class="flex min-w-0 flex-col gap-1.5">
 		<div class="flex items-start justify-between gap-2">
 			<span class="t-body-m-strong">{entityLabel(j.entity_type)}</span>
-			<StatusChip label={jobStatus(j.status).label} tone={jobStatus(j.status).tone} />
+			<StatusChip label={jobStatus(j.status).label} tone={jobStatus(j.status).tone} hint={importJobHint(j.status)} />
 		</div>
 		<span class="t-desc-l text-muted">
 			<DateText value={j.created_at} time />{j.total_rows ? ` · ${formatNumber(j.total_rows)} строк` : ''}

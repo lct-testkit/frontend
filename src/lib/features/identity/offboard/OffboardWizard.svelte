@@ -2,7 +2,7 @@
 	// Мастер передачи дел и увольнения (new_spec §4.7): что держит сотрудник → преемник и причина → подтверждение.
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { AreaField, CheckField, WizardCard, WizardSteps } from '$lib/ui';
+	import { AreaField, CheckField, FormBody, WizardCard, WizardSteps } from '$lib/ui';
 	import { ApiError, api, unwrap } from '$lib/api';
 	import { people } from '$lib/api/people.svelte';
 	import Btn from '$lib/ui/Btn.svelte';
@@ -10,6 +10,7 @@
 	import Notice from '$lib/ui/Notice.svelte';
 	import Skeleton from '$lib/ui/Skeleton.svelte';
 	import UserPicker from '$lib/ui/UserPicker.svelte';
+	import { useLeaveGuard } from '$lib/ui/leave-guard.svelte';
 	import { dealsWord, requestsWord, summarizeWorkload, tasksWord, validateOffboard, type WorkloadSummary } from '../offboard';
 	import type { OffboardResult, UserOut } from '../types';
 
@@ -29,6 +30,9 @@
 	let problem = $state<string | null>(null);
 	let result = $state<OffboardResult | null>(null);
 	let touched = $state(false);
+
+	// передача дел ещё не выполнена, а выбор или причина уже введены
+	useLeaveGuard(() => !result && (step > 0 || !!successorId || !!reason.trim()), 'Передача дел не выполнена, введённое будет потеряно.');
 
 	const body = (mode: 'preview' | 'confirm', extra = {}) => ({ params: { path: { user_id: user.id } }, body: { mode, ...extra } });
 
@@ -136,8 +140,10 @@
 				{/if}
 			{/if}
 		{:else if step === 1}
-			<UserPicker label="Преемник" roles={['KAM', 'HEAD']} exclude={[user.id]} value={successorId} error={touched ? check.errors.successorId : undefined} onChange={(id) => (successorId = id)} />
-			<AreaField label="Причина увольнения" rows={3} value={reason} error={touched ? check.errors.reason : undefined} maxlength={500} onInput={(v) => (reason = v)} />
+			<FormBody>
+				<UserPicker label="Преемник" required roles={['KAM', 'HEAD']} exclude={[user.id]} value={successorId} error={touched ? check.errors.successorId : undefined} onChange={(id) => (successorId = id)} />
+				<AreaField label="Причина увольнения" required rows={3} value={reason} error={touched ? check.errors.reason : undefined} maxlength={500} onInput={(v) => (reason = v)} />
+			</FormBody>
 		{:else}
 			<p class="t-body-m m-0">
 				{#if summary && !summary.isEmpty}
@@ -150,7 +156,7 @@
 				<li>{user.full_name} получит статус «Уволен», все его сессии завершатся.</li>
 				<li>Запросы подписи по роли переадресуются, персональные — нет: инициатору придёт задача.</li>
 			</ul>
-			<CheckField label="Понимаю, что действие необратимо" checked={ack} onChange={(v) => (ack = v)} />
+			<CheckField label="Понимаю, что действие необратимо" required checked={ack} onChange={(v) => (ack = v)} />
 			{#if touched && check.errors.acknowledged}<Notice class="shrink-0" tone="error">{check.errors.acknowledged}</Notice>{/if}
 			{#if problem}<Notice class="shrink-0" tone="error">{problem}</Notice>{/if}
 		{/if}

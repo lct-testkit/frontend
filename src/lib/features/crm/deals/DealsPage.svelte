@@ -21,6 +21,7 @@
 	import DealsBoard from './list/DealsBoard.svelte';
 	import DealsTable from './list/DealsTable.svelte';
 	import { activeCount, readFilters, toQuery } from './list/dealFilters';
+	import { statusName } from './statusUtils';
 	import NewDealDrawer from './new/NewDealDrawer.svelte';
 	import { workflows } from './workflows.svelte';
 
@@ -78,7 +79,7 @@
 			(workflows.graph(w.id)?.statuses ?? [])
 				.filter((s) => !s.is_archived)
 				.sort((a, b) => a.sort_order - b.sort_order)
-				.map((s) => ({ key: s.id, value: s.name, hint: list.length > 1 ? DEAL_TYPE_LABELS[w.deal_type] : undefined }))
+				.map((s) => ({ key: s.id, value: statusName(s.name), hint: list.length > 1 ? DEAL_TYPE_LABELS[w.deal_type] : undefined }))
 		);
 	});
 	const typeItems = Object.entries(DEAL_TYPE_LABELS).map(([key, value]) => ({ key, value }));
@@ -89,8 +90,8 @@
 	const quickTabs = [
 		{ key: 'all', label: 'Все' },
 		{ key: 'mine', label: 'Мои' },
-		{ key: 'warning', label: 'SLA: внимание' },
-		{ key: 'breached', label: 'SLA нарушен' },
+		{ key: 'warning', label: 'Срок под угрозой' },
+		{ key: 'breached', label: 'Срок нарушен' },
 		{ key: 'closed', label: 'Закрытые' }
 	];
 	// фильтры, что живут в боковой панели «Фильтры»: тип, регион, продукт, период (и воронка в режиме таблицы)

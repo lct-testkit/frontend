@@ -32,8 +32,8 @@
 	});
 
 	const dmItems = [
-		{ key: 'yes', value: 'Только ЛПР' },
-		{ key: 'no', value: 'Не ЛПР' }
+		{ key: 'yes', value: 'Да, ЛПР' },
+		{ key: 'no', value: 'Нет' }
 	];
 	const filterCount = $derived([org, dm].filter(Boolean).length);
 	const hasFilters = $derived(filterCount > 0 || !!q);
@@ -44,7 +44,7 @@
 
 {#snippet filters()}
 	<OrgPicker label="Организация" value={org || null} onChange={(id) => setQuery({ org: id })} />
-	<Pick label="ЛПР" items={dmItems} clearable value={dm || null} placeholder="Все" onChange={(v) => setQuery({ dm: v })} />
+	<Pick label="Принимает решения" items={dmItems} clearable value={dm || null} placeholder="Все" onChange={(v) => setQuery({ dm: v })} />
 {/snippet}
 
 {#snippet trailing()}<IconBtn icon={Refresh} label="Обновить" onclick={() => pager.reload()} />{/snippet}

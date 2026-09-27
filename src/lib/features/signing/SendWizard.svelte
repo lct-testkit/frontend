@@ -47,7 +47,7 @@
 	const steps = ['Документ', 'Подписанты'];
 </script>
 
-<AppModal {open} title="Отправить на подпись" size="m" {onClose}>
+<AppModal {open} title="Отправить на подпись" size="m" dirty={!!draft && !draft.loading && (draft.step > 0 || !!draft.file)} {onClose}>
 	{#if !draft || draft.loading}
 		<Skeleton kind="rows" rows={5} />
 	{:else if draft.loadError}
@@ -64,10 +64,11 @@
 			{/if}
 
 			{#if draft.source === 'template'}
-				<Pick label="Шаблон" items={templateItems} value={draft.templateCode} onChange={(k) => k && draft?.pickTemplate(k)} />
+				<Pick label="Шаблон" required items={templateItems} value={draft.templateCode} onChange={(k) => k && draft?.pickTemplate(k)} />
 			{:else}
 				<FileField
 					label="Выберите PDF или перетащите его сюда"
+					required
 					fileName={draft.file ? draft.file.name : null}
 					disabled={draft.uploading > 0}
 					loading={draft.uploading > 0}
@@ -78,7 +79,7 @@
 				{/if}
 			{/if}
 
-			<TextField label="Название" value={draft.title} onInput={(v) => draft?.setTitle(v)} maxlength={255} />
+			<TextField label="Название" required value={draft.title} onInput={(v) => draft?.setTitle(v)} maxlength={255} />
 		{:else}
 			<fieldset class="m-0 flex flex-col gap-1 rounded-lg border border-line p-3">
 				<legend class="t-desc-l px-1 text-muted">Кто подписывает</legend>
@@ -92,7 +93,7 @@
 				<div class="pt-2">
 					<UserPicker
 						label="Ещё сотрудник"
-						placeholder="Не обязательно"
+						placeholder="Не выбран"
 						value={draft.user?.id ?? null}
 						onChange={(id, person) => draft && (draft.user = id ? { id, name: person?.full_name ?? '' } : null)}
 					/>

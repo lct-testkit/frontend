@@ -98,7 +98,7 @@
 	<TextField label="Отображаемое имя" value={displayName} maxlength={255} onInput={(v) => (displayName = v)} />
 	<TextField label="Должность" value={position} maxlength={255} onInput={(v) => (position = v)} />
 	<Pick label="Роль" items={roles} value={role} onChange={(v) => v && (role = v as Role)} />
-	<Pick label="Команда" items={teams.options} value={teamId} clearable onChange={(v) => (teamId = v)} />
+	<Pick label="Команда" required={role === 'HEAD'} items={teams.options} value={teamId} clearable onChange={(v) => (teamId = v)} />
 	<UserPicker label="Руководитель" roles={['HEAD', 'ADMIN']} value={managerId} exclude={[user.id]} onChange={(id) => (managerId = id)} />
 	<FormRow>
 		<Pick label="Часовой пояс" items={zones} value={timezone} onChange={(v) => v && (timezone = v)} />

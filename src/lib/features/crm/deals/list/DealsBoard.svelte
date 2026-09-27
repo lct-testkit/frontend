@@ -11,7 +11,7 @@
 	import { contactCache, contactLabel, orgCache, orgLabel } from '../../shared/entityCache.svelte';
 	import type { AvailableTransition, Deal, WorkflowStatus } from '../../types';
 	import TransitionDialog from '../card/TransitionDialog.svelte';
-	import { isTerminal, statusTone, steps, terminals, type StatusTone } from '../statusUtils';
+	import { isTerminal, statusName, statusTone, steps, terminals, type StatusTone } from '../statusUtils';
 	import { workflows } from '../workflows.svelte';
 	import type { DealQuery } from './dealFilters';
 
@@ -144,7 +144,7 @@
 			<span class="min-w-0 flex-none"><SlaIndicator {deal} compact /></span>
 		</span>
 		<span class="t-desc-l flex items-center gap-1.5 text-muted">
-			<Avatar name={people.name(deal.owner_id)} size={20} />
+			<Avatar name={people.name(deal.owner_id)} size={24} />
 			<span class="truncate">{people.name(deal.owner_id)}</span>
 		</span>
 	</a>
@@ -183,10 +183,10 @@
 					e.preventDefault();
 					void drop(status);
 				}}
-				aria-label={status.name}
+				aria-label={statusName(status.name)}
 			>
 				<header class="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1.5">
-					<h3 class="t-body-s-strong m-0 truncate" title={status.name}>{status.name}</h3>
+					<h3 class="t-body-s-strong m-0 truncate" title={statusName(status.name)}>{statusName(status.name)}</h3>
 					<Counter size="xs" variant="ghost" colorScheme="neutral">{list.length}</Counter>
 				</header>
 				<div class={['flex min-h-16 flex-col gap-2 overflow-y-auto p-2 pt-1 max-md:max-h-[62dvh] md:min-h-0 md:flex-1', isTerminal(status) && 'opacity-90']}>

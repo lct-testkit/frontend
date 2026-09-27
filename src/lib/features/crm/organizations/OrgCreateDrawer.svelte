@@ -186,6 +186,7 @@
 			</Notice>
 		{/if}
 
-		{#if !blocked}<OrgForm bind:values {errors} canOwner={session.can('deal:reassign')} disabled={busy} />{/if}
+		{#if !blocked}<p class="t-desc-l text-muted">Обязательно указать название или ИНН.</p>
+			<OrgForm bind:values {errors} canOwner={session.can('deal:reassign')} disabled={busy} />{/if}
 	{/if}
 </FormDrawer>

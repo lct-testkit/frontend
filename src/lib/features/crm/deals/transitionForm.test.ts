@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+	alternativeGroups,
 	buildTransitionForm,
 	flattenLeaves,
 	isFillableField,
+	isOtherReason,
 	serializeTransitionFields,
 	topLevelGroups,
 	treeSatisfiable,
+	unmetAlternatives,
 	type AvailableTransitionLike,
 	type ConditionNode
 } from './transitionForm';
@@ -126,6 +129,44 @@ describe('buildTransitionForm', () => {
 		expect(form.blocked).toBe(false);
 	});
 
+	it('parked: поля группы «одно из» не обязательны по отдельности, ошибка — только если не заполнено ни одно', () => {
+		const form = buildTransitionForm({
+			transition: transition({
+				conditions: [
+					{ field: 'custom_fields.resume_at', op: 'not_null', satisfied: false },
+					{ field: 'custom_fields.park_reason', op: 'not_null', satisfied: false }
+				]
+			}),
+			conditionTree: PARK_CONDITION,
+			deal: emptyDeal
+		});
+		expect(form.fields.map((f) => [f.required, f.alternative])).toEqual([
+			[false, true],
+			[false, true]
+		]);
+		expect(form.alternatives).toEqual([['custom_fields.resume_at', 'custom_fields.park_reason']]);
+		const none = new Set<string>();
+		expect([...unmetAlternatives(form, {}, none)]).toEqual(['custom_fields.resume_at', 'custom_fields.park_reason']);
+		expect([...unmetAlternatives(form, { 'custom_fields.park_reason': 'нет бюджета' }, none)]).toEqual([]);
+		expect([...unmetAlternatives(form, {}, new Set(['custom_fields.resume_at']))]).toEqual([]);
+	});
+
+	it('all: каждое поле обязательно; any с листом, который полем не закрыть, — решает бэкенд', () => {
+		expect(alternativeGroups(WON_CONDITION)).toEqual([]);
+		expect(alternativeGroups(LMS_CONDITION)).toEqual([]);
+		expect(alternativeGroups({ all: [{ field: 'amount', op: 'not_null' }, PARK_CONDITION] })).toEqual([['custom_fields.resume_at', 'custom_fields.park_reason']]);
+	});
+
+	it('поле из «одного из» остаётся обязательным, если его требует целевой статус', () => {
+		const form = buildTransitionForm({
+			transition: transition({ conditions: [{ field: 'custom_fields.resume_at', op: 'not_null', satisfied: false }, { field: 'custom_fields.park_reason', op: 'not_null', satisfied: false }] }),
+			conditionTree: PARK_CONDITION,
+			targetStatus: { id: 's2', name: 'Заморожена', type: 'parked', required_fields: ['custom_fields.resume_at'] },
+			deal: emptyDeal
+		});
+		expect(form.fields.map((f) => f.required)).toEqual([true, false]);
+	});
+
 	it('без определения поля тип угадывается по имени/оператору', () => {
 		const form = buildTransitionForm({
 			transition: transition({
@@ -233,5 +274,20 @@ describe('serializeTransitionFields / isFillableField', () => {
 			fields
 		);
 		expect(body).toEqual({ amount: '1250000.50', expected_close_date: '2026-12-31' });
+	});
+});
+
+describe('isOtherReason', () => {
+	it('категория other или вариант «Другая причина»', () => {
+		expect(isOtherReason('Что угодно', 'other')).toBe(true);
+		expect(isOtherReason('Другая причина')).toBe(true);
+		expect(isOtherReason('Иная причина')).toBe(true);
+		expect(isOtherReason('Прочее')).toBe(true);
+		expect(isOtherReason('Дорого', 'price')).toBe(false);
+		expect(isOtherReason('Другой поставщик', 'competitor')).toBe(false);
+		expect(isOtherReason('Другая причина', 'price')).toBe(false);
+		expect(isOtherReason('Другой поставщик')).toBe(false);
+		expect(isOtherReason('Прочие условия')).toBe(false);
+		expect(isOtherReason(null)).toBe(false);
 	});
 });

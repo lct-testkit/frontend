@@ -29,6 +29,7 @@
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { graceCountdown } from '../erasure';
 	import { ERASURE_MODE_LABEL, ERASURE_SUBJECT_LABEL, blockerHint, erasureStatusMeta } from '../labels';
+	import { ERASURE_STATUS_HINTS } from '../hints';
 	import { ensureSubjects, subjectName } from './subject';
 
 	const SUBJECTS = (Object.keys(ERASURE_SUBJECT_LABEL) as (keyof typeof ERASURE_SUBJECT_LABEL)[]).map((k) => ({ key: k, value: ERASURE_SUBJECT_LABEL[k] }));
@@ -86,7 +87,7 @@
 {#snippet statusCell(r: Row)}
 	<TableCell>
 		{@const meta = erasureStatusMeta(r.status)}
-		<span class="block py-2"><StatusChip label={meta.label} tone={meta.tone} /></span>
+		<span class="block py-2"><StatusChip label={meta.label} tone={meta.tone} hint={ERASURE_STATUS_HINTS[r.status as keyof typeof ERASURE_STATUS_HINTS]} /></span>
 	</TableCell>
 {/snippet}
 {#snippet termCell(r: Row)}<TableCell><span class="block truncate py-2 text-muted" title={term(r)}>{term(r)}</span></TableCell>{/snippet}
@@ -96,7 +97,7 @@
 	<div class="flex min-w-0 flex-col gap-1">
 		<div class="flex items-start justify-between gap-2">
 			<span class="t-body-s-strong min-w-0 wrap-anywhere">{subjectName(r.subject_type, r.subject_id)}</span>
-			<StatusChip label={meta.label} tone={meta.tone} />
+			<StatusChip label={meta.label} tone={meta.tone} hint={ERASURE_STATUS_HINTS[r.status as keyof typeof ERASURE_STATUS_HINTS]} />
 		</div>
 		<span class="t-desc-l text-muted">{ERASURE_SUBJECT_LABEL[r.subject_type as keyof typeof ERASURE_SUBJECT_LABEL] ?? r.subject_type} · {ERASURE_MODE_LABEL[r.mode as keyof typeof ERASURE_MODE_LABEL] ?? r.mode}</span>
 		{#if term(r) !== '—'}<span class="t-desc-l">{term(r)}</span>{/if}

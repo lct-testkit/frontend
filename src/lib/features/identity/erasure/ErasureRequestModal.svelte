@@ -69,14 +69,14 @@
 	<p class="t-body-m-strong m-0 break-words">{subject.name}</p>
 	<RadioField items={MODES} value={mode} onChange={(v) => (mode = v as ErasureMode)} />
 	{#if mode === 'hard_delete'}<p class="t-desc-l m-0 text-muted">Только если нет связанных записей: сделок, задач, подписей.</p>{/if}
-	<AreaField label="Причина" rows={2} value={reason} error={errors.reason} onInput={(v) => ((reason = v), delete errors.reason)} />
+	<AreaField label="Причина" required rows={2} value={reason} error={errors.reason} onInput={(v) => ((reason = v), delete errors.reason)} />
 	<div class="flex flex-col gap-2">
-		<TextField label="Правовое основание" value={basis} error={errors.legal_basis} onInput={(v) => ((basis = v), delete errors.legal_basis)} />
+		<TextField label="Правовое основание" required value={basis} error={errors.legal_basis} onInput={(v) => ((basis = v), delete errors.legal_basis)} />
 		<div class="flex flex-wrap gap-1">
 			{#each LEGAL_BASIS_PRESETS as preset (preset)}
 				<Chip size="s" variant="secondary" selected={basis === preset} label={preset.split(' — ')[0]} onclick={() => ((basis = preset), delete errors.legal_basis)} />
 			{/each}
 		</div>
 	</div>
-	<AreaField label="Комментарий (необязательно)" rows={2} value={comment} onInput={(v) => (comment = v)} />
+	<AreaField label="Комментарий" rows={2} value={comment} onInput={(v) => (comment = v)} />
 </FormModal>

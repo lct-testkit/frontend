@@ -2,7 +2,8 @@
 	// Статус сделки: название и цвет берутся из графа воронки (грузится общим кэшем).
 	import { StatusChip } from '$lib/ui';
 	import { workflows } from './workflows.svelte';
-	import { statusTone } from './statusUtils';
+	import { statusName, statusTone } from './statusUtils';
+	import { statusTypeHint } from '../shared/hints';
 
 	let { statusId }: { statusId: string } = $props();
 
@@ -10,7 +11,7 @@
 </script>
 
 {#if status}
-	<StatusChip label={status.name} color={status.color} tone={statusTone(status.type)} />
+	<StatusChip label={statusName(status.name)} color={status.color} tone={statusTone(status.type)} hint={statusTypeHint(status.type)} />
 {:else}
 	<span class="text-soft">…</span>
 {/if}

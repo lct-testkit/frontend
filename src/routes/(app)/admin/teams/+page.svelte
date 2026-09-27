@@ -170,7 +170,7 @@
 	onSave={save}
 	onClose={() => (open = false)}
 >
-	<TextField label="Название" autofocus value={name} error={fieldErrors.name} onInput={(v) => (name = v)} />
+	<TextField label="Название" required autofocus value={name} error={fieldErrors.name} onInput={(v) => (name = v)} />
 	<Pick label="Родительская команда" placeholder="Нет" items={parentOptions} value={parentId} clearable onChange={(v) => (parentId = v)} />
 	<UserPicker label="Руководитель" value={headId} roles={['HEAD', 'ADMIN']} error={fieldErrors.head_id} onChange={(id) => (headId = id)} />
 	<Pick label="Регион" placeholder="Не задан" items={regions} value={regionId} clearable search onChange={(v) => (regionId = v)} />

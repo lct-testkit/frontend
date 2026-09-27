@@ -9,7 +9,7 @@
 	import TextField from '$lib/ui/fields/TextField.svelte';
 	import { toFormFailure } from '$lib/features/config/shared/form-errors';
 	import type { LearnerProfile } from '../types';
-	import { EDUCATION_OPTIONS, LEARNER_SECTIONS, SEX_OPTIONS, buildProfilePatch, requestKey } from './learnerProfile';
+	import { EDUCATION_OPTIONS, LEARNER_SECTIONS, SEX_OPTIONS, buildProfilePatch, fieldRows, requestKey, type LearnerFieldDef } from './learnerProfile';
 
 	interface Props {
 		open: boolean;
@@ -59,29 +59,35 @@
 	}
 </script>
 
+{#snippet input(f: LearnerFieldDef)}
+	{@const key = requestKey(f.key)}
+	{#if key === 'sex'}
+		<Pick label={f.label} value={values.sex ?? null} items={SEX_OPTIONS} clearable error={errors.sex} onChange={(v) => (values = { ...values, sex: v ?? '' })} />
+	{:else if key === 'education'}
+		<Pick label={f.label} value={values.education ?? null} items={EDUCATION_OPTIONS} clearable error={errors.education} hint={profile?.education_label ? `Сейчас: ${profile.education_label}` : undefined} onChange={(v) => (values = { ...values, education: v ?? '' })} />
+	{:else}
+		<TextField label={f.label} value={values[key] ?? ''} placeholder={current(key)} hint={f.format} error={errors[key]} disabled={saving} onInput={(v) => (values = { ...values, [key]: v })} />
+	{/if}
+{/snippet}
+
 <FormDrawer {open} title="Профиль учащегося" saveLabel="Сохранить" {saving} {dirty} canSave={dirty} {formError} onSave={save} {onClose}>
-	<p class="t-desc-l m-0 text-muted">Заполните только то, что нужно изменить: пустые поля остаются как есть. Значения проверяются так же, как при загрузке шаблона LMS.</p>
+	<ul class="t-body-s m-0 flex list-none flex-col gap-1 p-0 text-muted">
+		<li>Данные попадают в выгрузку для LMS. Все поля необязательные.</li>
+		<li>ФИО, телефон и e-mail берутся из карточки контакта.</li>
+		<li>Сохранённое скрыто: в поле показано, что записано сейчас. Пустое поле не меняется.</li>
+	</ul>
 	{#each LEARNER_SECTIONS as section (section.key)}
 		<FormSection title={section.title}>
-			<FormRow>
-				{#each section.fields as f (f.key)}
-					{@const key = requestKey(f.key)}
-					{#if key === 'sex'}
-						<Pick label={f.label} value={values.sex ?? null} items={SEX_OPTIONS} clearable error={errors.sex} onChange={(v) => (values = { ...values, sex: v ?? '' })} />
-					{:else if key === 'education'}
-						<Pick label={f.label} value={values.education ?? null} items={EDUCATION_OPTIONS} clearable error={errors.education} hint={profile?.education_label ? `Сейчас: ${profile.education_label}` : undefined} onChange={(v) => (values = { ...values, education: v ?? '' })} />
-					{:else}
-						<TextField
-							label={f.label}
-							value={values[key] ?? ''}
-							placeholder={current(key)}
-							error={errors[key]}
-							disabled={saving}
-							onInput={(v) => (values = { ...values, [key]: v })}
-						/>
-					{/if}
-				{/each}
-			</FormRow>
+			{#each fieldRows(section.fields) as row (row[0].key)}
+				<!-- a wide field (a long text) stands outside a row: the whole width; the short ones go two in a row -->
+				{#if row[0].wide}
+					{@render input(row[0])}
+				{:else}
+					<FormRow>
+						{#each row as f (f.key)}{@render input(f)}{/each}
+					</FormRow>
+				{/if}
+			{/each}
 		</FormSection>
 	{/each}
 </FormDrawer>

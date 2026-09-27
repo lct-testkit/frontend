@@ -9,6 +9,7 @@
 	import { session } from '$lib/auth/session.svelte';
 	import { approvalActions, approvalExecuteHref, describeApproval } from '$lib/features/identity/approvals';
 	import { approvalOperationLabel, approvalStatusMeta } from '$lib/features/identity/labels';
+	import { APPROVAL_STATUS_HINTS } from '$lib/features/identity/hints';
 	import ReasonModal from '$lib/features/identity/ReasonModal.svelte';
 	import { Btn, DateText, IconBtn, Page, PageHeader, DataTable, StatusChip, TabsBar, UserName, toast, confirm, type Col, TableCell } from '$lib/ui';
 
@@ -83,7 +84,7 @@
 {#snippet statusCell(a: Approval)}
 	<TableCell>
 		{@const meta = approvalStatusMeta(approvalActions(a, meId).isExpired ? 'expired' : a.status)}
-		<span class="block py-2"><StatusChip label={meta.label} tone={meta.tone} /></span>
+		<span class="block py-2"><StatusChip label={meta.label} tone={meta.tone} hint={APPROVAL_STATUS_HINTS[(approvalActions(a, meId).isExpired ? 'expired' : a.status) as keyof typeof APPROVAL_STATUS_HINTS]} /></span>
 	</TableCell>
 {/snippet}
 {#snippet buttons(a: Approval)}
@@ -100,7 +101,7 @@
 	<div class="flex min-w-0 flex-col gap-2">
 		<div class="flex items-start justify-between gap-2">
 			<span class="t-body-s-strong min-w-0">{approvalOperationLabel(a.operation)}</span>
-			{#snippet chip()}{@const meta = approvalStatusMeta(a.status)}<StatusChip label={meta.label} tone={meta.tone} />{/snippet}
+			{#snippet chip()}{@const meta = approvalStatusMeta(a.status)}<StatusChip label={meta.label} tone={meta.tone} hint={APPROVAL_STATUS_HINTS[a.status as keyof typeof APPROVAL_STATUS_HINTS]} />{/snippet}
 			{@render chip()}
 		</div>
 		<span class="t-desc-l text-muted">{describeApproval(a)}</span>
@@ -140,7 +141,7 @@
 	confirmLabel="Отклонить"
 	danger
 	required={false}
-	label="Причина (необязательно)"
+	label="Причина"
 	onSubmit={reject}
 	onClose={() => (rejecting = null)}
 />

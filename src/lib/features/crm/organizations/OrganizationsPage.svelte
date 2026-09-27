@@ -1,5 +1,6 @@
 <script lang="ts">
-	// Организации: поиск по названию и ИНН, фильтры (тип, регион, статус ЕГРЮЛ, аккредитация, ответственный) — в адресной строке.
+	// Организации: поиск по названию и ИНН, фильтры (регион, тип — в строке; статус ЕГРЮЛ, аккредитация, ответственный — в панели «Фильтры», там всегда не меньше двух) — в адресной строке.
+	// В строке два поля, чтобы она оставалась одной и при включённых фильтрах («Сбросить») на ноутбуке 1366–1440.
 	// «Новая организация» открывает поиск по реестру (ИНН или название) и создаёт карточку с подставленными реквизитами.
 	import { onMount, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -15,6 +16,7 @@
 		import Ico from '../shared/Ico.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import { orgTitle } from '../shared/entityCache.svelte';
+	import { registryStatusHint } from '../shared/hints';
 	import { ORG_TYPE_LABELS, REGISTRY_STATUS_LABELS, REGISTRY_STATUS_SCHEMES } from '../shared/labels';
 	import { regionName, regions } from '../shared/refs.svelte';
 	import type { Organization } from '../types';
@@ -72,10 +74,10 @@
 
 	const columns: Col<Organization>[] = $derived([
 		{ key: 'name', title: 'Организация', width: 'minmax(180px, 3fr)', render: nameCell },
-		{ key: 'inn', title: 'ИНН', render: innCell, drop: 3 },
+		{ key: 'inn', title: 'ИНН', hint: 'Идентификационный номер налогоплательщика', render: innCell, drop: 3 },
 		{ key: 'type', title: 'Тип', render: typeCell, drop: 2 },
 		{ key: 'region', title: 'Регион', width: 'minmax(140px, 1.2fr)', render: regionCell, drop: 4 },
-		{ key: 'registry', title: 'ЕГРЮЛ', render: registryCell },
+		{ key: 'registry', title: 'ЕГРЮЛ', hint: 'Статус организации в Едином государственном реестре юридических лиц', render: registryCell },
 		{ key: 'accr', title: 'Аккредитация', render: accrCell, drop: 1 },
 		...(showOwner ? [{ key: 'owner', title: 'Ответственный', render: ownerCell, drop: 5 }] : [])
 	]);
@@ -91,7 +93,7 @@
 {#snippet regionCell(row: Organization)}<TableCell><span class="truncate">{regionName(row.region_id)}</span></TableCell>{/snippet}
 {#snippet registryCell(row: Organization)}
 	<TableCell>
-		{#if row.registry_status}<StatusChip label={REGISTRY_STATUS_LABELS[row.registry_status] ?? row.registry_status} tone={REGISTRY_STATUS_SCHEMES[row.registry_status] ?? 'neutral'} />{:else}<span class="text-soft">—</span>{/if}
+		{#if row.registry_status}<StatusChip label={REGISTRY_STATUS_LABELS[row.registry_status] ?? row.registry_status} tone={REGISTRY_STATUS_SCHEMES[row.registry_status] ?? 'neutral'} hint={registryStatusHint(row.registry_status)} />{:else}<span class="text-soft">—</span>{/if}
 		{#if row.requisites_drift}<span title="Реквизиты изменились в ЕГРЮЛ"><Ico icon={AttentionMark} tone="warning" size={18} /></span>{/if}
 	</TableCell>
 {/snippet}
@@ -104,7 +106,7 @@
 	<div class="flex min-w-0 flex-col gap-1">
 		<div class="flex items-start justify-between gap-2">
 			<span class="t-row-strong break-words">{orgTitle(row)}</span>
-			{#if row.registry_status && row.registry_status !== 'active'}<StatusChip label={REGISTRY_STATUS_LABELS[row.registry_status] ?? row.registry_status} tone={REGISTRY_STATUS_SCHEMES[row.registry_status] ?? 'neutral'} />{/if}
+			{#if row.registry_status && row.registry_status !== 'active'}<StatusChip label={REGISTRY_STATUS_LABELS[row.registry_status] ?? row.registry_status} tone={REGISTRY_STATUS_SCHEMES[row.registry_status] ?? 'neutral'} hint={registryStatusHint(row.registry_status)} />{/if}
 		</div>
 		<span class="t-desc-l text-muted">ИНН {row.inn ?? '—'} · {regionName(row.region_id)}</span>
 		<span class="t-desc-l text-muted">{ORG_TYPE_LABELS[row.org_type] ?? row.org_type}{row.requisites_drift ? ' · реквизиты изменились' : ''}</span>
@@ -114,10 +116,10 @@
 {#snippet filters()}
 	<Pick label="Регион" items={regionItems} clearable search value={region || null} placeholder="Все" onChange={(v) => setQuery({ region: v })} />
 	<Pick label="Тип" items={typeItems} clearable value={type || null} placeholder="Все" onChange={(v) => setQuery({ type: v })} />
-	<Pick label="Статус в ЕГРЮЛ" items={statusItems} clearable value={status || null} placeholder="Все" onChange={(v) => setQuery({ status: v })} />
 {/snippet}
 
 {#snippet more()}
+	<Pick label="Статус в ЕГРЮЛ" items={statusItems} clearable value={status || null} placeholder="Все" onChange={(v) => setQuery({ status: v })} />
 	<Pick label="Аккредитация" items={accItems} clearable value={accredited || null} placeholder="Все" onChange={(v) => setQuery({ accredited: v })} />
 	{#if showOwner}<UserPicker label="Ответственный" roles={['KAM', 'HEAD']} value={owner || null} placeholder="Все" onChange={(id) => setQuery({ owner: id })} />{/if}
 {/snippet}
@@ -142,7 +144,7 @@
 	{#if !session.can('organization:read')}
 		<EmptyState title="Нет доступа к организациям" compact />
 	{:else}
-		<FilterBar search={q} placeholder="Название или ИНН" onSearch={(v) => setQuery({ q: v || null })} active={filterCount} onReset={reset} {filters} {more} moreActive={[accredited, showOwner && owner].filter(Boolean).length} {trailing} primary={canWrite ? { label: 'Новая организация', onclick: openCreate, testid: 'new-org' } : undefined} />
+		<FilterBar search={q} placeholder="Название или ИНН" onSearch={(v) => setQuery({ q: v || null })} active={filterCount} onReset={reset} {filters} {more} moreActive={[status, accredited, showOwner && owner].filter(Boolean).length} {trailing} primary={canWrite ? { label: 'Новая организация', onclick: openCreate, testid: 'new-org' } : undefined} />
 		<DataTable
 			id="orgs"
 			fill

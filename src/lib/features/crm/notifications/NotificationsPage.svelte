@@ -6,7 +6,7 @@
 	import { CheckLargeDouble, Refresh, Settings } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { createPager } from '$lib/api/pager.svelte';
-	import { Btn, EmptyState, ErrorState, IconBtn, Page, PageHeader, Skeleton } from '$lib/ui';
+	import { Btn, EmptyState, ErrorState, IconBtn, Page, PageHeader, RowList, Skeleton } from '$lib/ui';
 	import { setQuery } from '$lib/utils/query-state.svelte';
 	import FilterBar from '$lib/ui/FilterBar.svelte';
 	import TabsBar from '$lib/ui/TabsBar.svelte';
@@ -88,11 +88,11 @@
 	{:else if pager.items.length === 0}
 		<EmptyState title={view === 'unread' ? 'Непрочитанных нет' : 'Уведомлений нет'} compact />
 	{:else}
-		<ul class="m-0 flex list-none flex-col overflow-hidden rounded-lg border border-line bg-surface p-1">
+		<RowList label="Уведомления">
 			{#each pager.items as item (item.id)}
 				<NotificationRow {item} onOpen={open} onRead={read} />
 			{/each}
-		</ul>
+		</RowList>
 		{#if pager.hasMore}<div class="flex justify-center"><Btn label="Показать ещё" variant="outline" colorScheme="neutral" loading={pager.loadingMore} onclick={() => pager.loadMore()} /></div>{/if}
 	{/if}
 </Page>

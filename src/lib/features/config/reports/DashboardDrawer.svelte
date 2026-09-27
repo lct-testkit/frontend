@@ -82,6 +82,6 @@
 </script>
 
 <FormDrawer {open} title={item ? 'Дашборд' : 'Новый дашборд'} width={420} {saving} {formError} {conflict} saveLabel={item ? 'Сохранить' : 'Создать'} onSave={save} {onClose} onReload={reloadVersion}>
-	<TextField label="Название" bind:value={name} error={errors.name} maxlength={255} autofocus />
+	<TextField label="Название" required bind:value={name} error={errors.name} maxlength={255} autofocus />
 	<Toggle label="Общий" bind:checked={shared} hint="Виден всем, кому доступны отчёты; менять может только владелец" />
 </FormDrawer>

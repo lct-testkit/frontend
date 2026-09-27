@@ -2,7 +2,7 @@
 	// Шаблоны уведомлений (админ): код события, канал, тема, «Активен» прямо в списке. Шаблонов немного — грузим все и ищем на клиенте.
 	import { onMount } from 'svelte';
 	import { ApiError, api, ifMatch, unwrap } from '$lib/api';
-	import { DateText, ErrorState, Page, PageHeader, StatusChip, TableCell, type Col } from '$lib/ui';
+	import { DateText, ErrorState, Notice, Page, PageHeader, StatusChip, TableCell, type Col } from '$lib/ui';
 	import { session } from '$lib/auth/session.svelte';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { NOTIFICATION_CHANNELS, NOTIFICATION_EVENT_CODES, labelOf } from '../labels';
@@ -79,6 +79,7 @@
 	{#if !allowed}
 		<ErrorState error={new ApiError({ status: 403, detail: 'Шаблоны уведомлений доступны администратору.' })} />
 	{:else}
+		<Notice class="shrink-0" tone="info">Событие — то, что происходит в системе (например, смена статуса сделки). Для каждого события и канала задан шаблон текста уведомления. Выключенный шаблон не отправляется.</Notice>
 		<FilterBar primary={allowed ? { label: 'Создать шаблон', onclick: () => openDrawer(null) } : undefined} search={readQuery('q')} placeholder="Событие, тема или текст" onSearch={(v) => setQuery({ q: v })} active={channel ? 1 : 0} onReset={() => setQuery({ channel: null })}>
 			{#snippet filters()}
 				<Pick class="md:w-56" size="m" clearable placeholder="Любой канал" value={channel} items={NOTIFICATION_CHANNELS.map((c) => ({ key: c.key, value: c.value }))} onChange={(v) => setQuery({ channel: v })} />

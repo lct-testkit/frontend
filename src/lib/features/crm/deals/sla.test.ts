@@ -18,7 +18,7 @@ describe('slaProgress', () => {
 		expect(p.fraction).toBeCloseTo(0.5);
 		expect(p.remainingMs).toBe(5 * MS_HOUR);
 		expect(p.overdueMs).toBeNull();
-		expect(slaLabel(p)).toBe('осталось 5 ч');
+		expect(slaLabel(p)).toBe('Осталось 5 ч');
 	});
 
 	it('предупреждение с 75% (порог воркера бэкенда), даже если sla_state ещё "ok"', () => {
@@ -32,7 +32,7 @@ describe('slaProgress', () => {
 		expect(p.state).toBe('breached');
 		expect(p.overdueMs).toBe(MS_HOUR);
 		expect(p.remainingMs).toBeNull();
-		expect(slaLabel(p)).toBe('просрочено на 1 ч');
+		expect(slaLabel(p)).toBe('Просрочено на 1 ч');
 		expect(slaColorScheme(p.state)).toBe('error');
 	});
 
@@ -40,7 +40,7 @@ describe('slaProgress', () => {
 		const p = slaProgress(deal({ sla_state: 'paused', sla_due_at: null }), T0);
 		expect(p.state).toBe('paused');
 		expect(p.fraction).toBeNull();
-		expect(slaLabel(p)).toBe('на паузе');
+		expect(slaLabel(p)).toBe('На паузе');
 	});
 
 	it('закрытая сделка и статус без правила — таймера нет', () => {
@@ -61,6 +61,6 @@ describe('slaLabel: короткая форма для плотных мест',
 		expect(slaLabel(breached, true)).toBe('−1 ч');
 		const left = slaProgress(deal({ sla_due_at: new Date(T0 + 5 * 3_600_000).toISOString(), status_changed_at: new Date(T0 - 3_600_000).toISOString() }), T0);
 		expect(slaLabel(left, true)).toBe('5 ч');
-		expect(slaLabel(slaProgress(deal({ sla_state: 'paused' }), T0), true)).toBe('пауза');
+		expect(slaLabel(slaProgress(deal({ sla_state: 'paused' }), T0), true)).toBe('Пауза');
 	});
 });

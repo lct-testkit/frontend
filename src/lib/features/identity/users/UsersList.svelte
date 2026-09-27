@@ -12,6 +12,8 @@
 	import StatusChip from '$lib/ui/StatusChip.svelte';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { roleLabel, userStatusMeta } from '../labels';
+	import { Term } from '$lib/ui';
+	import { ROLE_HINTS, USER_STATUS_HINTS } from '../hints';
 	import { teams } from '../teams.svelte';
 	import type { UserOut } from '../types';
 	import UsersFilters from './UsersFilters.svelte';
@@ -63,12 +65,12 @@
 		</span>
 	</TableCell>
 {/snippet}
-{#snippet role(u: UserOut)}<TableCell><span class="truncate">{roleLabel(u.role)}</span></TableCell>{/snippet}
+{#snippet role(u: UserOut)}<TableCell><span class="truncate"><Term label={roleLabel(u.role)} hint={ROLE_HINTS[u.role as keyof typeof ROLE_HINTS]} /></span></TableCell>{/snippet}
 {#snippet team(u: UserOut)}<TableCell><span class="truncate">{teams.name(u.team_id)}</span></TableCell>{/snippet}
 {#snippet status(u: UserOut)}
 	<TableCell>
 		{@const meta = userStatusMeta(u.status)}
-		<StatusChip label={meta.label} tone={meta.tone} />
+		<StatusChip label={meta.label} tone={meta.tone} hint={USER_STATUS_HINTS[u.status as keyof typeof USER_STATUS_HINTS]} />
 	</TableCell>
 {/snippet}
 {#snippet last(u: UserOut)}<TableCell><DateText value={u.last_login_at} relative /></TableCell>{/snippet}
@@ -81,7 +83,7 @@
 			<span class="t-desc-l truncate text-muted">{u.email ?? '—'}</span>
 			<span class="t-desc-l text-muted">{[roleLabel(u.role), u.team_id ? teams.name(u.team_id) : null].filter(Boolean).join(' · ')}</span>
 		</div>
-		<StatusChip label={meta.label} tone={meta.tone} />
+		<StatusChip label={meta.label} tone={meta.tone} hint={USER_STATUS_HINTS[u.status as keyof typeof USER_STATUS_HINTS]} />
 	</div>
 {/snippet}
 

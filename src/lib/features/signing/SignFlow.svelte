@@ -110,6 +110,6 @@
 	</div>
 
 	<FormModal open={rejectOpen} title="Отклонить документ" size="s" saveLabel="Отклонить" danger saveTestId="reject-confirm" saving={session.busy} dirty={rejectOpen && reason.trim().length > 0} onSave={reject} onClose={() => (rejectOpen = false)}>
-		<AreaField label="Причина" rows={3} value={reason} error={rejectError ?? undefined} onInput={(v) => ((reason = v), (rejectError = null))} />
+		<AreaField label="Причина" required rows={3} value={reason} error={rejectError ?? undefined} onInput={(v) => ((reason = v), (rejectError = null))} />
 	</FormModal>
 {/if}

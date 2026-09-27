@@ -125,8 +125,8 @@
 
 <FormDrawer {open} title={isNew ? 'Новый шаблон' : (NOTIFICATION_EVENT_CODES.find((e) => e.key === item?.code)?.value ?? item?.code ?? 'Шаблон')} width={520} {saving} {formError} {conflict} saveLabel={isNew ? 'Создать' : 'Сохранить'} onSave={save} {onClose} onReload={reloadVersion}>
 	{#if isNew}
-		<Pick label="Событие" search bind:value={eventKey} items={eventItems} error={errors.code} />
-		{#if eventKey === CUSTOM}<TextField label="Код события" bind:value={customCode} placeholder="DEAL_CUSTOM_EVENT" hint="Заглавные латинские буквы и «_»: код должен совпадать с кодом в действии перехода" />{/if}
+		<Pick label="Событие" required search bind:value={eventKey} items={eventItems} error={errors.code} />
+		{#if eventKey === CUSTOM}<TextField label="Код события" required bind:value={customCode} placeholder="DEAL_CUSTOM_EVENT" hint="Заглавные латинские буквы и «_»: код должен совпадать с кодом в действии перехода" />{/if}
 		<Pick label="Канал" bind:value={channel} items={NOTIFICATION_CHANNELS.map((c) => ({ key: c.key, value: c.value }))} />
 	{:else}
 		<div class="t-desc-l flex flex-wrap items-center gap-x-3 gap-y-1 text-muted">
@@ -135,7 +135,7 @@
 		</div>
 	{/if}
 	{#if channel === 'email'}<TextField label="Тема письма" bind:value={subject} error={errors.subject_template} />{/if}
-	<AreaField label="Текст" bind:value={body} bind:ref={area} rows={8} maxRows={16} error={errors.body_template} />
+	<AreaField label="Текст" required bind:value={body} bind:ref={area} rows={8} maxRows={16} error={errors.body_template} />
 	{#if variables.length}
 		<div class="flex flex-col gap-1.5">
 			<span class="t-desc-l text-muted">Переменные — нажмите, чтобы вставить</span>

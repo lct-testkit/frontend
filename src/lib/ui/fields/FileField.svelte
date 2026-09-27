@@ -16,17 +16,19 @@
 		fileName?: string | null;
 		disabled?: boolean;
 		loading?: boolean;
+		/** the file is needed: the text of the zone gets the asterisk */
+		required?: boolean;
 		error?: string;
 	}
 
-	let { onPick, onClear, accept = { 'application/pdf': ['.pdf'] }, label = 'Выберите файл или перетащите его сюда', hint, fileName = null, disabled = false, loading = false, error }: Props = $props();
+	let { onPick, onClear, accept = { 'application/pdf': ['.pdf'] }, label = 'Выберите файл или перетащите его сюда', hint, fileName = null, disabled = false, loading = false, required = false, error }: Props = $props();
 
 	let picked = $state<string | null>(null);
 </script>
 
 <FileUpload
 	{accept}
-	subtitle={label}
+	subtitle={required ? label + ' *' : label}
 	hint={fileName && !picked ? `Выбран файл: ${fileName}` : hint}
 	{disabled}
 	statuses={picked && (loading || error) ? { [picked]: { loading, error } } : {}}

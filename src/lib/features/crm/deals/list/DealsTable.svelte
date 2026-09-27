@@ -76,7 +76,7 @@
 		{ key: 'title', title: 'Сделка', width: 'minmax(160px, 3fr)', render: titleCell, sortable: true },
 		{ key: 'party', title: 'Организация', width: 'minmax(140px, 2fr)', render: partyCell, drop: 3 },
 		{ key: 'status', title: 'Статус', render: statusCell },
-		{ key: 'sla', title: 'Срок', render: slaCell, drop: 2 },
+		{ key: 'sla', title: 'Срок', hint: 'Срок (SLA): сколько сделка может пробыть в текущем статусе', render: slaCell, drop: 2 },
 		{ key: 'amount', title: 'Сумма', align: 'right' as const, render: amountCell, sortable: true },
 		...(showOwner ? [{ key: 'owner', title: 'Ответственный', render: ownerCell, drop: 4 }] : []),
 		{ key: 'updated_at', title: 'Изменён', render: updatedCell, sortable: true, drop: 1 }

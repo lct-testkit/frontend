@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Organization } from '../types';
-import { driftEntries, emptyOrgForm, formFromOrg, guessOrgType, toCreateBody, toPatchBody } from './orgUtils';
+import { driftEntries, emptyOrgForm, formFromOrg, guessOrgType, markedLabel, registryMark, toCreateBody, toPatchBody } from './orgUtils';
 
 const org = (over: Partial<Organization> = {}): Organization =>
 	({
@@ -57,5 +57,22 @@ describe('driftEntries', () => {
 	});
 	it('нет расхождений — пустой список', () => {
 		expect(driftEntries(org({ requisites_drift: null }))).toEqual([]);
+	});
+});
+
+describe('пометки полей из реестра', () => {
+	const verified = org({ verified_source: 'fns_registry', manual_overrides: ['kpp'] });
+	it('поле из реестра — «из ЕГРЮЛ», исправленное руками — «изменено вручную»', () => {
+		expect(registryMark(verified, 'short_name')).toBe('из ЕГРЮЛ');
+		expect(registryMark(verified, 'kpp')).toBe('изменено вручную');
+	});
+	it('без сверки с реестром, без карточки и у прочих полей пометки нет', () => {
+		expect(registryMark(org(), 'short_name')).toBeUndefined();
+		expect(registryMark(null, 'short_name')).toBeUndefined();
+		expect(registryMark(verified, 'website')).toBeUndefined();
+	});
+	it('пометка встаёт в название поля в скобках', () => {
+		expect(markedLabel('Краткое название', 'из ЕГРЮЛ')).toBe('Краткое название (из ЕГРЮЛ)');
+		expect(markedLabel('Сайт')).toBe('Сайт');
 	});
 });

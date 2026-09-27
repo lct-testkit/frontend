@@ -63,6 +63,8 @@
 
 	const bp = useBreakpoint();
 	const object = $derived(!!(back || subtitle || details || meta));
+	// buttons share the tab row (desktop): the tabs get 6 px more under them so the buttons do not touch the grey line; a row without buttons stays 36 px
+	const hasButtons = $derived(!!(actions || (primary && !bp.isMobile)));
 
 	// TABS + BUTTONS in one line — while they fit. When they do not, the buttons move to a line of their own UNDER the tabs (a strip that scrolls would hide
 	// its last tab; a wrapping row would draw the grey line under the buttons instead of under the tabs). Measured: the span of the tabs + the width of the
@@ -113,8 +115,8 @@
 		<h1 class="sr-only">{title}</h1>
 		<div class="flex min-w-0 items-center gap-x-3 border-b-2 border-line">
 			<!-- the strip overlaps the border of the row by its own 2 px: the orange mark of the current tab lies exactly on the grey line; on a phone it scrolls and the buttons stay at its end -->
-			<div bind:this={strip} class="-mb-0.5 min-w-0 flex-1 max-md:overflow-hidden">{@render tabs(false)}</div>
-			{#if !stacked}<div class="ml-auto flex flex-none justify-end">{@render buttons()}</div>{/if}
+			<div bind:this={strip} class={['-mb-0.5 min-w-0 flex-1 max-md:overflow-hidden', hasButtons && 'md:[&_.atmr-tabs-group]:[--atmr-tabitem-m-padding-bottom:calc(7.6px+6px)]']}>{@render tabs(false)}</div>
+			{#if !stacked}<div class="ml-auto flex flex-none items-start justify-end self-start">{@render buttons()}</div>{/if}
 		</div>
 		{#if stacked}<div class="mt-4 flex justify-end">{@render buttons()}</div>{/if}
 	</header>

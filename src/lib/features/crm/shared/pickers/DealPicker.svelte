@@ -8,11 +8,12 @@
 		value?: string | null;
 		label?: string;
 		error?: string;
+		required?: boolean;
 		disabled?: boolean;
 		onChange: (id: string | null) => void;
 	}
 
-	let { value = null, label = 'Сделка', error, disabled = false, onChange }: Props = $props();
+	let { value = null, label = 'Сделка', error, disabled = false, required = false, onChange }: Props = $props();
 
 	$effect(() => {
 		if (value) dealCache.ensure([value]);
@@ -31,4 +32,4 @@
 	}
 </script>
 
-<RemotePick {value} {selected} {search} {label} {error} {disabled} placeholder="Номер или название" emptyText="Сделок не найдено" clearable={false} onChange={(id) => onChange(id)} />
+<RemotePick {value} {selected} {search} {label} {error} {disabled} {required} placeholder="Номер или название" emptyText="Сделок не найдено" clearable={false} onChange={(id) => onChange(id)} />
