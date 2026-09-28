@@ -1,16 +1,16 @@
 <script lang="ts">
 	// Реестр ЕГРЮЛ (админ): текущая версия, загрузка новой выгрузки, история версий. Пока идёт разбор, список обновляется сам.
 	import { onDestroy, onMount } from 'svelte';
-	import { Upload } from '@lct-testkit/rt-ui/icons';
+	import { Trash, Upload } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { createPager } from '$lib/api/pager.svelte';
-	import { Btn, CopyButton, DataTable, DateText, EmptyState, ErrorState, FilterBar, Notice, Page, PageHeader, StatusChip, TableCell, type Col } from '$lib/ui';
+	import { Btn, confirm, CopyButton, DataTable, DateText, EmptyState, ErrorState, FilterBar, IconBtn, Notice, Page, PageHeader, StatusChip, TableCell, toast, type Col } from '$lib/ui';
 	import { people } from '$lib/api/people.svelte';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import UserName from '$lib/ui/UserName.svelte';
 	import { ApiError } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
-	import { formatNumber } from '$lib/utils/format';
+	import { formatDate, formatNumber } from '$lib/utils/format';
 	import { REGISTRY_SOURCES, REGISTRY_STATUSES, isRegistryBusy, labelOf } from '../labels';
 	import type { RegistryVersion } from '../types';
 	import { createPoller } from '../shared/polling.svelte';
@@ -45,13 +45,29 @@
 
 	const tone = (s: string) => (s === 'completed' ? 'success' : s === 'failed' ? 'error' : s === 'running' ? 'info' : 'neutral');
 
+	/** Удаление — только ADMIN (доступ к странице пошире, `registry:import`); сервер и так откажет (409 CRM-1303)
+	 * на текущей версии и на той, что сейчас разбирается — кнопку для них тоже прячем заранее. */
+	const canRemove = (v: RegistryVersion) => session.isRole('ADMIN') && !isRegistryBusy(v.status) && v.id !== current?.id;
+
+	async function remove(v: RegistryVersion) {
+		if (!(await confirm({ title: `Удалить версию «${labelOf(REGISTRY_SOURCES, v.source)}» от ${formatDate(v.imported_at ?? v.created_at)}?`, confirmLabel: 'Удалить', danger: true }))) return;
+		try {
+			await unwrap(api.DELETE('/api/admin/registry/versions/{version_id}', { params: { path: { version_id: v.id } } }));
+			toast.success('Версия удалена');
+			await pager.reload();
+		} catch (e) {
+			toast.error(e);
+		}
+	}
+
 	const columns: Col<RegistryVersion>[] = [
 		{ key: 'source', title: 'Источник', width: 'minmax(160px, 1fr)', render: sourceCell },
 		{ key: 'status', title: 'Статус', render: statusCell },
 		{ key: 'entries', title: 'Записей', align: 'right', render: entriesCell },
 		{ key: 'when', title: 'Загружена', render: whenCell },
 		{ key: 'by', title: 'Кто', width: 'minmax(120px, 1fr)', drop: 2, render: byCell },
-		{ key: 'sum', title: 'Контрольная сумма', drop: 1, render: sumCell }
+		{ key: 'sum', title: 'Контрольная сумма', drop: 1, render: sumCell },
+		{ key: 'delete', title: '', width: 56, render: deleteCell }
 	];
 </script>
 
@@ -72,6 +88,7 @@
 		{#if v.checksum}<span class="flex items-center gap-1"><span class="t-desc-l font-mono text-muted">{v.checksum.slice(0, 12)}…</span><CopyButton value={v.checksum} label="Скопировать контрольную сумму" /></span>{:else}<span class="text-soft">—</span>{/if}
 	</TableCell>
 {/snippet}
+{#snippet deleteCell(v: RegistryVersion)}<TableCell>{#if canRemove(v)}<IconBtn icon={Trash} label="Удалить версию" danger onclick={() => remove(v)} />{/if}</TableCell>{/snippet}
 
 {#snippet card(v: RegistryVersion)}
 	<div class="flex min-w-0 flex-col gap-1.5">

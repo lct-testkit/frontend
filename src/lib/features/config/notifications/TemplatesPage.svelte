@@ -1,8 +1,9 @@
 <script lang="ts">
 	// Шаблоны уведомлений (админ): код события, канал, тема, «Активен» прямо в списке. Шаблонов немного — грузим все и ищем на клиенте.
 	import { onMount } from 'svelte';
+	import { Trash } from '@lct-testkit/rt-ui/icons';
 	import { ApiError, api, ifMatch, unwrap } from '$lib/api';
-	import { DateText, ErrorState, Notice, Page, PageHeader, StatusChip, TableCell, type Col } from '$lib/ui';
+	import { confirm, DateText, ErrorState, IconBtn, Notice, Page, PageHeader, StatusChip, TableCell, toast, type Col } from '$lib/ui';
 	import { session } from '$lib/auth/session.svelte';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { NOTIFICATION_CHANNELS, NOTIFICATION_EVENT_CODES, labelOf } from '../labels';
@@ -45,13 +46,29 @@
 		list.set((list.data ?? []).map((x) => (x.id === saved.id ? saved : x)));
 	}
 
-	const columns: Col<NotificationTemplate>[] = [
+	/** Можно всегда (это текст, не бизнес-сущность с историей) — но если шаблон был единственным активным для своей пары
+	 * code+channel, ответ несёт `detail` с предупреждением, что уведомления этого типа перестанут отправляться по каналу. */
+	async function remove(t: NotificationTemplate) {
+		if (!(await confirm({ title: `Удалить шаблон «${eventName(t.code) || t.code}» (${labelOf(NOTIFICATION_CHANNELS, t.channel)})?`, confirmLabel: 'Удалить', danger: true }))) return;
+		try {
+			const res = await unwrap(api.DELETE('/api/admin/notification-templates/{template_id}', { params: { path: { template_id: t.id } } }));
+			if (res.detail) toast.info(res.detail);
+			else toast.success('Шаблон удалён');
+			list.set((list.data ?? []).filter((x) => x.id !== t.id));
+		} catch (e) {
+			toast.error(e);
+		}
+	}
+
+	// `$derived`, не `const`: единственная колонка, зависящая от прав (`allowed` может измениться в разгар сессии).
+	const columns: Col<NotificationTemplate>[] = $derived([
 		{ key: 'code', title: 'Событие', width: 'minmax(190px, 1.6fr)', render: codeCell },
 		{ key: 'channel', title: 'Канал', width: 150, render: channelCell },
 		{ key: 'subject', title: 'Тема', width: 'minmax(160px, 1fr)', showFrom: 'desktop', render: subjectCell },
 		{ key: 'updated', title: 'Обновлён', width: 130, showFrom: 'tablet', render: updatedCell },
-		{ key: 'active', title: 'Активен', width: 110, render: activeCell }
-	];
+		{ key: 'active', title: 'Активен', width: 110, render: activeCell },
+		...(allowed ? [{ key: 'delete', title: '', width: 48, render: deleteCell }] : [])
+	]);
 </script>
 
 {#snippet codeCell(t: NotificationTemplate)}
@@ -61,6 +78,7 @@
 {#snippet subjectCell(t: NotificationTemplate)}<TableCell><span class="t-body-s line-clamp-2 text-muted">{t.subject_template ?? '—'}</span></TableCell>{/snippet}
 {#snippet updatedCell(t: NotificationTemplate)}<TableCell><span class="t-body-s"><DateText value={t.updated_at} /></span></TableCell>{/snippet}
 {#snippet activeCell(t: NotificationTemplate)}<TableCell><SwitchCell checked={t.is_active} label={t.is_active ? 'Отключить шаблон' : 'Включить шаблон'} onToggle={(next) => toggle(t, next)} /></TableCell>{/snippet}
+{#snippet deleteCell(t: NotificationTemplate)}<TableCell><IconBtn icon={Trash} label="Удалить шаблон" danger onclick={() => remove(t)} /></TableCell>{/snippet}
 
 {#snippet card(t: NotificationTemplate)}
 	<div class="flex min-w-0 flex-col gap-1.5">

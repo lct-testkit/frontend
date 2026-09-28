@@ -1,8 +1,9 @@
 <script lang="ts">
 	// Иерархия направлений: свёртываемое дерево, у узла — «подраздел» и правка; клик по названию открывает панель.
 	import { SvelteSet } from 'svelte/reactivity';
-	import { AddSmall, ChevronDown, ChevronRight, Edit } from '@lct-testkit/rt-ui/icons';
-	import { Btn, EmptyState, ErrorState, IconBtn, Skeleton } from '$lib/ui';
+	import { AddSmall, ChevronDown, ChevronRight, Edit, Trash } from '@lct-testkit/rt-ui/icons';
+	import { api, unwrap } from '$lib/api';
+	import { Btn, confirm, EmptyState, ErrorState, IconBtn, Skeleton, toast } from '$lib/ui';
 	import { session } from '$lib/auth/session.svelte';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { count } from '$lib/utils/format';
@@ -46,6 +47,19 @@
 	const raw = (id: string) => all.find((d) => d.id === id) ?? null;
 	const toggle = (id: string) => (collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id));
 	const shown = (n: DirNode) => !visible || visible.has(n.id);
+
+	/** Дочерние узлы сервер и так не даст удалить (409 CRM-1303) — кнопку прячем заранее, чтобы не ловить ожидаемую ошибку;
+	 * ссылку из продукта клиент не проверяет (незачем догружать весь каталог продуктов ради одной кнопки) — это как раз для 409. */
+	async function remove(node: DirNode) {
+		if (!(await confirm({ title: `Удалить направление «${node.name}»?`, confirmLabel: 'Удалить', danger: true }))) return;
+		try {
+			await unwrap(api.DELETE('/api/directions/{direction_id}', { params: { path: { direction_id: node.id } } }));
+			toast.success('Направление удалено');
+			await directions.reload();
+		} catch (e) {
+			toast.error(e);
+		}
+	}
 </script>
 
 {#snippet branch(nodes: DirNode[], depth: number)}
@@ -75,6 +89,7 @@
 					{#if canWrite}
 						<IconBtn icon={AddSmall} label="Добавить подраздел" size="s" onclick={() => open(null, node.id)} />
 						<IconBtn icon={Edit} label="Изменить" size="s" onclick={() => open(raw(node.id))} />
+						{#if !node.children.length}<IconBtn icon={Trash} label="Удалить" size="s" danger onclick={() => remove(node)} />{/if}
 					{/if}
 				</div>
 				{#if node.children.length && open_}{@render branch(node.children, depth + 1)}{/if}
