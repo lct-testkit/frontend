@@ -104,7 +104,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${BACKEND_READ_TOKEN}" ]; then
-            echo "::warning::BACKEND_READ_TOKEN не задан — сверка с backend@main пропущена (docs/REPO-SETTINGS.md)"
+            echo "::warning::BACKEND_READ_TOKEN не задан — сверка с backend@main пропущена (см. Settings -> Secrets репозитория)"
             exit 0
           fi
           curl -fsSL -H "Authorization: Bearer ${BACKEND_READ_TOKEN}" -H "Accept: application/vnd.github.raw+json" \
