@@ -11,7 +11,7 @@
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { auditActionLabel, auditResultMeta, entityTypeLabel } from '../labels';
 	import { AUDIT_RESULT_HINTS } from '../hints';
-	import { shortId } from '../audit';
+	import { entityLabel, ensureAuditEntities, shortId } from '../audit';
 	import type { AuditEntry } from '../types';
 	import AuditDetails from './AuditDetails.svelte';
 	import AuditFilters from './AuditFilters.svelte';
@@ -26,6 +26,7 @@
 	const pager = createPager<AuditEntry>((cursor, signal) =>
 		unwrap(api.GET('/api/admin/audit', { params: { query: { ...apiQuery(values), limit: 50, cursor } }, signal })).then((page) => {
 			people.ensure(page.items.map((i) => i.actor_id));
+			ensureAuditEntities(page.items);
 			return page;
 		})
 	);
@@ -49,9 +50,14 @@
 {#snippet action(e: AuditEntry)}<TableCell><span class="block truncate py-1.5" title={e.action}>{auditActionLabel(e.action)}</span></TableCell>{/snippet}
 {#snippet entity(e: AuditEntry)}
 	<TableCell>
+		{@const label = entityLabel(e.entity_type, e.entity_id)}
 		<span class="flex min-w-0 gap-1">
-			<span class="truncate">{entityTypeLabel(e.entity_type)}</span>
-			{#if e.entity_id}<span class="shrink-0 text-muted">{shortId(e.entity_id).slice(0, 8)}</span>{/if}
+			<span class="shrink-0">{entityTypeLabel(e.entity_type)}</span>
+			{#if label}
+				<span class="truncate text-muted" title={e.entity_id}>{label}</span>
+			{:else if e.entity_id}
+				<span class="shrink-0 text-muted" title={e.entity_id}>{shortId(e.entity_id).slice(0, 8)}</span>
+			{/if}
 		</span>
 	</TableCell>
 {/snippet}

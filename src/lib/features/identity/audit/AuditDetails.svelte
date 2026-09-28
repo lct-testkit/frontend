@@ -6,7 +6,7 @@
 	import StatusChip from '$lib/ui/StatusChip.svelte';
 	import { formatDateTime } from '$lib/utils/format';
 	import { shortHash } from '../../signing/urls';
-	import { formatChanges, fieldLabel, shortId } from '../audit';
+	import { entityLabel, formatChanges, fieldLabel, shortId } from '../audit';
 	import { auditActionLabel, auditResultMeta, entityTypeLabel, roleLabel } from '../labels';
 	import { AUDIT_RESULT_HINTS } from '../hints';
 	import { describeUserAgent } from '../sessions';
@@ -25,6 +25,7 @@
 	const result = $derived(e ? auditResultMeta(e.result) : null);
 	const changes = $derived(e ? formatChanges(e.changes) : []);
 	const href = $derived(e ? entityHref(e.entity_type, e.entity_id) : null);
+	const label = $derived(e ? entityLabel(e.entity_type, e.entity_id) : null);
 </script>
 
 <AppDrawer open={!!entry} title={e ? auditActionLabel(e.action) : ''} width={560} {onClose}>
@@ -40,7 +41,11 @@
 			<dt class="t-desc-l text-muted">Сущность</dt>
 			<dd class="t-body-m m-0 mb-2 md:mb-0">
 				{entityTypeLabel(e.entity_type)}
-				{#if e.entity_id}<code class="t-desc-l text-muted" title={e.entity_id}>{shortId(e.entity_id)}</code>{/if}
+				{#if label}
+					<span class="text-muted" title={e.entity_id}>{label}</span>
+				{:else if e.entity_id}
+					<code class="t-desc-l text-muted" title={e.entity_id}>{shortId(e.entity_id)}</code>
+				{/if}
 				{#if href}<a class="t-body-s ml-1" {href}>Открыть</a>{/if}
 			</dd>
 			{#if e.ip}

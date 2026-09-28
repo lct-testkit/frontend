@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fieldLabel, formatChanges, formatValue, shortId } from './audit';
+import { entityLabel, ensureAuditEntities, fieldLabel, formatChanges, formatValue, shortId } from './audit';
 
 describe('formatValue', () => {
 	it('пустое, булево, числа, массивы, объекты', () => {
@@ -30,5 +30,21 @@ describe('formatChanges', () => {
 		expect(fieldLabel('unknown_field')).toBe('unknown_field');
 		expect(shortId('0192a1b2-3c4d-7e8f-9a0b-1c2d3e4f5a6b')).toBe('0192a1b2…5a6b');
 		expect(shortId(null)).toBe('—');
+	});
+});
+
+describe('entityLabel — колонка «Сущность» журнала аудита (раньше показывала только фрагмент id)', () => {
+	it('без id — null; тип без клиентского кэша (файл, задача…) — тоже null: снаружи это короткий id, как и раньше', () => {
+		expect(entityLabel('deal', null)).toBeNull();
+		expect(entityLabel(null, 'x')).toBeNull();
+		expect(entityLabel('file', 'file-1')).toBeNull();
+		expect(entityLabel('task', 'task-1')).toBeNull();
+	});
+});
+
+describe('ensureAuditEntities', () => {
+	it('не падает на пустом списке и на типах без кэша — фильтры по типу просто не находят ни одной записи', () => {
+		expect(() => ensureAuditEntities([])).not.toThrow();
+		expect(() => ensureAuditEntities([{ entity_type: 'file', entity_id: 'f-1' }])).not.toThrow();
 	});
 });
