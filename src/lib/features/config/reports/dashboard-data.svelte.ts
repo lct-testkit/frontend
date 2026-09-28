@@ -1,9 +1,9 @@
 // Данные виджетов дашборда. Каждый запуск отчёта = файл в хранилище + запись аудита, поэтому при открытии дашборда ничего не запускается:
 // показывается кэш (sessionStorage, 5 минут), а «Обновить данные» запускает отчёты пакетно (одинаковые — один раз, не больше двух одновременно).
 import { errorMessage } from '$lib/api';
-import { ReportFailed, isRateLimited, reportUrl, startReport, waitForReport } from './api';
+import { ReportFailed, fetchReportData, isRateLimited, startReport, waitForReport } from './api';
 import { isReportBusy, normalizeParams, paramsFor } from './params';
-import { fetchXlsx, type XlsxTable } from './xlsx';
+import { fromReportData, type XlsxTable } from './xlsx';
 import { runKey, type WidgetConfig } from './widgets';
 
 const TTL_MS = 5 * 60_000;
@@ -97,7 +97,7 @@ export class DashboardData {
 			let job = await startReport(config.template_code, 'xlsx', normalizeParams(defs, config.params ?? {}));
 			if (isReportBusy(job.status)) job = await waitForReport(job, { signal });
 			if (job.status === 'failed') throw new ReportFailed(job.error || 'Не удалось сформировать отчёт.');
-			const table = await fetchXlsx(await reportUrl(job.id), signal);
+			const table = fromReportData(await fetchReportData(job.id, signal));
 			const entry = { at: Date.now(), table };
 			this.entries = { ...this.entries, [key]: entry };
 			writeCache(this.dashboardId, key, entry);

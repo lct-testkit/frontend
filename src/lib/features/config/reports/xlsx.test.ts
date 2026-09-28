@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { columnIndex, decodeXml, readXlsx, XlsxError } from './xlsx';
+import { columnIndex, decodeXml, fromReportData, readXlsx, XlsxError } from './xlsx';
 import { OPENPYXL_REPORT_BASE64 } from './xlsx.fixture';
 
 // --- минимальный сборщик zip для проверки разных вариантов упаковки ------------------------
@@ -129,6 +129,17 @@ describe('readXlsx: варианты упаковки и типов ячеек',
 	it('отвергает распаковку сверх предела', async () => {
 		const zip = await makeZip({ 'xl/worksheets/sheet1.xml': sheet(`<row r="1"><c r="A1"><v>1</v></c></row>`) });
 		await expect(readXlsx(zip, { maxEntryBytes: 20 })).rejects.toThrow(XlsxError);
+	});
+});
+
+describe('fromReportData', () => {
+	it('JSON бэкенда (`GET /reports/{id}/data`) в тот же вид, что и разбор файла', () => {
+		expect(fromReportData({ columns: ['Статус', 'Сумма'], rows: [['Новая', 1000]] })).toEqual({
+			columns: ['Статус', 'Сумма'],
+			rows: [['Новая', 1000]],
+			sheetName: '',
+			truncated: false
+		});
 	});
 });
 

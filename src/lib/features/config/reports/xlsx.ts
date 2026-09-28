@@ -1,5 +1,6 @@
 // Чтение xlsx в браузере без зависимостей: zip (центральный каталог) → DecompressionStream('deflate-raw') → разбор XML листа.
-// Дашборд читает выгрузку сам; JSON `GET /reports/{id}/data` бэкенд отдаёт с 22.09 (backend-issues #19), но клиент его пока не использует.
+// Дашборд с 28.09 берёт данные из JSON `GET /reports/{id}/data` (`fromReportData` ниже) — этот парсер файла больше не в проде
+// (только тесты ниже), но оставлен: тот же XlsxTable нужен, если появится сценарий с реальным файлом, а не готовым JSON.
 // XML разбирается небольшим сканером, а не DOMParser: тот же код работает в тестах (Node) и в браузере, а формат листа у нас узкий
 // (openpyxl: строки `inlineStr`, числа `n`; Excel: общие строки `s`) — всё это покрыто.
 
@@ -295,6 +296,12 @@ export async function readXlsx(data: ArrayBuffer | Uint8Array, limits: XlsxLimit
 		.map((row) => Array.from({ length: columns.length }, (_, i) => row[i] ?? null));
 	while (body.length && body[body.length - 1].every((c) => c === null)) body.pop();
 	return { columns, rows: body, sheetName: name, truncated };
+}
+
+/** JSON `{columns, rows}` от `GET /reports/{id}/data` в форму `XlsxTable` — дашборду всё равно, откуда данные;
+ * `sheetName`/`truncated` в JSON-ответе не приходят (у файла нет листов, а лимит строк — как у самого отчёта). */
+export function fromReportData(data: { columns: string[]; rows: unknown[][] }): XlsxTable {
+	return { columns: data.columns, rows: data.rows as Cell[][], sheetName: '', truncated: false };
 }
 
 /** Скачивает файл по подписанной ссылке (без учётных данных: подпись уже в адресе) и читает его. */
