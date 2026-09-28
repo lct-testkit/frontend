@@ -11,7 +11,6 @@
 	import { Btn, EmptyState, ErrorState, FilterBar, IconBtn, Page, PageHeader, RowList, Skeleton, TabsBar, UserPicker } from '$lib/ui';
 	import { setQuery } from '$lib/utils/query-state.svelte';
 			import Pick from '$lib/ui/fields/Pick.svelte';
-	import { preloadDeals } from '../shared/entityCache.svelte';
 	import { PRIORITY_LABELS } from '../shared/labels';
 	import type { Task } from '../types';
 	import TaskDrawer from './TaskDrawer.svelte';
@@ -42,9 +41,7 @@
 		if (meId && session.can('deal:read')) untrack(() => void pager.reload());
 	});
 	$effect(() => {
-		const tasks = pager.items;
-		people.ensure(tasks.map((t) => t.assignee_id));
-		void preloadDeals(tasks.map((t) => t.deal_id)).catch(() => {});
+		people.ensure(pager.items.map((t) => t.assignee_id));
 	});
 
 	const counts = new TaskCounts();
