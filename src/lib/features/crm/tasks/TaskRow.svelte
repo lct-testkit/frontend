@@ -5,7 +5,6 @@
 	import { people } from '$lib/api/people.svelte';
 	import { DateText, ListRow, toast } from '$lib/ui';
 	import PriorityChip from '../shared/PriorityChip.svelte';
-	import { dealCache } from '../shared/entityCache.svelte';
 	import { TASK_STATUS_LABELS } from '../shared/labels';
 	import type { Task } from '../types';
 	import { isOpenTask, isOverdue } from './taskUtils';
@@ -24,7 +23,6 @@
 	let busy = $state(false);
 	const done = $derived(task.status === 'done');
 	const overdue = $derived(isOverdue(task));
-	const deal = $derived(showDeal ? dealCache.get(task.deal_id) : undefined);
 
 	async function toggle(checked: boolean) {
 		if (busy) return;
@@ -54,7 +52,7 @@
 	{#if task.status === 'in_progress' || task.status === 'cancelled'}<span>{TASK_STATUS_LABELS[task.status]}</span>{/if}
 	{#if showDeal}
 		<span class="min-w-0 truncate">
-			{#if deal}<a class="relative z-10" href="/deals/{task.deal_id}">{deal.number}</a> · {deal.title}{:else if deal === null}Сделка недоступна{:else}…{/if}
+			{#if task.deal_number}<a class="relative z-10" href="/deals/{task.deal_id}">{task.deal_number}</a> · {task.deal_title}{:else}Сделка недоступна{/if}
 		</span>
 	{/if}
 {/snippet}

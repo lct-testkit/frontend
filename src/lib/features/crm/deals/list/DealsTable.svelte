@@ -8,7 +8,6 @@
 	import type { Pager } from '$lib/api/pager.svelte';
 	import { DataTable, DateText, Money, TableCell, UserName, type Col, type SortState } from '$lib/ui';
 		import SlaIndicator from '../../shared/SlaIndicator.svelte';
-	import { contactCache, contactLabel, orgCache, orgLabel } from '../../shared/entityCache.svelte';
 	import { PRIORITY_LABELS } from '../../shared/labels';
 	import type { Deal } from '../../types';
 	import DealStatusChip from '../DealStatusChip.svelte';
@@ -39,15 +38,14 @@
 
 	const rows = $derived(pager.items);
 
-	// имена связанных сущностей: одним пакетом на пришедшую страницу
 	$effect(() => {
-		orgCache.ensure(pager.items.map((d) => d.organization_id));
-		contactCache.ensure(pager.items.filter((d) => !d.organization_id).map((d) => d.contact_id));
 		people.ensure(pager.items.map((d) => d.owner_id));
 		workflows.ensureMany(pager.items.map((d) => d.workflow_id));
 	});
 
-	const party = (d: Deal): string => (d.organization_id ? orgLabel(d.organization_id) : d.contact_id ? contactLabel(d.contact_id) : '');
+	// organization_name/contact_name — бэкенд отдаёт их прямо в DealOut (backend-issues A-29);
+	// раньше здесь был N+1 через orgCache/contactCache только чтобы узнать то же самое.
+	const party = (d: Deal): string => d.organization_name ?? d.contact_name ?? '';
 
 	function open(row: Deal) {
 		void goto(`/deals/${row.id}`);
