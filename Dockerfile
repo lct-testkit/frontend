@@ -12,7 +12,11 @@
 # pinned to the exact version, dependencies are installed with --frozen-lockfile.
 
 # ---- build -------------------------------------------------------------------------------------------------
-FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 AS build
+# --platform=$BUILDPLATFORM: результат сборки — статика (HTML/JS/CSS), от архитектуры не зависит, поэтому тяжёлые
+# `pnpm install` и `vite build` исполняются один раз НАТИВНО на машине сборщика, а не под QEMU для каждой целевой
+# платформы multi-arch образа (linux/amd64 + linux/arm64). Под эмуляцией на 2 vCPU это были бы десятки минут.
+# Digest указывает на multi-arch индекс, так что подходит для любой архитектуры сборщика.
+FROM --platform=$BUILDPLATFORM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 AS build
 RUN npm install -g pnpm@11.13.1
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
