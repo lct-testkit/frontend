@@ -20,7 +20,7 @@
 	import BulkReassignModal from './list/BulkReassignModal.svelte';
 	import DealsBoard from './list/DealsBoard.svelte';
 	import DealsTable from './list/DealsTable.svelte';
-	import { activeCount, readFilters, toQuery } from './list/dealFilters';
+	import { activeCount, readFilters, sortToState, stateToSort, toQuery } from './list/dealFilters';
 	import { statusName } from './statusUtils';
 	import NewDealDrawer from './new/NewDealDrawer.svelte';
 	import { workflows } from './workflows.svelte';
@@ -183,7 +183,19 @@
 				<DealsBoard bind:this={board} workflowId={f.workflow} {query} />
 			{/if}
 		{:else}
-			<DealsTable {pager} fill={tableFill} {showOwner} selectable={canBulk} {selected} onSelect={(keys) => (selected = keys)} {actionBar} empty={emptyList} />
+			<DealsTable
+					{pager}
+					fill={tableFill}
+					{showOwner}
+					selectable={canBulk}
+					{selected}
+					onSelect={(keys) => (selected = keys)}
+					{actionBar}
+					empty={emptyList}
+					sort={sortToState(f.sort)}
+					onSort={(next) => set({ sort: stateToSort(next) || null })}
+					total={pager.total}
+				/>
 		{/if}
 	{/if}
 </Page>

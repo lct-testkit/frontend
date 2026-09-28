@@ -28,29 +28,16 @@
 		showOwner?: boolean;
 		/** внутри карточки-секции: без своей рамки */
 		embedded?: boolean;
+		/** состояние заголовка сортируемой колонки; сортирует сам сервер (`GET /api/deals?sort=`) — таблица только просит и рисует стрелку */
+		sort?: SortState | null;
+		onSort?: (next: SortState | null) => void;
+		/** «Найдено: N» — бэкенд отдаёт с 25.09 (backend-issues A-11); без него футер считает загруженное */
+		total?: number;
 	}
 
-	let { pager, fill = false, selectable = false, selected = [], onSelect, actionBar, empty, compact = false, showOwner = false, embedded = false }: Props = $props();
+	let { pager, fill = false, selectable = false, selected = [], onSelect, actionBar, empty, compact = false, showOwner = false, embedded = false, sort = null, onSort, total }: Props = $props();
 
-	// клиент сортирует то, что уже загружено; серверные `sort`, `total`, `is_closed` бэкенд отдаёт с 25.09 (backend-issues A-11), но список их пока не использует
-	let sort = $state<SortState | null>(null);
-
-	const rows = $derived.by(() => {
-		if (!sort) return pager.items;
-		const { key, dir } = sort;
-		const sign = dir === 'asc' ? 1 : -1;
-		const value = (d: Deal): number | string => {
-			if (key === 'amount') return d.amount === null || d.amount === undefined ? -Infinity : Number(d.amount);
-			if (key === 'updated_at') return Date.parse(d.updated_at);
-			if (key === 'title') return d.title.toLowerCase();
-			return d.number;
-		};
-		return [...pager.items].sort((a, b) => {
-			const x = value(a);
-			const y = value(b);
-			return (typeof x === 'string' && typeof y === 'string' ? x.localeCompare(y, 'ru') : Number(x) - Number(y)) * sign;
-		});
-	});
+	const rows = $derived(pager.items);
 
 	// имена связанных сущностей: одним пакетом на пришедшую страницу
 	$effect(() => {
@@ -135,7 +122,8 @@
 	onRowClick={open}
 	rowHref={(row) => `/deals/${row.id}`}
 	{sort}
-	onSort={(next) => (sort = next)}
+	onSort={(next) => onSort?.(next)}
+	{total}
 	hasMore={pager.hasMore}
 	loadingMore={pager.loadingMore}
 	onLoadMore={() => pager.loadMore()}

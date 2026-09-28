@@ -3,12 +3,16 @@
 export interface Page<T> {
 	items: T[];
 	next_cursor?: string | null;
+	/** сколько всего подходит под фильтры, без учёта курсора — отдают не все ручки списков */
+	total?: number;
 }
 
 export type PageLoader<T> = (cursor: string | null, signal: AbortSignal) => Promise<Page<T>>;
 
 export class Pager<T> {
 	items = $state<T[]>([]);
+	/** из последнего ответа; `undefined`, если ручка списка его не отдаёт */
+	total = $state<number | undefined>(undefined);
 	/** first page in flight (show skeleton) */
 	loading = $state(false);
 	/** next page in flight (show spinner under the list) */
@@ -48,6 +52,7 @@ export class Pager<T> {
 			const page = await this.#load(null, ctrl.signal);
 			if (seq !== this.#seq) return;
 			this.items = page.items;
+			this.total = page.total;
 			this.#cursor = page.next_cursor ?? null;
 			this.hasMore = this.#cursor !== null;
 			this.loaded = true;
@@ -55,6 +60,7 @@ export class Pager<T> {
 			if (seq !== this.#seq || ctrl.signal.aborted) return;
 			this.error = e;
 			this.items = [];
+			this.total = undefined;
 			this.hasMore = false;
 		} finally {
 			if (seq === this.#seq) this.loading = false;
@@ -70,6 +76,7 @@ export class Pager<T> {
 			const page = await this.#load(this.#cursor, ctrl.signal);
 			if (seq !== this.#seq) return;
 			this.items = [...this.items, ...page.items];
+			this.total = page.total;
 			this.#cursor = page.next_cursor ?? null;
 			this.hasMore = this.#cursor !== null;
 		} catch (e) {
