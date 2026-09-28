@@ -1,6 +1,7 @@
 <script lang="ts">
 	// Мастер архивации статуса (4 шага): влияние → куда перенести сделки → предпросмотр → выполнение.
-	// Ход переноса можно читать через `GET /workflows/{id}/mapping-jobs/{job_id}` (backend-issues #1, с 25.09), но мастер пока опрашивает воронку, пока статус не станет архивным.
+	// Ход переноса читаем через `GET /workflows/{id}/mapping-jobs/{job_id}` — саму задачу переноса,
+	// а не всю воронку целиком раз в 2с ради одного булева поля (было так до backend-issues #1, 25.09).
 	import { onDestroy, untrack } from 'svelte';
 	import { Progress } from '@lct-testkit/rt-ui/ext';
 	import { CheckLarge } from '@lct-testkit/rt-ui/icons';
@@ -37,14 +38,35 @@
 	/** замечания сервера к графу после архивации (например, ветка осталась без выхода) */
 	let archiveWarnings = $state<string[]>([]);
 	let waited = 0;
+	let jobId: string | null = null;
+
+	/** Запасной путь: сервер прислал job_status running/pending без job_id (тип это допускает,
+	 * хотя на практике фон-задача должна быть создана и id при ней). Раз задачу опросить нечем —
+	 * дожидаемся так, как раньше: смотрим, не ушёл ли статус в архив. */
+	async function pollByGraph(): Promise<boolean> {
+		const graph = await unwrap(api.GET('/api/workflows/{workflow_id}', { params: { path: { workflow_id: editor.id } } }));
+		if (graph.statuses.find((s) => s.id === status?.id)?.is_archived) {
+			await finish('done', 'Статус в архиве, сделки перенесены.');
+			return false;
+		}
+		return true;
+	}
 
 	const poller = createPoller(
 		async () => {
 			waited += 2;
-			const graph = await unwrap(api.GET('/api/workflows/{workflow_id}', { params: { path: { workflow_id: editor.id } } }));
-			if (graph.statuses.find((s) => s.id === status?.id)?.is_archived) {
-				await finish('done', 'Статус в архиве, сделки перенесены.');
-				return false;
+			if (!jobId) {
+				if (!(await pollByGraph())) return false;
+			} else {
+				const job = await unwrap(api.GET('/api/workflows/{workflow_id}/mapping-jobs/{job_id}', { params: { path: { workflow_id: editor.id, job_id: jobId } } }));
+				if (job.status === 'completed') {
+					await finish('done', job.affected_count ? `Перенесено ${count(job.affected_count, ['сделка', 'сделки', 'сделок'])}.` : 'Статус в архиве.');
+					return false;
+				}
+				if (job.status === 'failed') {
+					await finish('failed', job.error || 'Перенос сделок не удался. Статус не архивирован.');
+					return false;
+				}
 			}
 			if (waited >= 180) {
 				await finish('slow', 'Перенос ещё идёт в фоне. Обновите страницу через минуту.');
@@ -77,6 +99,7 @@
 			running = false;
 			outcome = null;
 			waited = 0;
+			jobId = null;
 			poller.stop();
 			void loadImpact();
 		});
@@ -121,6 +144,7 @@
 			if (res.job_status === 'completed') await finish('done', res.affected_count ? `Перенесено ${count(res.affected_count, ['сделка', 'сделки', 'сделок'])}.` : 'Статус в архиве.');
 			else if (res.job_status === 'failed') await finish('failed', 'Перенос сделок не удался. Статус не архивирован.');
 			else {
+				jobId = res.job_id ?? null;
 				waited = 0;
 				poller.start();
 			}
