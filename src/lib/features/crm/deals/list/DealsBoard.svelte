@@ -8,7 +8,6 @@
 	import { Avatar, EmptyState, ErrorState, Money, Skeleton, toast } from '$lib/ui';
 	import PriorityChip from '../../shared/PriorityChip.svelte';
 	import SlaIndicator from '../../shared/SlaIndicator.svelte';
-	import { contactCache, contactLabel, orgCache, orgLabel } from '../../shared/entityCache.svelte';
 	import type { AvailableTransition, Deal, WorkflowStatus } from '../../types';
 	import TransitionDialog from '../card/TransitionDialog.svelte';
 	import { isTerminal, statusName, statusTone, steps, terminals, type StatusTone } from '../statusUtils';
@@ -74,8 +73,6 @@
 	});
 
 	$effect(() => {
-		orgCache.ensure(deals.map((d) => d.organization_id));
-		contactCache.ensure(deals.filter((d) => !d.organization_id).map((d) => d.contact_id));
 		people.ensure(deals.map((d) => d.owner_id));
 	});
 
@@ -88,7 +85,9 @@
 		error: 'border-t-danger'
 	};
 
-	const party = (d: Deal) => (d.organization_id ? orgLabel(d.organization_id) : d.contact_id ? contactLabel(d.contact_id) : '');
+	// organization_name/contact_name — бэкенд отдаёт их прямо в DealOut (backend-issues A-29);
+	// раньше здесь был N+1 через orgCache/contactCache только чтобы узнать то же самое.
+	const party = (d: Deal) => d.organization_name ?? d.contact_name ?? '';
 
 	// --- перетаскивание -> диалог перехода
 	let dragId = $state<string | null>(null);
