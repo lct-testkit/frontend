@@ -1,9 +1,11 @@
 <script lang="ts">
-	// Шаблон уведомления: событие и канал (при создании), тема (email), текст с подсказкой переменных, «Активен». Предпросмотра рендера у бэкенда нет.
+	// Шаблон уведомления: событие и канал (при создании), тема (email), текст с подсказкой переменных, «Активен».
+	// Предпросмотр рендера — POST .../preview с образцом значений переменных (заглушки вида «[имя]», не настоящие данные).
 	import { untrack } from 'svelte';
 	import { Chip } from '@lct-testkit/rt-ui';
-	import { api, unwrap, idem, ifMatch } from '$lib/api';
-	import { toast } from '$lib/ui';
+	import { PasswordShow } from '@lct-testkit/rt-ui/icons';
+	import { api, unwrap, idem, ifMatch, ApiError } from '$lib/api';
+	import { Btn, toast } from '$lib/ui';
 	import { NOTIFICATION_CHANNELS, NOTIFICATION_EVENT_CODES, labelOf } from '../labels';
 	import type { NotificationTemplate } from '../types';
 	import { FormDrawer } from '$lib/ui';
@@ -12,6 +14,8 @@
 	import TextField from '$lib/ui/fields/TextField.svelte';
 	import Toggle from '$lib/ui/fields/Toggle.svelte';
 	import { toFormFailure } from '../shared/form-errors';
+
+	type Preview = { ok: true; subject: string | null; body: string } | { ok: false; message: string };
 
 	type Channel = 'email' | 'telegram' | 'in_app';
 
@@ -38,6 +42,8 @@
 	let conflict = $state(false);
 	let saving = $state(false);
 	let idemKey = crypto.randomUUID();
+	let preview = $state<Preview | null>(null);
+	let previewing = $state(false);
 
 	const isNew = $derived(item === null);
 	const code = $derived(eventKey === CUSTOM ? customCode.trim() : (eventKey ?? ''));
@@ -62,6 +68,7 @@
 			formError = null;
 			conflict = false;
 			idemKey = crypto.randomUUID();
+			preview = null;
 		});
 	});
 
@@ -75,6 +82,30 @@
 			area?.focus();
 			area?.setSelectionRange(at + token.length, at + token.length);
 		});
+	}
+
+	/** Заглушки вида «[имя_переменной]» вместо настоящих данных события — предпросмотр только показывает,
+	 * куда встанет какая переменная и не сломан ли синтаксис `{{ }}`, не реальную рассылку. */
+	async function previewTemplate() {
+		if (previewing || !body.trim()) return;
+		previewing = true;
+		preview = null;
+		try {
+			const res = await unwrap(
+				api.POST('/api/admin/notification-templates/preview', {
+					body: {
+						subject_template: channel === 'email' ? subject.trim() || null : null,
+						body_template: body,
+						payload: Object.fromEntries(variables.map((v) => [v, `[${v}]`]))
+					}
+				})
+			);
+			preview = res.ok ? { ok: true, subject: res.subject ?? null, body: res.body ?? '' } : { ok: false, message: res.error?.message ?? 'Не удалось разобрать шаблон.' };
+		} catch (e) {
+			preview = { ok: false, message: e instanceof ApiError ? e.detail : 'Не удалось получить предпросмотр.' };
+		} finally {
+			previewing = false;
+		}
 	}
 
 	async function save() {
@@ -146,5 +177,18 @@
 			</div>
 		</div>
 	{/if}
+	<div class="flex flex-col gap-2">
+		<Btn label="Предпросмотр" icon={PasswordShow} size="s" variant="outline" colorScheme="neutral" loading={previewing} disabled={!body.trim()} onclick={previewTemplate} />
+		{#if preview}
+			{#if preview.ok}
+				<div class="flex flex-col gap-1 rounded-md border border-line bg-surface-2 p-3">
+					{#if preview.subject}<p class="t-body-s-strong m-0">{preview.subject}</p>{/if}
+					<p class="t-body-s m-0 whitespace-pre-wrap">{preview.body}</p>
+				</div>
+			{:else}
+				<p class="t-body-s m-0 text-danger">{preview.message}</p>
+			{/if}
+		{/if}
+	</div>
 	<Toggle label="Активен" bind:checked={active} />
 </FormDrawer>
