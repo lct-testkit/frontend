@@ -17,6 +17,23 @@ export interface DealFilters {
 	product: string;
 	from: string;
 	to: string;
+	/** сырой параметр API (`-amount`…); '' — порядок по умолчанию (`-created_at`) */
+	sort: string;
+}
+
+/** Колонки таблицы сделок, для которых `GET /api/deals` умеет `sort` (совпадают по имени с полями API). */
+const SORTABLE_FIELDS = new Set(['number', 'title', 'amount', 'updated_at']);
+
+/** `sort` из адресной строки -> состояние заголовка таблицы (`null` — сортировка не выбрана явно). */
+export function sortToState(sort: string): { key: string; dir: 'asc' | 'desc' } | null {
+	const key = sort.replace(/^-/, '');
+	if (!sort || !SORTABLE_FIELDS.has(key)) return null;
+	return { key, dir: sort.startsWith('-') ? 'desc' : 'asc' };
+}
+
+/** Состояние заголовка таблицы -> `sort` для адресной строки и API. */
+export function stateToSort(state: { key: string; dir: 'asc' | 'desc' } | null): string {
+	return state ? (state.dir === 'desc' ? `-${state.key}` : state.key) : '';
 }
 
 const QUICK = new Set<string>(['all', 'mine', 'warning', 'breached', 'closed']);
@@ -36,7 +53,8 @@ export function readFilters(params: URLSearchParams): DealFilters {
 		region: get('region'),
 		product: get('product'),
 		from: get('from'),
-		to: get('to')
+		to: get('to'),
+		sort: get('sort')
 	};
 }
 
@@ -54,9 +72,10 @@ export interface DealQuery {
 	region_id?: string;
 	product_id?: string;
 	sla_state?: string;
-	closed_from?: string;
+	is_closed?: boolean;
 	created_from?: string;
 	created_to?: string;
+	sort?: string;
 }
 
 /** Параметры `GET /api/deals`. «Мои» = ответственный я (если ответственный не выбран вручную). */
@@ -71,12 +90,13 @@ export function toQuery(f: DealFilters, meId: string | null | undefined): DealQu
 		region_id: f.region || undefined,
 		product_id: f.product || undefined,
 		created_from: f.from ? startOfDay(f.from) : undefined,
-		created_to: f.to ? endOfDay(f.to) : undefined
+		created_to: f.to ? endOfDay(f.to) : undefined,
+		sort: f.sort || undefined
 	};
 	if (f.quick === 'mine' && !query.owner_id && meId) query.owner_id = meId;
 	if (f.quick === 'warning') query.sla_state = 'warning';
 	if (f.quick === 'breached') query.sla_state = 'breached';
-	if (f.quick === 'closed') query.closed_from = '1970-01-01T00:00:00Z';
+	if (f.quick === 'closed') query.is_closed = true;
 	return query;
 }
 

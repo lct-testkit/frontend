@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeCount, readFilters, toQuery } from './dealFilters';
+import { activeCount, readFilters, sortToState, stateToSort, toQuery } from './dealFilters';
 
 const params = (s: string) => new URLSearchParams(s);
 
@@ -14,7 +14,20 @@ describe('фильтры сделок в адресе', () => {
 		expect(toQuery(readFilters(params('quick=mine')), 'me-1').owner_id).toBe('me-1');
 		expect(toQuery(readFilters(params('quick=mine&owner=other')), 'me-1').owner_id).toBe('other');
 		expect(toQuery(readFilters(params('quick=warning')), 'me-1').sla_state).toBe('warning');
-		expect(toQuery(readFilters(params('quick=closed')), 'me-1').closed_from).toBe('1970-01-01T00:00:00Z');
+		expect(toQuery(readFilters(params('quick=closed')), 'me-1').is_closed).toBe(true);
+	});
+	it('sort — сырой параметр API едет как есть, пустой не уходит в запрос', () => {
+		expect(toQuery(readFilters(params('sort=-amount')), null).sort).toBe('-amount');
+		expect(toQuery(readFilters(params('')), null).sort).toBeUndefined();
+	});
+	it('sortToState/stateToSort — только известные сортируемые колонки, обратимо', () => {
+		expect(sortToState('-amount')).toEqual({ key: 'amount', dir: 'desc' });
+		expect(sortToState('number')).toEqual({ key: 'number', dir: 'asc' });
+		expect(sortToState('')).toBeNull();
+		expect(sortToState('-status')).toBeNull(); // не колонка с sortable — сервер такого поля и не примет
+		expect(stateToSort({ key: 'updated_at', dir: 'asc' })).toBe('updated_at');
+		expect(stateToSort({ key: 'updated_at', dir: 'desc' })).toBe('-updated_at');
+		expect(stateToSort(null)).toBe('');
 	});
 	it('период создания — границы дня, пустое не уходит', () => {
 		const q = toQuery(readFilters(params('from=2026-03-01&to=2026-03-31&q=%20')), null);
