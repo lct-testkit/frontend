@@ -7,6 +7,7 @@ import type { AvailableTransition, Deal, DealProduct } from '../../types';
 import { workflows } from '../workflows.svelte';
 
 type DealUpdate = import('$lib/api').components['schemas']['DealUpdateRequest'];
+type DealProductIn = import('$lib/api').components['schemas']['DealProductIn'];
 
 export class DealCardState {
 	readonly id: string;
@@ -114,6 +115,15 @@ export class DealCardState {
 		const deal = await unwrap(api.PATCH('/api/deals/{deal_id}', { params: { path: { deal_id: this.id } }, headers: ifMatch(this.deal.version), body }));
 		this.deal = deal;
 		return deal;
+	}
+
+	/** Полная замена списка продуктов (PUT — не PATCH: пустой список — осознанная очистка, не «поле не пришло»). */
+	async replaceProducts(items: DealProductIn[]): Promise<void> {
+		if (!this.deal) throw new Error('Сделка не загружена');
+		const card = await unwrap(
+			api.PUT('/api/deals/{deal_id}/products', { params: { path: { deal_id: this.id } }, headers: ifMatch(this.deal.version), body: { items } })
+		);
+		this.#apply(card);
 	}
 
 	async reassign(ownerId: string, reason: string): Promise<Deal> {
