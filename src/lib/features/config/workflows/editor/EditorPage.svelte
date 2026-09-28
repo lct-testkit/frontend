@@ -1,6 +1,7 @@
 <script lang="ts">
 	// Редактор воронки: холст (десктоп) + панель свойств; на телефоне и планшете — просмотр холста и списки. Черновик → проверка → публикация.
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { Chip, DropdownMenu } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { AttentionMark, CheckStatistics, MenuKebab } from '@lct-testkit/rt-ui/icons';
@@ -17,6 +18,7 @@
 	import MobileLists from './MobileLists.svelte';
 	import PublishDialog from './PublishDialog.svelte';
 	import SidePanel from './SidePanel.svelte';
+	import WorkflowSettingsDrawer from './WorkflowSettingsDrawer.svelte';
 	import { dealTypeHint, workflowStateHint } from '../../hints';
 
 	let { id }: { id: string } = $props();
@@ -30,6 +32,7 @@
 	let publishWarnings = $state<string[] | null>(null);
 	let issuesOpen = $state(false);
 	let menuOpen = $state(false);
+	let settingsOpen = $state(false);
 
 	onMount(() => {
 		void editor.load();
@@ -87,18 +90,35 @@
 		}
 	}
 
+	/** Только для черновика, который никогда не публиковался — бэкенд и так откажет (409 CRM-1207)
+	 * на опубликованной воронке или на той, на которую уже заведена сделка. */
+	async function removeDraft() {
+		if (!w || !(await confirm({ title: `Удалить черновик «${w.name}»?`, message: 'Отменить нельзя.', confirmLabel: 'Удалить', danger: true }))) return;
+		try {
+			await unwrap(api.DELETE('/api/workflows/{workflow_id}', { params: { path: { workflow_id: id } } }));
+			toast.success('Черновик удалён');
+			void goto('/workflows');
+		} catch (e) {
+			toast.error(e);
+		}
+	}
+
 	const menuItems = $derived([
 		...(!editor.readonly && bp.isMobile ? [{ key: 'check', value: 'Проверить воронку' }] : []),
 		...(!editor.readonly && bp.isDesktop ? [{ key: 'layout', value: 'Расставить статусы автоматически' }] : []),
+		...(!editor.readonly ? [{ key: 'settings', value: 'Название и по умолчанию' }] : []),
 		{ key: 'reload', value: 'Загрузить с сервера' },
-		{ key: 'json', value: 'Копировать JSON графа' }
+		{ key: 'json', value: 'Копировать JSON графа' },
+		...(!editor.readonly && w?.state === 'draft' ? [{ key: 'delete', value: 'Удалить черновик' }] : [])
 	]);
 	function onMenu(item: { key: string | number }) {
 		menuOpen = false;
 		if (item.key === 'check') void check();
 		else if (item.key === 'layout') editor.autoLayout();
+		else if (item.key === 'settings') settingsOpen = true;
 		else if (item.key === 'reload') void reload();
 		else if (item.key === 'json') void copyJson();
+		else if (item.key === 'delete') void removeDraft();
 	}
 </script>
 
@@ -226,6 +246,7 @@
 	</AppDrawer>
 {/if}
 
+<WorkflowSettingsDrawer open={settingsOpen} workflow={editor.workflow} onClose={() => (settingsOpen = false)} onSaved={(saved) => (editor.workflow = saved)} />
 <ArchiveWizard {editor} status={archiving} onClose={() => (archiving = null)} />
 <PublishDialog
 	open={publishWarnings !== null}
