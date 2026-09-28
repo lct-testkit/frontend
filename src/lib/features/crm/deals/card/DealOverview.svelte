@@ -1,9 +1,10 @@
 <script lang="ts">
-	// Вкладка «Обзор»: поля по смыслу — «Сделка» (что это), «Стоимость и сроки», «Заморозка» / «Отказ» (только в таком статусе), дополнительные поля воронки, продукты (только чтение — backend-issues A-7), участники.
+	// Вкладка «Обзор»: поля по смыслу — «Сделка» (что это), «Стоимость и сроки», «Заморозка» / «Отказ» (только в таком статусе), дополнительные поля воронки, продукты (полная замена через PUT /deals/{id}/products — EditProductsDrawer, ранее было только чтение, backend-issues A-7), участники.
 	// Приоритет (внутренняя оценка CRM) — чипом в шапке, «Изменена» (служебная дата) — тихой строкой внизу; в фактах сделки их нет.
 	import { onMount } from 'svelte';
+	import { Edit } from '@lct-testkit/rt-ui/icons';
 	import { session } from '$lib/auth/session.svelte';
-	import { DateText, KeyValue, KeyValueList, Money } from '$lib/ui';
+	import { Btn, DateText, KeyValue, KeyValueList, Money } from '$lib/ui';
 	import Card from '$lib/ui/Card.svelte';
 	import { formatDate, formatNumber } from '$lib/utils/format';
 	import { DEAL_SOURCE_LABELS, DEAL_TYPE_LABELS, label } from '../../shared/labels';
@@ -12,10 +13,13 @@
 	import type { DealCardState } from './dealCard.svelte';
 	import { isStatusField, statusGroup, STATUS_GROUP_TITLES } from './dealSections';
 	import DealParticipants from './DealParticipants.svelte';
+	import EditProductsDrawer from './EditProductsDrawer.svelte';
 
 	let { card }: { card: DealCardState } = $props();
 
 	const deal = $derived(card.deal!);
+	const canEditProducts = $derived(session.can('deal:update') && !card.closed && card.writable);
+	let editingProducts = $state(false);
 
 	onMount(() => {
 		void dealFieldDefs.ensure().catch(() => {});
@@ -99,6 +103,9 @@
 		{/if}
 
 		<Card title="Продукты" flush>
+			{#snippet action()}
+				{#if canEditProducts}<Btn label="Изменить" icon={Edit} size="s" variant="outline" colorScheme="neutral" onclick={() => (editingProducts = true)} data-testid="deal-products-edit" />{/if}
+			{/snippet}
 			{#if card.products.length === 0}
 				<p class="t-body-m m-0 px-4 py-3 text-muted">Продукты не добавлены</p>
 			{:else}
@@ -127,3 +134,5 @@
 		<div class="flex flex-col gap-2"><DealParticipants dealId={deal.id} canEdit={session.can('deal:update') && !card.closed && card.writable} /></div>
 	</Card>
 </div>
+
+<EditProductsDrawer open={editingProducts} {card} onClose={() => (editingProducts = false)} />
