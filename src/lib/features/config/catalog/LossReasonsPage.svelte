@@ -1,9 +1,9 @@
 <script lang="ts">
 	// Причины отказа: группы по категории, внутри — порядок стрелками «выше / ниже», переключатель «Активна» в строке.
 	import { onMount } from 'svelte';
-	import { AddSmall, ArrowDown, ArrowUp, Edit } from '@lct-testkit/rt-ui/icons';
+	import { AddSmall, ArrowDown, ArrowUp, Edit, Trash } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap, ifMatch } from '$lib/api';
-	import { Btn, EmptyState, ErrorState, IconBtn, Skeleton, toast } from '$lib/ui';
+	import { Btn, confirm, EmptyState, ErrorState, IconBtn, Skeleton, toast } from '$lib/ui';
 	import { session } from '$lib/auth/session.svelte';
 	import { LOSS_REASON_CATEGORIES } from '../labels';
 	import type { LossReason } from '../types';
@@ -44,6 +44,18 @@
 
 	async function toggleActive(r: LossReason, next: boolean) {
 		replace(await unwrap(api.PATCH('/api/loss-reasons/{loss_reason_id}', { params: { path: { loss_reason_id: r.id } }, body: { is_active: next }, headers: ifMatch(r.version) })));
+	}
+
+	/** Сервер откажет (409 CRM-1303), если причина уже стоит хоть в одной сделке — клиент этого не проверяет заранее. */
+	async function remove(r: LossReason) {
+		if (!(await confirm({ title: `Удалить причину «${r.name}»?`, confirmLabel: 'Удалить', danger: true }))) return;
+		try {
+			await unwrap(api.DELETE('/api/loss-reasons/{loss_reason_id}', { params: { path: { loss_reason_id: r.id } } }));
+			toast.success('Причина удалена');
+			list.set(items.filter((x) => x.id !== r.id));
+		} catch (e) {
+			toast.error(e);
+		}
 	}
 
 	/** Меняет местами соседей в группе. У всех причин по умолчанию `sort_order = 0`, поэтому порядок группы перенумеровывается 10, 20, 30… */
@@ -103,7 +115,10 @@
 									<span class="t-desc-m font-mono text-soft">{row.code}</span>
 								</div>
 								<SwitchCell checked={row.is_active} label={row.is_active ? 'Отключить причину' : 'Включить причину'} disabled={!canWrite} onToggle={(next) => toggleActive(row, next)} />
-								{#if canWrite}<IconBtn icon={Edit} label="Изменить" onclick={() => open(row)} />{/if}
+								{#if canWrite}
+									<IconBtn icon={Edit} label="Изменить" onclick={() => open(row)} />
+									<IconBtn icon={Trash} label="Удалить" danger onclick={() => remove(row)} />
+								{/if}
 							</li>
 						{/each}
 					</ul>
