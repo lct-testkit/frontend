@@ -3,7 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { api, unwrap, errorMessage } from '$lib/api';
 	import { POLICY_TEXT } from '$lib/content/policy';
-	import { renderMarkdown, sha256Hex } from '$lib/utils/markdown';
+	import { renderMarkdown } from '$lib/utils/markdown';
+	import { sha256Hex } from '$lib/features/signing/hash';
 	import { session } from '$lib/auth/session.svelte';
 	import { toast } from './toast.svelte';
 	import AppModal from './AppModal.svelte';
