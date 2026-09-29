@@ -4,9 +4,10 @@
 	// обрабатывается так же, как в ProductDrawer.svelte и редакторах справочников (catalog/*Drawer.svelte) — перечитать, оставить введённое.
 	import { onMount, untrack } from 'svelte';
 	import { api, ifMatch, unwrap, type components } from '$lib/api';
+	import { session } from '$lib/auth/session.svelte';
 	import { teams } from '$lib/features/identity/teams.svelte';
 	import { toFormFailure } from '$lib/features/config/shared/form-errors';
-	import { Btn, DataTable, DateText, EmptyState, ErrorState, FilterBar, FormDrawer, Page, PageHeader, Pick, Skeleton, TableCell, TextField, UserName, UserPicker, toast, type Col } from '$lib/ui';
+	import { Btn, confirm, DataTable, DateText, EmptyState, ErrorState, FilterBar, FormDrawer, Page, PageHeader, Pick, Skeleton, TableCell, TextField, UserName, UserPicker, toast, type Col } from '$lib/ui';
 	import { people } from '$lib/api/people.svelte';
 	import { formatDateTime } from '$lib/utils/format';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
@@ -25,6 +26,7 @@
 		}
 	});
 
+	const canWrite = $derived(session.can('user:write'));
 	const q = $derived(readQuery('q').trim());
 	$effect(() => people.ensure(teams.items.map((t) => t.head_id)));
 
@@ -164,6 +166,19 @@
 		}
 	}
 
+	/** Сервер откажет (409 CRM-1303), если в команде есть активный сотрудник или живая дочерняя команда — клиент это заранее не проверяет. */
+	async function remove(team: Team) {
+		if (!(await confirm({ title: `Удалить команду «${team.name}»?`, confirmLabel: 'Удалить', danger: true }))) return;
+		try {
+			await unwrap(api.DELETE('/api/admin/teams/{team_id}', { params: { path: { team_id: team.id } } }));
+			teams.remove(team.id);
+			toast.success('Команда удалена');
+			open = false;
+		} catch (e) {
+			toast.error(e);
+		}
+	}
+
 	const columns: Col<Row>[] = [
 		{ key: 'name', title: 'Команда', width: 'minmax(200px, 2fr)', render: nameCell },
 		{ key: 'head_id', title: 'Руководитель', width: 'minmax(160px, 1fr)', render: headCell },
@@ -223,4 +238,7 @@
 	{#if editing}
 		<p class="t-desc-l m-0 text-muted">Создана {formatDateTime(editing.created_at)} · изменена {formatDateTime(editing.updated_at)}{refreshing ? ' · обновляем…' : ''}</p>
 	{/if}
+	{#snippet extra()}
+		{#if editing && canWrite}<Btn label="Удалить" variant="outline" colorScheme="neutral" danger onclick={() => remove(editing!)} />{/if}
+	{/snippet}
 </FormDrawer>

@@ -2,9 +2,9 @@
 	// Производственный календарь: год сегментами, даты по месяцам; праздники и переносы (рабочий выходной) — разными метками.
 	import { untrack } from 'svelte';
 	import { Segment, SegmentedControl } from '@lct-testkit/rt-ui';
-	import { Edit } from '@lct-testkit/rt-ui/icons';
+	import { Edit, Trash } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
-	import { Btn, EmptyState, ErrorState, IconBtn, Skeleton, StatusChip } from '$lib/ui';
+	import { Btn, confirm, EmptyState, ErrorState, IconBtn, Skeleton, StatusChip, toast } from '$lib/ui';
 	import { session } from '$lib/auth/session.svelte';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import type { Holiday } from '../types';
@@ -44,6 +44,18 @@
 		drawerOpen = true;
 	}
 	const presetDate = $derived(`${year}-${String(year === thisYear ? new Date().getMonth() + 1 : 1).padStart(2, '0')}-01`);
+
+	/** Ничего на дату календаря не ссылается — сервер удаляет без ограничений (в отличие от направлений/причин отказа). */
+	async function remove(h: Holiday) {
+		if (!(await confirm({ title: `Удалить дату «${h.name}»?`, confirmLabel: 'Удалить', danger: true }))) return;
+		try {
+			await unwrap(api.DELETE('/api/holidays/{holiday_id}', { params: { path: { holiday_id: h.id } } }));
+			toast.success('Дата удалена');
+			void list.reload();
+		} catch (e) {
+			toast.error(e);
+		}
+	}
 </script>
 
 <CatalogPage active="holidays" createLabel="Добавить дату" onCreate={() => open(null)}>
@@ -76,7 +88,10 @@
 								</span>
 								<span class="t-body-m min-w-0 flex-1 wrap-anywhere">{h.name}</span>
 								{#if h.is_working_day}<StatusChip label="Рабочий день" tone="warning" />{:else}<StatusChip label="Выходной" tone="info" />{/if}
-								{#if canWrite}<IconBtn icon={Edit} label="Изменить" onclick={() => open(h)} />{/if}
+								{#if canWrite}
+									<IconBtn icon={Edit} label="Изменить" onclick={() => open(h)} />
+									<IconBtn icon={Trash} label="Удалить" danger onclick={() => remove(h)} />
+								{/if}
 							</li>
 						{/each}
 					</ul>

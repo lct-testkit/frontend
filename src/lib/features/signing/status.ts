@@ -207,7 +207,8 @@ export function documentActions(status: string, perms: DocumentPermissions): Doc
 
 /**
  * Предупреждение мастера: у внешнего подписанта, который не первый в последовательной цепочке,
- * ссылка на подпись сразу никому не отдаётся; получить её можно через «переиздать ссылку» (`POST /signature-requests/{id}/reissue-link`, backend-issues C-7), кнопки в интерфейсе пока нет.
+ * ссылка на подпись сразу никому не отдаётся; получить её можно через «Переиздать ссылку»
+ * (`POST /signature-requests/{id}/reissue-link`) в карточке документа (`DocumentPanel.svelte`).
  */
 export function externalNotFirstWarning(
 	signers: readonly { type: 'internal' | 'external' }[],

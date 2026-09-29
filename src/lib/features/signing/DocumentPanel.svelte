@@ -2,7 +2,7 @@
 	// Документ на подписи: статус, подписанты, действия по статусу и правам. Один вид для карточки сделки (`compact`)
 	// и для страницы документа.
 	import { goto } from '$app/navigation';
-	import { Download, Pen, Send, Stop, ArrowRight } from '@lct-testkit/rt-ui/icons';
+	import { Download, Pen, Refresh, Send, Stop, ArrowRight } from '@lct-testkit/rt-ui/icons';
 	import { session } from '$lib/auth/session.svelte';
 	import { roleLabel } from '../identity/labels';
 	import ReasonModal from '../identity/ReasonModal.svelte';
@@ -13,13 +13,13 @@
 	import StatusChip from '$lib/ui/StatusChip.svelte';
 	import { toast } from '$lib/ui/toast.svelte';
 	import { formatDate, formatDateTime } from '$lib/utils/format';
-	import { protocolLink, sendDocument, signedContainerLink, voidDocument } from './api';
+	import { protocolLink, reissueLink, sendDocument, signedContainerLink, voidDocument } from './api';
 	import { putDocument } from './known';
 	import SignLinkModal from './SignLinkModal.svelte';
 	import SignerList from './SignerList.svelte';
-	import { docStatusMeta, docTypeLabel, documentActions, requestStatusMeta } from './status';
+	import { docStatusMeta, docTypeLabel, documentActions, isRequestOpen, requestStatusMeta } from './status';
 	import { DOC_STATUS_HINTS } from './hints';
-	import type { SignLink, SignatureDocument } from './types';
+	import type { SignatureRequest, SignLink, SignatureDocument } from './types';
 
 	interface Props {
 		doc: SignatureDocument;
@@ -36,6 +36,7 @@
 	let links = $state<SignLink[]>([]);
 	let linksOpen = $state(false);
 	let sending = $state(false);
+	let reissuing = $state<string | null>(null);
 
 	const status = $derived(docStatusMeta(doc.status));
 	const requests = $derived(doc.requests ?? []);
@@ -44,6 +45,9 @@
 	const mine = $derived(requests.find((r) => r.signer_user_id === meId && (r.status === 'sent' || r.status === 'viewed')));
 	const externalContact = $derived(requests.find((r) => r.signer_type === 'external')?.signer_contact_id ?? null);
 	const rejected = $derived(requests.filter((r) => r.status === 'rejected' && r.reject_reason));
+	/** Кнопка «Переиздать ссылку»: только инициатору документа или ADMIN (как на бэкенде), и только пока запрос внешнего подписанта ждёт подписи. */
+	const canReissue = $derived(!!meId && (doc.created_by === meId || session.isRole('ADMIN')));
+	const reissuable = (r: SignatureRequest) => canReissue && r.signer_type === 'external' && isRequestOpen(r.status);
 	const meta = $derived(
 		[docTypeLabel(doc.doc_type), `создан ${formatDate(doc.created_at)}`, !status.terminal && doc.deadline_at ? `до ${formatDate(doc.deadline_at)}` : null].filter(Boolean).join(' · ')
 	);
@@ -106,6 +110,23 @@
 		voidOpen = false;
 		toast.success('Документ аннулирован');
 	}
+
+	async function reissue(r: SignatureRequest) {
+		reissuing = r.id;
+		try {
+			const fresh = await reissueLink(r.id);
+			apply({ ...doc, requests: requests.map((x) => (x.id === fresh.id ? fresh : x)) });
+			if (fresh.sign_url) {
+				links = [{ name: fresh.signer_name_snapshot, url: fresh.sign_url }];
+				linksOpen = true;
+			}
+			toast.success('Ссылка переиздана');
+		} catch (e) {
+			toast.error(e);
+		} finally {
+			reissuing = null;
+		}
+	}
 </script>
 
 <article class="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 max-md:p-3" data-testid="document-panel" data-status={doc.status}>
@@ -145,8 +166,9 @@
 			</dd>
 			{#each requests.filter((r) => r.sent_at) as r (r.id)}
 				<dt class="t-desc-l text-muted">{r.signer_name_snapshot}</dt>
-				<dd class="t-desc-l m-0 mb-1 md:mb-0">
-					{requestStatusMeta(r.status).label}{#if r.decided_at}, {formatDateTime(r.decided_at)}{:else if r.viewed_at}, открыл {formatDateTime(r.viewed_at)}{:else if r.sent_at}, отправлено {formatDateTime(r.sent_at)}{/if}
+				<dd class="t-desc-l m-0 mb-1 flex items-center gap-1 md:mb-0">
+					<span>{requestStatusMeta(r.status).label}{#if r.decided_at}, {formatDateTime(r.decided_at)}{:else if r.viewed_at}, открыл {formatDateTime(r.viewed_at)}{:else if r.sent_at}, отправлено {formatDateTime(r.sent_at)}{/if}</span>
+					{#if reissuable(r)}<IconBtn icon={Refresh} label="Переиздать ссылку" size="s" disabled={reissuing === r.id} onclick={() => reissue(r)} />{/if}
 				</dd>
 			{/each}
 			{#if doc.entity_type === 'deal'}

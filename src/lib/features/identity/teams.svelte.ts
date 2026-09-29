@@ -51,6 +51,11 @@ class Teams {
 	put(team: TeamOut): void {
 		this.items = this.items.some((t) => t.id === team.id) ? this.items.map((t) => (t.id === team.id ? team : t)) : [...this.items, team];
 	}
+
+	/** После успешного `DELETE /api/admin/teams/{id}` — убрать команду из кэша без перезагрузки всего списка. */
+	remove(id: string): void {
+		this.items = this.items.filter((t) => t.id !== id);
+	}
 }
 
 export const teams = new Teams();
