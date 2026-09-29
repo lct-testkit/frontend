@@ -3,7 +3,8 @@
 	import { untrack } from 'svelte';
 	import { TagGroup } from '@lct-testkit/rt-ui';
 	import { api, unwrap, idem, ifMatch } from '$lib/api';
-	import { toast } from '$lib/ui';
+	import { Btn, confirm, toast } from '$lib/ui';
+	import { session } from '$lib/auth/session.svelte';
 	import { CUSTOM_FIELD_ENTITIES, CUSTOM_FIELD_TYPES, labelOf } from '../labels';
 	import type { CustomFieldDef, Workflow } from '../types';
 	import { FormDrawer } from '$lib/ui';
@@ -53,6 +54,7 @@
 
 	const isNew = $derived(item === null);
 	const listType = $derived(type === 'select' || type === 'multiselect');
+	const canWrite = $derived(session.can('catalog:write'));
 
 	$effect(() => {
 		if (!open) return;
@@ -131,6 +133,20 @@
 		}
 	}
 
+	/** Сервер откажет (409 CRM-1303), если хотя бы у одной сущности этого типа заполнено значение по коду поля — клиент это заранее не проверяет. */
+	async function remove() {
+		if (!item) return;
+		if (!(await confirm({ title: `Удалить поле «${item.label}»?`, confirmLabel: 'Удалить', danger: true }))) return;
+		try {
+			await unwrap(api.DELETE('/api/custom-field-defs/{field_id}', { params: { path: { field_id: item.id } } }));
+			toast.success('Поле удалено');
+			onSaved();
+			onClose();
+		} catch (e) {
+			toast.error(e);
+		}
+	}
+
 	/** После конфликта версий: берём актуальную версию записи (тот же фильтр «для чего», что у страницы), введённое остаётся в форме. */
 	async function reload() {
 		if (!item) return;
@@ -205,4 +221,7 @@
 	{:else if item?.workflow_id}
 		<TextField label="Воронка" value={workflows.find((w) => w.id === item?.workflow_id)?.name ?? item.workflow_id} readonly />
 	{/if}
+	{#snippet extra()}
+		{#if item && canWrite}<Btn label="Удалить" variant="outline" colorScheme="neutral" danger onclick={remove} />{/if}
+	{/snippet}
 </FormDrawer>

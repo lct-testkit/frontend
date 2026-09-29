@@ -6,6 +6,7 @@ import type {
 	SignatureCreate,
 	SignatureDocument,
 	SignatureOut,
+	SignatureRequest,
 	SignatureTemplate,
 	SigningPage,
 	VerifyResult
@@ -73,6 +74,11 @@ export const sendDocument = (id: string): Promise<SignatureDocument> =>
 
 export const voidDocument = (id: string, reason: string): Promise<SignatureDocument> =>
 	unwrap(api.POST('/api/signature-documents/{document_id}/void', { params: { path: { document_id: id } }, body: { reason } }));
+
+/** Новая `sign_url` внешнему подписанту, пока его запрос ждёт подписи (`sent`/`viewed`); прежняя ссылка перестаёт работать.
+ * Нужна, когда очередь дошла до подписанта после подписи предыдущего, а ссылку никто не выдал (backend-issues C-7). */
+export const reissueLink = (requestId: string): Promise<SignatureRequest> =>
+	unwrap(api.POST('/api/signature-requests/{request_id}/reissue-link', { params: { path: { request_id: requestId } } }));
 
 export async function protocolLink(id: string): Promise<string> {
 	const out = await unwrap(api.GET('/api/signature-documents/{document_id}/protocol', { params: { path: { document_id: id } } }));

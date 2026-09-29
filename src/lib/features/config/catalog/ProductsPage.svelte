@@ -128,4 +128,5 @@
 		if (created) void pager.reload();
 		else pager.patch((r) => r.id === p.id, p);
 	}}
+	onDeleted={(id) => pager.remove((r) => r.id === id)}
 />

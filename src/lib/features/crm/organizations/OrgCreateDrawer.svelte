@@ -141,6 +141,17 @@
 		onClose();
 		void goto(`/organizations/${id}`);
 	};
+
+	/** `POST /api/organizations/{id}/restore` — только ADMIN/HEAD (A-18); при активной карточке сервер ответит 409 CRM-1304. */
+	async function restore(id: string) {
+		try {
+			const org = await unwrap(api.POST('/api/organizations/{organization_id}/restore', { params: { path: { organization_id: id } } }));
+			toast.success('Организация восстановлена');
+			open_(org.id);
+		} catch (e) {
+			toast.error(e);
+		}
+	}
 </script>
 
 <FormDrawer {open} title="Новая организация" width={560} saveLabel="Создать" saveTestId="org-create-submit" showSave={step === 'form'} canSave={!blocked} saving={busy} {dirty} formError={failure} onSave={submit} {onClose}>
@@ -160,12 +171,16 @@
 			<Notice class="shrink-0"
 				tone="warning"
 				role="alert"
-				actions={noOpen
-					? []
-					: [
-							{ label: 'Открыть карточку', onclick: () => open_(id) },
-							...(session.can('deal:create') ? [{ label: 'Новая сделка', onclick: () => (onClose(), goto(`/deals?new=1&org=${id}`)) }] : [])
-						]}
+				actions={conflict?.deleted
+					? session.isRole('ADMIN', 'HEAD')
+						? [{ label: 'Восстановить', onclick: () => restore(id) }]
+						: []
+					: noOpen
+						? []
+						: [
+								{ label: 'Открыть карточку', onclick: () => open_(id) },
+								...(session.can('deal:create') ? [{ label: 'Новая сделка', onclick: () => (onClose(), goto(`/deals?new=1&org=${id}`)) }] : [])
+							]}
 			>
 				{#if hit && !hit.accessible}
 					Организация с {sameInn ? 'таким ИНН' : 'таким названием'} уже есть в системе, но недоступна вам. Обратитесь к руководителю.

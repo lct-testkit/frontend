@@ -2,7 +2,8 @@
 	// Продукт: минимум полей сверху (код, название, направление, формат, цена), остальное — в «Дополнительно».
 	import { untrack } from 'svelte';
 	import { api, unwrap, idem, ifMatch } from '$lib/api';
-	import { toast } from '$lib/ui';
+	import { Btn, confirm, toast } from '$lib/ui';
+	import { session } from '$lib/auth/session.svelte';
 	import { PRODUCT_FORMATS } from '../labels';
 	import type { CustomFieldDef, Product } from '../types';
 	import { FormDrawer, FormRow, FormSection } from '$lib/ui';
@@ -25,9 +26,10 @@
 		item: Product | null;
 		onClose: () => void;
 		onSaved: (product: Product, created: boolean) => void;
+		onDeleted?: (id: string) => void;
 	}
 
-	let { open, item, onClose, onSaved }: Props = $props();
+	let { open, item, onClose, onSaved, onDeleted }: Props = $props();
 
 	let code = $state('');
 	let name = $state('');
@@ -54,6 +56,7 @@
 
 	const isNew = $derived(item === null);
 	const dirItems = $derived(directionOptions(directions.data ?? []));
+	const canWrite = $derived(session.can('catalog:write'));
 
 	$effect(() => {
 		if (!open) return;
@@ -143,6 +146,20 @@
 		}
 	}
 
+	/** Сервер откажет (409 CRM-1303), если продукт указан хоть в одной сделке — клиент это заранее не проверяет. */
+	async function remove() {
+		if (!item) return;
+		if (!(await confirm({ title: `Удалить продукт «${item.name}»?`, confirmLabel: 'Удалить', danger: true }))) return;
+		try {
+			await unwrap(api.DELETE('/api/products/{product_id}', { params: { path: { product_id: item.id } } }));
+			toast.success('Продукт удалён');
+			onDeleted?.(item.id);
+			onClose();
+		} catch (e) {
+			toast.error(e);
+		}
+	}
+
 	/** После конфликта версий: берём актуальную версию записи, введённое остаётся в форме. */
 	async function reloadVersion() {
 		if (!item) return;
@@ -189,4 +206,7 @@
 		</FormRow>
 		<CustomFieldsInputs {defs} bind:values={custom} {errors} />
 	</FormSection>
+	{#snippet extra()}
+		{#if item && canWrite}<Btn label="Удалить" variant="outline" colorScheme="neutral" danger onclick={remove} />{/if}
+	{/snippet}
 </FormDrawer>
