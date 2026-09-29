@@ -4,6 +4,7 @@
 //   3. POST /api/files/{id}/commit    → server verifies object, size and sha256, queues antivirus
 import { api, unwrap, idem } from './client';
 import { ApiError } from './errors';
+import { sha256HexOfBlob } from '../features/signing/hash';
 
 export type AttachmentCategory = 'contract' | 'presentation' | 'act' | 'license' | 'report' | 'signature_container' | 'other';
 
@@ -27,10 +28,13 @@ export interface UploadedFile {
 
 const HASH_LIMIT = 32 * 1024 * 1024;
 
+// Необязательная контрольная сумма (сервер сам проверяет sha256 при commit — см. заголовок файла);
+// для больших файлов не считаем, чтобы не тормозить загрузку. sha256HexOfBlob сама разбирается
+// с отсутствием crypto.subtle (небезопасный контекст — http на не-localhost), поэтому здесь этого
+// больше не проверяем.
 async function sha256Hex(file: Blob): Promise<string | undefined> {
-	if (file.size > HASH_LIMIT || !crypto.subtle) return undefined;
-	const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
-	return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+	if (file.size > HASH_LIMIT) return undefined;
+	return sha256HexOfBlob(file);
 }
 
 function put(url: string, file: Blob, headers: Record<string, string>, onProgress?: (f: number) => void, signal?: AbortSignal): Promise<void> {
