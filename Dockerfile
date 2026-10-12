@@ -33,7 +33,7 @@ RUN pnpm build
 # 2.11, not 2.8: Trivy (22.09.2026) found 87 CVEs in 2.8.4 (5 CRITICAL) with fixes only released in the 2.11.x
 # line upstream — see .trivyignore for what's left (all transitive Go deps baked into the caddy binary itself,
 # not fixable from this Dockerfile; 0 CRITICAL, 0 in the Alpine OS layer).
-FROM caddy:2.11-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
+FROM caddy:2.11-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
 
 LABEL org.opencontainers.image.source="https://github.com/lct-testkit/frontend" \
       org.opencontainers.image.title="rtk-crm-web" \
