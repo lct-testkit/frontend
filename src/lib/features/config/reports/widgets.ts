@@ -17,19 +17,27 @@ export interface ChartPreset {
 	horizontal?: boolean;
 	/** по каким колонкам можно считать сумму для «показателя» */
 	sumColumns: string[];
+	/** денежные колонки из `sumColumns`: плитка по ним показывает ₽ (признак задан здесь, а не угадывается по слову «сумма» в названии) */
+	moneyColumns?: string[];
 }
 
 export const CHART_PRESETS: Readonly<Record<string, ChartPreset>> = {
 	deal_funnel: { kind: 'bar', x: 'Статус', series: ['Сейчас в статусе'], horizontal: true, sumColumns: ['Сейчас в статусе', 'Всего прошло'] },
-	kam_summary: { kind: 'bar', x: 'КАМ', series: ['В работе', 'Выиграно', 'Проиграно'], sumColumns: ['В работе', 'Выиграно', 'Проиграно', 'Сумма выигранных'] },
-	region_summary: { kind: 'bar', x: 'Регион', series: ['Сделок'], horizontal: true, sumColumns: ['Сделок', 'Сумма выигранных'] },
+	kam_summary: { kind: 'bar', x: 'КАМ', series: ['В работе', 'Выиграно', 'Проиграно'], sumColumns: ['В работе', 'Выиграно', 'Проиграно', 'Сумма выигранных'], moneyColumns: ['Сумма выигранных'] },
+	region_summary: { kind: 'bar', x: 'Регион', series: ['Сделок'], horizontal: true, sumColumns: ['Сделок', 'Сумма выигранных'], moneyColumns: ['Сумма выигранных'] },
 	loss_reasons: { kind: 'donut', x: 'Причина', series: ['Сделок'], sumColumns: ['Сделок'] },
 	sla_compliance: { kind: 'donut', x: 'Состояние', series: ['Сделок'], sumColumns: ['Сделок'] },
-	monthly_dynamics: { kind: 'line', x: 'Месяц', series: ['Создано', 'Выиграно', 'Проиграно'], sumColumns: ['Создано', 'Выиграно', 'Проиграно', 'Сумма выигранных'] },
+	monthly_dynamics: { kind: 'line', x: 'Месяц', series: ['Создано', 'Выиграно', 'Проиграно'], sumColumns: ['Создано', 'Выиграно', 'Проиграно', 'Сумма выигранных'], moneyColumns: ['Сумма выигранных'] },
 	product_demand: { kind: 'bar', x: ['Продукт', 'Направление'], series: ['Заявок', 'Обучающихся', 'Потоков'], horizontal: true, sumColumns: ['Заявок', 'Выиграно', 'Обучающихся', 'Потоков'] }
 };
 
 export const canChart = (templateCode: string): boolean => templateCode in CHART_PRESETS;
+/** Плитка «сумма по колонке» денежная? Метрика вида `sum:<колонка>`. */
+export const isMoneyMetric = (templateCode: string, metric: string | undefined): boolean => {
+	if (!metric?.startsWith('sum:')) return false;
+	const column = metric.slice(4).trim().toLowerCase();
+	return (CHART_PRESETS[templateCode]?.moneyColumns ?? []).some((c) => c.trim().toLowerCase() === column);
+};
 export const sumColumnsOf = (templateCode: string): string[] => CHART_PRESETS[templateCode]?.sumColumns ?? [];
 
 export interface WidgetConfig {

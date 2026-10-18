@@ -3,7 +3,7 @@
 	import { BarChart, DonutChart, LineChart } from '@lct-testkit/rt-ui/charts';
 	import { formatMoneyShort, formatNumber } from '$lib/utils/format';
 	import type { ReportTable } from './table';
-	import { CHART_PRESETS, chartRows, metricLabel, previewRows, tileValue, type WidgetConfig } from './widgets';
+	import { CHART_PRESETS, chartRows, isMoneyMetric, metricLabel, previewRows, tileValue, type WidgetConfig } from './widgets';
 
 	interface Props {
 		type: string;
@@ -17,7 +17,7 @@
 	const preset = $derived(CHART_PRESETS[config.template_code]);
 	const rows = $derived(preset ? chartRows(table, preset) : []);
 	const tile = $derived(tileValue(table, config.metric));
-	const money = $derived(Boolean(config.metric?.toLowerCase().includes('сумма')));
+	const money = $derived(isMoneyMetric(config.template_code, config.metric));
 	const preview = $derived(previewRows(table, 8));
 	const series = $derived(preset?.series.map((s) => ({ key: s, label: s, y: s })) ?? []);
 </script>

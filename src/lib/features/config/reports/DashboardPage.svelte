@@ -14,7 +14,7 @@
 	import { clearDashboardCache } from './dashboard-cache';
 	import DashboardDrawer from './DashboardDrawer.svelte';
 	import { DashboardData } from './dashboard-data.svelte';
-	import type { WorkflowOption } from './ParamsForm.svelte';
+	import { WorkflowList } from './workflows.svelte';
 	import { normalizePosition } from './params';
 	import RunReportDrawer from './RunReportDrawer.svelte';
 	import type { RerunRequest } from './rerun';
@@ -30,11 +30,11 @@
 	const dashboard = createResource<Dashboard>((signal) => unwrap(api.GET('/api/dashboards/{dashboard_id}', { params: { path: { dashboard_id: id } }, signal })));
 	const widgetsRes = createResource<DashboardWidget[]>((signal) => unwrap(api.GET('/api/dashboards/{dashboard_id}/widgets', { params: { path: { dashboard_id: id } }, signal })).then((r) => r.items));
 	const templatesRes = createResource<ReportTemplate[]>((signal) => unwrap(api.GET('/api/report-templates', { signal })).then((r) => r.items));
-	let workflows = $state<WorkflowOption[]>([]);
+	const workflows = new WorkflowList();
 
 	onMount(async () => {
 		void templatesRes.reload();
-		unwrap(api.GET('/api/workflows', { params: { query: { state: 'published', limit: 100 } } })).then((r) => (workflows = r.items.map((w) => ({ id: w.id, name: w.name, deal_type: w.deal_type })))).catch(() => {});
+		void workflows.load();
 		await Promise.all([dashboard.reload(), widgetsRes.reload()]);
 		data.hydrate(configs);
 	});
@@ -190,6 +190,7 @@
 						onEdit={() => openWidget(w)}
 						onDelete={() => removeWidget(w)}
 						onExportTable={exportTable}
+						commonAsOf={oldest}
 					/>
 				</div>
 			{/each}

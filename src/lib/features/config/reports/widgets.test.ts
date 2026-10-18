@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHART_PRESETS, canChart, chartRows, columnSum, effectiveParams, readConfig, runKey, tileValue, toNumber } from './widgets';
+import { CHART_PRESETS, canChart, isMoneyMetric, chartRows, columnSum, effectiveParams, readConfig, runKey, tileValue, toNumber } from './widgets';
 import { fromReportData, type ReportTable } from './table';
 
 const funnel: ReportTable = fromReportData({
@@ -60,6 +60,14 @@ describe('виджеты дашборда', () => {
 		expect(CHART_PRESETS.product_demand.series).toHaveLength(3);
 		expect(canChart('learning_progress')).toBe(false);
 		expect(canChart('license_register')).toBe(false);
+	});
+
+	it('деньги: плитка денежная только для денежных колонок отчёта', () => {
+		expect(isMoneyMetric('kam_summary', 'sum:Сумма выигранных')).toBe(true);
+		expect(isMoneyMetric('kam_summary', 'sum:сумма выигранных')).toBe(true);
+		expect(isMoneyMetric('kam_summary', 'sum:Выиграно')).toBe(false);
+		expect(isMoneyMetric('kam_summary', 'rows')).toBe(false);
+		expect(isMoneyMetric('deal_funnel', 'sum:Сумма чего-то')).toBe(false);
 	});
 
 	it('какие отчёты рисуются графиком и ключ запуска не зависит от порядка параметров', () => {

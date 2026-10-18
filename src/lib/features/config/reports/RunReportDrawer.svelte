@@ -4,7 +4,6 @@
 	import { Segment, SegmentedControl } from '@lct-testkit/rt-ui';
 	import { Progress } from '@lct-testkit/rt-ui/ext';
 	import { CheckLarge } from '@lct-testkit/rt-ui/icons';
-	import { api, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
 	import { goto } from '$app/navigation';
 	import { JSON as JsonIcon } from '@lct-testkit/rt-ui/icons';
@@ -12,7 +11,8 @@
 	import { Btn, FormDrawer, Notice, toast } from '$lib/ui';
 	import { count } from '$lib/utils/format';
 	import type { ReportTemplate } from '../types';
-	import ParamsForm, { type WorkflowOption } from './ParamsForm.svelte';
+	import ParamsForm from './ParamsForm.svelte';
+	import { WorkflowList } from './workflows.svelte';
 	import { REPORT_SPECS, canDownloadJson, defaultFormat, describeTemplate, formatHint, formatLabel, formatsFor, normalizeParams, paramsFor, validateParams } from './params';
 	import { downloadReportJson } from './api';
 	import { cleanSelection } from './columns';
@@ -35,7 +35,7 @@
 	let format = $state('xlsx');
 	let values = $state<Record<string, unknown>>({});
 	let errors = $state<Record<string, string>>({});
-	let workflows = $state<WorkflowOption[]>([]);
+	const workflows = new WorkflowList();
 
 	const defs = $derived(template ? paramsFor(template.code, template.default_params, { dateFields: template.date_fields, defaultDateField: template.default_date_field, columns: template.columns }) : []);
 	const spec = $derived(template ? REPORT_SPECS[template.code] : undefined);
@@ -63,17 +63,13 @@
 				if (kept.length) values = { ...values, columns: kept };
 			}
 			errors = {};
-			if (paramsFor(t.code).some((d) => d.kind === 'workflow') && workflows.length === 0) {
-				unwrap(api.GET('/api/workflows', { params: { query: { state: 'published', limit: 100 } } }))
-					.then((r) => (workflows = r.items.map((w) => ({ id: w.id, name: w.name, deal_type: w.deal_type }))))
-					.catch(() => {});
-			}
+			if (paramsFor(t.code).some((d) => d.kind === 'workflow')) void workflows.load();
 		});
 	});
 
 	function start() {
 		if (!template || busy || !run.canRetry) return;
-		errors = validateParams(defs, values, { workflowTypes: Object.fromEntries(workflows.map((w) => [w.id, w.deal_type])) });
+		errors = validateParams(defs, values, { workflowTypes: Object.fromEntries(workflows.items.map((w) => [w.id, w.deal_type])) });
 		if (Object.keys(errors).length) return;
 		const body = normalizeParams(defs, values);
 		remember(columnsKey(template.code), Array.isArray(body.columns) ? body.columns : undefined);
@@ -131,7 +127,7 @@
 						{#if formatHint(format)}<span class="t-desc-l text-muted">{formatHint(format)}</span>{/if}
 					</div>
 				{/if}
-				<ParamsForm {defs} bind:values {errors} {workflows} />
+				<ParamsForm {defs} bind:values {errors} workflows={workflows.items} workflowsFailed={workflows.failed} onRetryWorkflows={() => void workflows.load()} />
 				{#if run.phase === 'failed'}<Notice class="shrink-0" tone="error" title="Не удалось сформировать отчёт">{run.message}</Notice>{/if}
 			</div>
 		{:else if run.phase === 'running'}
