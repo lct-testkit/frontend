@@ -55,13 +55,26 @@ try {
 	await page.waitForFunction(() => location.search === '', null, { timeout: 5000 });
 	expect(true, 'в адресе нет параметров');
 
+	step('поиск по названию вуза (слова нет в названии сделки)');
+	// слово берём из названия вуза, которого нет ни в одном названии сделки этого вуза
+	const probe = orgName.split(' ')[0].slice(0, 8);
+	const hits = all.items.filter((d) => d.organization_name?.includes(probe));
+	const titleHas = hits.filter((d) => d.title.toLowerCase().includes(probe.toLowerCase())).length;
+	console.log(`  слово «${probe}»: сделок вуза ${hits.length}, из них со словом в названии сделки ${titleHas}`);
+	await page.setViewportSize({ width: 1440, height: 900 });
+	await page.goto(`${BASE}/deals`, { waitUntil: 'load' });
+	await page.getByPlaceholder('Номер, название или вуз').fill(probe);
+	await page.getByText(`Найдено: ${hits.length}`).waitFor({ timeout: 8000 });
+	expect(dealRequests.at(-1).get('q') === probe, `q=${probe} ушёл на сервер`);
+	expect(titleHas < hits.length, 'найдены сделки, у которых слова нет в названии сделки (искали по вузу)');
+
 	step('колонки «Продукт» и «Направление»');
-	// на 1440 при открытом боковом меню таблице достаётся ~1150 px: «Направление» уходит первой, поэтому проверяем на широком экране
-	await page.setViewportSize({ width: 1800, height: 900 });
+	// на 1440 при открытом боковом меню таблице достаётся ~1150 px: «Направление» уходит первой, поэтому проверяем на 1920
+	await page.setViewportSize({ width: 1920, height: 1000 });
 	await page.goto(`${BASE}/deals`, { waitUntil: 'load' });
 	await page.getByText('Найдено:').waitFor({ timeout: 15000 });
 	const heads = (await page.locator('.atmr-tablegrid__cell--header').allInnerTexts()).join('|');
-	expect(heads.includes('Продукт') && heads.includes('Направление'), `заголовки на 1800: ${heads.replace(/\n/g, ' ')}`);
+	expect(heads.includes('Продукт') && heads.includes('Направление'), `заголовки на 1920: ${heads.replace(/\n/g, ' ')}`);
 	await page.setViewportSize({ width: 1024, height: 768 });
 	await page.waitForTimeout(500);
 	const heads2 = (await page.locator('.atmr-tablegrid__cell--header').allInnerTexts()).join('|');

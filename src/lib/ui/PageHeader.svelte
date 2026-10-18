@@ -53,7 +53,7 @@
 		/** the buttons of the page: icon buttons and outline buttons, never a second orange one */
 		actions?: Snippet;
 		primary?: Primary;
-		/** tabs of a list: they share ONE row with the buttons (a phone: the strip scrolls, the buttons stay at its end; a narrow tablet: the buttons go under the tabs). The grey line under the row is drawn by the header, so `underline` is always false */
+		/** tabs of a list: they share ONE row with the buttons (when they do not fit, on a phone and a narrow tablet alike, the buttons go under the tabs). The grey line under the row is drawn by the header, so `underline` is always false */
 		tabs?: Snippet<[boolean]>;
 		/** the blocks that follow the header (filters, tables) */
 		children?: Snippet;
@@ -68,7 +68,7 @@
 
 	// TABS + BUTTONS in one line — while they fit. When they do not, the buttons move to a line of their own UNDER the tabs (a strip that scrolls would hide
 	// its last tab; a wrapping row would draw the grey line under the buttons instead of under the tabs). Measured: the span of the tabs + the width of the
-	// buttons against the width of the header. A phone stacks only when its tabs fit alone; otherwise the strip scrolls and the buttons stay at its end.
+	// buttons against the width of the header. A phone stacks the same way; if its tabs do not fit even alone, the strip scrolls under the finger.
 	let head = $state<HTMLElement | null>(null);
 	let strip = $state<HTMLElement | null>(null);
 	let group = $state<HTMLElement | null>(null);
@@ -82,8 +82,8 @@
 		const first = items[0];
 		const last = items[items.length - 1];
 		const tabsWidth = last.offsetLeft + last.offsetWidth - first.offsetLeft;
-		// on a phone whose tabs do not fit even alone the strip scrolls and the buttons stay at its end (one row, as everywhere)
-		stacked = groupWidth > 0 && tabsWidth + 12 + groupWidth > head.clientWidth && (!bp.isMobile || tabsWidth <= head.clientWidth);
+		// a phone whose tabs do not fit next to the buttons stacks them too: the strip then has the whole width and scrolls by itself (before, the buttons stood at its end and cut the last tab off)
+		stacked = groupWidth > 0 && tabsWidth + 12 + groupWidth > head.clientWidth;
 	}
 	$effect(() => {
 		if (!head || !strip) return;

@@ -60,18 +60,18 @@
 
 	const fullColumns: Col<R>[] = $derived([
 		{ key: 'number', title: 'Номер', render: numberCell, sortable: true },
-		{ key: 'title', title: 'Сделка', width: 'minmax(160px, 3fr)', render: titleCell, sortable: true },
-		{ key: 'party', title: 'Организация', width: 'minmax(140px, 2fr)', render: partyCell, drop: 3 },
+		{ key: 'title', title: 'Сделка', width: 'minmax(220px, 3fr)', render: titleCell, sortable: true },
+		{ key: 'party', title: 'Организация', width: 'minmax(190px, 2.4fr)', render: partyCell, drop: 3 },
 		...(withProducts
 			? [
-					{ key: 'products', title: 'Продукт', width: 'minmax(110px, 1.6fr)', render: productsCell, drop: 2.5 },
+					{ key: 'products', title: 'Продукт', width: 'minmax(110px, 1.2fr)', render: productsCell, drop: 2.5 },
 					{ key: 'directions', title: 'Направление', width: 'minmax(100px, 1.2fr)', render: directionsCell, drop: 0.5 }
 				]
 			: []),
-		{ key: 'status', title: 'Статус', render: statusCell },
+		{ key: 'status', title: 'Статус', width: 'minmax(150px, 1.6fr)', render: statusCell },
 		{ key: 'sla', title: 'Срок', hint: 'Срок (SLA): сколько сделка может пробыть в текущем статусе', render: slaCell, drop: 2 },
 		{ key: 'amount', title: 'Сумма', align: 'right' as const, render: amountCell, sortable: true },
-		...(showOwner ? [{ key: 'owner', title: 'Ответственный', render: ownerCell, drop: 4 }] : []),
+		...(showOwner ? [{ key: 'owner', title: 'Ответственный', render: ownerCell, width: 'minmax(130px, 1fr)', drop: 0.8 }] : []),
 		{ key: 'updated_at', title: 'Изменён', render: updatedCell, sortable: true, drop: 1 }
 	]);
 	const compactColumns: Col<R>[] = [
