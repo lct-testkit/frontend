@@ -7,7 +7,7 @@
 	import { api, unwrap } from '$lib/api';
 	import { createPager } from '$lib/api/pager.svelte';
 	import { session } from '$lib/auth/session.svelte';
-	import { Btn, EmptyState, FilterBar, IconBtn, Page, PageHeader } from '$lib/ui';
+	import { Btn, EmptyState, FilterBar, IconBtn, Page, PageHeader, toast } from '$lib/ui';
 	import MultiPick from '$lib/ui/fields/MultiPick.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import { setQuery } from '$lib/utils/query-state.svelte';
@@ -15,6 +15,8 @@
 	import { TRANSFER_STATUS_LABELS } from '../shared/labels';
 	import type { OrganizationLicense } from '../types';
 	import { licenseAccess } from './access';
+	import { resolveLicense } from './licenseApi';
+	import LicenseDrawer from './LicenseDrawer.svelte';
 	import { FILTER_KEYS, activeCount, moreCount, patchFor, readFilters, toQuery, yearOptions, type LicenseFilters } from './licenseFilters';
 	import LicenseTable from './LicenseTable.svelte';
 	import { softwareOf } from './licenseCatalog';
@@ -36,6 +38,47 @@
 		JSON.stringify(query);
 		if (access.read) untrack(() => void pager.reload());
 	});
+
+	// панель лицензии: `?new=1` — новая, `?edit=<id>` — правка (работают «Назад» и ссылка «поделиться»)
+	const creating = $derived(page.url.searchParams.get('new') === '1' && access.create);
+	const editId = $derived(page.url.searchParams.get('edit') ?? '');
+	let editing = $state<OrganizationLicense | null>(null);
+	$effect(() => {
+		const id = editId;
+		if (!id || !access.read) {
+			editing = null;
+			return;
+		}
+		let cancelled = false;
+		void resolveLicense(untrack(() => pager.items), id)
+			.then((found) => {
+				if (cancelled) return;
+				if (found) editing = found;
+				else {
+					toast.error('Лицензия не найдена или недоступна');
+					void setQuery({ edit: null });
+				}
+			})
+			.catch((e) => {
+				if (cancelled) return;
+				toast.error(e);
+				void setQuery({ edit: null });
+			});
+		return () => {
+			cancelled = true;
+		};
+	});
+	const openCreate = () => void setQuery({ new: '1', edit: null }, { push: true });
+	const openEdit = (row: OrganizationLicense) => void setQuery({ edit: row.id, new: null }, { push: true });
+	const closeDrawer = () => void setQuery({ new: null, edit: null });
+	function saved(license: OrganizationLicense, created: boolean) {
+		if (created) {
+			pager.prepend(license);
+			if (pager.total !== undefined) pager.total += 1;
+		} else {
+			pager.patch((r) => r.id === license.id, license);
+		}
+	}
 
 	const change = (c: Partial<LicenseFilters>) => void setQuery(patchFor(c, filters));
 	const resetFilters = () => void setQuery(Object.fromEntries(FILTER_KEYS.filter((k) => k !== 'q').map((k) => [k, null])));
@@ -73,7 +116,8 @@
 {#snippet emptyList()}
 	<EmptyState title={hasFilters ? 'Ничего не найдено' : 'Лицензий пока нет'} compact>
 		{#snippet action()}
-			{#if hasFilters}<Btn label="Сбросить фильтры" variant="outline" colorScheme="neutral" onclick={resetAll} />{/if}
+			{#if hasFilters}<Btn label="Сбросить фильтры" variant="outline" colorScheme="neutral" onclick={resetAll} />
+			{:else if access.create}<Btn label="Добавить лицензию" variant="outline" colorScheme="neutral" onclick={openCreate} />{/if}
 		{/snippet}
 	</EmptyState>
 {/snippet}
@@ -94,6 +138,7 @@
 			moreActive={moreCount(filters)}
 			{trailing}
 			found={pager.total}
+			primary={access.create ? { label: 'Добавить лицензию', onclick: openCreate, testid: 'new-license' } : undefined}
 		/>
 		<LicenseTable
 			fill
@@ -105,7 +150,10 @@
 			loadingMore={pager.loadingMore}
 			onLoadMore={() => pager.loadMore()}
 			total={pager.total}
+			onRowClick={openEdit}
 			empty={emptyList}
 		/>
 	{/if}
 </Page>
+
+<LicenseDrawer open={creating || editing !== null} item={creating ? null : editing} onClose={closeDrawer} onSaved={saved} />
