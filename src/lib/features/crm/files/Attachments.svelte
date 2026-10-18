@@ -124,10 +124,9 @@
 <div class="flex min-w-0 flex-col gap-3">
 	{#if canEdit}
 		<div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
-			<Pick label="Категория" items={categoryItems} value={category} onChange={(v) => v && (category = v)} />
+			<Pick label="Категория" {hint} items={categoryItems} value={category} onChange={(v) => v && (category = v)} />
 		</div>
 		<FileDrop {queue} {onPick} label="Загрузить файлы" testid="attach" />
-		<p class="t-body-s m-0 text-muted">{hint}</p>
 	{/if}
 
 	{#if !canEdit}<p class="t-body-s m-0 text-muted">{hint}</p>{/if}
