@@ -33,7 +33,10 @@ try {
 	{
 		const page = await open('error');
 		check('ошибка: «Не удалось загрузить» в role=alert', (await page.getByRole('alert').filter({ hasText: 'Не удалось загрузить' }).count()) > 0);
-		check('ошибка: нет технических слов (id, payload, null, CRM-9000)', !/payload|null|CRM-9000|undefined/.test(await page.locator('main').innerText()));
+		// код ошибки (CRM-XXXX) теперь показывается намеренно — рядом «Что это значит» ведёт в справку (F6-5); сырых технических слов быть не должно
+		const errText = await page.locator('main').innerText();
+		check('ошибка: нет технических слов (payload, null, undefined)', !/payload|null|undefined/.test(errText));
+		check('ошибка: код показан вместе с «Что это значит» (F6-5)', !/CRM-\d{4}/.test(errText) || /Что это значит/.test(errText));
 		const before = page.__mockCalls.filter((c) => c.startsWith('GET /api/deals?')).length;
 		await page.getByRole('button', { name: 'Повторить' }).first().click();
 		await page.waitForTimeout(700);
