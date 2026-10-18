@@ -29,6 +29,14 @@ export type DashboardWidget = S['DashboardWidgetOut'];
 export type RegistryVersion = S['RegistryVersionOut'];
 
 export type IntegrationSource = S['IntegrationSourceOut'];
+export type SourceStatus = S['IntegrationStatusOut'];
+export type FieldMapping = S['FieldMapping'];
+export type MappingRule = S['MappingRule'];
+export type MappingTarget = S['TargetOut'];
+export type MappingPreview = S['MappingPreviewResponse'];
+export type Routing = S['Routing'];
+export type Route = S['Route'];
+export type RoutingRule = S['RoutingRule'];
 export type OutboxEvent = S['OutboxEventOut'];
 export type InboundMessage = S['InboundMessageOut'];
 export type ExternalRef = S['ExternalRefOut'];
