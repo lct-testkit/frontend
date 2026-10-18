@@ -12,7 +12,7 @@
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { auditActionLabel, auditResultMeta, entityTypeLabel } from '../labels';
 	import { AUDIT_RESULT_HINTS } from '../hints';
-	import { entityLabel, ensureAuditEntities, shortId } from '../audit';
+	import { entityLabel, ensureAuditEntities } from '../audit';
 	import type { AuditEntry } from '../types';
 	import AuditDetails from './AuditDetails.svelte';
 	import AuditFilters from './AuditFilters.svelte';
@@ -120,8 +120,6 @@
 			<span class="shrink-0">{entityTypeLabel(e.entity_type)}</span>
 			{#if label}
 				<span class="truncate text-muted" title={e.entity_id}>{label}</span>
-			{:else if e.entity_id}
-				<span class="shrink-0 text-muted" title={e.entity_id}>{shortId(e.entity_id).slice(0, 8)}</span>
 			{/if}
 		</span>
 	</TableCell>
