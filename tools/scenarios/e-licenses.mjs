@@ -120,6 +120,21 @@ try {
 	await page.goto(`${BASE}/licenses/00000000-0000-7000-8000-000000000000`);
 	await page.waitForSelector('text=Лицензия не найдена или недоступна');
 	check(!page.url().includes('edit='), 'чужой/несуществующий id: тост, адрес очищен, панели нет');
+	console.log('(g) из карточки вуза');
+	const orgCard = (await api('head', 'GET', '/api/organizations?q=Цифровые кадры&limit=1')).json.items[0];
+	await headPage.goto(`${BASE}/organizations/${orgCard.id}?tab=licenses&new=1`);
+	const hd2 = headPage.locator('.atmr-drawer');
+	await hd2.getByText('Новая лицензия').waitFor();
+	check(await hd2.locator('.atmr-input', { has: headPage.locator('.atmr-input__label :text-is("Вуз")') }).locator('.atmr-input__container--disabled, [aria-disabled="true"], input[disabled]').count() > 0, 'вуз подставлен и не меняется');
+	await fill(hd2, 'Вендор', 'E2E Вендор');
+	await fill(hd2, 'ПО', 'E2E Программа 3');
+	await fill(hd2, 'Номер договора', 'E2E-003');
+	await hd2.getByRole('button', { name: 'Сохранить' }).click();
+	await headPage.waitForSelector('text=Лицензия создана');
+	check(headPage.url().includes('tab=licenses'), 'вкладка «Лицензии» сохранена в адресе');
+	await headPage.waitForSelector('text=E2E-003');
+	const globalList = (await api('head', 'GET', '/api/organization-licenses?q=E2E-003&limit=5')).json.items;
+	check(globalList.length === 1 && globalList[0].organization_id === orgCard.id, 'лицензия есть и в глобальном списке, на этом вузе');
 } finally {
 	await cleanup();
 	await browser.close();
