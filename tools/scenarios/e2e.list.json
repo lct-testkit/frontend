@@ -94,6 +94,10 @@
 			"tier": "smoke"
 		},
 		{
+			"file": "e-api-keys.mjs",
+			"tier": "full"
+		},
+		{
 			"file": "e-approvals.mjs",
 			"tier": "full"
 		},
