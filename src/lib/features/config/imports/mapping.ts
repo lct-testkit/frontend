@@ -13,7 +13,7 @@ export type ImportEntity = components['schemas']['ImportJobCreateRequest']['enti
 export const IMPORT_ENTITY_INFO: Record<string, { label: string; plural: string; hint: string }> = {
 	organization: { label: 'Организации', plural: 'организаций', hint: 'Вузы и компании; ключ — ИНН' },
 	product: { label: GLOSSARY.product.plural, plural: 'продуктов', hint: `${GLOSSARY.product.hint}; ключ — код продукта` },
-	license: { label: 'Лицензии', plural: 'лицензий', hint: 'Договоры вуз — вендор — программное обеспечение' },
+	license: { label: 'Лицензии', plural: 'лицензий', hint: 'Договоры вуз — вендор — программное обеспечение; ключ — вуз, вендор, ПО и номер договора' },
 	vendor_contact: { label: 'Вендоры', plural: 'вендоров', hint: 'Компания, продукты и ответственные — файл «Вендоры»' },
 	payment: { label: 'Оплаты', plural: 'оплат', hint: 'Оплаченные заказы физлиц: заявка, курс, поток — «Данные оплат»' },
 	learner: { label: 'Учащиеся LMS', plural: 'учащихся', hint: 'Шаблон LMS «Загрузка пользователей» с паспортом и дипломом' }
@@ -168,3 +168,9 @@ export const IMPORT_ROW_STATUS_INFO: Record<string, { label: string; tone: Tone 
 	rollback_blocked: { label: 'Откат заблокирован', tone: 'warning' }
 };
 export const rowStatus = (status: string): { label: string; tone: Tone } => IMPORT_ROW_STATUS_INFO[status] ?? { label: status, tone: 'neutral' };
+
+/** Тип импорта из адреса (`?entity=license`); неизвестный серверу код — `null`, стартовый тип не меняется. */
+export function entityFromQuery(raw: string | null | undefined, types: readonly Pick<ImportEntityType, 'code'>[]): ImportEntity | null {
+	const code = (raw ?? '').trim();
+	return code && types.some((t) => t.code === code) ? (code as ImportEntity) : null;
+}

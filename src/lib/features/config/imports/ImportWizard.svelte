@@ -7,6 +7,7 @@
 	import { session } from '$lib/auth/session.svelte';
 	import { useLeaveGuard } from '$lib/ui/leave-guard.svelte';
 	import { ImportFlow, WIZARD_STEPS } from './flow.svelte';
+	import { entityFromQuery } from './mapping';
 	import StepCheck from './StepCheck.svelte';
 	import StepDone from './StepDone.svelte';
 	import StepFile from './StepFile.svelte';
@@ -19,7 +20,12 @@
 
 	onMount(() => {
 		if (jobId) void flow.restore(jobId);
-		else void flow.loadTypes();
+		else
+			void flow.loadTypes().then(() => {
+				// `?entity=license`: мастер сразу открывается на нужном типе
+				const entity = entityFromQuery(page.url.searchParams.get('entity'), flow.entityTypes);
+				if (entity) flow.entity = entity;
+			});
 	});
 	onDestroy(() => flow.stop());
 </script>

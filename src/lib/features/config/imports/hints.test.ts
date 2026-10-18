@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { IMPORT_JOB_STATUS_HINTS, IMPORT_ROW_STATUS_HINTS, importJobHint, importRowHint } from './hints';
+import { IMPORT_JOB_STATUS_HINTS, IMPORT_ROW_STATUS_HINTS, fieldFormatHint, importJobHint, importRowHint } from './hints';
 import { IMPORT_JOB_STATUS_INFO, IMPORT_ROW_STATUS_INFO } from './mapping';
 
 describe('import hints', () => {
@@ -12,5 +12,16 @@ describe('import hints', () => {
 		expect(importJobHint('нет')).toBeUndefined();
 		expect(importRowHint('нет')).toBeUndefined();
 		expect(importJobHint('failed')).toContain('ошибки');
+	});
+});
+
+describe('fieldFormatHint', () => {
+	it('у каждого вида полей лицензий есть подсказка формата', () => {
+		for (const kind of ['organization_name', 'text', 'license_signed', 'license_term', 'transfer_status']) expect(fieldFormatHint(kind).length).toBeGreaterThan(3);
+		expect(fieldFormatHint('license_term')).toContain('бессрочно');
+		expect(fieldFormatHint('transfer_status')).toContain('в работе');
+	});
+	it('неизвестный вид — «текст»', () => {
+		expect(fieldFormatHint('что-то новое')).toBe('текст');
 	});
 });
