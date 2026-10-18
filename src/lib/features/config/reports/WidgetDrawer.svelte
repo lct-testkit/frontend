@@ -11,6 +11,7 @@
 	import { toFormFailure } from '../shared/form-errors';
 	import ParamsForm, { type WorkflowOption } from './ParamsForm.svelte';
 	import { WIDGET_TYPES, WIDGET_TYPE_LABELS, WIDGET_WIDTHS, normalizeParams, normalizePosition, paramsFor, type WidgetType } from './params';
+	import type { PeriodPreset } from './period';
 	import { canChart, readConfig, sumColumnsOf } from './widgets';
 
 	interface Props {
@@ -30,6 +31,7 @@
 	let type = $state<WidgetType>('stat_tile');
 	let code = $state<string | null>(null);
 	let values = $state<Record<string, unknown>>({});
+	let period = $state<PeriodPreset | undefined>(undefined);
 	let metric = $state<string>('rows');
 	let title = $state('');
 	let width = $state('6');
@@ -50,6 +52,7 @@
 			type = (widget?.widget_type as WidgetType | undefined) ?? 'stat_tile';
 			code = cfg?.template_code ?? null;
 			values = { ...(cfg?.params ?? {}) };
+			period = cfg?.period;
 			metric = cfg?.metric ?? 'rows';
 			title = cfg?.title ?? '';
 			width = String(widget ? normalizePosition(widget.position).w : 6);
@@ -72,7 +75,12 @@
 		formError = null;
 		try {
 			const params = normalizeParams(defs, values);
-			const config: Record<string, unknown> = { template_code: code, params, ...(title.trim() ? { title: title.trim() } : {}), ...(type === 'stat_tile' ? { metric } : {}) };
+			// быстрый период хранится пресетом: даты пересчитываются при каждом запуске
+			if (period) {
+				delete params.date_from;
+				delete params.date_to;
+			}
+			const config: Record<string, unknown> = { template_code: code, params, ...(period ? { period } : {}), ...(title.trim() ? { title: title.trim() } : {}), ...(type === 'stat_tile' ? { metric } : {}) };
 			const position = { ...(widget ? normalizePosition(widget.position) : { x: 0, y: nextIndex, h: 1 }), w: Number(width) };
 			if (widget) await unwrap(api.PATCH('/api/dashboards/{dashboard_id}/widgets/{widget_id}', { params: { path: { dashboard_id: dashboardId, widget_id: widget.id } }, body: { widget_type: type, config, position } }));
 			else await unwrap(api.POST('/api/dashboards/{dashboard_id}/widgets', { params: { path: { dashboard_id: dashboardId } }, body: { widget_type: type, config, position } }));
@@ -98,7 +106,7 @@
 	</div>
 	<Pick label="Отчёт" required search bind:value={code} items={available.map((t) => ({ key: t.code, value: t.name }))} error={errors.template_code} hint={type === 'report_chart' ? 'График доступен для отчётов с числовыми колонками' : undefined} />
 	{#if code}
-		<ParamsForm {defs} bind:values {workflows} />
+		<ParamsForm {defs} bind:values {workflows} widget bind:period />
 		{#if type === 'stat_tile'}<Pick label="Показатель" bind:value={metric} items={metricItems} />{/if}
 	{/if}
 	<TextField label="Заголовок" bind:value={title} maxlength={120} />

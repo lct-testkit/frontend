@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { REPORT_SPECS, canDownloadReport, hasSpec, isReportExpired, normalizeParams, normalizePosition, paramsFor, toList, validateParams } from './params';
+import { REPORT_SPECS, canDownloadReport, describeTemplate, hasSpec, isReportExpired, normalizeParams, normalizePosition, paramsFor, toList, validateParams } from './params';
 import { runKey } from './widgets';
 
 /** Виды отчётов бэкенда (backend/app/modules/reporting/seed.py): у каждого обязана быть форма параметров. */
@@ -121,6 +121,14 @@ describe('параметры отчётов', () => {
 		expect(runKey({ template_code: 'x', params: { organization_ids: ['b', 'a'] } })).toBe(runKey({ template_code: 'x', params: { organization_ids: ['a', 'b'] } }));
 		expect(runKey({ template_code: 'x', params: { organization_ids: 'b,a' } })).toBe(runKey({ template_code: 'x', params: { organization_ids: ['a', 'b'] } }));
 		expect(runKey({ template_code: 'x', params: { months: 3 } })).not.toBe(runKey({ template_code: 'x', params: { months: 4 } }));
+	});
+});
+
+describe('описание шаблона', () => {
+	it('служебный перечень параметров из описания убирается, остальное остаётся', () => {
+		expect(describeTemplate('Реестр сделок. Параметры: date_from/date_to, limit. Только xlsx; содержит ПДн.')).toBe('Реестр сделок. Только xlsx; содержит ПДн.');
+		expect(describeTemplate('Реестр сделок. Параметры: date_from, columns, limit.')).toBe('Реестр сделок.');
+		expect(describeTemplate('Конверсия и среднее время.')).toBe('Конверсия и среднее время.');
 	});
 });
 

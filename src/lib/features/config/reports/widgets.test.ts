@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHART_PRESETS, canChart, chartRows, columnSum, readConfig, runKey, tileValue, toNumber } from './widgets';
+import { CHART_PRESETS, canChart, chartRows, columnSum, effectiveParams, readConfig, runKey, tileValue, toNumber } from './widgets';
 import { fromReportData, type ReportTable } from './table';
 
 const funnel: ReportTable = fromReportData({
@@ -54,5 +54,22 @@ describe('виджеты дашборда', () => {
 		expect(canChart('monthly_dynamics')).toBe(true);
 		expect(canChart('stuck_deals')).toBe(false);
 		expect(runKey({ template_code: 'x', params: { b: 1, a: 2 } })).toBe(runKey({ template_code: 'x', params: { a: 2, b: 1 } }));
+	});
+
+	it('быстрый период: даты пересчитываются на сегодня, ключ запуска меняется на следующий день', () => {
+		const config = { template_code: 'deal_register', params: { date_from: '2020-01-01', date_to: '2020-01-31', organization_ids: ['b', 'a'] }, period: 'this_month' as const };
+		const today = new Date(2026, 9, 16);
+		expect(effectiveParams(config, today)).toMatchObject({ date_from: '2026-10-01', date_to: '2026-10-16' });
+		expect(runKey(config, today)).not.toBe(runKey(config, new Date(2026, 9, 17)));
+		const reordered = { ...config, params: { ...config.params, organization_ids: ['a', 'b'] } };
+		expect(runKey(reordered, today)).toBe(runKey(config, today));
+	});
+
+	it('виджет без period и пресет «всё время» работают как раньше', () => {
+		const plain = { template_code: 'x', params: { date_from: '2026-01-01' } };
+		expect(effectiveParams(plain, new Date(2026, 9, 16))).toEqual({ date_from: '2026-01-01' });
+		expect(effectiveParams({ params: { date_from: '2026-01-01' }, period: 'all' }, new Date(2026, 9, 16))).toEqual({});
+		expect(readConfig({ template_code: 'x', period: 'this_year' })?.period).toBe('this_year');
+		expect(readConfig({ template_code: 'x', period: 'сегодня' })?.period).toBeUndefined();
 	});
 });

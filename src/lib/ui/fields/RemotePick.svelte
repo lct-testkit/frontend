@@ -28,10 +28,12 @@
 		required?: boolean;
 		clearable?: boolean;
 		emptyText?: string;
+		/** не запрашивать список при показе поля — только при открытии */
+		lazy?: boolean;
 		onChange: (id: string | null, item?: RemoteItem) => void;
 	}
 
-	let { value = null, search, selected = null, refreshKey, label, placeholder = 'Начните вводить', error, hint, disabled = false, required = false, clearable = true, emptyText = 'Ничего не найдено', onChange }: Props = $props();
+	let { value = null, search, selected = null, refreshKey, label, placeholder = 'Начните вводить', error, hint, disabled = false, required = false, clearable = true, emptyText = 'Ничего не найдено', lazy = false, onChange }: Props = $props();
 
 	const bp = useBreakpoint();
 	// in the one-line filter row a field has no caption above it: the label is its placeholder
@@ -60,10 +62,20 @@
 	}
 	const later = debounce((q: string) => void run(q), 250);
 
+	let loadedOnce = false;
 	$effect(() => {
 		void refreshKey;
+		if (lazy) {
+			loadedOnce = false;
+			return;
+		}
 		untrack(() => void run(''));
 	});
+	function onOpen() {
+		if (!lazy || loadedOnce) return;
+		loadedOnce = true;
+		void run('');
+	}
 </script>
 
 <Select
@@ -87,5 +99,6 @@
 		const id = key === '' || key === null ? null : String(key);
 		onChange(id, id ? items.find((i) => i.key === id) : undefined);
 	}}
+	onOpen={onOpen}
 	onClear={() => onChange(null)}
 />

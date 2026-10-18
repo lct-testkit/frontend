@@ -7,13 +7,14 @@
 	import MultiPick from '$lib/ui/fields/MultiPick.svelte';
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
-	import RemoteMultiPick from '$lib/ui/fields/RemoteMultiPick.svelte';
 	import RemotePick from '$lib/ui/fields/RemotePick.svelte';
 	import type { RemoteItem } from '$lib/ui/fields/remote-list.svelte';
 	import TextField from '$lib/ui/fields/TextField.svelte';
 	import { DEAL_TYPES, DEAL_TYPE_LABELS } from '../workflows/graph';
 	import { isDisabled, toList, type ReportParamDef } from './params';
-	import { directionResolve, directionSearch, orgResolve, orgSearch, ownerResolve, ownerSearch, OWNERS_LIMIT, productResolve, productSearch } from './pickers';
+	import type { PeriodPreset } from './period';
+	import ReportScopeFields from './ReportScopeFields.svelte';
+	import { productResolve, productSearch } from './pickers';
 
 	export interface WorkflowOption {
 		id: string;
@@ -26,9 +27,15 @@
 		values: Record<string, unknown>;
 		errors?: Record<string, string>;
 		workflows?: readonly WorkflowOption[];
+		/** виджет дашборда: быстрый период хранится пресетом */
+		widget?: boolean;
+		period?: PeriodPreset;
 	}
 
-	let { defs, values = $bindable({}), errors = {}, workflows = [] }: Props = $props();
+	let { defs, values = $bindable({}), errors = {}, workflows = [], widget = false, period = $bindable() }: Props = $props();
+
+	// поля общего блока рисует один компонент — на месте первого из них
+	const scopeDefs = $derived(defs.filter((d) => d.group === 'scope'));
 
 	const set = (key: string, value: unknown) => (values = { ...values, [key]: value });
 	// смена типа сделки: воронка другого типа на сервер не уйдёт
@@ -55,7 +62,9 @@
 </script>
 
 {#each defs as def (def.key)}
-	{#if def.kind === 'deal_type'}
+	{#if def.group === 'scope'}
+		{#if def.key === scopeDefs[0]?.key}<ReportScopeFields defs={scopeDefs} bind:values {errors} {widget} bind:period />{/if}
+	{:else if def.kind === 'deal_type'}
 		<Pick
 			label={def.label}
 			required={def.required}
@@ -81,6 +90,7 @@
 			label={def.label}
 			required={def.required}
 			placeholder="Начните вводить"
+			lazy
 			value={(values[def.key] as string | undefined) ?? null}
 			selected={course}
 			search={courseSearch}
@@ -94,25 +104,6 @@
 		/>
 	{:else if def.kind === 'date'}
 		<DateField label={def.label} required={def.required} hint={def.hint} value={(values[def.key] as string | undefined) ?? null} error={errors[def.key]} onChange={(v) => set(def.key, v ?? undefined)} />
-	{:else if def.kind === 'organization_multi'}
-		<RemoteMultiPick label={def.label} hint={def.hint} value={toList(values[def.key])} search={orgSearch} resolve={orgResolve} emptyText="Вузов не найдено" error={errors[def.key]} onChange={(v) => set(def.key, v)} />
-	{:else if def.kind === 'direction_multi'}
-		<RemoteMultiPick label={def.label} hint={def.hint} value={toList(values[def.key])} search={directionSearch} resolve={directionResolve} emptyText="Направлений не найдено" error={errors[def.key]} onChange={(v) => set(def.key, v)} />
-	{:else if def.kind === 'product_multi'}
-		<RemoteMultiPick label={def.label} hint={def.hint} value={toList(values[def.key])} search={productSearch} resolve={productResolve} emptyText="Продуктов не найдено" error={errors[def.key]} onChange={(v) => set(def.key, v)} />
-	{:else if def.kind === 'owner_multi'}
-		<RemoteMultiPick
-			label={def.label}
-			hint={def.hint}
-			value={toList(values[def.key])}
-			search={ownerSearch}
-			resolve={ownerResolve}
-			emptyText="Сотрудников не найдено"
-			note={`Показаны первые ${OWNERS_LIMIT}: уточните запрос`}
-			noteAt={OWNERS_LIMIT}
-			error={errors[def.key]}
-			onChange={(v) => set(def.key, v)}
-		/>
 	{:else if def.kind === 'enum' || def.kind === 'date_field'}
 		<Pick label={def.label} required={def.required} value={String(values[def.key] ?? def.default ?? '')} items={def.options ?? []} hint={def.hint} error={errors[def.key]} onChange={(v) => v && set(def.key, v)} />
 	{:else if def.kind === 'enum_multi'}
