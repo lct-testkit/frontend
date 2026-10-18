@@ -37,6 +37,9 @@ const EVENT_CODE_LABELS: EventCodeInfo[] = [
 	{ code: 'ORG_REQUISITES_DRIFT_DETECTED', label: 'Изменились реквизиты организации', group: 'organizations' },
 	{ code: 'ORG_DRIFT_APPLIED', label: 'Реквизиты обновлены из ЕГРЮЛ', group: 'organizations' },
 	{ code: 'ORG_LIQUIDATION_DETECTED', label: 'Контрагент ликвидируется', group: 'organizations' },
+	{ code: 'ACCESS_REQUEST_CREATED', label: 'Запросили доступ к моему вузу', group: 'organizations' },
+	{ code: 'ACCESS_REQUEST_APPROVED', label: 'Мой запрос доступа к вузу одобрен', group: 'organizations' },
+	{ code: 'ACCESS_REQUEST_REJECTED', label: 'Мой запрос доступа к вузу отклонён', group: 'organizations' },
 	{ code: 'SIGNATURE_REQUESTED', label: 'Документ направлен на подпись', group: 'signing' },
 	{ code: 'SIGNATURE_DOCUMENT_SIGNED', label: 'Документ подписан', group: 'signing' },
 	{ code: 'SIGNATURE_DOCUMENT_REJECTED', label: 'Подписание отклонено', group: 'signing' },
@@ -73,6 +76,8 @@ export function entityHref(entityType: string | null | undefined, entityId: stri
 			return `/organizations/${entityId}`;
 		case 'contact':
 			return `/contacts/${entityId}`;
+		case 'access_request':
+			return '/access-requests';
 		case 'task':
 			return `/tasks?task=${entityId}`;
 		case 'signature_request':
