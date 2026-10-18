@@ -17,7 +17,7 @@
 	import { SIGNATURE_STATUS_LABELS, SIGNATURE_STATUS_SCHEMES } from '../../shared/labels';
 	import type { AvailableTransition } from '../../types';
 	import DealStatusChip from '../DealStatusChip.svelte';
-	import { classifyTransitions, type ClassifiedTransition } from '../statusUtils';
+	import { classifyTransitions, deniedText, roleHint, type ClassifiedTransition } from '../statusUtils';
 	import { workflows } from '../workflows.svelte';
 	import type { DealCardState } from './dealCard.svelte';
 
@@ -51,13 +51,17 @@
 		return c.transition.name;
 	};
 
+	const deniedHint = (t: AvailableTransition): string => {
+		return deniedText(roleHint(t, card.graph));
+	};
+
 	let menuOpen = $state(false);
 	// на телефоне «Заморозить» и «Отказ» тоже уходят в меню — рядом с названием остаются иконки, главная кнопка ниже
 	const menuItems = $derived(
 		[...(bp.isMobile ? buttons.secondary : []), ...buttons.more].map((c) => ({
 			key: c.transition.id,
 			value: label(c),
-			hint: c.transition.role_allowed ? undefined : 'Недоступно вашей роли',
+			hint: c.transition.role_allowed ? undefined : deniedHint(c.transition),
 			disabled: !c.transition.role_allowed
 		}))
 	);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AvailableTransition, WorkflowGraph, WorkflowStatus } from '../types';
-import { classifyTransitions, isTerminal, statusName, steps, terminals, transitionKind } from './statusUtils';
+import { classifyTransitions, isTerminal, roleHint, roleList, statusName, steps, terminals, transitionKind } from './statusUtils';
 
 const st = (id: string, type: string, sort: number, extra: Partial<WorkflowStatus> = {}): WorkflowStatus => ({
 	id,
@@ -87,4 +87,16 @@ describe('statusName', () => {
 		expect(statusName('  отказ ')).toBe('Отказ');
 		expect(statusName(null)).toBe('');
 	});
+});
+
+describe('roleHint', () => {
+	const g = (roles: string[]) => ({ transitions: [{ id: 't1', allowed_roles: roles }] }) as unknown as WorkflowGraph;
+	it('HEAD → «Руководитель, Администратор»', () => expect(roleHint({ id: 't1' }, g(['HEAD']))).toBe('Руководитель, Администратор'));
+	it('пустой список ролей и неизвестный переход → null', () => {
+		expect(roleHint({ id: 't1' }, g([]))).toBeNull();
+		expect(roleHint({ id: 'zz' }, g(['HEAD']))).toBeNull();
+		expect(roleHint({ id: 't1' }, undefined)).toBeNull();
+	});
+	it('администратор не дублируется', () => expect(roleHint({ id: 't1' }, g(['HEAD', 'ADMIN']))).toBe('Руководитель, Администратор'));
+	it('roleList из ответа сервера', () => expect(roleList(['HEAD'])).toBe('Руководитель, Администратор'));
 });

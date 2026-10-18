@@ -14,7 +14,8 @@
 	import { COLUMN_PAGE, applyMove, emptyColumn, mergeItems, remaining, runLimited, withTotals, type BoardColumn } from './boardColumns';
 	import { productLine, productsTitle, type DealRow } from './dealProducts';
 	import TransitionDialog from '../card/TransitionDialog.svelte';
-	import { isTerminal, statusName, statusTone, steps, terminals, type StatusTone } from '../statusUtils';
+	import { isTerminal, roleHint, statusName, statusTone, steps, terminals, type StatusTone } from '../statusUtils';
+	import { createTransitionsCache, dropVerdict, type DropVerdict } from './boardDrop';
 	import { workflows } from '../workflows.svelte';
 	import type { DealQuery } from './dealFilters';
 
@@ -129,16 +130,55 @@
 	let overStatus = $state<string | null>(null);
 	let dialog = $state<{ deal: DealRow; transition: AvailableTransition } | null>(null);
 
+	// Доступные переходы перетаскиваемой сделки: один запрос на dragstart (кэш на 30 с), по ним у недоступных столбцов гасится подсветка.
+	const transitionsCache = createTransitionsCache();
+	const inflight = new Map<string, Promise<AvailableTransition[]>>();
+	let verdicts = $state<Record<string, DropVerdict> | null>(null);
+
+	async function transitionsOf(dealId: string): Promise<AvailableTransition[]> {
+		const cached = transitionsCache.get(dealId);
+		if (cached) return cached;
+		// dragstart и drop могут прийти раньше ответа: делят один запрос
+		let pending = inflight.get(dealId);
+		if (!pending) {
+			pending = unwrap(api.GET('/api/deals/{deal_id}/available-transitions', { params: { path: { deal_id: dealId } } }))
+				.then(({ items }) => {
+					transitionsCache.set(dealId, items);
+					return items;
+				})
+				.finally(() => inflight.delete(dealId));
+			inflight.set(dealId, pending);
+		}
+		return pending;
+	}
+
+	async function startDrag(deal: DealRow) {
+		verdicts = null;
+		try {
+			const items = await transitionsOf(deal.id);
+			if (dragId === deal.id) verdicts = Object.fromEntries(columns.map((c) => [c.id, dropVerdict(items, c.id)]));
+		} catch {
+			// не успели или нет сети: подсветка работает как раньше, а drop() проверит переход сам
+		}
+	}
+
+	/** столбец, в который эту карточку отпустить нельзя (свой столбец не гасим) */
+	const blocked = (statusId: string): boolean => !!dragId && !!verdicts && verdicts[statusId] !== 'ok' && allDeals.find((d) => d.id === dragId)?.status_id !== statusId;
+
 	async function drop(target: WorkflowStatus) {
 		const deal = allDeals.find((d) => d.id === dragId);
 		dragId = null;
 		overStatus = null;
+		verdicts = null;
 		if (!deal || deal.status_id === target.id) return;
 		try {
-			const { items } = await unwrap(api.GET('/api/deals/{deal_id}/available-transitions', { params: { path: { deal_id: deal.id } } }));
-			const transition = items.find((t) => t.to_status_id === target.id);
+			const items = await transitionsOf(deal.id);
+			const transition = items.find((t) => t.to_status_id === target.id && t.role_allowed) ?? items.find((t) => t.to_status_id === target.id);
 			if (!transition) toast.warning(`Из этого статуса нельзя перейти в «${target.name}»`);
-			else dialog = { deal, transition };
+			else if (!transition.role_allowed) {
+				const who = roleHint(transition, graph);
+				toast.warning('Недоступно вашей роли', who ? `Только: ${who}` : undefined);
+			} else dialog = { deal, transition };
 		} catch (e) {
 			toast.error(e, 'Не удалось проверить переход');
 		}
@@ -149,6 +189,7 @@
 	async function moved(updated: Deal) {
 		const old = allDeals.find((d) => d.id === updated.id);
 		dialog = null;
+		transitionsCache.delete(updated.id);
 		if (!old) return;
 		const from = old.status_id;
 		const to = updated.status_id;
@@ -178,10 +219,12 @@
 		ondragstart={(e) => {
 			dragId = deal.id;
 			e.dataTransfer?.setData('text/plain', deal.id);
+			void startDrag(deal);
 		}}
 		ondragend={() => {
 			dragId = null;
 			overStatus = null;
+			verdicts = null;
 		}}
 	>
 		<span class="flex items-center justify-between gap-2">
@@ -221,14 +264,20 @@
 				class={[
 					'flex w-[86vw] max-w-80 flex-none snap-center flex-col rounded-lg border border-t-[3px] border-line bg-surface-2 md:min-h-0 md:w-72',
 					TOP[tone],
-					overStatus === status.id && dragId && 'ring-2 ring-accent'
+					overStatus === status.id && dragId && 'ring-2 ring-accent',
+					blocked(status.id) && 'opacity-50'
 				]}
 				style:border-top-color={status.color ?? undefined}
 				ondragover={(e) => {
-					if (dragId) {
-						e.preventDefault();
-						overStatus = status.id;
+					if (!dragId) return;
+					const verdict = verdicts?.[status.id];
+					// нет перехода вовсе — курсор «нельзя»; запрещён роли — отпустить можно (чтобы объяснить причину), но столбец не подсвечивается
+					if (blocked(status.id) && verdict === 'none') {
+						if (e.dataTransfer) e.dataTransfer.dropEffect = 'none';
+						return;
 					}
+					e.preventDefault();
+					overStatus = blocked(status.id) ? null : status.id;
 				}}
 				ondragleave={() => (overStatus = overStatus === status.id ? null : overStatus)}
 				ondrop={(e) => {

@@ -19,7 +19,7 @@
 	import { ATTACHMENT_CATEGORY_LABELS } from '../../shared/labels';
 	import type { Attachment, AvailableTransition, Deal, WorkflowGraph } from '../../types';
 	import { currentText, describeCondition, type ConditionLike } from '../conditions';
-	import { statusName, statusTone, transitionKind } from '../statusUtils';
+	import { roleHint, roleList, statusName, statusTone, transitionKind } from '../statusUtils';
 	import { buildTransitionForm, fileLeaf, fileRequirements, isOtherReason, missingFileFields, serializeTransitionFields, unmetAlternatives, type TransitionFormField } from '../transitionForm';
 	import TransitionFileZone from './TransitionFileZone.svelte';
 	import { clearDraft, draftKey, getDraft, setDraft, type DraftFile } from './transitionDrafts';
@@ -220,9 +220,11 @@
 				case 'CRM-1201':
 					banner = { tone: 'error', text: 'Условия перехода не выполнены.', unmet: unmetOf(e.extra.unmet) };
 					return;
-				case 'CRM-1202':
-					banner = { tone: 'error', text: 'Этот переход недоступен вашей роли.' };
+				case 'CRM-1202': {
+					const who = Array.isArray(e.extra.allowed_roles) ? roleList(e.extra.allowed_roles) : roleHint(transition, graph);
+					banner = { tone: 'error', text: who ? `Этот переход недоступен вашей роли. Доступно: ${who}.` : 'Этот переход недоступен вашей роли.' };
 					return;
+				}
 				case 'CRM-1203':
 					banner = { tone: 'error', conflict: true, text: 'Сделка уже закрыта.' };
 					return;

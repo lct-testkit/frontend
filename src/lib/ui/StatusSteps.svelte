@@ -6,6 +6,8 @@
 		state: 'done' | 'current' | 'stopped' | 'future';
 		/** present when the step can be entered now */
 		onclick?: () => void;
+		/** why the step cannot be entered (shown as the tooltip of an inactive step) */
+		hint?: string;
 	}
 </script>
 
@@ -122,7 +124,7 @@
 							{@render cell(step, i)}
 						</button>
 					{:else}
-						<div class="block w-full" title={step.name} aria-current={step.state === 'current' ? 'step' : undefined}>{@render cell(step, i)}</div>
+						<div class="block w-full" title={step.hint ? `${step.name}. ${step.hint}` : step.name} aria-current={step.state === 'current' ? 'step' : undefined}>{@render cell(step, i)}</div>
 					{/if}
 				</li>
 			{/each}
