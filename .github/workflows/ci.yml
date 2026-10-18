@@ -149,6 +149,7 @@ jobs:
           exit-code: "1"
           skip-dirs: node_modules,docs
 
+<<<<<<< HEAD
   mock-stand:
     name: мок-стенд · экраны · производительность
     needs: check
@@ -162,10 +163,21 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: pnpm/action-setup@d9184bf108216479bc5a137cc391f4d7b14c870b # v6.1.0
+=======
+  help:
+    name: справка · скриншоты · HELP_REV
+    if: github.event_name == 'pull_request'
+    runs-on: [self-hosted, lct]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0 }
+>>>>>>> 250256a (feat(F6-9): проверка актуальности справки в CI — HELP_REV и устаревшие картинки на каждый запрос, ночная сверка скриптов и переменных с deploy и кодов ошибок с backend, docs/HELP.md, пункт в шаблоне запроса)
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
+<<<<<<< HEAD
           cache: pnpm
           registry-url: https://npm.pkg.github.com
           scope: '@lct-testkit'
@@ -199,6 +211,32 @@ jobs:
       - name: Производительность списка на 1000 сделок
         continue-on-error: true
         run: node tools/perf.mjs --check
+=======
+
+      # справка менялась — HELP_REV поднят (обход для опечатки: `[help-rev: skip]` в сообщении коммита);
+      # картинки старше своих источников дают предупреждения в аннотациях
+      - name: HELP_REV и актуальность картинок справки
+        run: node tools/check-help.mjs --base origin/${{ github.base_ref }}
+
+  help-drift:
+    name: справка · сверка с deploy и backend (ночью)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, lct]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      # без токенов сверка честно пропускается с ::warning::, а не «зеленеет» молча
+      - name: Скрипты и переменные руководства администратора — в deploy@main, коды ошибок — в backend@main
+        env:
+          DEPLOY_READ_TOKEN: ${{ secrets.DEPLOY_READ_TOKEN }}
+          BACKEND_READ_TOKEN: ${{ secrets.BACKEND_READ_TOKEN }}
+        run: node tools/check-help-drift.mjs
+>>>>>>> 250256a (feat(F6-9): проверка актуальности справки в CI — HELP_REV и устаревшие картинки на каждый запрос, ночная сверка скриптов и переменных с deploy и кодов ошибок с backend, docs/HELP.md, пункт в шаблоне запроса)
 
   publish:
     name: publish образа web

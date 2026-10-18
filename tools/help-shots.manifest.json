@@ -1,0 +1,15 @@
+{
+	"_comment": "Картинки справки (static/help) и файлы, от которых зависит их вид. tools/check-help.mjs сравнивает время последнего коммита картинки со временем последнего коммита источников и предупреждает, что картинка могла устареть. Путь, оканчивающийся на «/», — каталог. После переснятия картинки (tools/help-shots.mjs) предупреждение исчезает само.",
+	"shots": [
+		{ "name": "login", "file": "static/help/login.png", "sources": ["src/routes/login/", "src/lib/ui/PublicShell.svelte"] },
+		{ "name": "deal-card", "file": "static/help/deal-card.png", "sources": ["src/lib/features/crm/deals/card/"] },
+		{ "name": "import-wizard", "file": "static/help/import-wizard.png", "sources": ["src/lib/features/config/imports/"] },
+		{ "name": "org-lookup", "file": "static/help/org-lookup.png", "sources": ["src/lib/features/crm/lookup/"] },
+		{ "name": "teams", "file": "static/help/teams.png", "sources": ["src/routes/(app)/admin/teams/", "src/lib/features/identity/teams.svelte.ts"] },
+		{ "name": "workflow-graph", "file": "static/help/workflow-graph.png", "sources": ["src/lib/features/config/workflows/editor/"] },
+		{ "name": "security", "file": "static/help/security.png", "sources": ["src/lib/features/identity/PasswordPanel.svelte", "src/lib/features/identity/password.ts"] },
+		{ "name": "signing-otp", "file": "static/help/signing-otp.png", "sources": ["src/lib/features/signing/OtpPanel.svelte", "src/lib/features/signing/OtpInput.svelte"] },
+		{ "name": "integrations-sources", "file": "static/help/integrations-sources.png", "sources": ["src/lib/features/config/integrations/"] },
+		{ "name": "integrations-outbox", "file": "static/help/integrations-outbox.png", "sources": ["src/lib/features/config/integrations/"] }
+	]
+}
