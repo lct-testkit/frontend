@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { CloseSmall } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
+	import { coalesce, forget } from '$lib/api/coalesce';
 	import { people } from '$lib/api/people.svelte';
 	import { Avatar, Btn, IconBtn, Skeleton, UserPicker, confirm, toast } from '$lib/ui';
 	import Pick from '$lib/ui/fields/Pick.svelte';
@@ -22,7 +23,7 @@
 
 	async function load() {
 		try {
-			items = (await unwrap(api.GET('/api/deals/{deal_id}/participants', { params: { path: { deal_id: dealId } } }))).items;
+			items = (await coalesce(`participants:${dealId}`, () => unwrap(api.GET('/api/deals/{deal_id}/participants', { params: { path: { deal_id: dealId } } })))).items;
 			people.ensure(items.map((p) => p.user_id));
 		} catch (e) {
 			toast.error(e);
@@ -36,6 +37,7 @@
 		if (!user || busy) return;
 		busy = true;
 		try {
+			forget(`participants:${dealId}`);
 			const created = await unwrap(api.POST('/api/deals/{deal_id}/participants', { params: { path: { deal_id: dealId } }, body: { user_id: user, role_in_deal: role as 'watcher' } }));
 			items = [...items, created];
 			adding = false;
@@ -50,6 +52,7 @@
 	async function remove(p: Participant) {
 		if (!(await confirm({ title: `Убрать ${people.name(p.user_id)} из участников?`, confirmLabel: 'Убрать', danger: true }))) return;
 		try {
+			forget(`participants:${dealId}`);
 			await unwrap(api.DELETE('/api/deals/{deal_id}/participants/{participant_id}', { params: { path: { deal_id: dealId, participant_id: p.id } } }));
 			items = items.filter((x) => x.id !== p.id);
 		} catch (e) {

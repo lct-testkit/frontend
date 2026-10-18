@@ -1,6 +1,7 @@
 // Вызовы модуля ПЭП. Публичные (`/public/*`, без входа) и внутренние (`/api/*`) адаптеры подписи имеют одну форму,
 // поэтому экран подписи (`SignFlow`) один для гостя-контрагента и для сотрудника.
 import { api, unwrap, idem } from '$lib/api';
+import { coalesce } from '$lib/api/coalesce';
 import type {
 	ChallengeInfo,
 	SignatureCreate,
@@ -110,7 +111,7 @@ export async function listTemplates(): Promise<SignatureTemplate[]> {
 	return (await unwrap(api.GET('/api/signature-templates'))).items;
 }
 
-export const myRequests = () => unwrap(api.GET('/api/me/signature-requests'));
+export const myRequests = () => coalesce('me-signature-requests', () => unwrap(api.GET('/api/me/signature-requests')));
 
 export const verifyById = (id: string): Promise<VerifyResult> =>
 	unwrap(api.GET('/public/verify/{signature_id}', { params: { path: { signature_id: id } } }));

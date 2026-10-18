@@ -1,6 +1,6 @@
 // «Мне на подпись»: сколько запросов ждут подписи текущего пользователя (счётчик у пункта «Подписание» в меню).
 // Ручка отдаёт список без пагинации, считаем открытые запросы (`sent`/`viewed`); опрос раз в минуту, пока вкладка видна.
-import { api } from '$lib/api';
+import { myRequests } from './api';
 import { isRequestOpen } from './status';
 
 const POLL_MS = 60_000;
@@ -25,8 +25,8 @@ class SignatureInbox {
 
 	async refresh(): Promise<void> {
 		try {
-			const { data } = await api.GET('/api/me/signature-requests');
-			this.count = (data ?? []).filter((r) => isRequestOpen(r.status)).length;
+			const data = await myRequests();
+			this.count = data.filter((r) => isRequestOpen(r.status)).length;
 		} catch {
 			// счётчик — удобство, не ошибка: остаётся прежнее число
 		}
