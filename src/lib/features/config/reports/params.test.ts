@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { REPORT_SPECS, canDownloadReport, fileState, defaultFormat, describeTemplate, formatHint, formatLabel, formatsFor, hasSpec, isReportExpired, normalizeParams, normalizePosition, paramsFor, toList, validateParams } from './params';
+import { REPORT_SPECS, canDownloadJson, canDownloadReport, fileState, defaultFormat, describeTemplate, formatHint, formatLabel, formatsFor, hasSpec, isReportExpired, normalizeParams, normalizePosition, paramsFor, toList, validateParams } from './params';
 import { runKey } from './widgets';
 
 /** Виды отчётов бэкенда (backend/app/modules/reporting/seed.py): у каждого обязана быть форма параметров. */
@@ -184,6 +184,15 @@ describe('состояние файла отчёта', () => {
 		expect(fileState({ status: 'processing' })).toBe('pending');
 		expect(fileState({ status: 'failed' })).toBe('failed');
 		expect(canDownloadReport({ status: 'completed', expires_at: future, file_id: null }, now)).toBe(false);
+	});
+});
+
+describe('JSON-выдача', () => {
+	it('готовый отчёт любого вида, кроме «только файлом»; истёкший файл не мешает', () => {
+		expect(canDownloadJson({ status: 'completed', template_code: 'deal_register' })).toBe(true);
+		expect(canDownloadJson({ status: 'completed', template_code: 'lms_users_upload' })).toBe(false);
+		expect(canDownloadJson({ status: 'failed', template_code: 'deal_register' })).toBe(false);
+		expect(canDownloadJson({ status: 'queued', template_code: 'deal_register' })).toBe(false);
 	});
 });
 

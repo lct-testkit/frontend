@@ -3,15 +3,16 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { goto } from '$app/navigation';
-	import { Download, Refresh } from '@lct-testkit/rt-ui/icons';
+	import { Download, JSON as JsonIcon, Refresh } from '@lct-testkit/rt-ui/icons';
+	import { ApiError } from '$lib/api';
 	import { api, unwrap } from '$lib/api';
 	import { createPager } from '$lib/api/pager.svelte';
 	import { DateText, EmptyState, IconBtn, Page, PageHeader, DataTable, StatusChip, toast, type Col, TableCell } from '$lib/ui';
 	import type { ReportJob, ReportTemplate } from '../types';
 	import { createResource } from '../shared/resource.svelte';
 	import { createPoller } from '../shared/polling.svelte';
-	import { ReportExpired, downloadReport } from './api';
-	import { REPORT_STATUS_INFO, fileState, formatLabel, isReportBusy, type FileState, type ReportStatus } from './params';
+	import { ReportExpired, downloadReport, downloadReportJson } from './api';
+	import { REPORT_STATUS_INFO, canDownloadJson, fileState, formatLabel, isReportBusy, type FileState, type ReportStatus } from './params';
 	import { jobNoteInput, reportNotes } from './notes';
 	import { setRerun } from './rerun';
 	import ReportTabs from './ReportTabs.svelte';
@@ -45,6 +46,15 @@
 				gone.add(j.id);
 				toast.info('Файла уже нет', 'Запустите отчёт заново');
 			} else toast.error(e);
+		}
+	}
+
+	async function saveJson(j: ReportJob) {
+		try {
+			await downloadReportJson(j, nameOf(j.template_code));
+		} catch (e) {
+			if (e instanceof ApiError && e.status === 403) toast.error(new Error('Этот отчёт содержит персональные данные и доступен только файлом'));
+			else toast.error(e);
 		}
 	}
 
@@ -96,11 +106,16 @@
 {#snippet keepCell(j: ReportJob)}<TableCell>{#if j.expires_at}<span class="t-body-s"><DateText value={j.expires_at} /></span>{:else}<span class="text-soft">—</span>{/if}</TableCell>{/snippet}
 {#snippet actionBtn(j: ReportJob, size: 'm' | 'l')}
 	{@const st = stateOf(j)}
+	<span class="inline-flex items-center gap-1">
+	{#if canDownloadJson(j)}
+		<IconBtn icon={JsonIcon} label="Скачать JSON" title={st === 'ready' ? 'Данные отчёта в формате JSON' : 'Файла нет, но данные будут посчитаны заново по параметрам отчёта'} {size} onclick={(e) => (e.stopPropagation(), void saveJson(j))} />
+	{/if}
 	{#if st === 'ready'}
 		<IconBtn icon={Download} label="Скачать" {size} onclick={(e) => (e.stopPropagation(), void save(j))} />
 	{:else if st === 'expired' || st === 'gone' || st === 'failed'}
 		<IconBtn icon={Refresh} label="Запустить заново" {size} onclick={(e) => (e.stopPropagation(), rerun(j))} />
 	{/if}
+	</span>
 {/snippet}
 {#snippet dlCell(j: ReportJob)}<TableCell>{@render actionBtn(j, 'm')}</TableCell>{/snippet}
 

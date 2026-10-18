@@ -42,6 +42,10 @@ export class DashboardData {
 	}
 	isLoading = (config: WidgetConfig): boolean => Boolean(this.loading[runKey(config)]);
 	errorOf = (config: WidgetConfig): string | null => this.errors[runKey(config)] ?? null;
+	/** задание, по которому построены данные виджета (для «Скачать JSON») */
+	jobId(config: WidgetConfig): string | null {
+		return this.entries[runKey(config)]?.jobId ?? null;
+	}
 	/** на какой момент данные виджета: время построения на сервере, а если его нет — время запроса */
 	asOf(config: WidgetConfig): number | null {
 		const entry = this.entries[runKey(config)];

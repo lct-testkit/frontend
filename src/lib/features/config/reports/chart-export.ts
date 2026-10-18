@@ -4,7 +4,12 @@
 import { buildPdf, pageSizeFor, type PdfImage } from './pdf-writer';
 import { isoDate } from './period';
 
-const FONT = 'system-ui, "Segoe UI", Arial, sans-serif';
+const FONT = '"Rostelecom Basis", system-ui, "Segoe UI", Arial, sans-serif';
+const FONT_FILES: readonly [number, string][] = [
+	[400, '/fonts/RostelecomBasis-Regular.woff'],
+	[500, '/fonts/RostelecomBasis-Medium.woff'],
+	[700, '/fonts/RostelecomBasis-Bold.woff']
+];
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 /** Свойства SVG-элементов, которые копируются из вычисленных стилей. */
@@ -78,8 +83,105 @@ export function withAlpha(rgb: string, alpha: number): string {
 
 // --- SVG ---------------------------------------------------------------------------------------------------
 
+let fontCss: Promise<string> | null = null;
+
+/** @font-face шрифта интерфейса (Rostelecom Basis) со встроенными данными: картинка с SVG не видит шрифтов страницы. Нет шрифта — пустая строка, останется запасной. */
+export function fontFaceCss(): Promise<string> {
+	fontCss ??= (async () => {
+		try {
+			const faces = await Promise.all(
+				FONT_FILES.map(async ([weight, url]) => {
+					const res = await fetch(url);
+					if (!res.ok) throw new Error(url);
+					const bytes = new Uint8Array(await res.arrayBuffer());
+					let binary = '';
+					for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+					return `@font-face{font-family:'Rostelecom Basis';font-weight:${weight};src:url(data:font/woff;base64,${btoa(binary)}) format('woff')}`;
+				})
+			);
+			return faces.join('');
+		} catch {
+			return '';
+		}
+	})();
+	return fontCss;
+}
+
+const NUMBER = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 });
+
+interface Tick {
+	x: number;
+	y: number;
+	value: number;
+}
+
+function readTicks(svg: SVGSVGElement, axis: 'x' | 'y'): { numeric: Tick[]; names: Tick[] } {
+	const all = [...svg.querySelectorAll<SVGTextElement>(`text.rt-chart__tick--${axis}`)].map((t) => {
+		const text = (t.textContent ?? '').replace(/\s/g, '').replace(',', '.');
+		return { x: Number(t.getAttribute('x')), y: Number(t.getAttribute('y')), value: text === '' ? Number.NaN : Number(text) };
+	});
+	return { numeric: all.filter((t) => Number.isFinite(t.value)), names: all.filter((t) => !Number.isFinite(t.value)) };
+}
+
+/**
+ * Подписи значений у столбцов: на графике только ось, а в файле нужны числа («объективность диаграммы»). Значение берётся из положения столбца по шкале оси
+ * (линейная подгонка по двум числовым делениям), а у отсутствующего столбца (нулевое значение) явно пишется «0» — пустой шаг не должен выглядеть как пропуск данных.
+ */
+function addValueLabels(svg: SVGSVGElement, clone: SVGSVGElement, color: string): void {
+	const plot = clone.querySelector(':scope > g');
+	const bars = [...svg.querySelectorAll<SVGGraphicsElement>('path.rt-chart__bar')];
+	if (!plot || !bars.length) return;
+	const yAxis = readTicks(svg, 'y');
+	const xAxis = readTicks(svg, 'x');
+	const horizontal = xAxis.numeric.length >= 2;
+	const scale = horizontal ? xAxis.numeric : yAxis.numeric;
+	if (scale.length < 2) return;
+	const pos = (t: Tick) => (horizontal ? t.x : t.y);
+	const first = scale[0];
+	const last = scale[scale.length - 1];
+	const k = (last.value - first.value) / (pos(last) - pos(first));
+	const valueAt = (p: number) => first.value + (p - pos(first)) * k;
+	const whole = scale.every((t) => Number.isInteger(t.value));
+	const fmt = (v: number) => NUMBER.format(whole ? Math.round(v) : Math.round(v * 10) / 10);
+	const zeroAt = (first.value === 0 ? pos(first) : pos(first) - first.value / k);
+	const fill = (el: Element) => toRgb(getComputedStyle(el).fill);
+	const label = (text: string, x: number, y: number, anchor: 'start' | 'middle') => {
+		const t = document.createElementNS(SVG_NS, 'text');
+		t.textContent = text;
+		t.setAttribute('x', String(x));
+		t.setAttribute('y', String(y));
+		t.setAttribute('text-anchor', anchor);
+		t.setAttribute('dominant-baseline', 'middle');
+		t.setAttribute('style', `font-size:11px;font-weight:500;fill:${color}`);
+		plot.appendChild(t);
+	};
+	const boxes = bars.map((b) => ({ box: b.getBBox(), color: fill(b) }));
+	if (horizontal) {
+		for (const { box } of boxes) label(fmt(valueAt(box.x + box.width)), box.x + box.width + 4, box.y + box.height / 2, 'start');
+		// категории без столбца — явный ноль
+		for (const name of yAxis.names) if (!boxes.some(({ box }) => Math.abs(box.y + box.height / 2 - name.y) < box.height)) label('0', zeroAt + 4, name.y, 'start');
+		return;
+	}
+	for (const { box } of boxes) label(fmt(valueAt(box.y)), box.x + box.width / 2, box.y - 7, 'middle');
+	// сгруппированные столбцы: положение серии внутри группы известно по другим категориям, нулевой столбец помечается на своём месте
+	const centers = xAxis.names.length ? xAxis.names.map((t) => t.x) : xAxis.numeric.map((t) => t.x);
+	const offsets = new Map<string, number>();
+	for (const { box, color: c } of boxes) {
+		const cx = box.x + box.width / 2;
+		const near = centers.reduce((a, b) => (Math.abs(b - cx) < Math.abs(a - cx) ? b : a), centers[0]);
+		if (!offsets.has(c)) offsets.set(c, cx - near);
+	}
+	const width = boxes[0].box.width;
+	for (const center of centers) {
+		for (const [c, off] of offsets) {
+			const cx = center + off;
+			if (!boxes.some((b) => b.color === c && Math.abs(b.box.x + b.box.width / 2 - cx) < width / 2)) label('0', cx, zeroAt - 7, 'middle');
+		}
+	}
+}
+
 /** Копия SVG с явными размерами и встроенными стилями: открывается как отдельная картинка и выглядит так же, как на экране. */
-export function inlineSvg(svg: SVGSVGElement): { markup: string; width: number; height: number } {
+export function inlineSvg(svg: SVGSVGElement, opts: { css?: string; color?: string } = {}): { markup: string; width: number; height: number } {
 	const box = svg.viewBox?.baseVal;
 	const rect = svg.getBoundingClientRect();
 	const width = box && box.width > 0 ? box.width : rect.width;
@@ -96,6 +198,12 @@ export function inlineSvg(svg: SVGSVGElement): { markup: string; width: number; 
 			if (raw) target.style.setProperty(prop, COLOR_PROPS.has(prop) ? toRgb(raw) : raw);
 		}
 	});
+	addValueLabels(svg, clone, opts.color ?? '#111');
+	if (opts.css) {
+		const style = document.createElementNS(SVG_NS, 'style');
+		style.textContent = opts.css;
+		clone.insertBefore(style, clone.firstChild);
+	}
 	clone.setAttribute('xmlns', SVG_NS);
 	clone.setAttribute('width', String(width));
 	clone.setAttribute('height', String(height));
@@ -159,7 +267,9 @@ export async function renderCard(card: ExportCard): Promise<HTMLCanvasElement> {
 	const bg = toRgb(card.background);
 	const muted = withAlpha(fg, 0.62);
 
-	const svg = card.svg ? inlineSvg(card.svg) : null;
+	const css = card.svg ? await fontFaceCss() : '';
+	if (css) await Promise.all(FONT_FILES.map(([w]) => document.fonts?.load(`${w} 16px "Rostelecom Basis"`).catch(() => [])));
+	const svg = card.svg ? inlineSvg(card.svg, { css, color: fg }) : null;
 	const image = svg ? await loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.markup)}`) : null;
 	// вытянутый график занимает всю ширину; почти квадратный (кольцо) не растягивается на всю карточку, а стоит по центру
 	const MAX_IMAGE_H = 460;
@@ -175,7 +285,10 @@ export async function renderCard(card: ExportCard): Promise<HTMLCanvasElement> {
 	const titleLines = wrap(probe, card.title, inner);
 	probe.font = font(13);
 	const subtitleLines = card.subtitle ? wrap(probe, card.subtitle, inner) : [];
-	const noteLines = (card.notes ?? []).flatMap((n) => wrap(probe, n, inner));
+	// примечания — тем же мелким серым кеглем, что и подвал, и по ширине графика
+	probe.font = font(12);
+	const noteW = svg ? Math.max(imageW, 420) : inner;
+	const noteLines = (card.notes ?? []).flatMap((n) => wrap(probe, n, noteW));
 
 	// легенда: пункты в ряд с переносом
 	probe.font = font(13);
@@ -200,7 +313,7 @@ export async function renderCard(card: ExportCard): Promise<HTMLCanvasElement> {
 	if (card.tile) H += 86 + 28;
 	if (image) H += imageH + 12;
 	if (rows.length) H += rows.length * 22 + 8;
-	if (noteLines.length) H += 8 + noteLines.length * 18;
+	if (noteLines.length) H += 8 + noteLines.length * 17;
 	H += 16 + 18 + pad;
 
 	const canvas = document.createElement('canvas');
@@ -261,11 +374,11 @@ export async function renderCard(card: ExportCard): Promise<HTMLCanvasElement> {
 	}
 	if (noteLines.length) {
 		y += 8;
-		ctx.fillStyle = fg;
-		ctx.font = font(13);
+		ctx.fillStyle = muted;
+		ctx.font = font(12);
 		for (const line of noteLines) {
-			ctx.fillText(line, pad, y);
-			y += 18;
+			ctx.fillText(line, pad + (svg ? (inner - imageW) / 2 : 0), y);
+			y += 17;
 		}
 	}
 	ctx.fillStyle = muted;

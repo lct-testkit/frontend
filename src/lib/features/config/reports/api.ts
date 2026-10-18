@@ -1,6 +1,7 @@
 // Отчёты: запуск, ожидание готовности, JSON-данные для дашбордов, ссылка и скачивание файла.
 import { api, unwrap, idem, ApiError } from '$lib/api';
 import type { ReportDataOut, ReportJob } from '../types';
+import { exportFileName, saveBlob } from './chart-export';
 import type { ReportFormat } from './params';
 import { isReportBusy } from './params';
 
@@ -73,6 +74,15 @@ export class ReportNotReady extends ReportFailed {
 		super(message);
 		this.name = 'ReportNotReady';
 	}
+}
+
+/**
+ * «Скачать JSON»: данные отчёта (то же, что рендерится в файл) считаются заново по параметрам задания и сохраняются как есть, с отступом в 2 пробела.
+ * 403 — отчёт «только файлом» (содержит ПДн), 422 — параметры задания стали невалидны: тексты сервера идут наружу как есть.
+ */
+export async function downloadReportJson(job: Pick<ReportJob, 'id'>, templateName: string, save: (blob: Blob, fileName: string) => void = saveBlob): Promise<void> {
+	const data = await fetchReportData(job.id);
+	save(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), exportFileName(templateName, new Date(), 'json'));
 }
 
 /** Ссылка на файл (действует недолго). 410 / CRM-1603 — срок хранения истёк или файла нет, 409 / CRM-1602 — отчёт не готов. */
