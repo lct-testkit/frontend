@@ -7,7 +7,7 @@
 	import TextField from '$lib/ui/fields/TextField.svelte';
 	import Toggle from '$lib/ui/fields/Toggle.svelte';
 	import type { ImportFlow } from './flow.svelte';
-	import { ENTITY_KEYS, sampleValues } from './mapping';
+	import { ENTITY_KEYS, presetKey, sampleValues } from './mapping';
 
 	let { flow }: { flow: ImportFlow } = $props();
 
@@ -73,7 +73,7 @@
 					clearable
 					placeholder="Применить пресет"
 					value={flow.presetId}
-					items={flow.presets.map((p) => ({ key: p.id, value: p.name }))}
+					items={flow.presets.map((p) => ({ key: presetKey(p), value: p.builtin ? `${p.name} (встроенный)` : p.name }))}
 					onChange={(id) => flow.usePreset(id)}
 				/>
 			{/if}

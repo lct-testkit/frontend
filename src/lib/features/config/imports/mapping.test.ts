@@ -21,6 +21,7 @@ const field = (target: string, label: string, required = false) => ({ target, la
 const organization: ImportEntityType = {
 	code: 'organization',
 	label: 'Организации',
+	admin_only: false,
 	source_formats: ['xlsx', 'csv', 'json'],
 	fields: [field('name', 'Наименование', true), field('inn', 'ИНН', true), field('legal_address', 'Юридический адрес')],
 	requirements: ['Наименование', 'ИНН']
@@ -28,6 +29,7 @@ const organization: ImportEntityType = {
 const payment: ImportEntityType = {
 	code: 'payment',
 	label: 'Оплаты',
+	admin_only: false,
 	source_formats: ['json'],
 	fields: [
 		field('order_number', 'Номер заявки', true),

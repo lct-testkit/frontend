@@ -24,6 +24,9 @@ export const entityInfo = (type: Pick<ImportEntityType, 'code' | 'label'>): { la
 	return known ? { label: known.label, hint: known.hint } : { label: type.label, hint: '' };
 };
 
+/** a preset's key in a picker: saved presets have an id, the server's built-in ones (B3-9) only a name */
+export const presetKey = (p: { id?: string | null; name: string; builtin?: boolean }): string => p.id ?? `builtin:${p.name}`;
+
 export const IMPORT_MODES = ['upsert', 'insert', 'update'] as const;
 export type ImportMode = (typeof IMPORT_MODES)[number];
 export const IMPORT_MODE_LABELS: Record<ImportMode, { label: string; hint: string }> = {

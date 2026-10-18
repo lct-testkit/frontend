@@ -89,7 +89,7 @@ describe('сопоставление колонок', () => {
 		get.mockResolvedValue({ data: { items: TYPES } });
 		const flow = await newFlow();
 		await flow.loadTypes();
-		flow.profile = { headers: ['Название', 'ИНН', 'Город'], sample_rows: [], suggested_mapping: {}, total_rows: 0 };
+		flow.profile = { headers: ['Название', 'ИНН', 'Город'], sample_rows: [], suggested_mapping: {}, total_rows: 0, header_row: 1, suggested_header_row: 1 };
 
 		flow.setTarget('Название', 'name');
 		expect(flow.check.ok).toBe(false);
@@ -106,8 +106,8 @@ describe('сопоставление колонок', () => {
 		get.mockResolvedValue({ data: { items: TYPES } });
 		const flow = await newFlow();
 		await flow.loadTypes();
-		flow.profile = { headers: ['Название', 'ИНН'], sample_rows: [], suggested_mapping: {}, total_rows: 0 };
-		flow.presets = [{ id: 'p1', name: 'Реестр', entity_type: 'organization', mapping: { ИНН: 'inn', Нет: 'name' }, created_at: '2026-09-26T00:00:00Z' }];
+		flow.profile = { headers: ['Название', 'ИНН'], sample_rows: [], suggested_mapping: {}, total_rows: 0, header_row: 1, suggested_header_row: 1 };
+		flow.presets = [{ id: 'p1', name: 'Реестр', entity_type: 'organization', mapping: { ИНН: 'inn', Нет: 'name' }, builtin: false, created_at: '2026-09-26T00:00:00Z' }];
 
 		flow.usePreset('p1');
 		expect(flow.presetId).toBe('p1');
