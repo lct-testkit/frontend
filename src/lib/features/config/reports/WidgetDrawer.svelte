@@ -10,7 +10,7 @@
 	import TextField from '$lib/ui/fields/TextField.svelte';
 	import { toFormFailure } from '../shared/form-errors';
 	import ParamsForm, { type WorkflowOption } from './ParamsForm.svelte';
-	import { WIDGET_TYPES, WIDGET_TYPE_LABELS, WIDGET_WIDTHS, normalizeParams, normalizePosition, paramsFor, type WidgetType } from './params';
+	import { FILE_ONLY_TEMPLATES, WIDGET_TYPES, WIDGET_TYPE_LABELS, WIDGET_WIDTHS, normalizeParams, normalizePosition, paramsFor, type WidgetType } from './params';
 	import type { PeriodPreset } from './period';
 	import { canChart, readConfig, sumColumnsOf } from './widgets';
 
@@ -38,9 +38,10 @@
 	let errors = $state<Record<string, string>>({});
 	let formError = $state<string | null>(null);
 	let saving = $state(false);
+	let seededFor: string | null = null;
 
 	const isNew = $derived(widget === null);
-	const available = $derived(templates.filter((t) => t.is_active && (type !== 'report_chart' || canChart(t.code))));
+	const available = $derived(templates.filter((t) => t.is_active && !FILE_ONLY_TEMPLATES.has(t.code) && (type !== 'report_chart' || canChart(t.code))));
 	const template = $derived(templates.find((t) => t.code === code));
 	const defs = $derived(code ? paramsFor(code, template?.default_params, { dateFields: template?.date_fields, defaultDateField: template?.default_date_field, columns: template?.columns }).filter((d) => d.kind !== 'columns' || type === 'report_table') : []);
 	const metricItems = $derived([{ key: 'rows', value: 'Число строк в отчёте' }, ...sumColumnsOf(code ?? '').map((c) => ({ key: `sum:${c}`, value: `Сумма: ${c}` }))]);
@@ -52,12 +53,25 @@
 			type = (widget?.widget_type as WidgetType | undefined) ?? 'stat_tile';
 			code = cfg?.template_code ?? null;
 			values = { ...(cfg?.params ?? {}) };
+			seededFor = code;
 			period = cfg?.period;
 			metric = cfg?.metric ?? 'rows';
 			title = cfg?.title ?? '';
 			width = String(widget ? normalizePosition(widget.position).w : 6);
 			errors = {};
 			formError = null;
+		});
+	});
+
+	// выбрали другой отчёт — поля начинаются со значений по умолчанию с сервера (обязательное «Показать первые» не пустое), а не с параметров прежнего
+	$effect(() => {
+		const current = code;
+		if (!open || current === seededFor) return;
+		untrack(() => {
+			seededFor = current;
+			values = { ...(templates.find((t) => t.code === current)?.default_params ?? {}) };
+			period = undefined;
+			errors = {};
 		});
 	});
 

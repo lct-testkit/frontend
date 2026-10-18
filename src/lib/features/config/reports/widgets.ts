@@ -10,8 +10,8 @@ export type ChartKind = 'bar' | 'line' | 'donut';
 
 export interface ChartPreset {
 	kind: ChartKind;
-	/** колонка категорий (ось X / доли) */
-	x: string;
+	/** колонка категорий (ось X / доли); список — запасные названия (у «Рейтинга востребованности» колонка зависит от «Группировать по») */
+	x: string | string[];
 	/** числовые колонки-серии */
 	series: string[];
 	horizontal?: boolean;
@@ -25,7 +25,8 @@ export const CHART_PRESETS: Readonly<Record<string, ChartPreset>> = {
 	region_summary: { kind: 'bar', x: 'Регион', series: ['Сделок'], horizontal: true, sumColumns: ['Сделок', 'Сумма выигранных'] },
 	loss_reasons: { kind: 'donut', x: 'Причина', series: ['Сделок'], sumColumns: ['Сделок'] },
 	sla_compliance: { kind: 'donut', x: 'Состояние', series: ['Сделок'], sumColumns: ['Сделок'] },
-	monthly_dynamics: { kind: 'line', x: 'Месяц', series: ['Создано', 'Выиграно', 'Проиграно'], sumColumns: ['Создано', 'Выиграно', 'Проиграно', 'Сумма выигранных'] }
+	monthly_dynamics: { kind: 'line', x: 'Месяц', series: ['Создано', 'Выиграно', 'Проиграно'], sumColumns: ['Создано', 'Выиграно', 'Проиграно', 'Сумма выигранных'] },
+	product_demand: { kind: 'bar', x: ['Продукт', 'Направление'], series: ['Заявок', 'Обучающихся', 'Потоков'], horizontal: true, sumColumns: ['Заявок', 'Выиграно', 'Обучающихся', 'Потоков'] }
 };
 
 export const canChart = (templateCode: string): boolean => templateCode in CHART_PRESETS;
@@ -92,7 +93,7 @@ export interface ChartRow {
 
 /** Строки таблицы → объекты `{ name, <серия>: число }` для графиков rt-ui. Строки без категории пропускаются. */
 export function chartRows(table: ReportTable, preset: ChartPreset): ChartRow[] {
-	const x = indexOfColumn(table, preset.x);
+	const x = [preset.x].flat().reduce((found, name) => (found >= 0 ? found : indexOfColumn(table, name)), -1);
 	if (x < 0) return [];
 	const cols = preset.series.map((s) => ({ name: s, at: indexOfColumn(table, s) })).filter((c) => c.at >= 0);
 	return table.rows

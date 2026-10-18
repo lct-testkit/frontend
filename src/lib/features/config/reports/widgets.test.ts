@@ -50,6 +50,18 @@ describe('виджеты дашборда', () => {
 		expect(chartRows({ ...funnel, columns: ['A', 'B'] }, CHART_PRESETS.deal_funnel)).toEqual([]);
 	});
 
+	it('рейтинг востребованности: три серии, категория — продукт или направление', () => {
+		const cols = ['Место', 'X', 'Заявок', 'Выиграно', 'Обучающихся', 'Потоков', 'Индекс, %'];
+		const byProduct = fromReportData({ columns: cols.map((c) => (c === 'X' ? 'Продукт' : c)), rows: [[1, 'Python', 13, 0, 49, 2, 29.1]] });
+		const byDirection = fromReportData({ columns: cols.map((c) => (c === 'X' ? 'Направление' : c)), rows: [[1, 'Разработка ПО', 28, 1, 85, 0, 56]] });
+		const expected = (name: string, a: number, l: number, s: number) => [{ name, Заявок: a, Обучающихся: l, Потоков: s }];
+		expect(chartRows(byProduct, CHART_PRESETS.product_demand)).toEqual(expected('Python', 13, 49, 2));
+		expect(chartRows(byDirection, CHART_PRESETS.product_demand)).toEqual(expected('Разработка ПО', 28, 85, 0));
+		expect(CHART_PRESETS.product_demand.series).toHaveLength(3);
+		expect(canChart('learning_progress')).toBe(false);
+		expect(canChart('license_register')).toBe(false);
+	});
+
 	it('какие отчёты рисуются графиком и ключ запуска не зависит от порядка параметров', () => {
 		expect(canChart('monthly_dynamics')).toBe(true);
 		expect(canChart('stuck_deals')).toBe(false);
