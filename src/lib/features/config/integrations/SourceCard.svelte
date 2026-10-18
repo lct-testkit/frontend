@@ -10,6 +10,10 @@
 	import { AUTH_TYPES, labelOf } from '../labels';
 	import type { IntegrationSource, SourceStatus } from '../types';
 	import MappingDrawer from './MappingDrawer.svelte';
+	import RoutingDrawer from './RoutingDrawer.svelte';
+	import { TargetOptions } from './target.svelte';
+	import { describeRoute, routeWarnings } from './routing';
+	import type { Routing } from '../types';
 	import { PullRun } from './pull.svelte';
 	import { cursorLines, intervalLabel, parseRun, pullBlocked, runChip, runCounts, triggerLabel } from './sourceState';
 
@@ -29,6 +33,25 @@
 	let rulesCount = $state<number | null>(null);
 	let mappingOpen = $state(false);
 	const mappable = $derived(source.code === 'cms');
+	let routing = $state<Routing | null>(null);
+	let routingLoaded = $state(false);
+	let routingOpen = $state(false);
+	const options = new TargetOptions();
+	const routeCode = $derived(options.effectiveCode(routing?.default?.deal_type ?? 'b2c', routing?.default?.workflow_code));
+	const routeText = $derived(describeRoute(routing?.default, options.workflows, routeCode ? options.statuses[routeCode] : null));
+	const routeIssue = $derived(routing?.default && options.loaded ? routeWarnings({ ...routing.default, deal_type: routing.default.deal_type ?? 'b2c' }, options.workflows, routeCode ? (options.statuses[routeCode] ?? null) : null).length > 0 : false);
+	async function loadRouting() {
+		if (!mappable) return;
+		try {
+			routing = (await unwrap(api.GET('/api/admin/integrations/sources/{code}/routing', { params: { path: { code: source.code } } }))).routing ?? null;
+			await options.load();
+			await options.ensureStatuses(options.effectiveCode(routing?.default?.deal_type ?? 'b2c', routing?.default?.workflow_code));
+		} catch {
+			routing = null;
+		} finally {
+			routingLoaded = true;
+		}
+	}
 
 	async function load() {
 		statusError = false;
@@ -44,7 +67,10 @@
 			statusError = true;
 		}
 	}
-	onMount(() => void load());
+	onMount(() => {
+		void load();
+		void loadRouting();
+	});
 
 	const pull = new PullRun(() => void load());
 	onDestroy(() => pull.stop());
@@ -102,8 +128,18 @@
 			<dt class="t-desc-l text-muted">Поля</dt>
 			<dd class="m-0 flex min-w-0 items-center justify-between gap-2">
 				<span class="t-body-s">{#if rulesCount === null}…{:else if rulesCount === 0}встроенные названия{:else}настроено правил: {rulesCount}{/if}</span>
-				<Btn label="Изменить" variant="ghost" colorScheme="neutral" size="auto" onclick={() => (mappingOpen = true)} />
+				<Btn class="shrink-0" label="Изменить" aria-label="Изменить поля заявки" variant="ghost" colorScheme="neutral" size="auto" onclick={() => (mappingOpen = true)} />
 			</dd>
+		{/if}
+		{#if mappable}
+			<dt class="t-desc-l text-muted">Заявки</dt>
+			<dd class="m-0 flex min-w-0 items-center justify-between gap-2">
+				<span class="t-body-s line-clamp-3 min-w-0 wrap-anywhere" title={routeText}>{#if !routingLoaded}…{:else}{routeText}{/if}{#if routeIssue} <StatusChip label="Воронка недоступна" tone="warning" hint="Заявки идут в воронку по умолчанию. Откройте настройку, чтобы выбрать другую." />{/if}</span>
+				<Btn class="shrink-0" label="Изменить" aria-label="Изменить маршрут заявок" variant="ghost" colorScheme="neutral" size="auto" onclick={() => (routingOpen = true)} />
+			</dd>
+		{:else if source.code === 'lms'}
+			<dt class="t-desc-l text-muted">Заявки</dt>
+			<dd class="t-body-s m-0">Новые сделки не создаются: прогресс привязывается к существующей сделке</dd>
 		{/if}
 		{#each cursors as c (c.key)}
 			<dt class="t-desc-l text-muted">Курсор</dt>
@@ -164,5 +200,6 @@
 </article>
 
 {#if mappable}
+	<RoutingDrawer open={routingOpen} {source} onClose={() => (routingOpen = false)} onSaved={() => void loadRouting()} />
 	<MappingDrawer open={mappingOpen} {source} onClose={() => (mappingOpen = false)} onSaved={(n) => (rulesCount = n)} />
 {/if}
