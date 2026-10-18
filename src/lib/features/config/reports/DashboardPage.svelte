@@ -3,6 +3,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { DropdownMenu } from '@lct-testkit/rt-ui';
+	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { AddLarge, Edit, MenuKebab, Refresh } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
@@ -20,6 +21,7 @@
 	import { readConfig, type WidgetConfig } from './widgets';
 
 	let { id }: { id: string } = $props();
+	const bp = useBreakpoint();
 
 	// svelte-ignore state_referenced_locally
 	const data = new DashboardData(id);
@@ -119,7 +121,12 @@
 		{#snippet meta()}{#if d?.is_shared}<StatusChip label="Общий" tone="info" />{/if}{/snippet}
 		{#snippet actions()}
 			{#if canEdit && editing}<Btn label="Виджет" icon={AddLarge} onclick={() => openWidget(null)} />{/if}
-			<Btn label="Обновить данные" icon={Refresh} variant={editing ? 'outline' : 'primary'} colorScheme={editing ? 'neutral' : 'accent'} loading={data.refreshing} disabled={configs.length === 0} onclick={() => data.refresh(configs)} />
+			<!-- a phone: the refresh is an icon in the row of the title, next to the pencil and the menu (a button never gets a row of its own) -->
+			{#if bp.isMobile}
+				<IconBtn icon={Refresh} label="Обновить данные" variant={editing ? 'ghost' : 'primary'} disabled={data.refreshing || configs.length === 0} aria-busy={data.refreshing} onclick={() => data.refresh(configs)} />
+			{:else}
+				<Btn label="Обновить данные" icon={Refresh} variant={editing ? 'outline' : 'primary'} colorScheme={editing ? 'neutral' : 'accent'} loading={data.refreshing} disabled={configs.length === 0} onclick={() => data.refresh(configs)} />
+			{/if}
 			{#if canEdit}
 				<IconBtn icon={Edit} label={editing ? 'Готово' : 'Изменить дашборд'} variant={editing ? 'secondary' : 'ghost'} aria-pressed={editing} onclick={() => (editing = !editing)} />
 				<DropdownMenu
