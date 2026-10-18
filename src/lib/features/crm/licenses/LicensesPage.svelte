@@ -1,23 +1,25 @@
 <script lang="ts">
 	// Лицензии вуз–вендор–ПО: общий каталог договоров (ТЗ §4 п.1). Таблица на десять полей ТЗ, догрузка курсором по 50, «Найдено: N» от сервера.
-	// Фильтры (вуз, вендор, ПО в строке; статус, год, подписание в панели «Фильтры») и поиск живут в адресной строке.
+	// Фильтры (вуз и вендор в строке; ПО, статус, год, подписание в панели «Фильтры») и поиск живут в адресной строке.
 	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/state';
-	import { Refresh } from '@lct-testkit/rt-ui/icons';
+	import { Download, Refresh } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { createPager } from '$lib/api/pager.svelte';
 	import { session } from '$lib/auth/session.svelte';
 	import { Btn, EmptyState, FilterBar, IconBtn, Page, PageHeader, toast } from '$lib/ui';
 	import MultiPick from '$lib/ui/fields/MultiPick.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
+	import RunReportDrawer from '$lib/features/config/reports/RunReportDrawer.svelte';
 	import { setQuery } from '$lib/utils/query-state.svelte';
 	import OrgPicker from '../shared/pickers/OrgPicker.svelte';
 	import { TRANSFER_STATUS_LABELS } from '../shared/labels';
+	import type { ReportTemplate } from '$lib/features/config/types';
 	import type { OrganizationLicense } from '../types';
 	import { licenseAccess } from './access';
 	import { resolveLicense } from './licenseApi';
 	import LicenseDrawer from './LicenseDrawer.svelte';
-	import { FILTER_KEYS, activeCount, moreCount, patchFor, readFilters, toQuery, yearOptions, type LicenseFilters } from './licenseFilters';
+	import { FILTER_KEYS, activeCount, moreCount, patchFor, readFilters, toQuery, toReportParams, yearOptions, type LicenseFilters } from './licenseFilters';
 	import LicenseTable from './LicenseTable.svelte';
 	import { softwareOf } from './licenseCatalog';
 	import { shortVendor } from './licenseUtils';
@@ -31,9 +33,19 @@
 		unwrap(api.GET('/api/organization-licenses', { params: { query: { ...query, with_total: true, limit: 50, cursor: cursor ?? undefined } }, signal }))
 	);
 
+	// «Выгрузить реестр»: кнопка только с правом на отчёты и если отчёт «Реестр лицензий» есть в списке шаблонов
+	let reportTemplate = $state<ReportTemplate | null>(null);
+	let reportOpen = $state(false);
 	onMount(() => {
 		if (access.read) void softwareCatalog.ensure().catch(() => {});
+		if (access.exportReport) {
+			void unwrap(api.GET('/api/report-templates'))
+				.then((r) => (reportTemplate = r.items.find((t) => t.code === 'license_register' && t.is_active) ?? null))
+				.catch(() => {});
+		}
 	});
+	const vendorName = $derived(vendorsOf(softwareCatalog.value).find((v) => v.id === filters.vendor)?.name ?? null);
+	const reportValues = $derived<Record<string, unknown>>({ ...toReportParams(filters, vendorName) });
 	$effect(() => {
 		JSON.stringify(query);
 		if (access.read) untrack(() => void pager.reload());
@@ -108,16 +120,19 @@
 {#snippet filterFields()}
 	<OrgPicker label="Вуз" value={filters.org || null} onChange={(id) => change({ org: id ?? '' })} />
 	<Pick label="Вендор" items={vendorItems} clearable search value={filters.vendor || null} placeholder="Все" emptyText={catalogEmpty} onChange={(v) => change({ vendor: v ?? '' })} />
-	<Pick label="ПО" items={productItems} clearable search value={filters.product || null} placeholder="Всё" emptyText={catalogEmpty} onChange={(v) => change({ product: v ?? '' })} />
 {/snippet}
 
 {#snippet more()}
+	<Pick label="ПО" items={productItems} clearable search value={filters.product || null} placeholder="Всё" emptyText={catalogEmpty} onChange={(v) => change({ product: v ?? '' })} />
 	<MultiPick label="Статус по передаче" items={statusItems} value={filters.status} placeholder="Любой" search={false} onChange={(v) => change({ status: v })} />
 	<Pick label="Действует в году" items={yearItems} clearable value={filters.year || null} placeholder="Любой" hint="Лицензия не закончилась до 1 января этого года" onChange={(v) => change({ year: v ?? '' })} />
 	<Pick label="Подписание" items={signedItems} clearable value={filters.signed || null} placeholder="Любое" onChange={(v) => change({ signed: (v ?? '') as LicenseFilters['signed'] })} />
 {/snippet}
 
-{#snippet trailing()}<IconBtn icon={Refresh} label="Обновить" onclick={() => pager.reload()} />{/snippet}
+{#snippet trailing()}
+	{#if access.exportReport && reportTemplate}<IconBtn icon={Download} label="Выгрузить реестр" onclick={() => (reportOpen = true)} data-testid="license-export" />{/if}
+	<IconBtn icon={Refresh} label="Обновить" onclick={() => pager.reload()} />
+{/snippet}
 
 {#snippet emptyList()}
 	<EmptyState title={hasFilters ? 'Ничего не найдено' : 'Лицензий пока нет'} compact>
@@ -135,7 +150,7 @@
 	{:else}
 		<FilterBar
 			search={filters.q}
-			placeholder="Вуз, вендор, ПО или договор"
+			placeholder="Вуз, вендор, ПО, договор"
 			onSearch={(v) => change({ q: v })}
 			active={count}
 			onReset={resetFilters}
@@ -163,3 +178,5 @@
 </Page>
 
 <LicenseDrawer open={creating || editing !== null} item={creating ? null : editing} onClose={closeDrawer} onSaved={saved} onDeleted={deleted} />
+
+<RunReportDrawer template={reportOpen ? reportTemplate : null} initialValues={reportValues} onClose={() => (reportOpen = false)} />

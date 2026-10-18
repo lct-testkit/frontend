@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_FILTERS, activeCount, moreCount, patchFor, readFilters, toQuery, yearOptions, type LicenseFilters } from './licenseFilters';
+import { EMPTY_FILTERS, activeCount, moreCount, patchFor, readFilters, toQuery, toReportParams, yearOptions, type LicenseFilters } from './licenseFilters';
 
 const ID = '01a14ec0-8bbb-7000-b2fa-f9b3bdb7342d';
 const read = (s: string) => readFilters(new URLSearchParams(s));
@@ -59,8 +59,8 @@ describe('activeCount', () => {
 		expect(activeCount(withFilters({ status: ['in_progress', 'declined'] }))).toBe(1);
 	});
 
-	it('moreCount — только поля панели «Фильтры»', () => {
-		expect(moreCount(withFilters({ org: ID, status: ['a'], year: '2026' }))).toBe(2);
+	it('moreCount — только поля панели «Фильтры» (ПО, статус, год, подписание)', () => {
+		expect(moreCount(withFilters({ org: ID, vendor: ID, product: ID, status: ['a'], year: '2026' }))).toBe(3);
 	});
 });
 
@@ -90,5 +90,23 @@ describe('yearOptions', () => {
 		expect(years[0]).toBe('2032');
 		expect(years.at(-1)).toBe('2023');
 		expect(years).toHaveLength(10);
+	});
+});
+
+describe('toReportParams', () => {
+	it('без фильтров — пусто', () => {
+		expect(toReportParams(EMPTY_FILTERS)).toEqual({});
+	});
+
+	it('вуз, вендор по названию и статусы переходят в параметры отчёта', () => {
+		expect(toReportParams(withFilters({ org: ID, vendor: 'v1', status: ['in_progress', 'declined'] }), 'ООО «Астра Линукс»')).toEqual({
+			organization_ids: [ID],
+			vendors: ['ООО «Астра Линукс»'],
+			transfer_statuses: ['in_progress', 'declined']
+		});
+	});
+
+	it('вендор без известного названия не передаётся; поиск, ПО, год, подписание отчёт не принимает', () => {
+		expect(toReportParams(withFilters({ vendor: 'v1', product: 'p1', year: '2027', signed: 'yes', q: 'мгу' }), null)).toEqual({});
 	});
 });
