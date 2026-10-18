@@ -3,7 +3,7 @@
 	// Сервер отдаёт плоский список (`GET .../branches`), дерево собирает клиент; удалить филиал с дочерними нельзя (409), цикл в иерархии — 422.
 	import { onMount } from 'svelte';
 	import { AddLarge, Edit, Trash } from '@lct-testkit/rt-ui/icons';
-	import { ApiError, api, errorMessage, unwrap } from '$lib/api';
+	import { ApiError, api, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
 	import { Btn, EmptyState, ErrorState, IconBtn, ListRow, RowList, Skeleton, confirm, toast } from '$lib/ui';
 	import type { Branch } from '../types';
