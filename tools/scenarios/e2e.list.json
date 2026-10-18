@@ -98,7 +98,19 @@
 			"tier": "full"
 		},
 		{
+			"file": "e-board-move.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "e-fly.mjs",
+			"tier": "full"
+		},
+		{
 			"file": "e-integrations.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "e-keyboard.mjs",
 			"tier": "full"
 		},
 		{
@@ -106,7 +118,15 @@
 			"tier": "full"
 		},
 		{
+			"file": "e-live.mjs",
+			"tier": "full"
+		},
+		{
 			"file": "e-security.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "e-states.mjs",
 			"tier": "full"
 		},
 		{
@@ -131,6 +151,10 @@
 		},
 		{
 			"file": "f-offboard-allocation.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "f-org-guard.mjs",
 			"tier": "full"
 		},
 		{
