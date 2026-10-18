@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { signErrorMessage } from './errors';
+import { pdfLoadError, signErrorMessage } from './errors';
 
 describe('signErrorMessage', () => {
 	it('недействительная ссылка — фатально', () => {
@@ -37,5 +37,29 @@ describe('signErrorMessage', () => {
 	it('неизвестное — текст бэкенда или запасной', () => {
 		expect(signErrorMessage({ code: 'CRM-9000', detail: 'Упало' }).message).toBe('Упало');
 		expect(signErrorMessage({}).message).toContain('Попробуйте');
+	});
+});
+
+describe('pdfLoadError', () => {
+	it('429 с Retry-After: 30 даёт обратный отсчёт и текст с числом', () => {
+		const e = pdfLoadError({ status: 429, code: 'CRM-8429', retryAfter: 30 });
+		expect(e.retryAfter).toBe(30);
+		expect(e.message).toBe('Слишком много обращений к ссылке. Подождите 30 с');
+	});
+
+	it('429 без заголовка — ждём минуту (окно лимита), дробное округляется вверх', () => {
+		expect(pdfLoadError({ status: 429 }).retryAfter).toBe(60);
+		expect(pdfLoadError({ status: 429, retryAfter: 54.2 }).retryAfter).toBe(55);
+	});
+
+	it('404 и CRM-1504 — «ссылка недействительна», без отсчёта', () => {
+		expect(pdfLoadError({ status: 404 })).toEqual({ message: 'Документ не найден или ссылка недействительна' });
+		expect(pdfLoadError({ code: 'CRM-1504' }).retryAfter).toBeUndefined();
+	});
+
+	it('прочее, в том числе не ApiError — «Не удалось показать документ»', () => {
+		expect(pdfLoadError(new Error('x'))).toEqual({ message: 'Не удалось показать документ' });
+		expect(pdfLoadError(null)).toEqual({ message: 'Не удалось показать документ' });
+		expect(pdfLoadError({ status: 500 }).retryAfter).toBeUndefined();
 	});
 });

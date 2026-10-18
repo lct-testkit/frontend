@@ -94,3 +94,22 @@ export function signErrorMessage(err: ApiErrorLike): SignError {
 			return { kind: 'unknown', fatal: false, message: err.detail || 'Что-то пошло не так. Попробуйте ещё раз.' };
 	}
 }
+
+export interface PdfLoadError {
+	message: string;
+	/** Через сколько секунд можно повторить (только 429). */
+	retryAfter?: number;
+}
+
+export const pdfRateLimitText = (seconds: number): string => `Слишком много обращений к ссылке. Подождите ${seconds} с`;
+
+/** Ошибка загрузки PDF на странице подписи. `/file` входит в общий лимит ссылки (10 запросов в минуту), поэтому 429 здесь обычное дело. */
+export function pdfLoadError(err: unknown): PdfLoadError {
+	const e = (err && typeof err === 'object' ? err : {}) as ApiErrorLike;
+	if (e.status === 429 || e.code === 'CRM-8429') {
+		const retryAfter = typeof e.retryAfter === 'number' && e.retryAfter > 0 ? Math.ceil(e.retryAfter) : 60;
+		return { message: pdfRateLimitText(retryAfter), retryAfter };
+	}
+	if (e.status === 404 || e.code === 'CRM-1504') return { message: 'Документ не найден или ссылка недействительна' };
+	return { message: 'Не удалось показать документ' };
+}

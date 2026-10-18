@@ -74,7 +74,13 @@
 			apply(next);
 			const fresh = (next.requests ?? []).filter((r) => r.sign_url).map((r) => ({ name: r.signer_name_snapshot, url: r.sign_url! }));
 			if (next.status === 'blocked_no_agreement') toast.warning('Нет соглашения об ЭДО', 'Оформите его и отправьте документ снова');
-			else toast.success('Отправлено на подпись');
+			else {
+				toast.success('Отправлено на подпись');
+				// внешний подписант ждёт своей очереди: ссылку ему сервер не выдаёт, её нужно будет переиздать
+				if ((next.requests ?? []).some((r) => r.signer_type === 'external' && !r.sign_url && r.status === 'pending')) {
+					toast.info('Ссылка контрагенту пока не выдана', 'Когда придёт его очередь, нажмите «Переиздать ссылку» у его строки в карточке документа');
+				}
+			}
 			if (fresh.length) {
 				links = fresh;
 				linksOpen = true;

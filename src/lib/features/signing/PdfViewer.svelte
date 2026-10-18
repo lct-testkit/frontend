@@ -7,11 +7,12 @@
 	import IconBtn from '$lib/ui/IconBtn.svelte';
 	import Skeleton from '$lib/ui/Skeleton.svelte';
 	import PdfPage from './PdfPage.svelte';
-	import { fetchPdfBytes, openPdf, pageSizes, type PageSize } from './pdf';
+	import { pdfLoadError, pdfRateLimitText } from './errors';
+	import { openPdf, pageSizes, type PageSize } from './pdf';
 	import { ZOOM_MAX, ZOOM_MIN, fitScale, zoomIn, zoomOut } from './pdf-layout';
-	import { previewUrlForFetch } from './urls';
 
-	let { url, class: className = '' }: { url: string; class?: string } = $props();
+	/** `load` отдаёт байты PDF (с origin приложения через клиент `api`); кэш и лимит ссылки — забота вызывающего (`SignSession.loadPdf`). */
+	let { load, class: className = '' }: { load: (signal: AbortSignal) => Promise<ArrayBuffer>; class?: string } = $props();
 
 	const PAD = 8;
 	const GAP = 8;
@@ -20,13 +21,24 @@
 	let sizes = $state.raw<PageSize[]>([]);
 	let status = $state<'loading' | 'ready' | 'error'>('loading');
 	let attempt = $state(0);
+	let errorText = $state('Не удалось показать документ');
+	/** 429: сколько секунд осталось до разрешённого повтора (`limited` — ошибка именно лимит, 0 — можно повторить) */
+	let limited = $state(false);
+	let waitSeconds = $state(0);
 	let zoom = $state(1);
 	let box = $state<HTMLDivElement | null>(null);
 	let boxWidth = $state(0);
 	let current = $state(1);
 
+	// обратный отсчёт после 429: «Повторить» заблокирована, пока не пройдёт Retry-After
 	$effect(() => {
-		const target = url;
+		if (waitSeconds <= 0) return;
+		const timer = setInterval(() => (waitSeconds = Math.max(0, waitSeconds - 1)), 1000);
+		return () => clearInterval(timer);
+	});
+
+	$effect(() => {
+		const source = load;
 		void attempt;
 		const ctrl = new AbortController();
 		let doc: PDFDocumentProxy | null = null;
@@ -34,22 +46,20 @@
 		pdf = null;
 		(async () => {
 			try {
-				let bytes: ArrayBuffer;
-				try {
-					bytes = await fetchPdfBytes(target, ctrl.signal);
-				} catch (e) {
-					// прямой запрос к хранилищу мог упереться в CORS/CSP: пробуем тот же путь через свой origin (прокси бакетов)
-					const alt = previewUrlForFetch(target, location.origin, [new URL(target).origin]);
-					if (ctrl.signal.aborted || alt === target) throw e;
-					bytes = await fetchPdfBytes(alt, ctrl.signal);
-				}
+				const bytes = await source(ctrl.signal);
+				if (ctrl.signal.aborted) return;
 				doc = await openPdf(bytes);
 				if (ctrl.signal.aborted) return;
 				sizes = await pageSizes(doc);
 				pdf = doc;
 				status = 'ready';
-			} catch {
-				if (!ctrl.signal.aborted) status = 'error';
+			} catch (e) {
+				if (ctrl.signal.aborted) return;
+				const failure = pdfLoadError(e);
+				errorText = failure.message;
+				limited = failure.retryAfter !== undefined;
+				waitSeconds = failure.retryAfter ?? 0;
+				status = 'error';
 			}
 		})();
 		return () => {
@@ -110,8 +120,10 @@
 			<div class="p-2"><Skeleton kind="lines" rows={9} /></div>
 		{:else if status === 'error'}
 			<div class="flex h-full flex-col items-center justify-center gap-3 p-4 text-center">
-				<p class="t-body-m m-0 text-muted">Не удалось показать документ</p>
-				<Btn label="Повторить" icon={Refresh} variant="outline" colorScheme="neutral" onclick={() => attempt++} />
+				<p class="t-body-m m-0 text-muted" data-testid="pdf-error">
+					{#if limited}{waitSeconds > 0 ? pdfRateLimitText(waitSeconds) : 'Лимит снят, можно повторить'}{:else}{errorText}{/if}
+				</p>
+				<Btn label="Повторить" icon={Refresh} variant="outline" colorScheme="neutral" disabled={waitSeconds > 0} onclick={() => attempt++} />
 			</div>
 		{:else if pdf}
 			<div class="flex w-max min-w-full flex-col gap-2">
