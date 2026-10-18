@@ -396,6 +396,15 @@
 	}
 }
 
+/* the side menu: the owner wants the item labels 1 px lower than rt-ui puts them (checked on a 2x crop against 0 / +1 / +2 px, 2026-10-18).
+   `top` on a relative box moves the text without changing the height of the item */
+@layer components {
+	.atmr-side-menu .atmr-list-item__content {
+		position: relative;
+		top: 1px;
+	}
+}
+
 /* before JS applies the stored theme: follow the OS so dark users do not get a white flash */
 @media (prefers-color-scheme: dark) {
 	body.Theme_root_rtk_default_light:not([data-theme-ready]) {
