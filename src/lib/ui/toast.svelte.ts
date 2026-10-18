@@ -1,5 +1,6 @@
 // Global toast API. `ToastHost` (mounted once in the root layout) registers the rt-ui stack; calls made earlier are queued.
 import { ApiError, errorMessage } from '$lib/api/errors';
+import { announce } from './announcer.svelte';
 
 type Props = Record<string, unknown>;
 type Adder = (props: Props) => void;
@@ -14,6 +15,8 @@ export function registerToastAdder(fn: Adder | null): void {
 
 function push(props: Props): void {
 	const full = { closeButton: true, ...props };
+	const { title, subtitle, colorScheme } = props as { title?: string; subtitle?: string; colorScheme?: string };
+	if (title) announce(subtitle ? `${title}. ${subtitle}` : title, colorScheme === 'error' ? 'assertive' : 'polite');
 	if (adder) adder(full);
 	else queue.push(full);
 }

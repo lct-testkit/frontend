@@ -4,6 +4,9 @@
 	//   lines — lines of text in a card (20 px, the last one shorter) · rows — rows of a table or a settings list (40 px = the height of a table row)
 	//   list  — two-line list rows (56 px = a ListRow) · tile — a card, a chart, a board column (`height` says how high)
 	// `height` / `gap` / `radius` override the kind for the rare block that has its own size.
+	import { onMount } from 'svelte';
+	import { skeletonMounted } from './skeleton-count.svelte';
+
 	type Kind = 'lines' | 'rows' | 'list' | 'tile';
 
 	interface Props {
@@ -23,6 +26,9 @@
 	};
 
 	let { kind = 'lines', rows = 1, height, width = '100%', gap, radius }: Props = $props();
+
+	// the screen reader hears one «Загрузка» / «Готово» for all the skeletons of a screen (AnnouncerHost)
+	onMount(skeletonMounted);
 
 	const preset = $derived(KINDS[kind]);
 	const h = $derived(typeof height === 'string' ? height : `${height ?? preset.height}px`);

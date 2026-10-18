@@ -14,6 +14,7 @@
 	// lets the person clear the choice. A DS `m` field on a desktop, `l` on a phone (see TextField). In the one-line filter row the label is the placeholder.
 	import { Select } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
+	import { fieldA11y } from './field-a11y';
 	import { inFilterRow } from '../filter-row';
 
 	interface Props {
@@ -55,6 +56,7 @@
 	const bare = inFilterRow();
 </script>
 
+<div class="contents" use:fieldA11y={error}>
 <Select
 	class={['w-full', className]}
 	size={size ?? (bp.isMobile ? 'l' : 'm')}
@@ -84,6 +86,7 @@
 		onChange?.(null);
 	}}
 />
+</div>
 
 <style>
 	/* the DS list of a Select is below a Drawer / Modal (z-index 1000 against 1500): lift it above the windows */
