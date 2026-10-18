@@ -12,6 +12,7 @@
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
 	import Toggle from '$lib/ui/fields/Toggle.svelte';
 	import { toFormFailure } from '../shared/form-errors';
+	import { REF_MAX, mergeConfig, signedCurl, splitConfig, validateRef } from './sourceForm';
 
 	interface Props {
 		open: boolean;
@@ -26,7 +27,12 @@
 	let baseUrl = $state('');
 	let authType = $state<string | null>(null);
 	let credentialsRef = $state('');
+	/** остальные ключи `config` (без двух, вынесенных в поля) — JSON в блоке «Дополнительно» */
 	let configText = $state('{}');
+	let signingRef = $state('');
+	let requireTs = $state(false);
+	/** пример в «Как подключить»: с меткой времени или без */
+	let exampleTs = $state(false);
 	let pullEnabled = $state(false);
 	/** интервал забора в минутах (бэкенд хранит секунды, 60…86400) */
 	let pullMinutes = $state<number | null>(5);
@@ -41,7 +47,11 @@
 			baseUrl = source?.base_url ?? '';
 			authType = source?.auth_type ?? null;
 			credentialsRef = source?.credentials_ref ?? '';
-			configText = JSON.stringify(source?.config ?? {}, null, 2);
+			const parts = splitConfig(source?.config);
+			configText = JSON.stringify(parts.rest, null, 2);
+			signingRef = parts.signingSecretRef;
+			requireTs = parts.requireTimestamp;
+			exampleTs = parts.requireTimestamp;
 			pullEnabled = source?.pull_enabled ?? false;
 			pullMinutes = Math.round((source?.pull_interval_seconds ?? 300) / 60);
 			errors = {};
@@ -52,27 +62,29 @@
 	const pullable = $derived(source?.code === 'cms' || source?.code === 'lms');
 	const passport = $derived(source ? WEBHOOK_PASSPORTS[source.code] : undefined);
 	const url = $derived(passport ? `${location.origin}${passport.path}` : '');
-	const curl = $derived(
-		passport
-			? [`curl -X POST '${url}'`, ...passport.headers.map((h) => `  -H '${h}'`), `  -d '${passport.body}'`].join(' \\\n')
-			: ''
-	);
+	const secretVar = $derived(signingRef.trim() || credentialsRef.trim() || passport?.secretVar || 'WEBHOOK_SECRET');
+	const curl = $derived(passport ? signedCurl({ origin: location.origin, path: passport.path, body: passport.example, secretVar, timestamp: exampleTs || requireTs, idempotencyKey: 'demo-1' }) : '');
 
 	async function save() {
 		if (!source) return;
 		const next: Record<string, string> = {};
 		if (!name.trim()) next.name = 'Укажите название';
 		if (pullable && pullEnabled && (pullMinutes === null || pullMinutes < 1 || pullMinutes > 1440)) next.pull_interval_seconds = 'От 1 минуты до 24 часов (1440)';
-		let config: Record<string, unknown> = {};
+		const refError = validateRef(credentialsRef);
+		if (refError) next.credentials_ref = refError;
+		const signError = validateRef(signingRef);
+		if (signError) next.signing_secret_ref = signError;
+		let rest: Record<string, unknown> = {};
 		try {
 			const parsed: unknown = JSON.parse(configText || '{}');
 			if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) next.config = 'Ожидается объект вида { "ключ": "значение" }';
-			else config = parsed as Record<string, unknown>;
+			else rest = parsed as Record<string, unknown>;
 		} catch {
 			next.config = 'Некорректный JSON: проверьте скобки и кавычки';
 		}
 		errors = next;
 		if (Object.keys(next).length) return;
+		const config = mergeConfig({ signingSecretRef: signingRef, requireTimestamp: requireTs, rest });
 		saving = true;
 		formError = null;
 		try {
@@ -86,7 +98,7 @@
 			onSaved(saved);
 			onClose();
 		} catch (e) {
-			const failure = toFormFailure(e, ['name', 'base_url', 'auth_type', 'credentials_ref', 'config', 'pull_interval_seconds']);
+			const failure = toFormFailure(e, ['name', 'base_url', 'auth_type', 'credentials_ref', 'config', 'pull_interval_seconds', 'signing_secret_ref']);
 			errors = failure.fields;
 			formError = failure.form;
 		} finally {
@@ -99,14 +111,22 @@
 	<TextField label="Название" required bind:value={name} error={errors.name} maxlength={255} autofocus />
 	<TextField label="Адрес (base URL)" bind:value={baseUrl} error={errors.base_url} placeholder="https://…" />
 	<Pick label="Авторизация" bind:value={authType} clearable items={AUTH_TYPES.map((a) => ({ key: a.key, value: a.value }))} />
-	<TextField label="Ссылка на секрет" bind:value={credentialsRef} error={errors.credentials_ref} placeholder="CMS_WEBHOOK_SECRET" hint="Имя переменной окружения на сервере. Сам секрет здесь не хранится" />
+	<TextField label="Ссылка на секрет" bind:value={credentialsRef} error={errors.credentials_ref ?? validateRef(credentialsRef) ?? undefined} placeholder="CMS_WEBHOOK_SECRET" maxlength={REF_MAX} hint="Имя переменной окружения на сервере. Сам секрет здесь не хранится" />
 	{#if pullable}
 		<FormSection title="Забор по расписанию">
 			<Toggle label="Забирать автоматически" bind:checked={pullEnabled} hint="Иначе данные забираются только кнопкой «Забрать сейчас»" />
 			{#if pullEnabled}<NumberField label="Раз в … минут" bind:value={pullMinutes} integer min={1} max={1440} error={errors.pull_interval_seconds} />{/if}
 		</FormSection>
 	{/if}
-	<AreaField label="Дополнительные настройки (JSON)" bind:value={configText} error={errors.config} rows={5} maxRows={12} />
+	{#if passport}
+		<FormSection title="Подпись входящих запросов">
+			<TextField label="Секрет подписи (имя переменной)" bind:value={signingRef} error={errors.signing_secret_ref ?? validateRef(signingRef) ?? undefined} maxlength={REF_MAX} hint="Если пусто, берётся «Ссылка на секрет»" />
+			<Toggle label="Требовать метку времени X-Timestamp" bind:checked={requireTs} hint="Запрос без метки отклоняется, а перехваченный запрос нельзя повторить позже пяти минут" />
+		</FormSection>
+	{/if}
+	<FormSection collapsible title="Дополнительно" open={configText.trim() !== '{}'} summary="Прочие ключи настроек">
+		<AreaField label="Прочие настройки (JSON)" bind:value={configText} error={errors.config} rows={4} maxRows={12} hint="Ключи, которые не вынесены в поля выше" />
+	</FormSection>
 
 	{#if passport}
 		<FormSection collapsible title="Как подключить">
@@ -124,7 +144,8 @@
 				<div class="flex flex-col gap-1">
 					<span class="t-desc-l flex items-center justify-between text-muted">Пример запроса <CopyButton value={curl} label="Скопировать пример" /></span>
 					<pre class="t-desc-m m-0 overflow-x-auto rounded-sm bg-surface-2 p-2 font-mono whitespace-pre">{curl}</pre>
-					<span class="t-desc-m text-soft">Подпись — HMAC-SHA256 тела запроса секретом из переменной окружения; секрет из браузера недоступен.</span>
+					<Toggle label="Пример с меткой времени" bind:checked={exampleTs} disabled={requireTs} />
+					<span class="t-desc-m text-soft">Подпись — HMAC-SHA256 секретом из переменной окружения терминала ({secretVar}). С меткой X-Timestamp подписывается строка «метка.тело», допуск — 5 минут. Секрет из браузера недоступен.</span>
 				</div>
 			</div>
 		</FormSection>

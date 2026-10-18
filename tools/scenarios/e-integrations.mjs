@@ -136,6 +136,31 @@ try {
 		await api('DELETE', '/api/admin/integrations/sources/cms/routing');
 	}
 
+	console.log('(g) настройка источника: имя переменной, метка времени, чужие ключи config не теряются');
+	{
+		await api('PATCH', '/api/admin/integrations/sources/cms', { config: { note_f5: 'keep' }, credentials_ref: 'CMS_WEBHOOK_SECRET' });
+		await page.goto(`${BASE}/admin/integrations`);
+		await card.waitFor();
+		await card.getByRole('button', { name: 'Настроить источник' }).click();
+		const dr = page.locator('.atmr-drawer');
+		await dr.getByText('Подпись входящих запросов').waitFor();
+		await fillIn(dr, 'Ссылка на секрет', '1ABC');
+		await dr.getByRole('button', { name: 'Сохранить' }).click();
+		await dr.getByText('латиница, цифры и «_»').waitFor({ timeout: 5000 });
+		ok('«1ABC» в «Ссылке на секрет»: ошибка под полем, на сервер не ушло');
+		await fillIn(dr, 'Ссылка на секрет', 'CMS_WEBHOOK_SECRET');
+		await fillIn(dr, 'Секрет подписи (имя переменной)', 'CMS_SIGNING_SECRET');
+		await dr.getByText('Требовать метку времени X-Timestamp').click();
+		await dr.getByText('Как подключить').click();
+		check((await dr.locator('pre').innerText()).includes('X-Timestamp: $TS') && (await dr.locator('pre').innerText()).includes('$CMS_SIGNING_SECRET'), 'пример в паспорте: с X-Timestamp и именем переменной из поля');
+		await page.screenshot({ path: process.env.SHOT_DIR ? `${process.env.SHOT_DIR}/source-drawer-desktop.png` : undefined });
+		await dr.getByRole('button', { name: 'Сохранить' }).click();
+		await page.waitForSelector('text=Источник сохранён');
+		const cfg = (await api('GET', '/api/admin/integrations/sources')).json.find((x) => x.code === 'cms').config;
+		check(cfg.require_timestamp === true && cfg.signing_secret_ref === 'CMS_SIGNING_SECRET' && cfg.note_f5 === 'keep', `config сохранён: ${JSON.stringify(cfg)}`);
+		await api('PATCH', '/api/admin/integrations/sources/cms', { config: before.config });
+	}
+
 	if (!MOCK) {
 		console.log('  (нет MOCK_CMS_URL — забор не проверяем)');
 	} else {
