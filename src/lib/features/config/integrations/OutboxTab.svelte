@@ -12,6 +12,7 @@
 	import CatalogList from '../catalog/CatalogList.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import { PAGE_SIZE, cursorPage } from './cursorPage';
+	import { ensureEntities, entityText } from './entityText';
 	import { outboxHint } from '../hints';
 
 	const status = $derived(readQuery('status') || null);
@@ -22,6 +23,8 @@
 		void status;
 		untrack(() => void list.reload());
 	});
+
+	$effect(() => ensureEntities(list.items.map((e) => ({ type: e.aggregate_type, id: e.aggregate_id }))));
 
 	let busy = $state<string | null>(null);
 	const retryable = (e: OutboxEvent) => e.status === 'failed' || e.status === 'dead';
@@ -40,8 +43,16 @@
 	}
 
 	// коды last_error, которые пишет бэкенд, — по-русски; незнакомый код показываем как есть
-	const ERRORS: Record<string, string> = { source_inactive: 'Источник отключён', source_not_found: 'Источник удалён', timeout: 'Нет ответа от системы', connection_error: 'Не удалось соединиться' };
-	const errorText = (code: string) => ERRORS[code] ?? code;
+	const ERRORS: Record<string, string> = {
+		source_inactive: 'Источник отключён',
+		source_not_found: 'Источник удалён',
+		timeout: 'Нет ответа от системы',
+		connection_error: 'Не удалось соединиться',
+		unknown_target: 'Получатель события не настроен',
+		feature_flag_disabled: 'Отправка отключена настройкой'
+	};
+	/** Известный код — по-русски; всё остальное (например, «lms … http error») — общей фразой, сырой текст остаётся в подсказке. */
+	const errorText = (code: string) => ERRORS[code] ?? 'Внешняя система ответила ошибкой';
 	const tone = (s: string) => (s === 'sent' ? 'success' : s === 'dead' ? 'error' : s === 'failed' ? 'warning' : 'neutral');
 	const columns: Col<OutboxEvent>[] = [
 		{ key: 'event', title: 'Событие', width: 'minmax(200px, 1.4fr)', render: eventCell },
@@ -56,7 +67,7 @@
 
 {#snippet eventCell(e: OutboxEvent)}
 	<TableCell>
-		<span class="flex min-w-0 flex-col"><span class="t-body-m-strong wrap-anywhere">{e.event_type}</span><span class="t-desc-m font-mono text-soft">{e.aggregate_type} · {e.aggregate_id.slice(-6)}</span></span>
+		<span class="flex min-w-0 flex-col"><span class="t-body-m-strong wrap-anywhere">{e.event_type}</span><span class="t-desc-m text-soft wrap-anywhere">{entityText(e.aggregate_type, e.aggregate_id)}</span></span>
 	</TableCell>
 {/snippet}
 {#snippet targetCell(e: OutboxEvent)}<TableCell><span class="t-body-s">{e.target ?? '—'}</span></TableCell>{/snippet}
@@ -80,7 +91,7 @@
 	<div class="flex min-w-0 flex-col gap-1.5">
 		<div class="flex items-start justify-between gap-2"><span class="t-body-m-strong wrap-anywhere">{e.event_type}</span><StatusChip label={labelOf(OUTBOX_STATUSES, e.status)} tone={tone(e.status)} hint={outboxHint(e.status)} /></div>
 		<span class="t-desc-l text-muted"><DateText value={e.created_at} time /> · попыток: {e.attempts}{e.target ? ` · ${e.target}` : ''}</span>
-		{#if e.last_error}<span class="t-desc-l line-clamp-3 text-danger wrap-anywhere">{errorText(e.last_error)}</span>{/if}
+		{#if e.last_error}<span class="t-desc-l line-clamp-3 text-danger wrap-anywhere" title={e.last_error}>{errorText(e.last_error)}</span>{/if}
 		{#if retryable(e)}<div class="flex justify-end">{@render retryBtn(e)}</div>{/if}
 	</div>
 {/snippet}

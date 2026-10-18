@@ -29,21 +29,25 @@ try {
 
 	console.log('Интеграции');
 	await page.goto(`${BASE}/admin/integrations`);
-	await page.waitForSelector('text=Сайт (CMS)');
+	await page.waitForSelector('article[aria-label="Сайт (Laravel CMS)"]');
 	check((await page.getByText('Все системы работают').count()) > 0, 'плашка состояния: «Все системы работают»');
 	check((await page.locator('article').count()) === 3, 'три источника: cms, lms, bitrix24');
 	const before = (await api('admin', 'GET', '/api/admin/integrations/sources')).json.find((s) => s.code === 'cms');
 	// правка base_url + некорректный JSON
-	await page.locator('article', { hasText: 'Сайт (CMS)' }).getByLabel('Настроить источник').click();
+	const cmsCard = page.locator('article[aria-label="Сайт (Laravel CMS)"]');
+	await cmsCard.getByRole('button', { name: 'Настроить источник' }).click();
 	const drawer = page.locator('.atmr-drawer');
 	await field(drawer, 'Адрес (base URL)').locator('input').fill('https://cms.example.test/api');
+	await drawer.getByText('Дополнительно').click();
 	await drawer.locator('textarea').first().fill('{ не json');
 	await drawer.getByRole('button', { name: 'Сохранить' }).click();
 	await page.waitForTimeout(400);
 	check((await drawer.getByText('Некорректный JSON').count()) > 0, 'ошибка JSON показана под полем');
 	await drawer.locator('textarea').first().fill('{"timeout": 10}');
 	check((await drawer.getByText('Как подключить').count()) > 0, 'паспорт интеграции показан');
+	await drawer.getByText('Как подключить').click();
 	check((await drawer.locator('pre').innerText()).includes('X-Signature'), 'curl-пример содержит заголовок подписи');
+	check((await drawer.locator('pre').innerText()).includes('openssl'), 'пример считает подпись командой openssl');
 	await drawer.getByRole('button', { name: 'Сохранить' }).click();
 	await page.waitForTimeout(1000);
 	const after = (await api('admin', 'GET', '/api/admin/integrations/sources')).json.find((s) => s.code === 'cms');
@@ -52,9 +56,9 @@ try {
 	await api('admin', 'PATCH', '/api/admin/integrations/sources/cms', { is_active: true });
 	await page.reload();
 	await page.waitForSelector('article');
-	await page.locator('article', { hasText: 'Сайт (CMS)' }).locator('label.atmr-switch').click();
+	await page.locator('article[aria-label="Сайт (Laravel CMS)"]').locator('label.atmr-switch').click();
 	await page.waitForTimeout(500);
-	check((await page.getByText('Отключить «Сайт (CMS)»?').count()) > 0, 'выключение включённого источника просит подтверждение');
+	check((await page.getByText('Отключить «Сайт (Laravel CMS)»?').count()) > 0, 'выключение включённого источника просит подтверждение');
 	await page.getByRole('button', { name: 'Отмена' }).click();
 	await page.waitForTimeout(400);
 	check((await api('admin', 'GET', '/api/admin/integrations/sources')).json.find((s) => s.code === 'cms').is_active === true, 'отмена подтверждения не выключила источник');

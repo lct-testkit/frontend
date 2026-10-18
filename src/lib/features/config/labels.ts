@@ -119,6 +119,7 @@ export const HEALTH_DEPENDENCY_LABELS: Record<string, string> = {
 	redis: 'Redis',
 	keycloak: 'Keycloak',
 	jwks: 'Keycloak (ключи)',
+	keycloak_jwks: 'Keycloak (ключи)',
 	storage: 'Файловое хранилище',
 	seaweedfs: 'Файловое хранилище',
 	queue: 'Очередь задач'

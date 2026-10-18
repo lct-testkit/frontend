@@ -11,6 +11,7 @@
 	import CatalogList from '../catalog/CatalogList.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import { PAGE_SIZE, cursorPage } from './cursorPage';
+	import { ensureEntities, entityText } from './entityText';
 
 	const ENTITIES = [
 		{ key: 'deal', value: 'Сделки', href: (id: string) => `/deals/${id}` },
@@ -27,6 +28,8 @@
 		untrack(() => void list.reload());
 	});
 
+	$effect(() => ensureEntities(list.items.map((r) => ({ type: r.entity_type, id: r.entity_id }))));
+
 	const link = (r: ExternalRef) => ENTITIES.find((e) => e.key === r.entity_type)?.href(r.entity_id) ?? null;
 	const entityName = (t: string) => ENTITIES.find((e) => e.key === t)?.value ?? t;
 
@@ -41,7 +44,10 @@
 {#snippet entityCell(r: ExternalRef)}
 	{@const href = link(r)}
 	<TableCell>
-		{#if href}<a class="t-body-m-strong" {href}>{entityName(r.entity_type)} · {r.entity_id.slice(-6)}</a>{:else}<span class="t-body-m-strong">{entityName(r.entity_type)} · {r.entity_id.slice(-6)}</span>{/if}
+		<span class="flex min-w-0 flex-col py-1">
+			{#if href}<a class="t-body-m-strong wrap-anywhere" {href}>{entityText(r.entity_type, r.entity_id)}</a>{:else}<span class="t-body-m-strong wrap-anywhere">{entityText(r.entity_type, r.entity_id)}</span>{/if}
+			<span class="t-desc-m text-soft">{entityName(r.entity_type)}</span>
+		</span>
 	</TableCell>
 {/snippet}
 {#snippet sourceCell(r: ExternalRef)}
@@ -55,8 +61,8 @@
 {#snippet card(r: ExternalRef)}
 	{@const href = link(r)}
 	<div class="flex min-w-0 flex-col gap-1">
-		{#if href}<a class="t-body-m-strong" {href}>{entityName(r.entity_type)} · {r.entity_id.slice(-6)}</a>{:else}<span class="t-body-m-strong">{entityName(r.entity_type)} · {r.entity_id.slice(-6)}</span>{/if}
-		<span class="t-desc-l text-muted">{labelOf(INTEGRATION_SOURCES, r.source_code)} · <span class="font-mono wrap-anywhere">{r.external_id}</span></span>
+		{#if href}<a class="t-body-m-strong wrap-anywhere" {href}>{entityText(r.entity_type, r.entity_id)}</a>{:else}<span class="t-body-m-strong wrap-anywhere">{entityText(r.entity_type, r.entity_id)}</span>{/if}
+		<span class="t-desc-l text-muted">{entityName(r.entity_type)} · {labelOf(INTEGRATION_SOURCES, r.source_code)} · <span class="font-mono wrap-anywhere">{r.external_id}</span></span>
 		<span class="t-desc-m text-soft">{#if r.last_synced_at}<DateText value={r.last_synced_at} time />{/if} · {labelOf(SYNC_DIRECTIONS, r.sync_direction).toLowerCase()}</span>
 	</div>
 {/snippet}
