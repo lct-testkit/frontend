@@ -42,6 +42,7 @@ async function first(token, path, pick = (x) => x.id) {
 const RESOLVERS = {
 	'/deals/[id]': (t) => first(t, '/api/deals?limit=1'),
 	'/organizations/[id]': (t) => first(t, '/api/organizations?limit=1'),
+	'/licenses/[id]': (t) => first(t, '/api/organization-licenses?limit=1'),
 	'/contacts/[id]': (t) => first(t, '/api/contacts?limit=1'),
 	'/workflows/[id]': (t) => first(t, '/api/workflows?limit=1'),
 	'/admin/users/[id]': (t) => first(t, '/api/admin/users?limit=1'),
