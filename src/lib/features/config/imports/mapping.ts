@@ -2,6 +2,7 @@
 // Поля типов и автоподбор колонок приходят с сервера (`GET /api/imports/entity-types`, `suggested_mapping` профиля):
 // копий списков полей и синонимов здесь нет — они уже расходились с бэкендом при каждом новом типе.
 import type { components } from '$lib/api';
+import { GLOSSARY } from '$lib/ui/glossary';
 
 export type ImportEntityType = components['schemas']['ImportEntityTypeOut'];
 export type ImportFieldSpec = components['schemas']['ImportFieldOut'];
@@ -11,7 +12,7 @@ export type ImportEntity = components['schemas']['ImportJobCreateRequest']['enti
 /** Короткая подпись и подсказка для списка и мастера; для неизвестного серверу типа берётся его собственная подпись. */
 export const IMPORT_ENTITY_INFO: Record<string, { label: string; plural: string; hint: string }> = {
 	organization: { label: 'Организации', plural: 'организаций', hint: 'Вузы и компании; ключ — ИНН' },
-	product: { label: 'Продукты', plural: 'продуктов', hint: 'Курсы и программы; ключ — код продукта' },
+	product: { label: GLOSSARY.product.plural, plural: 'продуктов', hint: `${GLOSSARY.product.hint}; ключ — код продукта` },
 	license: { label: 'Лицензии', plural: 'лицензий', hint: 'Договоры вуз — вендор — программное обеспечение' },
 	vendor_contact: { label: 'Вендоры', plural: 'вендоров', hint: 'Компания, продукты и ответственные — файл «Вендоры»' },
 	payment: { label: 'Оплаты', plural: 'оплат', hint: 'Оплаченные заказы физлиц: заявка, курс, поток — «Данные оплат»' },

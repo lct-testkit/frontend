@@ -2,6 +2,7 @@
 	// Продукт: минимум полей сверху (код, название, направление, формат, цена), остальное — в «Дополнительно».
 	import { untrack } from 'svelte';
 	import { api, unwrap, idem, ifMatch } from '$lib/api';
+	import { GLOSSARY } from '$lib/ui/glossary';
 	import { Btn, confirm, toast } from '$lib/ui';
 	import { session } from '$lib/auth/session.svelte';
 	import { PRODUCT_FORMATS } from '../labels';
@@ -185,7 +186,7 @@
 		<TextField label="Код" value={code} readonly hint="Код после создания не меняется" />
 	{/if}
 	<TextField label="Название" required bind:value={name} error={errors.name} maxlength={255} autofocus={!isNew} />
-	<Pick label="Направление" bind:value={directionId} items={dirItems} error={errors.direction_id} clearable search emptyText={directions.loading ? 'Загрузка…' : 'Направлений нет'} />
+	<Pick label={GLOSSARY.direction.label} hint={GLOSSARY.direction.hint} bind:value={directionId} items={dirItems} error={errors.direction_id} clearable search emptyText={directions.loading ? 'Загрузка…' : 'Направлений нет'} />
 	<OrgPicker label="Вендор" value={vendorId} error={errors.vendor_id} hint="Компания, чей это продукт" onChange={(id) => (vendorId = id)} />
 	<FormRow>
 		<Pick label="Формат" bind:value={format} items={PRODUCT_FORMATS.map((f) => ({ key: f.key, value: f.value }))} clearable error={errors.format} />
