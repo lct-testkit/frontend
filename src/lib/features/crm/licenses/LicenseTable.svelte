@@ -90,7 +90,7 @@
 		{#if showOrganization}
 			<div class="grid grid-cols-[9.5rem_minmax(0,1fr)] items-baseline gap-x-3">
 				<span class="t-desc-l text-muted">{L[0]}</span>
-				<a href="/organizations/{row.organization_id}?tab=licenses" class="t-desc-l min-w-0 wrap-anywhere text-fg" onclick={link}>{licenseOrgTitle(row)}</a>
+				<a href="/organizations/{row.organization_id}?tab=licenses" class="relative t-desc-l min-w-0 wrap-anywhere text-fg after:absolute after:inset-x-0 after:-inset-y-3.5 after:content-['']" onclick={link}>{licenseOrgTitle(row)}</a>
 			</div>
 		{/if}
 		{@render field(L[3], row.contract_number)}

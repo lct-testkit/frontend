@@ -368,8 +368,8 @@
 		outline: 0 solid transparent;
 	}
 	/* touch targets: a finger needs 44 px. The DS controls keep their looks (a 40 px floating button, a 32 px segment, a 36 px button, a 22 px checkbox), but on a device with a finger
-	   (`pointer: coarse`) each gets an invisible zone around it that brings the tappable area up to 44 px — nothing moves, nothing grows on the screen. */
-	@media (pointer: coarse) {
+	   (`pointer: coarse`) or a phone-width window each gets an invisible zone around it that brings the tappable area up to 44 px — nothing moves, nothing grows on the screen. */
+	@media (pointer: coarse), (max-width: 767px) {
 		:is(.atmr-button, .atmr-icon-button, .atmr-functionbutton, .atmr-closebutton, .atmr-segment, .atmr-chip, .atmr-checkbox, .atmr-radiobutton, .atmr-switch) {
 			position: relative;
 		}
