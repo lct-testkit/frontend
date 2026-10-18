@@ -1,5 +1,5 @@
 <script lang="ts">
-	// Дашборд: сетка виджетов (12 колонок на десктопе, 6 на планшете, одна на телефоне). Данные — по кнопке «Обновить данные».
+	// Дашборд: сетка виджетов (12 колонок на десктопе, 6 на планшете, одна на телефоне). Данные — из кэша на 5 минут; без кэша при открытии считаются один раз сами, дальше по кнопке «Обновить данные».
 	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { DropdownMenu } from '@lct-testkit/rt-ui';
@@ -37,6 +37,8 @@
 		void workflows.load();
 		await Promise.all([dashboard.reload(), widgetsRes.reload()]);
 		data.hydrate(configs);
+		// первое открытие без кэша: вместо экрана «Нет данных» один раз считаем отчёты сами (дальше работает кэш на 5 минут)
+		if (configs.length > 0 && configs.every((c) => !data.table(c))) void data.refresh(configs);
 	});
 	onDestroy(() => data.dispose());
 
