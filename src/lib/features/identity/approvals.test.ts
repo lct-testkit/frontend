@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { approvalActions, approvalExecuteHref, approvalIdFromError, describeApproval } from './approvals';
+import { approvalActions, approvalExecuteHref, approvalIdFromError, describeApproval, rejectLabel, timeLeft } from './approvals';
+import { approvalOperationLabel } from './labels';
+import type { ApprovalOperation } from './types';
 
 const future = new Date(Date.now() + 3_600_000).toISOString();
 const past = new Date(Date.now() - 1_000).toISOString();
@@ -37,5 +39,37 @@ describe('describeApproval / approvalExecuteHref', () => {
 	it('approvalIdFromError', () => {
 		expect(approvalIdFromError({ approval_id: 'x' })).toBe('x');
 		expect(approvalIdFromError(null)).toBeNull();
+	});
+});
+
+describe('назначение администратора (user.promote_admin)', () => {
+	const promote = { id: 'a9', operation: 'user.promote_admin', payload: { user_id: 'u7', role: 'ADMIN' } };
+	it('описание не падает без имени в справочнике, ссылка ведёт в карточку с approval_id и ролью', () => {
+		expect(describeApproval(promote)).toMatch(/^Назначение администратора/);
+		expect(approvalExecuteHref(promote)).toBe('/admin/users/u7?approval_id=a9&role=ADMIN');
+	});
+	it('неизвестная операция описывается кодом и не падает', () => {
+		expect(describeApproval({ operation: 'brand.new', payload: null as never })).toBe('brand.new');
+	});
+});
+
+describe('timeLeft / rejectLabel', () => {
+	const now = Date.parse('2026-10-18T10:00:00Z');
+	it('срок: далёкая заявка, меньше часа, истёкшая и без даты', () => {
+		expect(timeLeft('2026-10-19T09:30:00Z', now)).toBe('ещё 23 ч');
+		expect(timeLeft('2026-10-18T10:20:00Z', now)).toBe('меньше часа');
+		expect(timeLeft('2026-10-18T09:00:00Z', now)).toBeNull();
+		expect(timeLeft(null, now)).toBeNull();
+	});
+	it('своя заявка — «Отозвать», чужая — «Отклонить»', () => {
+		expect(rejectLabel('me', 'me')).toBe('Отозвать');
+		expect(rejectLabel('other', 'me')).toBe('Отклонить');
+	});
+});
+
+describe('подписи операций', () => {
+	it('у каждой операции из ApprovalOperation есть подпись, а не сырой код', () => {
+		const ops: ApprovalOperation[] = ['user.create_admin', 'user.promote_admin', 'user.erasure', 'contact.erasure', 'organization.erasure'];
+		for (const op of ops) expect(approvalOperationLabel(op), op).not.toBe(op);
 	});
 });

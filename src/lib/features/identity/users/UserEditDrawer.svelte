@@ -4,6 +4,7 @@
 	import { ApiError, api, ifMatch, unwrap } from '$lib/api';
 	import { FormDrawer, FormRow, Pick, TextField, UserPicker } from '$lib/ui';
 	import { confirm } from '$lib/ui/confirm.svelte';
+	import { approvalIdFromError } from '../approvals';
 	import { ASSIGNABLE_ROLES, ROLE_LABEL, roleLabel } from '../labels';
 	import { teams } from '../teams.svelte';
 	import { timezoneOptions } from '../timezones';
@@ -16,9 +17,14 @@
 		onSaved: (user: UserOut) => void;
 		/** данные на сервере новее — родитель перечитывает карточку */
 		onStale: () => Promise<void>;
+		/** сервер потребовал подтверждения вторым администратором: заявка создана, родитель объясняет, что дальше */
+		onPending?: (approvalId: string | null) => void;
+		/** «Выполнить» из согласований: подтверждённая заявка и роль, которую она разрешает */
+		approvalId?: string | null;
+		initialRole?: string | null;
 	}
 
-	let { open, user, onClose, onSaved, onStale }: Props = $props();
+	let { open, user, onClose, onSaved, onStale, onPending, approvalId = null, initialRole = null }: Props = $props();
 
 	let displayName = $state('');
 	let position = $state('');
@@ -37,7 +43,7 @@
 		untrack(() => {
 			displayName = user.display_name ?? '';
 			position = user.position ?? '';
-			role = user.role as Role;
+			role = (initialRole && ASSIGNABLE_ROLES.includes(initialRole as Role) ? initialRole : user.role) as Role;
 			teamId = user.team_id ?? null;
 			managerId = user.manager_id ?? null;
 			timezone = user.timezone;
@@ -66,6 +72,8 @@
 		if (locale !== user.locale) patch.locale = locale;
 		return patch;
 	}
+	/** повышение до администратора требует второго администратора (user.promote_admin) */
+	const needsApproval = $derived(role === 'ADMIN' && user.role !== 'ADMIN');
 	const dirty = $derived(Object.keys(changes()).length > 0);
 
 	async function save() {
@@ -75,17 +83,18 @@
 			error = 'Руководителю нужна команда';
 			return;
 		}
-		if (patch.role && !(await confirm({ title: `Сменить роль на «${roleLabel(role)}»?`, message: 'Права изменятся сразу, сотрудник получит новый набор доступов.', confirmLabel: 'Сменить' }))) return;
+		if (patch.role && !(await confirm({ title: `Сменить роль на «${roleLabel(role)}»?`, message: role === 'ADMIN' && user.role !== 'ADMIN' && !approvalId ? 'Нужно подтверждение второго администратора: заявка уйдёт в «Согласования», роль изменится после подтверждения.' : 'Права изменятся сразу, сотрудник получит новый набор доступов.', confirmLabel: 'Сменить' }))) return;
 		busy = true;
 		error = null;
 		try {
-			const next = await unwrap(api.PATCH('/api/admin/users/{user_id}', { params: { path: { user_id: user.id } }, body: patch, headers: ifMatch(user.version) }));
+			const next = await unwrap(api.PATCH('/api/admin/users/{user_id}', { params: { path: { user_id: user.id } }, body: approvalId ? { ...patch, approval_id: approvalId } : patch, headers: ifMatch(user.version) }));
 			onSaved(next);
 		} catch (e) {
 			if (e instanceof ApiError && e.code === 'CRM-1002') {
 				stale = true;
 				await onStale();
-			} else if (e instanceof ApiError && e.code === 'CRM-1903') error = 'Нельзя менять роль последнего администратора.';
+			} else if (e instanceof ApiError && e.code === 'CRM-1902' && onPending) onPending(approvalIdFromError(e.extra));
+			else if (e instanceof ApiError && e.code === 'CRM-1903') error = 'Нельзя менять роль последнего администратора.';
 			else error = e instanceof ApiError ? e.detail : 'Не удалось сохранить';
 		} finally {
 			busy = false;
@@ -96,7 +105,7 @@
 <FormDrawer {open} title="Изменить данные" width={520} saveTestId="user-save" saving={busy} {dirty} canSave={dirty} conflict={stale} conflictText="Карточку изменил другой администратор. Мы обновили данные — проверьте поля и сохраните ещё раз." formError={error} onSave={save} {onClose}>
 	<TextField label="Отображаемое имя" value={displayName} maxlength={255} onInput={(v) => (displayName = v)} />
 	<TextField label="Должность" value={position} maxlength={255} onInput={(v) => (position = v)} />
-	<Pick label="Роль" items={roles} value={role} onChange={(v) => v && (role = v as Role)} />
+	<Pick label="Роль" items={roles} value={role} hint={needsApproval ? (approvalId ? 'Подтверждение второго администратора получено' : 'Для роли «Администратор» нужно подтверждение второго администратора') : undefined} onChange={(v) => v && (role = v as Role)} />
 	<Pick label="Команда" required={role === 'HEAD'} items={teams.options} value={teamId} clearable onChange={(v) => (teamId = v)} />
 	<UserPicker label="Руководитель" roles={['HEAD', 'ADMIN']} value={managerId} exclude={[user.id]} onChange={(id) => (managerId = id)} />
 	<FormRow>

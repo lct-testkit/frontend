@@ -1,6 +1,7 @@
 <script lang="ts">
 	// Карточка сотрудника: данные, безопасность и действия по статусу (блокировка, пароль, приглашение, передача дел, удаление ПДн).
 	import { onMount, untrack } from 'svelte';
+	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { goto } from '$app/navigation';
 	import { CheckField, DateField } from '$lib/ui';
 	import { Edit } from '@lct-testkit/rt-ui/icons';
@@ -37,6 +38,9 @@
 	let reset = $state(false);
 	let erasure = $state(false);
 	let pending = $state(false);
+	let promoting = $state(false);
+	/** «Выполнить» из согласований: роль и заявка берутся из адреса */
+	let approval = $state<{ id: string | null; role: string | null }>({ id: null, role: null });
 	let invite = $state<UserCreated | null>(null);
 	let autoUnblock = $state('');
 	let suspect = $state(false);
@@ -55,7 +59,22 @@
 		}
 	}
 
-	onMount(() => void teams.load());
+	onMount(() => {
+		void teams.load();
+		const approvalId = readQuery('approval_id');
+		if (approvalId) {
+			approval = { id: approvalId, role: readQuery('role') };
+			edit = true;
+		}
+	});
+
+	function closeEdit() {
+		edit = false;
+		if (approval.id) {
+			approval = { id: null, role: null };
+			void setQuery({ approval_id: null, role: null });
+		}
+	}
 	$effect(() => {
 		void id;
 		untrack(() => void load());
@@ -196,13 +215,19 @@
 	<UserEditDrawer
 		open={edit}
 		{user}
-		onClose={() => (edit = false)}
+		onClose={closeEdit}
 		onSaved={(next) => {
 			user = next;
-			edit = false;
+			closeEdit();
 			toast.success('Сохранено');
 		}}
 		onStale={() => load(true)}
+		approvalId={approval.id}
+		initialRole={approval.role}
+		onPending={() => {
+			closeEdit();
+			promoting = true;
+		}}
 	/>
 
 	<ReasonModal open={block} title="Заблокировать пользователя" confirmLabel="Заблокировать" danger note="Сессии завершатся сразу, вход станет недоступен." onSubmit={doBlock} onClose={() => (block = false)}>
@@ -237,5 +262,6 @@
 			pending = true;
 		}}
 	/>
+	<ApprovalPendingModal open={promoting} what="Назначение администратора" onClose={() => (promoting = false)} />
 	<ApprovalPendingModal open={pending} what="Удаление ПДн сотрудника" onClose={() => (pending = false)} />
 {/if}

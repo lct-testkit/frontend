@@ -28,3 +28,10 @@ describe('identity hints', () => {
 		expect(Object.keys(AUDIT_RESULT_HINTS)).toHaveLength(3);
 	});
 });
+
+describe('отсрочка удаления ПДн', () => {
+	it('в подсказках статусов нет числа дней: срок у контакта и организации 7 дней, у сотрудника другой', async () => {
+		const { ERASURE_STATUS_HINTS } = await import('./hints');
+		for (const status of ['pending', 'approved'] as const) expect(ERASURE_STATUS_HINTS[status]).not.toMatch(/\d+\s*дн/);
+	});
+});
