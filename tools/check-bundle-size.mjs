@@ -37,7 +37,29 @@ for await (const file of walk(buildDir)) {
 	}
 }
 const round = (n) => Math.round(n * 10) / 10;
-const current = { jsTotalKb: round(stats.jsTotalKb), cssTotalKb: round(stats.cssTotalKb), largestJsKb: round(stats.largestJsKb) };
+
+// «Оболочка» — то, что браузер грузит при первом открытии любой страницы (экран входа тоже): файлы из <link rel="modulepreload"> и
+// <link rel="stylesheet"> в build/index.html (SvelteKit кладёт туда стартовые записи, общий каркас и стили). Остальные экраны грузятся по требованию.
+async function shellSize() {
+	const html = await readFile(join(buildDir, 'index.html'), 'utf8');
+	const hrefs = [...html.matchAll(/<link[^>]+href="([^"]+)"[^>]*>/g)].filter((m) => /modulepreload|stylesheet/.test(m[0])).map((m) => m[1]);
+	let js = 0;
+	let css = 0;
+	for (const href of new Set(hrefs)) {
+		const gz = gzipSync(await readFile(join(buildDir, href.replace(/^\//, '')))).length / 1024;
+		if (href.endsWith('.css')) css += gz;
+		else js += gz;
+	}
+	return { shellJsKb: js, shellCssKb: css };
+}
+const shell = await shellSize();
+const current = {
+	jsTotalKb: round(stats.jsTotalKb),
+	cssTotalKb: round(stats.cssTotalKb),
+	largestJsKb: round(stats.largestJsKb),
+	shellJsKb: round(shell.shellJsKb),
+	shellCssKb: round(shell.shellCssKb)
+};
 
 if (update) {
 	const budget = Object.fromEntries(Object.entries(current).map(([k, v]) => [k, Math.ceil(v * 1.1)]));

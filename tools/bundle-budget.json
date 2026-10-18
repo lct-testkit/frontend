@@ -1,6 +1,8 @@
 {
-	"_comment": "gzip, КиБ. Потолок = замер + 10%. Обновление: node tools/check-bundle-size.mjs --update",
+	"_comment": "gzip, КиБ. Потолок = замер + 10%. shell* — то, что грузится при первом открытии любой страницы (build/index.html). Обновление: node tools/check-bundle-size.mjs --update",
 	"jsTotalKb": 958,
 	"cssTotalKb": 180,
-	"largestJsKb": 138
+	"largestJsKb": 138,
+	"shellJsKb": 75,
+	"shellCssKb": 175
 }
