@@ -5,13 +5,11 @@
 	// side panel — the row stays one line. When the row still does not fit it wraps; nothing hides behind a button by accident.
 	// Phone (DS pattern): the search field and one «Фильтры» button with the count; all fields open in a panel with «Сбросить» / «Показать».
 	import { untrack, type Snippet } from 'svelte';
-	import { Counter } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { Filter } from '@lct-testkit/rt-ui/icons';
 	import AppDrawer from './AppDrawer.svelte';
 	import Btn from './Btn.svelte';
 	import FilterRow from './FilterRow.svelte';
-	import IconBtn from './IconBtn.svelte';
 	import PrimaryAction, { type Primary } from './PrimaryAction.svelte';
 	import SearchField from './SearchField.svelte';
 
@@ -53,13 +51,9 @@
 		<div class="flex items-center gap-2">
 			{#if onSearch}<div class="min-w-0 flex-1"><SearchField value={search} {placeholder} {onSearch} size="l" /></div>{/if}
 			{#if filters || more}
-				<div class={['relative', onSearch ? 'flex-none' : 'flex-1']}>
-					{#if onSearch}
-						<IconBtn icon={Filter} label="Фильтры" variant={panel ? 'secondary' : 'outline'} size="l" onclick={() => (panel = !panel)} aria-expanded={panel} data-testid="filters-toggle" />
-					{:else}
-						<Btn label="Фильтры" icon={Filter} count={active} variant={panel ? 'secondary' : 'outline'} colorScheme="neutral" size="l" block onclick={() => (panel = !panel)} aria-expanded={panel} data-testid="filters-toggle" />
-					{/if}
-					{#if active > 0 && onSearch}<span class="pointer-events-none absolute -top-1 -right-1 rounded-full ring-2 ring-page"><Counter size="xs">{active}</Counter></span>{/if}
+				<!-- число — внутри кнопки («Фильтры 2»), как на десктопе, а не бейдж на её углу -->
+				<div class={onSearch ? 'flex-none' : 'flex-1'}>
+					<Btn label="Фильтры" icon={Filter} count={active} variant={panel ? 'secondary' : 'outline'} colorScheme="neutral" size="l" block={!onSearch} onclick={() => (panel = !panel)} aria-expanded={panel} data-testid="filters-toggle" />
 				</div>
 			{/if}
 			{#if trailing}<div class="flex flex-none items-center gap-2">{@render trailing()}</div>{/if}

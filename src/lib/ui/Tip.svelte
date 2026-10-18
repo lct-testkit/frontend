@@ -59,7 +59,7 @@
 		onOpen={() => (hover = true)}
 		onClose={() => (hover = false)}
 		tooltipClassName="rt-tip"
-		class="inline-flex w-auto! max-w-full min-w-0 [&>:first-child]:w-auto!"
+		class="inline-flex w-auto! max-w-full min-w-0 [&>:first-child]:w-auto! [&>:first-child]:max-w-full [&>:first-child]:min-w-0"
 	>
 		{@render children()}
 	</Tooltip>
