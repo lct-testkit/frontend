@@ -61,7 +61,7 @@
 		<SegmentedControl value={depth} onChange={(v) => ((depth = v), void run())} size="s">
 			<Segment index="1000" label="1 000" />
 			<Segment index="5000" label="5 000" />
-			<Segment index="20000" label="20 000" />
+			<Segment index="10000" label="10 000" />
 		</SegmentedControl>
 	</div>
 	{#snippet footer()}
