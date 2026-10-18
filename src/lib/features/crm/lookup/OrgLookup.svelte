@@ -4,7 +4,6 @@
 	import { Input } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { Search } from '@lct-testkit/rt-ui/icons';
-	import { errorMessage } from '$lib/api';
 	import { Skeleton, toast } from '$lib/ui';
 	import { REGISTRY_STATUS_LABELS } from '../shared/labels';
 	import { OrgLookupState, type LookupHit, type OrgLookupEntry } from './lookupState.svelte';
