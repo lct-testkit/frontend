@@ -3,7 +3,7 @@
 	import { onMount, untrack } from 'svelte';
 	import { WizardStepsHorizontal } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
-	import { Edit, Send } from '@lct-testkit/rt-ui/icons';
+	import { CloseLarge, DocumentAdd, Edit, Lock, MailOutgoing, SecurityCheck, Send } from '@lct-testkit/rt-ui/icons';
 	import { session } from '$lib/auth/session.svelte';
 	import { Btn, DateText, ErrorState, Notice, Page, PageHeader, Skeleton, StatusChip, UserName, confirm, toast } from '$lib/ui';
 	import ReasonModal from '../ReasonModal.svelte';
@@ -203,15 +203,15 @@
 			{#if act && (act.confirm || act.edit || act.stage || act.subjects || act.close || act.dismiss)}
 				<section class="flex flex-col gap-2 rounded-lg border border-line bg-surface p-4 max-md:p-3 max-lg:order-1" aria-label="Действия">
 					<h2 class="t-body-m-strong m-0 mb-1">Действия</h2>
-					{#if act.confirm}<Btn label="Подтвердить инцидент" onclick={() => (confirming = true)} data-testid="incident-confirm" />{/if}
+					{#if act.confirm}<Btn label="Подтвердить инцидент" icon={SecurityCheck} onclick={() => (confirming = true)} data-testid="incident-confirm" />{/if}
 					{#if act.stage}
-						<Btn {...outline} label={`Сформировать уведомление ${STAGE_TITLE[act.stage]}`} loading={busy === `gen-${act.stage}`} onclick={() => generate(act.stage!)} data-testid="incident-generate" />
+						<Btn {...outline} label={`Сформировать · ${STAGE_TITLE[act.stage]}`} icon={DocumentAdd} loading={busy === `gen-${act.stage}`} onclick={() => generate(act.stage!)} data-testid="incident-generate" />
 						<Btn {...outline} label={`Отметить подачу · ${STAGE_TITLE[act.stage]}`} icon={Send} onclick={() => (marking = act.stage)} data-testid="incident-mark" />
 					{/if}
-					{#if act.subjects}<Btn {...outline} label="Уведомление субъектам" loading={busy === 'subjects'} onclick={subjects} data-testid="incident-subjects" />{/if}
+					{#if act.subjects}<Btn {...outline} label="Уведомление субъектам" icon={MailOutgoing} loading={busy === 'subjects'} onclick={subjects} data-testid="incident-subjects" />{/if}
 					{#if act.edit}<Btn {...outline} label="Редактировать карточку" icon={Edit} onclick={() => (editing = true)} data-testid="incident-edit" />{/if}
-					{#if act.dismiss}<Btn {...outline} label="Отклонить кандидата" danger onclick={() => (closing = true)} data-testid="incident-dismiss" />{/if}
-					{#if act.close}<Btn {...outline} label="Закрыть инцидент" onclick={() => (closing = true)} data-testid="incident-close" />{/if}
+					{#if act.dismiss}<Btn {...outline} label="Отклонить кандидата" icon={CloseLarge} danger onclick={() => (closing = true)} data-testid="incident-dismiss" />{/if}
+					{#if act.close}<Btn {...outline} label="Закрыть инцидент" icon={Lock} onclick={() => (closing = true)} data-testid="incident-close" />{/if}
 				</section>
 			{:else if !manage}
 				<section class="rounded-lg border border-line bg-surface p-4 max-md:p-3 max-lg:order-1" aria-label="Права">

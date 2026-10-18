@@ -74,9 +74,9 @@ describe('sourcesSummary', () => {
 	it('включено 1 из 3, все отключены, ошибка у включённого', async () => {
 		const { sourcesSummary } = await import('./sourceState');
 		expect(sourcesSummary([])).toBeNull();
-		expect(sourcesSummary([src(true), src(false), src(false)])).toEqual({ text: 'Включено источников: 1 из 3', tone: 'neutral' });
+		expect(sourcesSummary([src(true), src(false), src(false)])).toEqual({ text: 'Работают все включённые (1 из 3)', tone: 'neutral' });
 		expect(sourcesSummary([src(true), src(true)])?.tone).toBe('success');
-		expect(sourcesSummary([src(false), src(false)])).toEqual({ text: 'Все источники отключены', tone: 'warning' });
+		expect(sourcesSummary([src(false), src(false)])).toEqual({ text: 'Источники отключены', tone: 'neutral' });
 		expect(sourcesSummary([src(true, 'нет связи', 'Сайт'), src(false, 'старая')])).toEqual({ text: 'Ошибка забора: Сайт', tone: 'error' });
 	});
 });

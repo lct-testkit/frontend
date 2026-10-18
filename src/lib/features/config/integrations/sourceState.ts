@@ -112,12 +112,12 @@ export interface SourcesSummary {
 	tone: Tone;
 }
 
-/** Сводка по источникам для плашки состояния: «все системы работают» не говорит, что источники выключены. */
+/** Сводка по источникам для плашки состояния; при исправной системе заменяет «Все системы работают», чтобы не противоречить отключённым источникам. */
 export function sourcesSummary(sources: { is_active: boolean; name: string; last_error: string | null }[]): SourcesSummary | null {
 	if (!sources.length) return null;
 	const active = sources.filter((s) => s.is_active);
-	if (!active.length) return { text: 'Все источники отключены', tone: 'warning' };
+	if (!active.length) return { text: 'Источники отключены', tone: 'neutral' };
 	const broken = active.filter((s) => s.last_error);
 	if (broken.length) return { text: `Ошибка забора: ${broken.map((s) => s.name).join(', ')}`, tone: 'error' };
-	return { text: `Включено источников: ${active.length} из ${sources.length}`, tone: active.length === sources.length ? 'success' : 'neutral' };
+	return { text: `Работают все включённые (${active.length} из ${sources.length})`, tone: active.length === sources.length ? 'success' : 'neutral' };
 }
