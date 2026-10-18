@@ -9,6 +9,7 @@
 	import { ErrorState, EmptyState, Page, PageHeader, Skeleton } from '$lib/ui';
 	import type { ReportTemplate } from '../types';
 	import { createResource } from '../shared/resource.svelte';
+	import { takeRerun, type RerunRequest } from './rerun';
 	import ReportTabs from './ReportTabs.svelte';
 	import RunReportDrawer from './RunReportDrawer.svelte';
 	import { formatLabel, formatsFor } from './params';
@@ -17,6 +18,7 @@
 	onMount(() => void list.reload());
 
 	let selected = $state<ReportTemplate | null>(null);
+	let initial = $state<RerunRequest | null>(null);
 
 	// «Запустить заново» из «Моих отчётов»: ?run=<код> открывает панель этого отчёта, после чего параметр убирается из адреса
 	$effect(() => {
@@ -24,7 +26,10 @@
 		const templates = list.data;
 		if (!code || !templates) return;
 		const found = templates.find((t) => t.code === code);
-		if (found) selected = found;
+		if (found) {
+			initial = takeRerun(found.code);
+			selected = found;
+		}
 		void goto('/reports', { replaceState: true, noScroll: true });
 	});
 </script>
@@ -50,7 +55,7 @@
 					<button
 						type="button"
 						class="group m-0 flex w-full cursor-pointer appearance-none flex-col gap-2 rounded-lg border border-line bg-surface p-4 text-left font-[inherit] text-[inherit] transition-colors hover:border-line-strong hover:bg-surface-2 max-md:p-3"
-						onclick={() => (selected = t)}
+						onclick={() => ((initial = null), (selected = t))}
 					>
 						<span class="flex items-start justify-between gap-2">
 							<span class="t-body-l-strong min-w-0 wrap-anywhere">{t.name}</span>
@@ -68,4 +73,4 @@
 	{/if}
 </Page>
 
-<RunReportDrawer template={selected} onClose={() => (selected = null)} />
+<RunReportDrawer template={selected} {initial} onClose={() => ((selected = null), (initial = null))} />

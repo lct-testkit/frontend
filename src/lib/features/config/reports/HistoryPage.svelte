@@ -13,6 +13,7 @@
 	import { ReportExpired, downloadReport } from './api';
 	import { REPORT_STATUS_INFO, fileState, formatLabel, isReportBusy, type FileState, type ReportStatus } from './params';
 	import { jobNoteInput, reportNotes } from './notes';
+	import { setRerun } from './rerun';
 	import ReportTabs from './ReportTabs.svelte';
 
 	const pager = createPager<ReportJob>((cursor, signal) => unwrap(api.GET('/api/reports', { params: { query: { limit: 50, cursor } }, signal })));
@@ -48,7 +49,10 @@
 	}
 
 	/** «Запустить заново»: открывает галерею с панелью этого отчёта */
-	const rerun = (j: ReportJob) => void goto(`/reports?run=${encodeURIComponent(j.template_code)}`);
+	const rerun = (j: ReportJob) => {
+		setRerun({ code: j.template_code, params: j.params, format: j.format });
+		void goto(`/reports?run=${encodeURIComponent(j.template_code)}`);
+	};
 
 	/** пометка про усечение по «Не больше строк» (только если сервер сообщил `truncated`) */
 	const limitNote = (j: ReportJob): string | undefined => {
