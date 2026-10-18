@@ -2,6 +2,7 @@
 	// The card of an invitation (the public page /invite/[token]): who is invited, until when the link works, and the way to the sign-in.
 	import { KeyValue, KeyValueList } from '$lib/ui';
 	import Btn from '$lib/ui/Btn.svelte';
+	import Notice from '$lib/ui/Notice.svelte';
 	import { formatDateTime } from '$lib/utils/format';
 
 	interface Props {
@@ -21,5 +22,6 @@
 		{#if emailMasked}<KeyValue label="Почта" value={emailMasked} />{/if}
 		<KeyValue label="Ссылка действует до" value={formatDateTime(expiresAt)} />
 	</KeyValueList>
+	<Notice class="shrink-0" tone="info">Пароль задаётся на странице входа. Если письма с дальнейшими действиями нет, обратитесь к администратору.</Notice>
 	<Btn label="Перейти ко входу" size="l" block onclick={onContinue} data-testid="invite-continue" />
 </section>
