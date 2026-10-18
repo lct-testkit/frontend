@@ -417,6 +417,7 @@ pnpm gen:api
 | Job | Что проверяет |
 |---|---|
 | `lint · check · test · build` | `pnpm lint` (ESLint), `pnpm lint:styles` (**stylelint: цвета только из токенов темы** — без `#hex`/`rgb()`/именованных цветов, спека §12.6), `pnpm check` (svelte-check), `pnpm test:coverage` (пороги в `vite.config.ts`, поднимаются вместе с базой), `pnpm build`, `pnpm size` (**бюджет gzip-размера бандла**, `tools/bundle-budget.json` — косвенная защита требования «отклик ≤ 1 с»), `pnpm audit --prod` |
+| `мок-стенд · экраны · производительность` | без живого бэкенда: `tools/mock/selfcheck.mjs` (каждый экран в режимах ok/empty/error, ответов вне мока нет), `ui-checks.mjs` (пусто, ошибка, клавиатура), `xss-check.mjs` (XSS-векторы в комментарии), `perf.mjs --check` (список на 1000 сделок при замедлении CPU, не блокирует) |
 | `контракт API · Dockerfile · секреты` | типы API не дрейфуют от `docs/openapi.json` (`gen-api` + `git diff --exit-code`); `docs/openapi.json` совпадает с `backend@main` (`tools/check-contract.mjs`, нужен секрет `BACKEND_READ_TOKEN`, ночью и на PR); hadolint; Trivy fs (уязвимости, секреты) |
 | публикация образа | только `main`, после обоих job'ов: общий конвейер в `lct-testkit/deploy` — сборка → Trivy до push → push → SBOM/provenance → cosign → dispatch |
 

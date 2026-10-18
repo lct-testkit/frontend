@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => {
 			include: ['src/**/*.{test,spec}.ts', 'tools/**/*.test.ts'],
 			environment: 'node',
 			coverage: {
-				// unit-тесты покрывают чистую логику (.ts); компоненты (.svelte) проверяются svelte-check и e2e
+				// unit-тесты покрывают чистую логику (.ts); компоненты (.svelte) проверяются svelte-check, мок-стендом (tools/mock: экраны, состояния, клавиатура, XSS) и сценариями на живом стенде; тестов компонентов в браузере нет — им нужны @vitest/browser и vitest-browser-svelte (решение владельца, F8-3)
 				provider: 'v8',
 				include: ['src/lib/**/*.ts'],
 				exclude: ['src/lib/**/*.test.ts', 'src/lib/**/*.d.ts', 'src/lib/api/schema.d.ts'],
