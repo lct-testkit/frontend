@@ -4,6 +4,7 @@
 		{ key: 'contacts', label: 'Контакты' },
 		{ key: 'deals', label: 'Сделки' },
 		{ key: 'journey', label: 'Путь' },
+		{ key: 'branches', label: 'Филиалы' },
 		{ key: 'licenses', label: 'Лицензии' },
 		{ key: 'files', label: 'Файлы' }
 	];
@@ -29,6 +30,7 @@
 	import DriftBanner from './DriftBanner.svelte';
 	import OrgForm from './OrgForm.svelte';
 	import OrgLicenses from './OrgLicenses.svelte';
+	import OrgBranches from './OrgBranches.svelte';
 	import OrgJourney from './OrgJourney.svelte';
 	import OrgLinked from './OrgLinked.svelte';
 	import { useLeaveGuard } from '$lib/ui/leave-guard.svelte';
@@ -48,7 +50,7 @@
 	let banner = $state<{ text: string; conflict: boolean } | null>(null);
 	let hideDrift = $state(false);
 
-	const TABS = ['reqs', 'contacts', 'deals', 'journey', 'licenses', 'files'] as const;
+	const TABS = ['reqs', 'contacts', 'deals', 'journey', 'branches', 'licenses', 'files'] as const;
 	const tab = $derived.by(() => {
 		const raw = page.url.searchParams.get('tab');
 		return (TABS as readonly string[]).includes(raw ?? '') ? (raw as (typeof TABS)[number]) : 'reqs';
@@ -215,6 +217,8 @@
 			<OrgLinked orgId={org.id} kind="deals" />
 		{:else if tab === 'journey'}
 			<OrgJourney orgId={org.id} />
+		{:else if tab === 'branches'}
+			<OrgBranches orgId={org.id} />
 		{:else if tab === 'licenses'}
 			<OrgLicenses orgId={org.id} />
 		{:else}
