@@ -17,12 +17,13 @@
 		{ id: 't', position: Position.Top },
 		{ id: 'b', position: Position.Bottom }
 	];
-	const HANDLE = 'size-3! border-2! border-surface! bg-soft! hover:bg-accent!';
+	// точки соединения: серые, у подключённой стороны (есть видимое ребро) — тёмные; при наведении на узел и при протягивании связи заметнее у всех
+	const handleClass = (side: string) => ['size-3! border-2! border-surface! hover:bg-accent!', data.connected.includes(side) ? 'bg-fg!' : 'bg-line-strong! group-hover/node:bg-soft!'];
 </script>
 
 <div
 	class={[
-		'relative w-58 overflow-hidden rounded-md border bg-surface shadow-s',
+		'group/node relative w-58 overflow-hidden rounded-md border bg-surface shadow-s',
 		selected ? 'border-accent ring-2 ring-accent-soft' : errors ? 'border-danger' : 'border-line',
 		status.is_archived && 'opacity-55'
 	]}
@@ -53,7 +54,7 @@
 	</div>
 	<!-- по четыре точки на узле (слева, справа, сверху, снизу): ребро выходит с той стороны, что ближе к цели, — в раскладке «змейкой» ряды идут навстречу друг другу -->
 	{#each SIDES as side (side.id)}
-		<Handle type="source" id="s-{side.id}" position={side.position} class={HANDLE} isConnectable={!data.readonly && !status.is_archived} />
-		<Handle type="target" id="t-{side.id}" position={side.position} class={HANDLE} isConnectable={!data.readonly && !status.is_archived} />
+		<Handle type="source" id="s-{side.id}" position={side.position} class={handleClass(side.id)} isConnectable={!data.readonly && !status.is_archived} />
+		<Handle type="target" id="t-{side.id}" position={side.position} class={handleClass(side.id)} isConnectable={!data.readonly && !status.is_archived} />
 	{/each}
 </div>

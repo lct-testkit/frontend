@@ -464,6 +464,8 @@ export type StatusNodeData = {
 	exits: { lost: boolean; parked: boolean };
 	/** у статуса «Отказ» / «Заморозка» — сколько переходов в него ведёт (счётчик «Входов: N»); у остальных 0 */
 	entries: number;
+	/** стороны узла (`l`, `r`, `t`, `b`), у которых есть видимое ребро: подключённая точка рисуется темнее */
+	connected: string[];
 };
 export type StatusNode = Node<StatusNodeData, typeof STATUS_NODE_TYPE>;
 
@@ -571,7 +573,7 @@ export function toFlow(draft: GraphDraft, positions: Positions, issues: GraphIss
 		draggable: !readonly && !status.is_archived,
 		connectable: !readonly && !status.is_archived,
 		deletable: false,
-		data: { status, sla: slaOf(draft, status.key), issues: byStatus.get(status.key) ?? [], readonly, exits: exits.get(status.key) ?? { lost: false, parked: false }, entries: status.type === 'lost' || status.type === 'parked' ? (entries.get(status.key) ?? 0) : 0 }
+		data: { status, sla: slaOf(draft, status.key), issues: byStatus.get(status.key) ?? [], readonly, exits: exits.get(status.key) ?? { lost: false, parked: false }, entries: status.type === 'lost' || status.type === 'parked' ? (entries.get(status.key) ?? 0) : 0, connected: [] }
 	}));
 	const layerOf = edgeLayerOf(draft);
 	const onScreen = draft.transitions.filter((t) => visible.has(t.from) && visible.has(t.to));
@@ -603,6 +605,13 @@ export function toFlow(draft: GraphDraft, positions: Positions, issues: GraphIss
 				compact: options.compactLabels ?? false
 			}
 		}));
+	const used = new Map<string, Set<string>>();
+	for (const e of edges) {
+		for (const [key, handle] of [[e.source, e.sourceHandle], [e.target, e.targetHandle]] as const) {
+			if (handle) used.set(key, (used.get(key) ?? new Set()).add(handle.slice(2)));
+		}
+	}
+	for (const n of nodes) n.data.connected = [...(used.get(n.id) ?? [])];
 	return { nodes, edges, total: onScreen.length };
 }
 

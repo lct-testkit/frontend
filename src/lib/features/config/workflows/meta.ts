@@ -9,8 +9,10 @@ export const dealTypeShort = (type: string): string => type.toUpperCase();
 export const dealTypeLong = (type: string): string => DEAL_TYPE_LABELS[type as DealType] ?? type;
 
 /** Были ли правки после публикации: `updated_at` заметно позже `published_at` (публикация сама трогает обе даты в одном запросе). */
-export function hasUnpublishedChanges(w: { state: string; published_at?: string | null; updated_at: string }): boolean {
+export function hasUnpublishedChanges(w: { state: string; published_at?: string | null; updated_at: string; has_unpublished_changes?: boolean }): boolean {
 	if (w.state === 'archived') return false;
+	// сервер знает точно; даты — запасной признак для ответов без поля
+	if (w.state === 'published' && typeof w.has_unpublished_changes === 'boolean') return w.has_unpublished_changes;
 	if (w.state !== 'published' || !w.published_at) return true;
 	return Date.parse(w.updated_at) - Date.parse(w.published_at) > 2000;
 }
