@@ -98,10 +98,10 @@
 	{#snippet toolbar()}
 		<FilterBar search={q} placeholder="Код или название" onSearch={(v) => setQuery({ q: v })} active={activeCount} onReset={() => setQuery({ direction: null, format: null, kind: null, active: null })}>
 			{#snippet filters()}
-				<Pick class="md:w-56" placeholder="Все направления" size="m" search clearable items={dirItems} value={direction} onChange={(v) => setQuery({ direction: v })} />
-				<Pick class="md:w-44" placeholder="Любой вид" size="m" clearable items={PRODUCT_KINDS.map((k) => ({ key: k.key, value: k.value }))} value={kind} onChange={(v) => setQuery({ kind: v })} />
+				<Pick class="md:w-52" placeholder="Все направления" size="m" search clearable items={dirItems} value={direction} onChange={(v) => setQuery({ direction: v })} />
+				<Pick class="md:w-40" placeholder="Любой вид" size="m" clearable items={PRODUCT_KINDS.map((k) => ({ key: k.key, value: k.short }))} value={kind} onChange={(v) => setQuery({ kind: v })} />
 				<Pick class="md:w-40" placeholder="Любой формат" size="m" clearable items={PRODUCT_FORMATS.map((f) => ({ key: f.key, value: f.value }))} value={format} onChange={(v) => setQuery({ format: v })} />
-				<Pick class="md:w-40" placeholder="Любая активность" size="m" clearable items={[{ key: '1', value: 'Активные' }, { key: '0', value: 'Отключённые' }]} value={active} onChange={(v) => setQuery({ active: v })} />
+				<Pick class="md:w-44" placeholder="Активность" size="m" clearable items={[{ key: '1', value: 'Активные' }, { key: '0', value: 'Отключённые' }]} value={active} onChange={(v) => setQuery({ active: v })} />
 			{/snippet}
 		</FilterBar>
 	{/snippet}

@@ -9,7 +9,7 @@
 	import { count } from '$lib/utils/format';
 	import type { ReportTemplate } from '../types';
 	import ParamsForm, { type WorkflowOption } from './ParamsForm.svelte';
-	import { REPORT_FORMATS, REPORT_FORMAT_LABELS, normalizeParams, paramsFor, validateParams, type ReportFormat } from './params';
+	import { REPORT_FORMATS, REPORT_FORMAT_LABELS, REPORT_SPECS, normalizeParams, paramsFor, validateParams, type ReportFormat } from './params';
 	import { useReportRun } from './run.svelte';
 
 	interface Props {
@@ -25,7 +25,8 @@
 	let errors = $state<Record<string, string>>({});
 	let workflows = $state<WorkflowOption[]>([]);
 
-	const defs = $derived(template ? paramsFor(template.code, template.default_params) : []);
+	const defs = $derived(template ? paramsFor(template.code, template.default_params, { dateFields: template.date_fields, defaultDateField: template.default_date_field }) : []);
+	const spec = $derived(template ? REPORT_SPECS[template.code] : undefined);
 	const formats = $derived(REPORT_FORMATS.filter((f) => template?.output_formats.includes(f)));
 	const busy = $derived(run.phase === 'running');
 
@@ -47,7 +48,7 @@
 
 	function start() {
 		if (!template || busy || run.cooldown) return;
-		errors = validateParams(defs, values);
+		errors = validateParams(defs, values, { workflowTypes: Object.fromEntries(workflows.map((w) => [w.id, w.deal_type])) });
 		if (Object.keys(errors).length) return;
 		void run.run(template.code, format, normalizeParams(defs, values));
 	}
@@ -70,6 +71,8 @@
 		{#if run.phase === 'form' || run.phase === 'failed'}
 			<div class="flex flex-col gap-4">
 				{#if template.description}<p class="t-body-s text-muted">{template.description}</p>{/if}
+				{#if spec?.hint}<p class="t-desc-l text-muted">{spec.hint}</p>{/if}
+				{#if spec?.personalData}<Notice class="shrink-0" tone="warning">Отчёт содержит персональные данные. Не передавайте файл посторонним</Notice>{/if}
 				{#if formats.length > 1}
 					<div class="flex flex-col gap-1.5">
 						<span class="t-desc-l text-muted">Формат</span>

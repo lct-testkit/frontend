@@ -39,7 +39,8 @@
 
 	const isNew = $derived(widget === null);
 	const available = $derived(templates.filter((t) => t.is_active && (type !== 'report_chart' || canChart(t.code))));
-	const defs = $derived(code ? paramsFor(code, templates.find((t) => t.code === code)?.default_params) : []);
+	const template = $derived(templates.find((t) => t.code === code));
+	const defs = $derived(code ? paramsFor(code, template?.default_params, { dateFields: template?.date_fields, defaultDateField: template?.default_date_field }) : []);
 	const metricItems = $derived([{ key: 'rows', value: 'Число строк в отчёте' }, ...sumColumnsOf(code ?? '').map((c) => ({ key: `sum:${c}`, value: `Сумма: ${c}` }))]);
 
 	$effect(() => {
