@@ -63,5 +63,14 @@ export function entityHref(type: string | null | undefined, id: string | null | 
 	}
 }
 
+/** Фильтры экрана, которых у выгрузки нет: в файл они не попадают (ручка принимает только действие, сущность, результат и период). */
+export function exportIgnored(f: AuditFilters): string[] {
+	const out: string[] = [];
+	if (f.actor_id) out.push('сотрудник');
+	if (f.entity_id) out.push('ID сущности');
+	if (f.request_id) out.push('ID запроса');
+	return out;
+}
+
 /** Файл выгрузки: `audit-2026-09-20.ndjson`. */
 export const exportFilename = (now = new Date()): string => `audit-${now.toISOString().slice(0, 10)}.ndjson`;

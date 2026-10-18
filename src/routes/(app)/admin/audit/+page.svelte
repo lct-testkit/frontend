@@ -3,7 +3,7 @@
 	import { Download, SecurityCheck } from '@lct-testkit/rt-ui/icons';
 	import { api } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
-	import { apiQuery, AUDIT_FILTER_KEYS, exportFilename, type AuditFilters } from '$lib/features/identity/audit/audit-query';
+	import { apiQuery, AUDIT_FILTER_KEYS, exportFilename, exportIgnored, type AuditFilters } from '$lib/features/identity/audit/audit-query';
 	import AuditList from '$lib/features/identity/audit/AuditList.svelte';
 	import { exportNote } from '$lib/features/identity/audit/pending';
 	import { auditPending } from '$lib/features/identity/audit/pendingStore.svelte';
@@ -19,9 +19,10 @@
 	let exporting = $state(false);
 
 	async function exportNdjson() {
+		const ignored = exportIgnored(Object.fromEntries(AUDIT_FILTER_KEYS.map((k) => [k, readQuery(k)])) as unknown as AuditFilters);
 		const ok = await confirm({
 			title: 'Выгрузить журнал?',
-			message: `Выгрузка до 10 000 записей с текущими фильтрами. В журнал попадёт событие «Массовая выгрузка».${auditPending.value && auditPending.value.count > 0 ? ' В выгрузку не войдут события, ожидающие запечатывания.' : ''}`,
+			message: `Выгрузка до 10 000 записей с текущими фильтрами. В журнал попадёт событие «Массовая выгрузка».${ignored.length ? ` В файл не войдут фильтры: ${ignored.join(', ')}.` : ''}${auditPending.value && auditPending.value.count > 0 ? ' В выгрузку не войдут события, ожидающие запечатывания.' : ''}`,
 			confirmLabel: 'Выгрузить'
 		});
 		if (!ok) return;

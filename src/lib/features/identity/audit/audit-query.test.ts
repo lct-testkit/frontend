@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeCount, apiQuery, dayEnd, dayStart, emptyFilters, entityHref, exportFilename } from './audit-query';
+import { activeCount, apiQuery, dayEnd, dayStart, emptyFilters, entityHref, exportFilename, exportIgnored } from './audit-query';
 
 describe('emptyFilters', () => {
 	it('все поля — пустая строка', () => {
@@ -80,5 +80,12 @@ describe('entityHref', () => {
 describe('exportFilename', () => {
 	it('дата в имени файла — календарный день, без времени', () => {
 		expect(exportFilename(new Date('2026-09-20T15:30:00Z'))).toBe('audit-2026-09-20.ndjson');
+	});
+});
+
+describe('exportIgnored', () => {
+	it('фильтры, которых нет у выгрузки: сотрудник, ID сущности, ID запроса', () => {
+		expect(exportIgnored(emptyFilters())).toEqual([]);
+		expect(exportIgnored({ ...emptyFilters(), action: 'X', actor_id: 'u', request_id: 'r' })).toEqual(['сотрудник', 'ID запроса']);
 	});
 });
