@@ -185,7 +185,7 @@
 					<Segment index="table" label={bp.isMobile ? undefined : 'Таблица'} icon={tableIcon} aria-label="Таблица" />
 					<Segment index="board" label={bp.isMobile ? undefined : 'Доска'} icon={boardIcon} aria-label="Доска" />
 				</SegmentedControl>
-				<IconBtn icon={Refresh} label="Обновить" onclick={refresh} />
+				{#if !bp.isMobile}<IconBtn icon={Refresh} label="Обновить" onclick={refresh} />{/if}
 				{#if !bp.isMobile}<PopPanel open={recentOpen} onClose={() => (recentOpen = false)} title="Недавно открытые">
 					{#snippet trigger()}<IconBtn icon={History} label="Недавние" onclick={() => (recentOpen = !recentOpen)} aria-expanded={recentOpen} />{/snippet}
 					<RecentList compact limit={8} />

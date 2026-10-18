@@ -53,7 +53,7 @@
 		/** the buttons of the page: icon buttons and outline buttons, never a second orange one */
 		actions?: Snippet;
 		primary?: Primary;
-		/** tabs of a list: they share ONE row with the buttons (when they do not fit, on a phone and a narrow tablet alike, the buttons go under the tabs). The grey line under the row is drawn by the header, so `underline` is always false */
+		/** tabs of a list: they share ONE row with the buttons (a phone: the strip scrolls, the buttons stay at its end; a narrow tablet: the buttons go under the tabs). The grey line under the row is drawn by the header, so `underline` is always false */
 		tabs?: Snippet<[boolean]>;
 		/** the blocks that follow the header (filters, tables) */
 		children?: Snippet;
@@ -68,7 +68,7 @@
 
 	// TABS + BUTTONS in one line — while they fit. When they do not, the buttons move to a line of their own UNDER the tabs (a strip that scrolls would hide
 	// its last tab; a wrapping row would draw the grey line under the buttons instead of under the tabs). Measured: the span of the tabs + the width of the
-	// buttons against the width of the header. A phone stacks the same way; if its tabs do not fit even alone, the strip scrolls under the finger.
+	// buttons against the width of the header. A phone stacks only when its tabs fit alone; otherwise the strip scrolls and the buttons stay at its end.
 	let head = $state<HTMLElement | null>(null);
 	let strip = $state<HTMLElement | null>(null);
 	let group = $state<HTMLElement | null>(null);
@@ -82,8 +82,8 @@
 		const first = items[0];
 		const last = items[items.length - 1];
 		const tabsWidth = last.offsetLeft + last.offsetWidth - first.offsetLeft;
-		// a phone whose tabs do not fit next to the buttons stacks them too: the strip then has the whole width and scrolls by itself (before, the buttons stood at its end and cut the last tab off)
-		stacked = groupWidth > 0 && tabsWidth + 12 + groupWidth > head.clientWidth;
+		// on a phone whose tabs do not fit even alone the strip scrolls and the buttons stay at its end (one row, as everywhere)
+		stacked = groupWidth > 0 && tabsWidth + 12 + groupWidth > head.clientWidth && (!bp.isMobile || tabsWidth <= head.clientWidth);
 	}
 	$effect(() => {
 		if (!head || !strip) return;
@@ -114,8 +114,8 @@
 	<header bind:this={head} class="flex min-w-0 flex-col">
 		<h1 class="sr-only">{title}</h1>
 		<div class="flex min-w-0 items-center gap-x-3 border-b-2 border-line">
-			<!-- the strip overlaps the border of the row by its own 2 px: the orange mark of the current tab lies exactly on the grey line; on a phone it scrolls and the buttons stay at its end -->
-			<div bind:this={strip} class={['-mb-0.5 min-w-0 flex-1 max-md:overflow-hidden', hasButtons && 'md:[&_.atmr-tabs-group]:[--atmr-tabitem-m-padding-bottom:calc(6px+6px)]']}>{@render tabs(false)}</div>
+			<!-- the strip overlaps the border of the row by its own 2 px: the orange mark of the current tab lies exactly on the grey line; on a phone it scrolls (its right edge fades out as a hint) and the buttons stay at its end -->
+			<div bind:this={strip} class={['-mb-0.5 min-w-0 flex-1 max-md:overflow-hidden max-md:[mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)]', hasButtons && 'md:[&_.atmr-tabs-group]:[--atmr-tabitem-m-padding-bottom:calc(6px+6px)]']}>{@render tabs(false)}</div>
 			{#if !stacked}<div class="ml-auto flex flex-none items-start justify-end self-start">{@render buttons()}</div>{/if}
 		</div>
 		{#if stacked}<div class="mt-4 flex justify-end">{@render buttons()}</div>{/if}
