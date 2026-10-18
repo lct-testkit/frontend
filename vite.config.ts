@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => {
 		},
 		build: { target: 'es2022', chunkSizeWarningLimit: 900 },
 		test: {
-			include: ['src/**/*.{test,spec}.ts'],
+			include: ['src/**/*.{test,spec}.ts', 'tools/**/*.test.ts'],
 			environment: 'node',
 			coverage: {
 				// unit-тесты покрывают чистую логику (.ts); компоненты (.svelte) проверяются svelte-check и e2e
