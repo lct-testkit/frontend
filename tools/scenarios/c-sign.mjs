@@ -61,6 +61,10 @@ if (flow === 'ratelimit') {
 const shot = async (name) => {
 	await page.waitForTimeout(500);
 	await page.screenshot({ path: `${out}/sign-${flow}-${name}-${w}x${h}.png` });
+	if (process.env.VALIGN_MODULE) {
+		const { valign } = await import(process.env.VALIGN_MODULE);
+		for (const f of (await valign(page)).filter((x) => Math.abs(x.delta) >= 1)) console.log(`  valign ${name}: ${f.delta} ${f.kind} ${f.where} «${f.text}» ${f.graphic}`);
+	}
 	const audit = await auditLayout(page);
 	if (audit.hscroll || audit.offenders.length) console.log(`  ✗ ${name}: hscroll=${audit.hscroll} ${audit.offenders.join('; ')}`);
 };
