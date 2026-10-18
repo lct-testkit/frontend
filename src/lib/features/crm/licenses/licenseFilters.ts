@@ -69,9 +69,9 @@ export function activeCount(f: LicenseFilters): number {
 	return [f.org, f.vendor, f.product, f.status.length > 0, f.year, f.signed].filter(Boolean).length;
 }
 
-/** Сколько включено среди полей панели «Фильтры» (статус, год, подписание). */
+/** Сколько включено среди полей панели «Фильтры» (ПО, статус, год, подписание). */
 export function moreCount(f: LicenseFilters): number {
-	return [f.status.length > 0, f.year, f.signed].filter(Boolean).length;
+	return [f.product, f.status.length > 0, f.year, f.signed].filter(Boolean).length;
 }
 
 /** Что записать в адресную строку при смене одного фильтра. Смена вендора сбрасывает ПО (список ПО у другого вендора другой). */
@@ -95,4 +95,22 @@ export function patchFor(change: Partial<LicenseFilters>, current: LicenseFilter
 export function yearOptions(now: Date = new Date()): { key: string; value: string }[] {
 	const y = now.getFullYear();
 	return Array.from({ length: 10 }, (_, i) => String(y + 6 - i)).map((key) => ({ key, value: key }));
+}
+
+export interface LicenseReportParams {
+	organization_ids?: string[];
+	vendors?: string[];
+	transfer_statuses?: string[];
+}
+
+/**
+ * Фильтры экрана → параметры отчёта «Реестр лицензий» (`license_register`): вуз, вендор (название — отчёт сверяет его с текстом вендора лицензии) и статус.
+ * Поиск, ПО, «действует в году» и «подписание» отчёт не принимает — они в выгрузку не попадают.
+ */
+export function toReportParams(f: LicenseFilters, vendorName?: string | null): LicenseReportParams {
+	const params: LicenseReportParams = {};
+	if (f.org) params.organization_ids = [f.org];
+	if (f.vendor && vendorName) params.vendors = [vendorName];
+	if (f.status.length) params.transfer_statuses = [...f.status];
+	return params;
 }

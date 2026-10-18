@@ -26,10 +26,12 @@
 		template: ReportTemplate | null;
 		/** параметры прошлого запуска («Запустить заново»): заполняют форму вместо значений по умолчанию */
 		initial?: RerunRequest | null;
+		/** значения полей поверх значений по умолчанию (например, фильтры экрана, из которого открыта панель) */
+		initialValues?: Record<string, unknown> | null;
 		onClose: () => void;
 	}
 
-	let { template, initial = null, onClose }: Props = $props();
+	let { template, initial = null, initialValues = null, onClose }: Props = $props();
 
 	const run = useReportRun();
 	let format = $state('xlsx');
@@ -55,6 +57,7 @@
 			values = { ...t.default_params };
 			// параметры прошлого запуска: только известные форме ключи (колонки — после проверки по каталогу ниже)
 			if (from) values = { ...values, ...knownParams(from.params, paramsFor(t.code, t.default_params, { dateFields: t.date_fields, defaultDateField: t.default_date_field, columns: t.columns }).map((d) => d.key)) };
+			if (initialValues && !from) values = { ...values, ...initialValues };
 			// прошлый набор колонок этого отчёта (ТЗ Функц.13: кэш действий пользователя)
 			const columnDef = paramsFor(t.code, t.default_params, { columns: t.columns }).find((d) => d.kind === 'columns');
 			const pastColumns = from ? undefined : recallStrings(columnsKey(t.code));
