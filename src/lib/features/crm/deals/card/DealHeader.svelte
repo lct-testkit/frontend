@@ -138,7 +138,7 @@
 				</DropdownMenu>
 			{/if}
 			{#if buttons.primary && !bp.isMobile}
-				<Btn class="max-w-[34rem]" title={label(buttons.primary)} label={label(buttons.primary)} icon={ArrowRight} onclick={() => onTransition(buttons.primary!.transition)} data-testid="deal-primary-transition" />
+				<Btn class="max-w-80" title={label(buttons.primary)} label={label(buttons.primary)} icon={ArrowRight} onclick={() => onTransition(buttons.primary!.transition)} data-testid="deal-primary-transition" />
 			{/if}
 		{/if}
 	{/snippet}

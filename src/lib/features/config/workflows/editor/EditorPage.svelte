@@ -2,6 +2,7 @@
 	// Редактор воронки: холст (десктоп) + панель свойств; на телефоне и планшете — просмотр холста и списки. Черновик → проверка → публикация.
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { Chip, DropdownMenu } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { AttentionMark, CheckStatistics, MenuKebab } from '@lct-testkit/rt-ui/icons';
@@ -35,7 +36,14 @@
 	let settingsOpen = $state(false);
 
 	onMount(() => {
-		void editor.load();
+		// ссылка из карточки сделки («Переименовать» у шага): `?status=<id шага>` — шаг выбран, панель открыта (ключ сохранённого статуса равен его id)
+		void editor.load().then(() => {
+			const wanted = page.url.searchParams.get('status');
+			if (wanted && editor.draft.statuses.some((s) => s.key === wanted)) {
+				editor.select({ kind: 'status', key: wanted });
+				editor.showOnCanvas(wanted);
+			}
+		});
 		unwrap(api.GET('/api/signature-templates'))
 			.then((r) => (templates = r.items.map((t) => ({ code: t.code, name: t.name }))))
 			.catch(() => {});
@@ -193,6 +201,8 @@
 
 		{#if w.state === 'archived'}
 			<Notice class="shrink-0" tone="info">Воронка в архиве — только просмотр.</Notice>
+		{:else if editor.renameOnly}
+			<Notice class="shrink-0" tone="info">Просмотр: у вас можно переименовать шаг (выберите его на схеме), остальное правит администратор.</Notice>
 		{:else if editor.readonly}
 			<Notice class="shrink-0" tone="info">Просмотр: редактировать воронки может только администратор.</Notice>
 		{/if}

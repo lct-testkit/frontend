@@ -3,6 +3,7 @@
 import { api, unwrap, ifMatch, ApiError } from '$lib/api';
 import { session } from '$lib/auth/session.svelte';
 import { toast } from '$lib/ui';
+import { workflows } from '../../../crm/deals/workflows.svelte';
 import type { CustomFieldDef, Workflow, WorkflowGraph } from '../../types';
 import { fieldCatalogue, type FieldDef } from '../dsl';
 import {
@@ -23,6 +24,7 @@ import {
 	type TransitionDraft
 } from '../graph';
 import { hasErrors, parseServerIssues, validateGraph } from '../validation';
+import { normalizeStatusName, statusNameError } from '../statusName';
 
 export type Selection = { kind: 'status' | 'transition'; key: string };
 
@@ -61,6 +63,8 @@ export class WorkflowEditor {
 	#posTimer: ReturnType<typeof setTimeout> | undefined;
 
 	readonly = $derived(this.workflow?.state === 'archived' || !session.can('workflow:write'));
+	/** нет права править воронку, но есть право переименовывать шаги (Руководитель): открыто только поле «Название» шага */
+	renameOnly = $derived(this.workflow?.state !== 'archived' && !session.can('workflow:write') && session.can('workflow:rename_status'));
 	clientIssues = $derived(validateGraph(this.draft));
 	issues = $derived([...this.clientIssues, ...this.serverIssues]);
 	errorCount = $derived(this.issues.filter((i) => i.severity === 'error').length);
@@ -269,6 +273,39 @@ export class WorkflowEditor {
 		} catch (e) {
 			if (e instanceof ApiError && e.isConflict) this.conflict = true;
 			else toast.error(e, 'Не удалось сохранить черновик');
+			return false;
+		} finally {
+			this.saving = false;
+		}
+	}
+
+	/**
+	 * Переименовать сохранённый шаг одной ручкой (граф, переходы и SLA не затрагиваются): новое имя сразу у всех сделок воронки.
+	 * Версия воронки растёт, поэтому граф перечитывается; общий кэш названий карточек сделок обновляется тоже.
+	 */
+	async renameStatus(key: string, raw: string): Promise<boolean> {
+		const status = this.draft.statuses.find((s) => s.key === key);
+		const error = statusNameError(raw);
+		if (!this.workflow || !status?.id || error) return false;
+		this.saving = true;
+		this.conflict = false;
+		try {
+			await unwrap(
+				api.PATCH('/api/workflows/{workflow_id}/statuses/{status_id}', {
+					params: { path: { workflow_id: this.id, status_id: status.id } },
+					headers: ifMatch(this.workflow.version),
+					body: { name: normalizeStatusName(raw) }
+				})
+			);
+			// граф перечитываем сами, чтобы шаг остался выбранным и панель не закрылась
+			const previous = { draft: this.draft, positions: this.positions, selection: this.selection };
+			const [graph] = await Promise.all([unwrap(api.GET('/api/workflows/{workflow_id}', { params: { path: { workflow_id: this.id } } })), workflows.reload(this.id).catch(() => undefined)]);
+			this.apply(graph, previous);
+			toast.success('Название сохранено', 'Оно изменилось у всех сделок воронки');
+			return true;
+		} catch (e) {
+			if (e instanceof ApiError && e.isConflict) this.conflict = true;
+			else toast.error(e, 'Не удалось сохранить название');
 			return false;
 		} finally {
 			this.saving = false;

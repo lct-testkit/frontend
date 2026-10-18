@@ -65,7 +65,7 @@ export const NAV: NavSection[] = [
 		id: 'setup',
 		title: 'Настройка',
 		items: [
-			{ id: 'workflows', label: 'Воронки', href: '/workflows', icon: MarketingFunnel, permission: 'workflow:write' },
+			{ id: 'workflows', label: 'Воронки', href: '/workflows', icon: MarketingFunnel, permission: ['workflow:write', 'workflow:rename_status'] },
 			{ id: 'catalog', label: 'Справочники', href: '/catalog', icon: Catalog, permission: 'catalog:write' },
 			{ id: 'integrations', label: 'Интеграции', href: '/admin/integrations', icon: Connect, permission: 'integration:admin' },
 			{ id: 'registry', label: 'Реестр ЕГРЮЛ', href: '/admin/registry', icon: Book, permission: 'registry:import' },
