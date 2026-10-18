@@ -10,14 +10,14 @@
 	import ContactCreateDrawer from '../contacts/ContactCreateDrawer.svelte';
 	import ContactsTable from '../contacts/ContactsTable.svelte';
 	import DealsTable from '../deals/list/DealsTable.svelte';
-	import type { Contact, Deal } from '../types';
+	import type { Contact, DealListItem } from '../types';
 
 	let { orgId, kind }: { orgId: string; kind: 'contacts' | 'deals' } = $props();
 
 	const contacts = createPager<Contact>(async (cursor, signal) =>
 		unwrap(api.GET('/api/contacts', { params: { query: { organization_id: orgId, limit: 50, cursor: cursor ?? undefined } }, signal }))
 	);
-	const deals = createPager<Deal>(async (cursor, signal) =>
+	const deals = createPager<DealListItem>(async (cursor, signal) =>
 		unwrap(api.GET('/api/deals', { params: { query: { organization_id: [orgId], limit: 50, cursor: cursor ?? undefined } }, signal }))
 	);
 

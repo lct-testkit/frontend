@@ -9,6 +9,7 @@
 	import PriorityChip from '../../shared/PriorityChip.svelte';
 	import SlaIndicator from '../../shared/SlaIndicator.svelte';
 	import type { AvailableTransition, Deal, WorkflowStatus } from '../../types';
+	import { productLine, productsTitle, type DealRow } from './dealProducts';
 	import TransitionDialog from '../card/TransitionDialog.svelte';
 	import { isTerminal, statusName, statusTone, steps, terminals, type StatusTone } from '../statusUtils';
 	import { workflows } from '../workflows.svelte';
@@ -22,7 +23,7 @@
 	let { workflowId, query }: Props = $props();
 
 	const MAX_PAGES = 5;
-	let deals = $state<Deal[]>([]);
+	let deals = $state<DealRow[]>([]);
 	let loading = $state(true);
 	let error = $state<unknown>(null);
 	let truncated = $state(false);
@@ -31,7 +32,7 @@
 	const graph = $derived(workflows.graph(workflowId));
 	const columns = $derived([...steps(graph), ...terminals(graph)]);
 	const byStatus = $derived.by(() => {
-		const map = new Map<string, Deal[]>();
+		const map = new Map<string, DealRow[]>();
 		for (const deal of deals) {
 			const list = map.get(deal.status_id);
 			if (list) list.push(deal);
@@ -46,7 +47,7 @@
 		error = null;
 		try {
 			await workflows.ensure(workflowId);
-			const all: Deal[] = [];
+			const all: DealRow[] = [];
 			let cursor: string | undefined;
 			let more = false;
 			for (let i = 0; i < MAX_PAGES; i += 1) {
@@ -87,12 +88,12 @@
 
 	// organization_name/contact_name — бэкенд отдаёт их прямо в DealOut (backend-issues A-29);
 	// раньше здесь был N+1 через orgCache/contactCache только чтобы узнать то же самое.
-	const party = (d: Deal) => d.organization_name ?? d.contact_name ?? '';
+	const party = (d: DealRow) => d.organization_name ?? d.contact_name ?? '';
 
 	// --- перетаскивание -> диалог перехода
 	let dragId = $state<string | null>(null);
 	let overStatus = $state<string | null>(null);
-	let dialog = $state<{ deal: Deal; transition: AvailableTransition } | null>(null);
+	let dialog = $state<{ deal: DealRow; transition: AvailableTransition } | null>(null);
 
 	async function drop(target: WorkflowStatus) {
 		const deal = deals.find((d) => d.id === dragId);
@@ -110,12 +111,12 @@
 	}
 
 	function moved(updated: Deal) {
-		deals = deals.map((d) => (d.id === updated.id ? updated : d));
+		deals = deals.map((d) => (d.id === updated.id ? { ...d, ...updated } : d));
 		dialog = null;
 	}
 </script>
 
-{#snippet dealCard(deal: Deal)}
+{#snippet dealCard(deal: DealRow)}
 	<a
 		href="/deals/{deal.id}"
 		draggable="true"
@@ -138,6 +139,7 @@
 		</span>
 		<span class="t-body-m-strong line-clamp-2 break-words">{deal.title}</span>
 		<span class="t-desc-l truncate text-muted">{party(deal)}</span>
+		{#if productLine(deal)}<span class="t-desc-l line-clamp-1 text-muted" title={productsTitle(deal)}>{productLine(deal)}</span>{/if}
 		<span class="flex min-w-0 items-center justify-between gap-2">
 			<span class="t-body-s-strong min-w-0 truncate"><Money value={deal.amount} currency={deal.currency} short /></span>
 			<span class="min-w-0 flex-none"><SlaIndicator {deal} compact /></span>

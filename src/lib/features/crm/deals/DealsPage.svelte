@@ -19,7 +19,7 @@
 	import { DEAL_TYPE_LABELS, PRIORITY_LABELS } from '../shared/labels';
 	import { productFitsDirection, withDescendants } from '../shared/directions';
 	import { directionItems, directions, products, regions } from '../shared/refs.svelte';
-	import type { Deal } from '../types';
+	import type { DealListItem } from '../types';
 	import BulkReassignModal from './list/BulkReassignModal.svelte';
 	import DealsBoard from './list/DealsBoard.svelte';
 	import DealsTable from './list/DealsTable.svelte';
@@ -39,7 +39,7 @@
 	// (на доске статусы не фильтруют, поэтому в счётчик не входят)
 	const filterCount = $derived(activeCount(f, !showOwner) - (f.view === 'board' && f.workflow ? 1 : 0) - (f.view === 'board' && f.statuses.length ? 1 : 0));
 
-	const pager = createPager<Deal>(async (cursor, signal) =>
+	const pager = createPager<DealListItem>(async (cursor, signal) =>
 		unwrap(api.GET('/api/deals', { params: { query: { ...query, limit: 50, cursor: cursor ?? undefined } }, signal }))
 	);
 
@@ -197,7 +197,7 @@
 	{#if !canRead}
 		<EmptyState title="Нет доступа к сделкам" compact />
 	{:else}
-		<FilterBar search={f.q} placeholder="Номер или название" onSearch={(v) => set({ q: v || null })} active={filterCount} onReset={reset} {filters} {more} {moreActive} />
+		<FilterBar search={f.q} placeholder="Номер, название или вуз" onSearch={(v) => set({ q: v || null })} active={filterCount} onReset={reset} {filters} {more} {moreActive} />
 
 		{#if f.view === 'board'}
 			{#if f.workflow}
