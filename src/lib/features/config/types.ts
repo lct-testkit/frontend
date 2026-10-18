@@ -54,3 +54,6 @@ export interface HealthReport {
 	status: 'ok' | 'degraded' | 'unavailable' | string;
 	dependencies: HealthDependency[];
 }
+
+export type WebhookSubscription = S['WebhookSubscriptionOut'];
+export type WebhookDelivery = S['WebhookDeliveryOut'];

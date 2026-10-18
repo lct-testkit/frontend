@@ -134,6 +134,10 @@
 			"tier": "full"
 		},
 		{
+			"file": "e-webhooks.mjs",
+			"tier": "full"
+		},
+		{
 			"file": "f-audit-entities.mjs",
 			"tier": "full"
 		},
