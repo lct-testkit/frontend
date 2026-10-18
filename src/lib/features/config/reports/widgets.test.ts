@@ -72,6 +72,7 @@ describe('виджеты дашборда', () => {
 
 	it('какие отчёты рисуются графиком и ключ запуска не зависит от порядка параметров', () => {
 		expect(canChart('monthly_dynamics')).toBe(true);
+		expect(canChart('signing_periods')).toBe(true);
 		expect(canChart('stuck_deals')).toBe(false);
 		expect(runKey({ template_code: 'x', params: { b: 1, a: 2 } })).toBe(runKey({ template_code: 'x', params: { a: 2, b: 1 } }));
 	});
