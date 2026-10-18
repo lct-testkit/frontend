@@ -9,6 +9,7 @@
 	import { Btn, CopyButton, DateText, IconBtn, Notice, Skeleton, StatusChip, Tip, toast } from '$lib/ui';
 	import { AUTH_TYPES, labelOf } from '../labels';
 	import type { IntegrationSource, SourceStatus } from '../types';
+	import MappingDrawer from './MappingDrawer.svelte';
 	import { PullRun } from './pull.svelte';
 	import { cursorLines, intervalLabel, parseRun, pullBlocked, runChip, runCounts, triggerLabel } from './sourceState';
 
@@ -24,6 +25,10 @@
 	let status = $state<SourceStatus | null>(null);
 	let statusError = $state(false);
 	let lastInbound = $state<string | null>(null);
+	/** сколько правил маппинга настроено (`null` — не загружено; 0 — встроенное поведение) */
+	let rulesCount = $state<number | null>(null);
+	let mappingOpen = $state(false);
+	const mappable = $derived(source.code === 'cms');
 
 	async function load() {
 		statusError = false;
@@ -33,6 +38,7 @@
 				unwrap(api.GET('/api/admin/integrations/inbound-messages', { params: { query: { source_code: source.code, limit: 1 } } }))
 			]);
 			status = st;
+			if (mappable) rulesCount = (await unwrap(api.GET('/api/admin/integrations/sources/{code}/mapping', { params: { path: { code: source.code } } }))).mapping?.rules?.length ?? 0;
 			lastInbound = inbound[0]?.received_at ?? null;
 		} catch {
 			statusError = true;
@@ -92,6 +98,13 @@
 		{/if}
 		<dt class="t-desc-l text-muted">Входящие</dt>
 		<dd class="t-body-s m-0">{#if lastInbound}<DateText value={lastInbound} time /> <span class="text-soft">· по журналу</span>{:else if status || statusError}не было{:else}…{/if}</dd>
+		{#if mappable}
+			<dt class="t-desc-l text-muted">Поля</dt>
+			<dd class="m-0 flex min-w-0 items-center justify-between gap-2">
+				<span class="t-body-s">{#if rulesCount === null}…{:else if rulesCount === 0}встроенные названия{:else}настроено правил: {rulesCount}{/if}</span>
+				<Btn label="Изменить" variant="ghost" colorScheme="neutral" size="auto" onclick={() => (mappingOpen = true)} />
+			</dd>
+		{/if}
 		{#each cursors as c (c.key)}
 			<dt class="t-desc-l text-muted">Курсор</dt>
 			<dd class="m-0 flex min-w-0 items-center gap-1">
@@ -149,3 +162,7 @@
 		</span>
 	</footer>
 </article>
+
+{#if mappable}
+	<MappingDrawer open={mappingOpen} {source} onClose={() => (mappingOpen = false)} onSaved={(n) => (rulesCount = n)} />
+{/if}
