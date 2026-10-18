@@ -16,6 +16,8 @@ export class DealCardState {
 	/** счётчики карточки: устаревают до 10 минут (backend-issues A-6), вкладки уточняют их по своим данным */
 	counts = $state({ comments: 0, tasks: 0 });
 	transitions = $state<AvailableTransition[]>([]);
+	/** the answer about transitions came (even an empty one): until then the header keeps the room of the main button */
+	transitionsLoaded = $state(false);
 	loading = $state(true);
 	error = $state<unknown>(null);
 	/** кто-то изменил сделку: показываем баннер с «Обновить» */
@@ -122,6 +124,7 @@ export class DealCardState {
 	async loadTransitions(): Promise<void> {
 		if (!this.deal || this.deal.closed_at) {
 			this.transitions = [];
+			this.transitionsLoaded = true;
 			return;
 		}
 		try {
@@ -129,6 +132,7 @@ export class DealCardState {
 		} catch {
 			this.transitions = [];
 		}
+		this.transitionsLoaded = true;
 	}
 
 	/** Перечитать сделку и переходы без «скелета» (после конфликта, возврата на вкладку, действий других модулей). */

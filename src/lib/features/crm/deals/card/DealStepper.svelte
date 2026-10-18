@@ -54,6 +54,10 @@
 	);
 </script>
 
+<!-- the graph comes after the deal: keep the room of the strip (88 px, a phone 96) so the tabs and the cards do not jump down when it appears -->
+{#if !graph}
+	<div class="h-22 max-md:h-24" aria-hidden="true"></div>
+{:else}
 <StatusSteps steps={view}>
 	{#snippet here()}
 		<!-- право переименовывать шаги (Руководитель, Администратор): ссылка в редактор воронки с выбранным шагом -->
@@ -65,3 +69,4 @@
 		{#if terminal}<StatusChip label={statusName(terminal.name)} color={terminal.color} tone={statusTone(terminal.type)} hint={statusTypeHint(terminal.type)} />{/if}
 	{/snippet}
 </StatusSteps>
+{/if}

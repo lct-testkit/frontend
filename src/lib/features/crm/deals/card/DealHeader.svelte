@@ -143,7 +143,9 @@
 		{/if}
 	{/snippet}
 
-	{#if bp.isMobile && canTransition && open && buttons.primary}
+	{#if bp.isMobile && canTransition && open && !card.transitionsLoaded}
+		<div class="h-12" aria-hidden="true"></div>
+	{:else if bp.isMobile && canTransition && open && buttons.primary}
 		<Btn block size="l" title={label(buttons.primary)} label={label(buttons.primary)} icon={ArrowRight} onclick={() => onTransition(buttons.primary!.transition)} data-testid="deal-primary-transition" />
 	{/if}
 </PageHeader>
