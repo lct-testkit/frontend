@@ -363,12 +363,14 @@
 			{/if}
 		{/if}
 	{:else}
+		<!-- rows: false — a selection that goes away (a tab, a filter) must vanish where it stood: the DS fade-out pins the leaving cells with position:absolute against a root that is already gone, and they flew over the menu -->
 		<TableGrid
 			{id}
 			alignCells
 			less={embedded}
 			columns={gridColumns}
 			{rows}
+			motion={{ rows: false }}
 			columnConfig={{ sorting: onSort !== undefined }}
 			headerSticky={scrollInside}
 			footerSticky={scrollInside}
