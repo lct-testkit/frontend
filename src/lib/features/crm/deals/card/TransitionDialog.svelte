@@ -5,8 +5,8 @@
 	import { untrack } from 'svelte';
 	import { ArrowRight, CheckSmall, CloseSmall } from '@lct-testkit/rt-ui/icons';
 	import { ApiError, api, errorMessage, ifMatch, unwrap } from '$lib/api';
+	import { session } from '$lib/auth/session.svelte';
 	import { CheckField, FormModal, Notice, StatusChip, toast } from '$lib/ui';
-	import { mayClose } from '$lib/ui/form-close';
 	import AreaField from '$lib/ui/fields/AreaField.svelte';
 	import DateField from '$lib/ui/fields/DateField.svelte';
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
@@ -15,10 +15,14 @@
 	import Ico from '../../shared/Ico.svelte';
 	import { dealFieldDefs, lossReasons } from '../../shared/refs.svelte';
 	import { LOSS_REASON_CATEGORY_LABELS } from '../../shared/labels';
-	import type { AvailableTransition, Deal, WorkflowGraph } from '../../types';
-	import { currentText, describeCondition, type ConditionLike } from '../conditions';
+	import { formatDate } from '$lib/utils/format';
+	import { ATTACHMENT_CATEGORY_LABELS } from '../../shared/labels';
+	import type { Attachment, AvailableTransition, Deal, WorkflowGraph } from '../../types';
+	import { currentText, describeCondition, fieldLabel, type ConditionLike } from '../conditions';
 	import { statusName, statusTone, transitionKind } from '../statusUtils';
-	import { buildTransitionForm, isOtherReason, serializeTransitionFields, unmetAlternatives, type TransitionFormField } from '../transitionForm';
+	import { buildTransitionForm, fileLeaf, fileRequirements, isOtherReason, missingFileFields, serializeTransitionFields, unmetAlternatives, type TransitionFormField } from '../transitionForm';
+	import TransitionFileZone from './TransitionFileZone.svelte';
+	import { clearDraft, draftKey, getDraft, setDraft, type DraftFile } from './transitionDrafts';
 
 	interface Props {
 		open: boolean;
@@ -31,9 +35,13 @@
 		onNavigate?: (target: 'files' | 'signing' | 'tasks' | 'edit') => void;
 		/** конфликт версий: родитель перечитывает сделку, диалог получает свежий `deal` и вводимое сохраняется */
 		onConflict?: () => Promise<void> | void;
+		/** в диалоге приложили или отвязали файл: родитель перечитывает переходы (условия «файл в сделке» выполняются сразу) */
+		onFilesChanged?: () => Promise<void> | void;
 	}
 
-	let { open, deal, transition, graph, onClose, onDone, onNavigate, onConflict }: Props = $props();
+	let { open, deal, transition, graph, onClose, onDone, onNavigate, onConflict, onFilesChanged }: Props = $props();
+
+	const canUpload = $derived(session.can('file:upload'));
 
 	// бэкенд может не прислать `conditions` — считаем, что условий нет
 	const tr = $derived({ ...transition, conditions: transition.conditions ?? [] });
@@ -41,7 +49,7 @@
 	const target = $derived(graph?.statuses.find((s) => s.id === transition.to_status_id));
 	const defs = $derived(dealFieldDefs.value ?? []);
 	const tree = $derived(graph?.transitions.find((t) => t.id === transition.id)?.conditions ?? null);
-	const form = $derived(buildTransitionForm({ transition: tr, conditionTree: tree, targetStatus: target, deal, customFieldDefs: defs }));
+	const form = $derived(buildTransitionForm({ transition: tr, conditionTree: tree, targetStatus: target, deal, customFieldDefs: defs, canUploadFiles: canUpload }));
 	const kind = $derived(transitionKind(target, current));
 
 	/** выбрана «другая причина» (отказа или заморозки): бэкенд не хранит её отдельным полем, поэтому её вписывают в комментарий — он становится обязательным */
@@ -59,11 +67,71 @@
 	);
 	const commentRequired = $derived(form.needsComment || otherReason);
 
-	let values = $state<Record<string, unknown>>({});
-	let comment = $state('');
+	// черновик (комментарий, поля, файлы) восстанавливается по паре «сделка + переход»; пишется при вводе, стирается после перехода и отмены
+	const key = $derived(draftKey(deal.id, transition.id));
+	// svelte-ignore state_referenced_locally
+	const saved = getDraft(draftKey(deal.id, transition.id));
+	let values = $state<Record<string, unknown>>(saved?.values ?? {});
+	let comment = $state(saved?.comment ?? '');
+	let files = $state<DraftFile[]>(saved?.files ?? []);
+	let finished = false;
 	let errors = $state<Record<string, string>>({});
 	let banner = $state<{ tone: 'error' | 'warning'; text: string; conflict?: boolean; unmet?: ConditionLike[] } | null>(null);
 	let busy = $state(false);
+
+	function snapshot() {
+		return { comment, values: $state.snapshot(values), files: $state.snapshot(files) };
+	}
+	$effect(() => {
+		const data = snapshot();
+		const k = key;
+		if (finished) return;
+		const timer = setTimeout(() => setDraft(k, data), 300);
+		return () => clearTimeout(timer);
+	});
+
+	// файловые требования: невыполненные закрываются загрузкой здесь же, выполненные показываются как «приложен: имя, дата»
+	const fileReqs = $derived(fileRequirements(tr.conditions, tree));
+	const pending = $derived(new Set(files.map((f) => f.category)));
+	const missingFiles = $derived(missingFileFields(tr.conditions, tree, pending));
+	const requiredCategories = $derived(new Set(fileReqs.map((r) => r.category)));
+	const otherFiles = $derived(files.filter((f) => !requiredCategories.has(f.category)));
+	const showOtherFiles = $derived(canUpload && kind !== 'lost' && kind !== 'parked');
+
+	let existing = $state<Attachment[]>([]);
+	$effect(() => {
+		if (!open || !fileReqs.some((r) => r.satisfied)) return;
+		const dealId = deal.id;
+		void (async () => {
+			try {
+				existing = (await unwrap(api.GET('/api/attachments', { params: { query: { entity_type: 'deal', entity_id: dealId, limit: 100 } } }))).items;
+			} catch {
+				existing = [];
+			}
+		})();
+	});
+	/** выполненное условие-файл: «договор.pdf, 12 октября» (на шаге — только файл, приложенный на текущем статусе) */
+	function describeExisting(req: { category: string; stepScoped: boolean }): string {
+		const hit = existing
+			.filter((a) => a.category === req.category && (!req.stepScoped || a.status_id === deal.status_id))
+			.sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+		if (!hit) return '';
+		return `${hit.file?.original_filename ?? hit.description ?? 'файл'}, ${formatDate(hit.created_at)}`;
+	}
+	const reqOf = (leaf: ConditionLike) => fileReqs.find((r) => r.field === leaf.field);
+
+	function filesChanged() {
+		void onFilesChanged?.();
+	}
+	function addFile(file: DraftFile) {
+		files = [...files, file];
+		if (errors.files) errors = { ...errors, files: '' };
+		filesChanged();
+	}
+	function removeFile(id: string) {
+		files = files.filter((f) => f.attachmentId !== id);
+		filesChanged();
+	}
 
 	$effect(() => {
 		if (open) {
@@ -134,6 +202,7 @@
 		// группа «одно из»: хватит любого поля, но не заполнено ни одно
 		const satisfiedNow = new Set(tr.conditions.filter((c) => c.satisfied).map((c) => c.field));
 		for (const key of unmetAlternatives(form, values, satisfiedNow)) next[key] = 'Заполните одно из полей';
+		if (missingFiles.length) next.files = `Приложите файл: ${[...new Set(missingFiles.map((f) => ATTACHMENT_CATEGORY_LABELS[fileLeaf(f)!.category] ?? f))].join(', ')}`;
 		if (commentRequired && !comment.trim()) next.comment = otherReason ? 'Опишите причину' : 'Укажите комментарий';
 		errors = next;
 		return Object.keys(next).length === 0;
@@ -194,10 +263,12 @@
 				api.POST('/api/deals/{deal_id}/transition', {
 					params: { path: { deal_id: deal.id } },
 					headers: ifMatch(deal.version),
-					body: { to_status_id: transition.to_status_id, comment: comment.trim() || null, fields: serializeTransitionFields(values, form.fields) }
+					body: { to_status_id: transition.to_status_id, comment: comment.trim() || null, fields: serializeTransitionFields(values, form.fields), attachments: files.map((f) => f.attachmentId) }
 				})
 			);
 			toast.success(`Статус: «${target?.name ?? ''}»`);
+			finished = true;
+			clearDraft(key);
 			onDone(res.deal, transition);
 		} catch (e) {
 			fail(e);
@@ -210,16 +281,29 @@
 	const HINT_LINK = { attachment: 'К файлам', signature: 'К подписанию', tasks: 'К задачам', edit: 'Редактировать' } as const;
 
 	/** несохранённый ввод — как для закрытия диалога (`dirty` ниже), так и для ухода по ссылке-подсказке */
-	const inputDirty = $derived(comment.trim().length > 0);
+	const inputDirty = $derived(comment.trim().length > 0 || files.length > 0);
 
-	/** ссылка-подсказка уходит со страницы диалога: тот же вопрос, что и при закрытии, иначе комментарий тихо теряется */
-	async function goNavigate(target: 'files' | 'signing' | 'tasks' | 'edit') {
-		if (await mayClose(inputDirty)) onNavigate?.(target);
+	/** ссылка-подсказка («К подписанию», «К задачам») уходит со страницы диалога: введённое и приложенные файлы остаются в черновике, вопросов не задаём */
+	function goNavigate(target: 'files' | 'signing' | 'tasks' | 'edit') {
+		setDraft(key, snapshot());
+		onNavigate?.(target);
+	}
+
+	/** отмена окна: файлы, приложенные здесь и не привязанные к переходу, не оставляем в сделке; черновик стираем */
+	function close() {
+		finished = true;
+		clearDraft(key);
+		if (files.length) {
+			// переходы перечитываем только когда вложения реально удалены, иначе сервер ещё посчитает условие выполненным
+			void Promise.allSettled(files.map((f) => api.DELETE('/api/attachments/{attachment_id}', { params: { path: { attachment_id: f.attachmentId } } }))).then(filesChanged);
+		}
+		onClose();
 	}
 
 	/** кнопка-переход плашки («К файлам», «К подписанию»…); у остальных подсказок кнопки нет */
 	function navActions(kind: string | undefined): { label: string; onclick: () => void }[] {
 		if (!onNavigate || !kind || !(kind in HINT_TARGET)) return [];
+		if (kind === 'attachment' && canUpload) return []; // загрузка прямо в окне, ссылка на вкладку не нужна
 		return [{ label: HINT_LINK[kind as keyof typeof HINT_LINK], onclick: () => void goNavigate(HINT_TARGET[kind as keyof typeof HINT_TARGET]) }];
 	}
 
@@ -228,22 +312,36 @@
 {#snippet leafText(leaf: ConditionLike)}
 	{describeCondition(leaf, defs)}
 	{#if !leaf.satisfied && currentText(leaf)}<span class="text-muted"> · {currentText(leaf)}</span>{/if}
-	{#if leaf.field.startsWith('attachments.') && !leaf.satisfied}<span class="text-muted"> · сервер пока не проверяет вложения</span>{/if}
 {/snippet}
 
 <!-- выполненное условие — тихая строка с галочкой; невыполненное — плашка Notice с кнопкой перехода («К файлам», «К подписанию»…) -->
 {#snippet leafRow(leaf: ConditionLike)}
-	{#if leaf.satisfied}
+	{@const req = fileLeaf(leaf.field) ? reqOf(leaf) : undefined}
+	{@const mine = req ? files.filter((f) => f.category === req.category) : []}
+	<!-- файл, приложенный в этом окне, сервер сразу засчитывает как выполненное условие, но зону с файлом оставляем: его можно отвязать -->
+	{#if req && canUpload && (!leaf.satisfied || mine.length)}
+		<li class="flex flex-col gap-2" data-testid="file-req-{req.category}">
+			<div class="flex items-start gap-2">
+				<Ico icon={mine.length ? CheckSmall : CloseSmall} tone={mine.length ? 'success' : 'warning'} size={20} class="mt-px" />
+				<span class="t-body-m min-w-0 flex-1 break-words">
+					{fieldLabel(leaf.field, defs)}<span class="text-muted"> · {mine.length ? 'приложен в этом окне' : 'не приложен'}</span>
+				</span>
+			</div>
+			<TransitionFileZone dealId={deal.id} category={req.category} files={mine} onAdd={addFile} onRemove={removeFile} testid="tr-files-{req.category}" />
+		</li>
+	{:else if leaf.satisfied}
 		<li class="flex items-start gap-2">
-			<Ico icon={leaf.satisfied ? CheckSmall : CloseSmall} tone={leaf.satisfied ? 'success' : 'danger'} size={20} class="mt-px" />
-			<span class={['t-body-m min-w-0 flex-1 break-words', leaf.satisfied ? 'text-muted' : 'text-fg']}>{@render leafText(leaf)}</span>
+			<Ico icon={CheckSmall} tone="success" size={20} class="mt-px" />
+			<span class="t-body-m min-w-0 flex-1 break-words text-muted">
+				{@render leafText(leaf)}{#if req && describeExisting(req)}<span> · уже приложен: {describeExisting(req)}</span>{/if}
+			</span>
 		</li>
 	{:else}
 		<li><Notice class="shrink-0" tone="warning" actions={navActions(hintOf(leaf)?.kind)}>{@render leafText(leaf)}</Notice></li>
 	{/if}
 {/snippet}
 
-<FormModal {open} size="m" {title} saveLabel={actionLabel} {danger} saveTestId="transition-submit" saving={busy} canSave={!form.blocked} dirty={open && inputDirty} {formError} conflict={!!banner?.conflict} conflictText={banner?.text} reloadLabel="Обновить" onReload={refresh} onSave={submit} {onClose}>
+<FormModal {open} size="m" {title} saveLabel={actionLabel} {danger} saveTestId="transition-submit" saving={busy} canSave={!form.blocked && missingFiles.length === 0} dirty={open && inputDirty} {formError} conflict={!!banner?.conflict} conflictText={banner?.text} reloadLabel="Обновить" onReload={refresh} onSave={submit} onClose={close}>
 	<div class="flex flex-wrap items-center gap-2">
 		{#if current}<StatusChip label={statusName(current.name)} color={current.color} tone={statusTone(current.type)} />{/if}
 		<Ico icon={ArrowRight} tone="soft" size={20} />
@@ -262,6 +360,15 @@
 					</ul>
 				</div>
 			{/each}
+		</div>
+	{/if}
+
+	{#if errors.files}<p class="t-desc-l m-0 text-danger" role="alert">{errors.files}</p>{/if}
+
+	{#if showOtherFiles}
+		<div class="flex flex-col gap-2" data-testid="other-files">
+			<span class="t-body-s-strong text-muted">Другие файлы к этому статусу</span>
+			<TransitionFileZone dealId={deal.id} files={otherFiles} onAdd={addFile} onRemove={removeFile} testid="tr-files-other" />
 		</div>
 	{/if}
 

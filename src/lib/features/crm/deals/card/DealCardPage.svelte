@@ -127,6 +127,12 @@
 				onDone={done}
 				onNavigate={navigate}
 				onConflict={() => card.refresh()}
+				onFilesChanged={async () => {
+					// файл приложен или отвязан: условия «файл в сделке» пересчитываются сервером, диалог получает свежий переход
+					await card.loadTransitions();
+					const id = dialogFor?.id;
+					dialogFor = card.transitions.find((t) => t.id === id) ?? dialogFor;
+				}}
 			/>
 		{/if}
 		<EditDealDrawer open={editing} {card} onClose={() => (editing = false)} />

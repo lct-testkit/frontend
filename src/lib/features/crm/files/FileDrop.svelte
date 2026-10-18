@@ -28,7 +28,8 @@
 	let input = $state<HTMLInputElement>();
 
 	const limit = $derived(formatBytes(getPolicy().maxBytes));
-	const hintText = $derived(hint ?? `до ${limit} · ${allowedLabel()}`);
+	// сжатая зона (диалог перехода) — только предел размера: перечень форматов появится в ответе на неподходящий файл
+	const hintText = $derived(hint ?? (compact ? `до ${limit}` : `до ${limit} · ${allowedLabel()}`));
 
 	function pick(files: FileList | null) {
 		if (!files || disabled) return;

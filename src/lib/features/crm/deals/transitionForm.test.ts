@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
 	alternativeGroups,
+	anyGroupFields,
+	fileLeaf,
+	fileRequirements,
+	missingFileFields,
 	buildTransitionForm,
 	flattenLeaves,
 	isFillableField,
@@ -181,7 +185,7 @@ describe('buildTransitionForm', () => {
 		expect(form.fields[1]).toMatchObject({ input: 'text', expected: true, label: 'contact verified' });
 	});
 
-	it('подпись ИЛИ вложение: подсказки вместо полей, отправка заблокирована', () => {
+	it('подпись ИЛИ вложение без права на файлы: подсказки вместо полей, отправка заблокирована', () => {
 		const form = buildTransitionForm({
 			transition: transition({
 				conditions: [
@@ -190,7 +194,8 @@ describe('buildTransitionForm', () => {
 				]
 			}),
 			conditionTree: LMS_CONDITION,
-			deal: emptyDeal
+			deal: emptyDeal,
+			canUploadFiles: false
 		});
 		expect(form.fields).toEqual([]);
 		expect(form.hints.map((h) => h.kind)).toEqual(['signature', 'attachment']);
@@ -289,5 +294,68 @@ describe('isOtherReason', () => {
 		expect(isOtherReason('Другой поставщик')).toBe(false);
 		expect(isOtherReason('Прочие условия')).toBe(false);
 		expect(isOtherReason(null)).toBe(false);
+	});
+});
+
+describe('файлы в диалоге перехода', () => {
+	const STEP_CONTRACT: ConditionNode = { field: 'step_attachments.contract', op: 'exists' };
+	const ANY_CONTRACT_OR_SIGNED: ConditionNode = {
+		any: [
+			{ field: 'signature_status', op: 'eq', value: 'signed' },
+			{ field: 'step_attachments.contract', op: 'exists' }
+		]
+	};
+	const unmet = (field: string, satisfied = false) => ({ field, op: 'exists', actual: null, satisfied });
+
+	it('fileLeaf различает файл в сделке и файл на этом шаге', () => {
+		expect(fileLeaf('attachments.contract')).toEqual({ category: 'contract', stepScoped: false });
+		expect(fileLeaf('step_attachments.act')).toEqual({ category: 'act', stepScoped: true });
+		expect(fileLeaf('attachments.')).toBeNull();
+		expect(fileLeaf('custom_fields.x')).toBeNull();
+	});
+
+	it('условие step_attachments.contract без вложения даёт одно требование категории contract', () => {
+		const reqs = fileRequirements([unmet('step_attachments.contract')], STEP_CONTRACT);
+		expect(reqs).toEqual([{ field: 'step_attachments.contract', category: 'contract', label: 'Договор', stepScoped: true, satisfied: false, alternative: false }]);
+	});
+
+	it('группа any из подписи и файла помечает требование как альтернативу', () => {
+		const reqs = fileRequirements([{ field: 'signature_status', op: 'eq', actual: 'none', satisfied: false }, unmet('step_attachments.contract')], ANY_CONTRACT_OR_SIGNED);
+		expect(reqs).toHaveLength(1);
+		expect(reqs[0].alternative).toBe(true);
+		expect([...anyGroupFields(ANY_CONTRACT_OR_SIGNED)].sort()).toEqual(['signature_status', 'step_attachments.contract']);
+		expect(anyGroupFields(STEP_CONTRACT).size).toBe(0);
+	});
+
+	it('выполненное условие остаётся в требованиях как «приложен» (satisfied), невыполненные — нет', () => {
+		const reqs = fileRequirements([unmet('attachments.contract', true), unmet('attachments.act')], null);
+		expect(reqs.map((r) => [r.category, r.satisfied])).toEqual([
+			['contract', true],
+			['act', false]
+		]);
+	});
+
+	it('подсказка attachment несёт категорию и текст про «на этом шаге»', () => {
+		const form = buildTransitionForm({ transition: transition({ conditions: [unmet('step_attachments.contract')] }), conditionTree: STEP_CONTRACT, deal: emptyDeal });
+		expect(form.hints[0]).toMatchObject({ kind: 'attachment', category: 'contract', stepScoped: true });
+		expect(form.hints[0].text).toBe('Приложите файл «Договор» на этом шаге');
+		expect(form.blocked).toBe(false); // файл закрывается в диалоге
+		const noRight = buildTransitionForm({ transition: transition({ conditions: [unmet('step_attachments.contract')] }), conditionTree: STEP_CONTRACT, deal: emptyDeal, canUploadFiles: false });
+		expect(noRight.blocked).toBe(true);
+	});
+
+	it('missingFileFields: договор приложен в диалоге — файлов достаточно; другая категория не заменяет', () => {
+		const conds = [unmet('step_attachments.contract')];
+		expect(missingFileFields(conds, STEP_CONTRACT, new Set())).toEqual(['step_attachments.contract']);
+		expect(missingFileFields(conds, STEP_CONTRACT, new Set(['contract']))).toEqual([]);
+		expect(missingFileFields(conds, STEP_CONTRACT, new Set(['act']))).toEqual(['step_attachments.contract']);
+	});
+
+	it('missingFileFields: в группе «одно из» хватает подписи, без неё нужен файл', () => {
+		const signedOk = [{ field: 'signature_status', op: 'eq', actual: 'signed', satisfied: true }, unmet('step_attachments.contract')];
+		expect(missingFileFields(signedOk, ANY_CONTRACT_OR_SIGNED, new Set())).toEqual([]);
+		const none = [{ field: 'signature_status', op: 'eq', actual: 'none', satisfied: false }, unmet('step_attachments.contract')];
+		expect(missingFileFields(none, ANY_CONTRACT_OR_SIGNED, new Set())).toEqual(['step_attachments.contract']);
+		expect(missingFileFields(none, ANY_CONTRACT_OR_SIGNED, new Set(['contract']))).toEqual([]);
 	});
 });
