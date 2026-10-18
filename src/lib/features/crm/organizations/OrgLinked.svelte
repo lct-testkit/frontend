@@ -18,7 +18,7 @@
 		unwrap(api.GET('/api/contacts', { params: { query: { organization_id: orgId, limit: 50, cursor: cursor ?? undefined } }, signal }))
 	);
 	const deals = createPager<Deal>(async (cursor, signal) =>
-		unwrap(api.GET('/api/deals', { params: { query: { organization_id: orgId, limit: 50, cursor: cursor ?? undefined } }, signal }))
+		unwrap(api.GET('/api/deals', { params: { query: { organization_id: [orgId], limit: 50, cursor: cursor ?? undefined } }, signal }))
 	);
 
 	let creating = $state(false);

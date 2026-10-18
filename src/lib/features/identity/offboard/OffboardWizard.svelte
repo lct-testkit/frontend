@@ -34,7 +34,7 @@
 	// передача дел ещё не выполнена, а выбор или причина уже введены
 	useLeaveGuard(() => !result && (step > 0 || !!successorId || !!reason.trim()), 'Передача дел не выполнена, введённое будет потеряно.');
 
-	const body = (mode: 'preview' | 'confirm', extra = {}) => ({ params: { path: { user_id: user.id } }, body: { mode, ...extra } });
+	const body = (mode: 'preview' | 'confirm', extra = {}) => ({ params: { path: { user_id: user.id } }, body: { mode, include_closed_deals: true, include_organizations: true, ...extra } });
 
 	async function preview() {
 		loading = true;

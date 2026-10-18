@@ -68,9 +68,9 @@ export interface DealQuery {
 	status_id?: string[];
 	deal_type?: string;
 	priority?: string;
-	owner_id?: string;
-	region_id?: string;
-	product_id?: string;
+	owner_id?: string[];
+	region_id?: string[];
+	product_id?: string[];
 	sla_state?: string;
 	is_closed?: boolean;
 	created_from?: string;
@@ -86,14 +86,14 @@ export function toQuery(f: DealFilters, meId: string | null | undefined): DealQu
 		status_id: f.status ? [f.status] : undefined,
 		deal_type: f.type || undefined,
 		priority: f.priority || undefined,
-		owner_id: f.owner || undefined,
-		region_id: f.region || undefined,
-		product_id: f.product || undefined,
+		owner_id: f.owner ? [f.owner] : undefined,
+		region_id: f.region ? [f.region] : undefined,
+		product_id: f.product ? [f.product] : undefined,
 		created_from: f.from ? startOfDay(f.from) : undefined,
 		created_to: f.to ? endOfDay(f.to) : undefined,
 		sort: f.sort || undefined
 	};
-	if (f.quick === 'mine' && !query.owner_id && meId) query.owner_id = meId;
+	if (f.quick === 'mine' && !query.owner_id && meId) query.owner_id = [meId];
 	if (f.quick === 'warning') query.sla_state = 'warning';
 	if (f.quick === 'breached') query.sla_state = 'breached';
 	if (f.quick === 'closed') query.is_closed = true;

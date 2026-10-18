@@ -124,7 +124,8 @@
 				valid_from: validFrom,
 				valid_to: validTo,
 				is_active: isActive,
-				custom_fields: custom
+				custom_fields: custom,
+				kind: item?.kind ?? 'course'
 			};
 			if (item) {
 				const saved = await unwrap(api.PATCH('/api/products/{product_id}', { params: { path: { product_id: item.id } }, body, headers: ifMatch(version) }));

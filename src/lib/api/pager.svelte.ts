@@ -4,7 +4,7 @@ export interface Page<T> {
 	items: T[];
 	next_cursor?: string | null;
 	/** сколько всего подходит под фильтры, без учёта курсора — отдают не все ручки списков */
-	total?: number;
+	total?: number | null;
 }
 
 export type PageLoader<T> = (cursor: string | null, signal: AbortSignal) => Promise<Page<T>>;
@@ -52,7 +52,7 @@ export class Pager<T> {
 			const page = await this.#load(null, ctrl.signal);
 			if (seq !== this.#seq) return;
 			this.items = page.items;
-			this.total = page.total;
+			this.total = page.total ?? undefined;
 			this.#cursor = page.next_cursor ?? null;
 			this.hasMore = this.#cursor !== null;
 			this.loaded = true;
@@ -76,7 +76,7 @@ export class Pager<T> {
 			const page = await this.#load(this.#cursor, ctrl.signal);
 			if (seq !== this.#seq) return;
 			this.items = [...this.items, ...page.items];
-			this.total = page.total;
+			this.total = page.total ?? undefined;
 			this.#cursor = page.next_cursor ?? null;
 			this.hasMore = this.#cursor !== null;
 		} catch (e) {

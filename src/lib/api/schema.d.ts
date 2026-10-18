@@ -80,6 +80,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/audit/deals/{deal_id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Комментарии сделки для аудитора
+         * @description Право `comment:audit_read` (AUDITOR), не `deal:read` — сделка целиком вне скоупа этой роли (раздел 4, `DealScope.NONE`); доступ только к переписке, найденной через запись `COMMENT_CREATED` в журнале аудита. Видит и мягко удалённые сделки (B4-3). Отдаёт все комментарии, включая внутренние и системные; текст живых замаскирован (email, телефон, ФИО), у удалённых — `body: null`. Каждый вызов пишет `DEAL_COMMENTS_VIEWED`.
+         */
+        get: operations["list_deal_comments_for_audit_api_admin_audit_deals__deal_id__comments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/audit/export": {
         parameters: {
             query?: never;
@@ -147,7 +167,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Список соглашений об ЭДО */
+        /**
+         * Список соглашений об ЭДО
+         * @description Соглашения об электронном документообороте с вузами/вендорами (сторона, срок действия, статус отзыва); фильтры `party_type`/`party_id`. Роль: AUDITOR, ADMIN.
+         */
         get: operations["list_edm_agreements_api_admin_edm_agreements_get"];
         put?: never;
         /**
@@ -170,7 +193,10 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Отозвать соглашение */
+        /**
+         * Отозвать соглашение
+         * @description Переводит соглашение в `revoked` с указанием причины; открытые документы этой стороны переходят в `blocked_no_agreement`, их запросы — в `pending` (прежние ссылки перестают работать). Уже отозвано — 422 CRM-1001. Роль: ADMIN.
+         */
         post: operations["revoke_edm_agreement_api_admin_edm_agreements__agreement_id__revoke_post"];
         delete?: never;
         options?: never;
@@ -205,7 +231,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Карточка запроса на удаление/обезличивание */
+        /**
+         * Карточка запроса на удаление/обезличивание
+         * @description Статус, субъект, дедлайн отсрочки (`grace_until`), блокеры и причина отказа, если он был. Не существует — 404 CRM-9004. Роль: ADMIN.
+         */
         get: operations["get_erasure_request_api_admin_erasure_requests__request_id__get"];
         put?: never;
         post?: never;
@@ -224,7 +253,7 @@ export type paths = {
         };
         /**
          * Ссылка на акт об уничтожении ПДн
-         * @description Доступна только после исполнения запроса. Роль: ADMIN.
+         * @description Доступна только после исполнения запроса. По умолчанию (`variant=signed`) отдаёт подписанную копию, если акт уже подписан, иначе исходник; `variant=original` — всегда исходник; `variant=protocol` — протокол подписания (B6-9). Роль: ADMIN.
          */
         get: operations["get_erasure_act_api_admin_erasure_requests__request_id__act_get"];
         put?: never;
@@ -426,7 +455,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** List Sources */
+        /**
+         * Список источников интеграций
+         * @description Настроенные источники (Bitrix24, LMS, оплаты и т.п.): адрес, тип авторизации, признак активности, время последней синхронизации и последняя ошибка. Роль: ADMIN.
+         */
         get: operations["list_sources_api_admin_integrations_sources_get"];
         put?: never;
         post?: never;
@@ -449,8 +481,112 @@ export type paths = {
         delete?: never;
         options?: never;
         head?: never;
-        /** Update Source */
+        /**
+         * Изменить источник интеграции
+         * @description Правка настроек источника по его коду: адрес, тип авторизации, ссылка на переменную окружения с учётными данными (`credentials_ref`, не само значение секрета), активность, произвольная конфигурация. CRM-9004, если источник с таким кодом не настроен. Роль: ADMIN.
+         */
         patch: operations["update_source_api_admin_integrations_sources__code__patch"];
+        trace?: never;
+    };
+    "/api/admin/integrations/sources/{code}/mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Текущий маппинг полей и каталог целей */
+        get: operations["get_source_mapping_api_admin_integrations_sources__code__mapping_get"];
+        /**
+         * Сохранить маппинг полей
+         * @description B5-3: администратор задаёт, какие поля источника принимаются, куда они ложатся и как преобразуются, без релиза. 422 с errors[] — неизвестная цель, лишние правила, нет цели email/phone, custom_fields.<код> без активного определения.
+         */
+        put: operations["put_source_mapping_api_admin_integrations_sources__code__mapping_put"];
+        post?: never;
+        /** Вернуть прежнее поведение (без маппинга) */
+        delete: operations["delete_source_mapping_api_admin_integrations_sources__code__mapping_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/integrations/sources/{code}/mapping/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Предпросмотр маппинга без записи в БД */
+        post: operations["preview_source_mapping_api_admin_integrations_sources__code__mapping_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/integrations/sources/{code}/pull": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Забрать сейчас
+         * @description Ручной запуск забора по API вне расписания cron — следующий тик (не больше минуты, `worker/main.py`) выполнит его независимо от `pull_enabled` и интервала источника. Источник выключен или адрес не настроен — 409 (CRM-1703); запрос уже стоит в очереди — 409 (CRM-1705). Лимит 6 запросов в минуту на пользователя.
+         */
+        post: operations["request_source_pull_api_admin_integrations_sources__code__pull_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/integrations/sources/{code}/routing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Текущая маршрутизация (воронка/тип сделки на источник) */
+        get: operations["get_source_routing_api_admin_integrations_sources__code__routing_get"];
+        /**
+         * Сохранить маршрутизацию
+         * @description B5-4 (BUG-15): правила «если поле заявки равно/в списке — вот воронка, тип сделки и ответственный», плюс маршрут по умолчанию. 422 с errors[] — воронка не найдена/не опубликована/не того deal_type, статус не найден в опубликованном графе, fixed_owner_id не найден или неактивен, больше 10 правил.
+         */
+        put: operations["put_source_routing_api_admin_integrations_sources__code__routing_put"];
+        post?: never;
+        /** Вернуть прежнее поведение (без маршрутизации) */
+        delete: operations["delete_source_routing_api_admin_integrations_sources__code__routing_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/integrations/sources/{code}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Статус синхронизации источника
+         * @description Настройки забора, курсоры, итог последнего прогона (`last_run`) и живые счётчики за последние 24 часа по журналу входящих и очереди исходящих.
+         */
+        get: operations["get_source_status_api_admin_integrations_sources__code__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/admin/notification-templates": {
@@ -460,10 +596,16 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Список шаблонов уведомлений */
+        /**
+         * Список шаблонов уведомлений
+         * @description Шаблоны тела/темы по коду события и каналу (`email`, `telegram`, `in_app`), включая неактивные; фильтры `code`, `channel`. Роль: ADMIN.
+         */
         get: operations["list_notification_templates_api_admin_notification_templates_get"];
         put?: never;
-        /** Создать шаблон уведомления */
+        /**
+         * Создать шаблон уведомления
+         * @description Код события, канал, шаблоны темы/тела (Jinja2) и локаль. Комбинация code+channel уже используется — 422 CRM-1001. Роль: ADMIN.
+         */
         post: operations["create_notification_template_api_admin_notification_templates_post"];
         delete?: never;
         options?: never;
@@ -508,7 +650,10 @@ export type paths = {
         delete: operations["delete_notification_template_api_admin_notification_templates__template_id__delete"];
         options?: never;
         head?: never;
-        /** Обновить шаблон уведомления */
+        /**
+         * Обновить шаблон уведомления
+         * @description Правка темы/тела, локали или активности шаблона. Обязателен `If-Match` с текущей версией — расхождение даёт 409 CRM-1002; шаблон не найден — 404 CRM-9004. Роль: ADMIN.
+         */
         patch: operations["update_notification_template_api_admin_notification_templates__template_id__patch"];
         trace?: never;
     };
@@ -559,7 +704,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Список версий реестра */
+        /**
+         * Список версий реестра
+         * @description Загруженные выгрузки ЕГРЮЛ: источник, статус разбора, число обработанных записей, от новых к старым. Роль: ADMIN.
+         */
         get: operations["list_registry_versions_api_admin_registry_versions_get"];
         put?: never;
         post?: never;
@@ -576,7 +724,11 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Карточка версии реестра
+         * @description Прогресс разбора конкретной выгрузки без постраничного поиска в списке: статус (`pending`/`running`/`completed`/`failed`) и `entries_count` — счётчик растёт по ходу фоновой задачи, пока `status=running`. Не существует — 404 CRM-9004. Роль: ADMIN.
+         */
+        get: operations["get_registry_version_api_admin_registry_versions__version_id__get"];
         put?: never;
         post?: never;
         /**
@@ -584,6 +736,106 @@ export type paths = {
          * @description Нельзя удалить версию, которая сейчас импортируется, и нельзя удалить последнюю успешно завершённую версию — иначе 409 CRM-1303. Роль: ADMIN.
          */
         delete: operations["delete_registry_version_api_admin_registry_versions__version_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/retention/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Запустить очистку по сроку хранения вручную
+         * @description `dry_run=true` (по умолчанию) считает, что было бы удалено, без удаления. Без `category` — все категории по очереди. Роль: ADMIN.
+         */
+        post: operations["run_retention_api_admin_retention_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/retention/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Журнал запусков очистки по сроку хранения
+         * @description Курсорная пагинация, до 100 записей на страницу. Роль: ADMIN, AUDITOR.
+         */
+        get: operations["list_retention_runs_api_admin_retention_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/security-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Журнал безопасности
+         * @description Неудачные входы, блокировки перебора, обнаруженный вредонос и другие события безопасности. Фильтры: event_type (повторяемый параметр), min_severity, user_id, ip (точный адрес или сеть вида 203.0.113.0/24), период. Курсорная пагинация, до 100 записей на страницу. Роль: ADMIN, AUDITOR.
+         */
+        get: operations["list_security_events_api_admin_security_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/security-events/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Экспорт журнала безопасности
+         * @description Построчный JSON (NDJSON) по тем же фильтрам, что у списка. Экспорт — массовая выгрузка: пишется событие MASS_EXPORT и запись аудита AUDIT_EXPORTED. Роль: ADMIN, AUDITOR.
+         */
+        get: operations["export_security_events_api_admin_security_events_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/security-events/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Сводка журнала безопасности
+         * @description Число событий по типу за последние `hours` часов (до 720) — данные для плитки дашборда администратора. Роль: ADMIN, AUDITOR.
+         */
+        get: operations["security_events_summary_api_admin_security_events_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -690,7 +942,7 @@ export type paths = {
         };
         /**
          * Список пользователей
-         * @description Курсорная пагинация, фильтры по роли, команде, статусу, руководителю, региону и тексту. Роль: ADMIN.
+         * @description Курсорная пагинация, фильтры по роли, команде, статусу, руководителю, региону, тексту и ограничению видимости (B4-5). Роль: ADMIN.
          */
         get: operations["list_users_api_admin_users_get"];
         put?: never;
@@ -727,6 +979,50 @@ export type paths = {
          * @description Меняет роль, команду, руководителя и локальные настройки. Обязателен `If-Match`. При смене роли обновляется маппинг в Keycloak, растёт `perm_epoch` и сбрасывается кэш прав. Понизить последнего администратора нельзя (CRM-1903). Повышение до ADMIN — операция «четырёх глаз»: без `approval_id` ответ 409 CRM-1902 с id заявки, которую подтверждает другой администратор. Статус правкой не меняется: активация происходит при первом входе, блокировка, разблокировка и увольнение — отдельные операции (422). Роль: ADMIN.
          */
         patch: operations["patch_user_api_admin_users__user_id__patch"];
+        trace?: never;
+    };
+    "/api/admin/users/{user_id}/access-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ограничения видимости пользователя
+         * @description Текущие правила по вузам и направлениям (B4-5): режим `all`/`allow`/`deny` и список для каждой размерности. Роль: ADMIN (`access_scope:manage`).
+         */
+        get: operations["get_access_rules_api_admin_users__user_id__access_rules_get"];
+        /**
+         * Задать ограничения видимости пользователя
+         * @description Заменяет правила целиком (не патч). Только для KAM/HEAD — 422 для ADMIN/AUDITOR/INTEGRATION. `allow` без элементов — 422 (для «не видит ничего» есть блокировка). `{"mode": "all", "ids": []}` в обеих размерностях снимает ограничение. Требует If-Match. Роль: ADMIN (`access_scope:manage`).
+         */
+        put: operations["put_access_rules_api_admin_users__user_id__access_rules_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{user_id}/access-rules/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Предпросмотр последствий ограничения
+         * @description Сухой прогон: считает сделки/вузы/контакты, видимые ДО и ПОСЛЕ правил из запроса (ещё не сохранённых). Параметры: `organizations.mode`/`organizations.ids`, `directions.mode`/`directions.ids`. В БД ничего не меняется. Роль: ADMIN (`access_scope:manage`).
+         */
+        get: operations["preview_access_rules_route_api_admin_users__user_id__access_rules_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/admin/users/{user_id}/block": {
@@ -809,6 +1105,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/users/{user_id}/offboard/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Все сделки/вузы уходящего (постранично)
+         * @description Превью `POST .../offboard` ограничено 20 критичными сделками; эта ручка листает все сделки (`kind=deals`) или вузы (`kind=organizations`) уходящего постранично (курсор по `created_at`). Роль: ADMIN.
+         */
+        get: operations["offboard_items_api_admin_users__user_id__offboard_items_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/users/{user_id}/reset-password": {
         parameters: {
             query?: never;
@@ -856,7 +1172,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Вложения сущности */
+        /**
+         * Вложения сущности
+         * @description Файлы, привязанные к сущности (`entity_type`, `entity_id` — обязательны); доступ проверяется по правам на саму сущность (сделку, документ на подпись и т.п.), не только по общему праву на файлы. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["list_attachments_api_attachments_get"];
         put?: never;
         /**
@@ -1000,11 +1319,17 @@ export type paths = {
         get?: never;
         put?: never;
         post?: never;
-        /** Удалить комментарий */
+        /**
+         * Удалить комментарий
+         * @description Мягкое удаление с необязательной причиной. Чужой комментарий удаляет только ADMIN, иначе 403 CRM-1102; системный комментарий — 422 CRM-1001. Роль: KAM, HEAD, ADMIN.
+         */
         delete: operations["delete_comment_api_comments__comment_id__delete"];
         options?: never;
         head?: never;
-        /** Редактировать комментарий */
+        /**
+         * Редактировать комментарий
+         * @description Правит текст, старая версия сохраняется в истории правок. Только автор или ADMIN — иначе 403 CRM-1102; системный комментарий — 422 CRM-1001. Роль: KAM, HEAD, ADMIN.
+         */
         patch: operations["update_comment_api_comments__comment_id__patch"];
         trace?: never;
     };
@@ -1015,10 +1340,16 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Список контактов */
+        /**
+         * Список контактов
+         * @description Фильтры: `organization_id`, `position`, `is_decision_maker`, `is_anonymized`, `source`, `q`. Телефон и email маскированы — полные значения через `POST /api/contacts/{id}/reveal`. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["list_contacts_api_contacts_get"];
         put?: never;
-        /** Создать контакт */
+        /**
+         * Создать контакт
+         * @description ФИО, должность, телефон/email и признак ЛПР. Поддерживает Idempotency-Key.
+         */
         post: operations["create_contact_api_contacts_post"];
         delete?: never;
         options?: never;
@@ -1033,15 +1364,41 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Карточка контакта */
+        /**
+         * Карточка контакта
+         * @description Телефон и email маскированы — полные значения через `POST /api/contacts/{id}/reveal`; не существует — 404 CRM-9004. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["get_contact_api_contacts__contact_id__get"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** Обновить контакт */
+        /**
+         * Обновить контакт
+         * @description Обязателен `If-Match` с текущей версией — расхождение даёт 409 CRM-1002; не существует — 404 CRM-9004. Роль: KAM, HEAD, ADMIN.
+         */
         patch: operations["update_contact_api_contacts__contact_id__patch"];
+        trace?: never;
+    };
+    "/api/contacts/{contact_id}/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Каналы связи контакта (маскированные)
+         * @description Telegram/WhatsApp/доп. телефон/доп. email контакта с маскированными значениями (B4-9). Полные значения — только `POST /contacts/{id}/reveal`. Скоуп — как у карточки контакта. Роль: чтение контактов.
+         */
+        get: operations["list_contact_channels_api_contacts__contact_id__channels_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/contacts/{contact_id}/learner-profile": {
@@ -1135,7 +1492,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Определения пользовательских полей */
+        /**
+         * Определения пользовательских полей
+         * @description Каталог определений `custom_fields` (тип, обязательность, правила проверки значения) для сделок, организаций и продуктов. Фильтры: `entity_type`, `is_active`. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["list_custom_field_defs_api_custom_field_defs_get"];
         put?: never;
         /**
@@ -1166,7 +1526,10 @@ export type paths = {
         delete: operations["delete_custom_field_def_api_custom_field_defs__field_id__delete"];
         options?: never;
         head?: never;
-        /** Обновить пользовательское поле */
+        /**
+         * Обновить пользовательское поле
+         * @description Правка названия, правил проверки или активности определения; не меняет уже сохранённые значения `custom_fields`. Обязателен `If-Match` с текущей версией — расхождение даёт 409 CRM-1002. Роль: ADMIN.
+         */
         patch: operations["update_custom_field_def_api_custom_field_defs__field_id__patch"];
         trace?: never;
     };
@@ -1177,10 +1540,16 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Мои дашборды */
+        /**
+         * Мои дашборды
+         * @description Дашборды вызывающего и дашборды с `is_shared=true`; ADMIN видит все. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["list_dashboards_api_dashboards_get"];
         put?: never;
-        /** Создать дашборд */
+        /**
+         * Создать дашборд
+         * @description Название, признак общего доступа (`is_shared`) и раскладка виджетов (`layout`); владелец — вызывающий. Роль: KAM, HEAD, ADMIN.
+         */
         post: operations["create_dashboard_api_dashboards_post"];
         delete?: never;
         options?: never;
@@ -1195,15 +1564,24 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Дашборд */
+        /**
+         * Дашборд
+         * @description Доступен владельцу, любому при `is_shared=true`, либо ADMIN — иначе 403 CRM-1102; не найден — 404 CRM-9004. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["get_dashboard_api_dashboards__dashboard_id__get"];
         put?: never;
         post?: never;
-        /** Удалить дашборд */
+        /**
+         * Удалить дашборд
+         * @description Удаляет дашборд и его виджеты; доступно только владельцу или ADMIN — иначе 403 CRM-1102. Роль: KAM, HEAD, ADMIN.
+         */
         delete: operations["delete_dashboard_api_dashboards__dashboard_id__delete"];
         options?: never;
         head?: never;
-        /** Обновить дашборд */
+        /**
+         * Обновить дашборд
+         * @description Правка названия, общего доступа или раскладки; изменять может только владелец или ADMIN — иначе 403 CRM-1102. Обязателен `If-Match` с текущей версией — расхождение даёт 409 CRM-1002. Роль: KAM, HEAD, ADMIN.
+         */
         patch: operations["update_dashboard_api_dashboards__dashboard_id__patch"];
         trace?: never;
     };
@@ -1214,10 +1592,16 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Виджеты дашборда */
+        /**
+         * Виджеты дашборда
+         * @description Права на чтение — как у `GET /api/dashboards/{dashboard_id}`. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["list_widgets_api_dashboards__dashboard_id__widgets_get"];
         put?: never;
-        /** Добавить виджет */
+        /**
+         * Добавить виджет
+         * @description Тип виджета (`widget_type`), его конфигурация (`config`) и позиция на раскладке (`position`); изменять дашборд может только владелец или ADMIN — иначе 403 CRM-1102. Роль: KAM, HEAD, ADMIN.
+         */
         post: operations["add_widget_api_dashboards__dashboard_id__widgets_post"];
         delete?: never;
         options?: never;
@@ -1235,11 +1619,17 @@ export type paths = {
         get?: never;
         put?: never;
         post?: never;
-        /** Удалить виджет */
+        /**
+         * Удалить виджет
+         * @description Виджет с другого дашборда — 404 CRM-9004. Изменять дашборд может только владелец или ADMIN — иначе 403 CRM-1102. Роль: KAM, HEAD, ADMIN.
+         */
         delete: operations["remove_widget_api_dashboards__dashboard_id__widgets__widget_id__delete"];
         options?: never;
         head?: never;
-        /** Обновить виджет */
+        /**
+         * Обновить виджет
+         * @description Правка типа, конфигурации или позиции виджета; виджет с другого дашборда — 404 CRM-9004. Изменять дашборд может только владелец или ADMIN — иначе 403 CRM-1102. Роль: KAM, HEAD, ADMIN.
+         */
         patch: operations["update_widget_api_dashboards__dashboard_id__widgets__widget_id__patch"];
         trace?: never;
     };
@@ -1252,7 +1642,7 @@ export type paths = {
         };
         /**
          * Список сделок
-         * @description Курсорная пагинация, фильтры по статусу/воронке/типу/владельцу/приоритету/SLA/датам/тексту. `status_id` можно повторять (`?status_id=a&status_id=b`), `is_closed` отделяет закрытые сделки (won/lost/parked) от открытых. `sort` — поле сортировки, минус в начале — по убыванию: created_at (по умолчанию `-created_at`), updated_at, status_changed_at, number, title, amount, expected_close_date, sla_due_at; сделки без значения всегда в конце. `total` — сколько сделок подходит под фильтры, без учёта курсора. Скоуп по роли (раздел 4): KAM — свои сделки, HEAD — команда, ADMIN — все. Роль: чтение сделок.
+         * @description Курсорная пагинация, фильтры по статусу/воронке/типу/владельцу/приоритету/SLA/датам/тексту. `status_id`, `organization_id`, `owner_id`, `product_id`, `direction_id` и `region_id` можно повторять (`?product_id=a&product_id=b` — ИЛИ внутри параметра, И между параметрами); единичное значение работает как раньше. Фильтр по направлению включает дочерние направления. `is_closed` отделяет закрытые сделки (won/lost/parked) от открытых. `q` ищет по номеру, названию сделки и по названию/краткому названию/ИНН вуза (B4-8). `sort` — поле сортировки, минус в начале — по убыванию: created_at (по умолчанию `-created_at`), updated_at, status_changed_at, number, title, amount, expected_close_date, sla_due_at; сделки без значения всегда в конце. `total` — сколько сделок подходит под фильтры, без учёта курсора. Каждая строка несёт продукты (не более 5, `products_total` — сколько всего), направления и название статуса. Скоуп по роли (раздел 4): KAM — свои сделки, HEAD — команда, ADMIN — все. Роль: чтение сделок.
          */
         get: operations["list_deals_api_deals_get"];
         put?: never;
@@ -1301,7 +1691,11 @@ export type paths = {
         get: operations["get_deal_api_deals__deal_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Удалить сделку
+         * @description B4-3 (A-16): мягкое удаление. 409 CRM-1303 с блокером `pending_signature`, если у сделки есть незавершённый запрос на подпись — сначала аннулируйте его. Роль: ADMIN.
+         */
+        delete: operations["delete_deal_api_deals__deal_id__delete"];
         options?: never;
         head?: never;
         /**
@@ -1375,6 +1769,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/deals/{deal_id}/history/{history_id}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Файлы, приложенные к записи истории
+         * @description Вложения, привязанные к конкретному переходу (B2-7/B2-8): не более 20 на переход, без пагинации, в порядке created_at. `history_id` обязан принадлежать этой сделке, иначе 404. Роль: file:download.
+         */
+        get: operations["get_deal_history_attachments_api_deals__deal_id__history__history_id__attachments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/deals/{deal_id}/participants": {
         parameters: {
             query?: never;
@@ -1382,10 +1796,16 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Участники сделки */
+        /**
+         * Участники сделки
+         * @description Соисполнители и наблюдатели сделки сверх ответственного — даёт им видимость сделки помимо своего скоупа. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["list_participants_api_deals__deal_id__participants_get"];
         put?: never;
-        /** Добавить участника */
+        /**
+         * Добавить участника
+         * @description Пользователь и его роль в сделке (например, соисполнитель/наблюдатель); повтор той же пары — не ошибка, отдаёт существующую запись. Неактивный сотрудник — 422 CRM-1001. Менять состав может только ответственный, HEAD или ADMIN — иначе 403 CRM-1102. Роль: KAM, HEAD, ADMIN.
+         */
         post: operations["add_participant_api_deals__deal_id__participants_post"];
         delete?: never;
         options?: never;
@@ -1403,7 +1823,10 @@ export type paths = {
         get?: never;
         put?: never;
         post?: never;
-        /** Удалить участника */
+        /**
+         * Удалить участника
+         * @description Участник другой сделки — 404 CRM-9004. Менять состав может только ответственный, HEAD или ADMIN — иначе 403 CRM-1102. Роль: KAM, HEAD, ADMIN.
+         */
         delete: operations["remove_participant_api_deals__deal_id__participants__participant_id__delete"];
         options?: never;
         head?: never;
@@ -1444,6 +1867,26 @@ export type paths = {
          * @description Обязателен If-Match. Создаёт системный комментарий, событие, уведомление и аудит.
          */
         post: operations["reassign_deal_api_deals__deal_id__reassign_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/deals/{deal_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Восстановить сделку
+         * @description B4-3: обратно из мягкого удаления. 409 CRM-1305 для не удалённой. Роль: ADMIN.
+         */
+        post: operations["restore_deal_api_deals__deal_id__restore_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1605,10 +2048,16 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Производственный календарь */
+        /**
+         * Производственный календарь
+         * @description Выходные и перенесённые рабочие дни (`is_working_day`) — основа расчёта SLA в рабочих днях. Фильтр по периоду `date_from`/`date_to`. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["list_holidays_api_holidays_get"];
         put?: never;
-        /** Добавить дату в календарь */
+        /**
+         * Добавить дату в календарь
+         * @description Дата, название и признак рабочего дня (перенос выходного). Роль: ADMIN.
+         */
         post: operations["create_holiday_api_holidays_post"];
         delete?: never;
         options?: never;
@@ -1633,7 +2082,10 @@ export type paths = {
         delete: operations["delete_holiday_api_holidays__holiday_id__delete"];
         options?: never;
         head?: never;
-        /** Изменить дату календаря */
+        /**
+         * Изменить дату календаря
+         * @description Правка даты, названия или признака рабочего дня; обязателен `If-Match` с текущей версией — расхождение даёт 409 CRM-1002. Роль: ADMIN.
+         */
         patch: operations["update_holiday_api_holidays__holiday_id__patch"];
         trace?: never;
     };
@@ -1644,11 +2096,34 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Список пресетов маппинга */
+        /**
+         * Список пресетов маппинга
+         * @description Сохранённые маппинги колонок для повторного использования (создаются из `PUT /{job_id}/mapping` с `save_as_preset`); фильтр по типу сущности `entity_type`. Роль: HEAD, ADMIN.
+         */
         get: operations["list_import_presets_api_import_presets_get"];
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/import-presets/{preset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Удалить пресет маппинга
+         * @description Жёсткое удаление — пресет только сохранённый маппинг колонок, не бизнес-сущность с историей; на уже созданные задания импорта не влияет (маппинг скопирован в них при применении пресета). Не существует — 404 CRM-9004. Роль: HEAD, ADMIN.
+         */
+        delete: operations["delete_import_preset_api_import_presets__preset_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1661,7 +2136,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Список заданий импорта */
+        /**
+         * Список заданий импорта
+         * @description Задания импорта всех типов (организации, продукты, лицензии и т.п.) со статусом и счётчиками строк, от новых к старым. Роль: HEAD, ADMIN.
+         */
         get: operations["list_import_jobs_api_imports_get"];
         put?: never;
         /**
@@ -1702,7 +2180,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Карточка задания импорта */
+        /**
+         * Карточка задания импорта
+         * @description Статус, тип сущности, режим, маппинг колонок и счётчики строк (`ok`/`warn`/`error`); не существует — 404 CRM-9004. Роль: HEAD, ADMIN.
+         */
         get: operations["get_import_job_api_imports__job_id__get"];
         put?: never;
         post?: never;
@@ -1839,10 +2320,16 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Справочник причин отказа */
+        /**
+         * Справочник причин отказа
+         * @description Причины для перехода сделки в lost (код, название, активность). Фильтр `is_active`. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["list_loss_reasons_api_loss_reasons_get"];
         put?: never;
-        /** Создать причину отказа */
+        /**
+         * Создать причину отказа
+         * @description Код, название, категория и порядок сортировки новой причины отказа. Роль: ADMIN.
+         */
         post: operations["create_loss_reason_api_loss_reasons_post"];
         delete?: never;
         options?: never;
@@ -1867,7 +2354,10 @@ export type paths = {
         delete: operations["delete_loss_reason_api_loss_reasons__loss_reason_id__delete"];
         options?: never;
         head?: never;
-        /** Обновить причину отказа */
+        /**
+         * Обновить причину отказа
+         * @description Правка названия, категории, активности или порядка сортировки; обязателен `If-Match` с текущей версией — расхождение даёт 409 CRM-1002. Роль: ADMIN.
+         */
         patch: operations["update_loss_reason_api_loss_reasons__loss_reason_id__patch"];
         trace?: never;
     };
@@ -1922,9 +2412,15 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Мои настройки уведомлений */
+        /**
+         * Мои настройки уведомлений
+         * @description Явные настройки канала по коду события для текущего пользователя; событие без записи здесь доставляется по умолчанию (см. каналы шаблона в `GET /api/notifications/event-codes`). Роль: любой аутентифицированный.
+         */
         get: operations["get_notification_prefs_api_me_notification_prefs_get"];
-        /** Обновить настройки уведомлений */
+        /**
+         * Обновить настройки уведомлений
+         * @description Заменяет настройку канала по каждому переданному коду события (создаёт запись, если её не было, иначе правит); коды, не упомянутые в запросе, не трогает. Роль: любой аутентифицированный.
+         */
         put: operations["update_notification_prefs_api_me_notification_prefs_put"];
         post?: never;
         delete?: never;
@@ -2060,8 +2556,31 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Мои задачи на подпись */
+        /**
+         * Мои задачи на подпись
+         * @description Запросы на подпись, где текущий пользователь — внутренний подписант: статус, дедлайн и карточка документа (название, тип и id сущности). Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["my_signature_requests_api_me_signature_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meta/error-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Справочник кодов ошибок
+         * @description Все коды `CRM-XXYY` из каталога ошибок API: статус, заголовок, описание и подсказка «что сделать». Строится из `core.errors.ERROR_CATALOG` на каждый запрос — отставание от кода исключено. Роль: доступно без аутентификации (справочник не несёт данных пользователей).
+         */
+        get: operations["list_error_codes_api_meta_error_codes_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2077,7 +2596,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Мои уведомления */
+        /**
+         * Мои уведомления
+         * @description Уведомления текущего пользователя с отрисованной темой/телом; фильтры `is_read`, `priority`, `entity_type`, `event_code`. Роль: любой аутентифицированный.
+         */
         get: operations["list_notifications_api_notifications_get"];
         put?: never;
         post?: never;
@@ -2116,7 +2638,10 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Отметить уведомления прочитанными */
+        /**
+         * Отметить уведомления прочитанными
+         * @description Массовая отметка `is_read=true`: по списку `ids` либо по тем же фильтрам, что `GET /api/notifications` (`priority`, `entity_type`, `event_code`); без единого фильтра — все непрочитанные, а пустой список `ids` — явно ничего (не «все»). Отдаёт число затронутых записей. Роль: любой аутентифицированный.
+         */
         post: operations["mark_notifications_read_api_notifications_read_post"];
         delete?: never;
         options?: never;
@@ -2213,11 +2738,15 @@ export type paths = {
         };
         /**
          * Список лицензий/договоров вуз-вендор-ПО
-         * @description Фильтр: organization_id. Только организации из скоупа вызывающего (KAM/HEAD — свои и по своим сделкам, ADMIN — все). Роль: чтение каталога.
+         * @description Фильтры: organization_id, vendor_id, product_id, transfer_status (можно несколько раз), is_signed, year (лицензия действует в этом году), signed_year, q (поиск по вузу, вендору, ПО, номеру договора). `with_total=true` добавляет точное число строк (отдельный COUNT-запрос). Только организации из скоупа вызывающего (KAM/HEAD — свои и по своим сделкам, ADMIN — все). Роль: чтение каталога.
          */
         get: operations["list_organization_licenses_api_organization_licenses_get"];
         put?: never;
-        post?: never;
+        /**
+         * Создать лицензию/договор
+         * @description Вендор и ПО — либо ссылкой (vendor_id/product_id из каталога), либо текстом (vendor/product_name: сервис пытается найти однозначное совпадение, не находит — сохраняет как текст без ссылки). Дубль составного ключа (вуз, вендор, ПО, номер договора) — 409 CRM-1301 с license_id существующей записи. transfer_status принимает английские коды и русские синонимы (BUG-10). Поддерживает Idempotency-Key. Роль: license:write (KAM — по своим вузам).
+         */
+        post: operations["create_organization_license_api_organization_licenses_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2231,14 +2760,25 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Карточка лицензии/договора */
+        /**
+         * Карточка лицензии/договора
+         * @description ФИО менеджера и ответственные от вуза маскированы без права contact:reveal. Организация вне скоупа или запись не существует — 404 CRM-9004. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["get_organization_license_api_organization_licenses__license_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Удалить лицензию/договор
+         * @description Мягкое удаление. Роль: license:delete (HEAD, ADMIN).
+         */
+        delete: operations["delete_organization_license_api_organization_licenses__license_id__delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Изменить лицензию/договор
+         * @description `organization_id` не редактируется — удалить и создать заново. Смена вендора/ПО/номера договора, приводящая к дублю ключа у другой записи, — 409 CRM-1301. Роль: license:write (KAM — по своим вузам).
+         */
+        patch: operations["update_organization_license_api_organization_licenses__license_id__patch"];
         trace?: never;
     };
     "/api/organizations": {
@@ -2248,7 +2788,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Список организаций */
+        /**
+         * Список организаций
+         * @description Фильтры: `name`, `inn`, `ogrn`, `org_type`, `region_id`, `owner_id`, `registry_status`, `is_accredited`, `source`, `q` (поиск по названию, короткому названию или ИНН). Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["list_organizations_api_organizations_get"];
         put?: never;
         /**
@@ -2262,6 +2805,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/organizations/bulk/owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Массовая смена ответственного за вуз
+         * @description B4-2: передать все вузы одного менеджера другому (или снять ответственного) одним действием, до 100 вузов за вызов. Объявлена раньше /{organization_id}, иначе 'bulk' попал бы в параметризованный маршрут.
+         */
+        post: operations["bulk_set_organization_owner_api_organizations_bulk_owner_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/organizations/check-duplicate": {
         parameters: {
             query?: never;
@@ -2269,7 +2832,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Проверить дубль по ИНН/ОГРН */
+        /**
+         * Проверить дубль по ИНН/ОГРН
+         * @description Точные совпадения по `inn`/`ogrn` и похожие по названию (`name`). Организация вне скоупа вызывающего — только факт существования без реквизитов (`accessible=false`), иначе КАМ мог бы подобрать ИНН и узнать название чужого вуза. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["check_duplicate_organization_api_organizations_check_duplicate_get"];
         put?: never;
         post?: never;
@@ -2286,14 +2852,24 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Карточка организации */
+        /**
+         * Карточка организации
+         * @description Вне скоупа вызывающего или не существует — 404 CRM-9004. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["get_organization_api_organizations__organization_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Удалить организацию
+         * @description B4-3 (A-16): мягкое удаление. 409 CRM-1303 со списком `blockers`, если есть живые (не мягко удалённые) сделки, контакты или лицензии. Роль: ADMIN.
+         */
+        delete: operations["delete_organization_api_organizations__organization_id__delete"];
         options?: never;
         head?: never;
-        /** Обновить организацию */
+        /**
+         * Обновить организацию
+         * @description Правка реквизитов и атрибутов организации. Обязателен `If-Match` с текущей версией — расхождение даёт 409 CRM-1002; вне скоупа или не существует — 404 CRM-9004. Роль: KAM, HEAD, ADMIN.
+         */
         patch: operations["update_organization_api_organizations__organization_id__patch"];
         trace?: never;
     };
@@ -2312,6 +2888,30 @@ export type paths = {
          */
         post: operations["apply_organization_drift_api_organizations__organization_id__apply_drift_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/organizations/{organization_id}/owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Назначить или сменить ответственного за вуз
+         * @description B4-1: ТЗ Функц.11 — Руководитель меняет ответственных за вузы. Роль: HEAD (только в своей команде), ADMIN.
+         */
+        put: operations["set_organization_owner_api_organizations__organization_id__owner_put"];
+        post?: never;
+        /**
+         * Снять ответственного за вуз
+         * @description B4-2: вуз становится «ничьим». Роль: HEAD (в своей команде), ADMIN.
+         */
+        delete: operations["remove_organization_owner_api_organizations__organization_id__owner_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2364,7 +2964,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Справочник продуктов */
+        /**
+         * Справочник продуктов
+         * @description Фильтр `kind` различает ИТ-программу/курс (`course`, по умолчанию у старых записей) и ИТ-продукт — ПО вендора (`software`, B3-7). Роль: чтение каталога.
+         */
         get: operations["list_products_api_products_get"];
         put?: never;
         /**
@@ -2453,7 +3056,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Справочник регионов */
+        /**
+         * Справочник регионов
+         * @description Регионы РФ для поля организации `region_id` (код, название). Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["list_regions_api_regions_get"];
         put?: never;
         post?: never;
@@ -2470,7 +3076,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Доступные виды отчётов */
+        /**
+         * Доступные виды отчётов
+         * @description Каталог шаблонов отчётов, доступных роли вызывающего (`allowed_roles` шаблона пусто — доступен всем с правом на отчёты), с описанием параметров, выбираемых колонок, полей даты и форматов вывода (`xlsx`/`xls`/`pdf`/`png`/`json`) каждого вида. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["list_report_templates_api_report_templates_get"];
         put?: never;
         post?: never;
@@ -2495,7 +3104,7 @@ export type paths = {
         put?: never;
         /**
          * Запустить отчёт
-         * @description Лёгкий отчёт формируется сразу (`status=completed`, `progress_pct=100`), тяжёлый встаёт в очередь. Незавершённых отчётов у одного сотрудника не больше REPORTS_MAX_CONCURRENT — иначе 429 CRM-1601. Роль: создание отчётов.
+         * @description Лёгкий отчёт формируется сразу (`status=completed`, `progress_pct=100`), тяжёлый встаёт в очередь. Незавершённых отчётов у одного сотрудника не больше REPORTS_MAX_CONCURRENT — иначе 429 CRM-1601. Роль: создание отчётов. `"format":"json"` даёт файл-конверт `rtk-crm-report/1` (`docs/schemas/rtk-crm-report-1.schema.json`, модель `reporting.result_schema.ReportResultV1`) — тот же набор данных, что и `GET /{report_id}/data`.
          */
         post: operations["create_report_api_reports_post"];
         delete?: never;
@@ -2511,7 +3120,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Статус отчёта */
+        /**
+         * Статус отчёта
+         * @description Статус задачи (`queued`/`processing`/`completed`/`failed`), прогресс, параметры запуска (`params`) и `result_meta` готового результата (строки, усечение, момент снимка данных); `file_id` — только внутренняя ссылка на файл, скачивание — через `GET /api/reports/{report_id}/download`. Доступен только тому, кто запросил отчёт, либо ADMIN — иначе 403 CRM-1102; не найден — 404 CRM-9004. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["get_report_api_reports__report_id__get"];
         put?: never;
         post?: never;
@@ -2594,7 +3206,7 @@ export type paths = {
         };
         /**
          * Пачка документов по списку id
-         * @description Карточки документов по `ids` (через запятую, до 100 уникальных — дубликаты схлопываются). Заменяет N запросов `GET /signature-documents/{document_id}` одним, когда вызывающая сторона уже знает интересующие id (вкладка «Документы» — свои созданные, свои задачи на подпись, для аудит-ролей — журнал), но списка «все мои документы» у бэкенда всё ещё нет (backend-issues C-5, часть про документы по пользователю — не про историю по сделке, та ручка уже выше). Права на каждый id — ровно как у одиночной карточки: недоступный или не найденный документ просто пропускается в ответе, запрос в целом не отказывает (тем же приёмом, что `fetchDocument` уже трактует 403/404 на фронте). Роль: KAM (свои сделки), HEAD, ADMIN — как и у одиночной карточки; этот маршрут объявлен раньше `/{document_id}`, чтобы `batch` не пытался распарситься как UUID.
+         * @description Карточки документов по `ids` (через запятую, до 100 уникальных — дубликаты схлопываются). Заменяет N запросов `GET /signature-documents/{document_id}` одним, когда вызывающая сторона уже знает интересующие id (вкладка «Документы» — свои созданные, свои задачи на подпись, для аудит-ролей — журнал), но списка «все мои документы» у бэкенда всё ещё нет (backend-issues C-5, часть про документы по пользователю — не про историю по сделке, та ручка уже выше). Права на каждый id — ровно как у одиночной карточки: недоступный или не найденный документ просто пропускается в ответе, запрос в целом не отказывает (тем же приёмом, что `fetchDocument` уже трактует 403/404 на фронте). Роль: KAM (свои сделки), HEAD, ADMIN, и AUDITOR без скоупа сделки — как и у одиночной карточки (`signature:read`); этот маршрут объявлен раньше `/{document_id}`, чтобы `batch` не пытался распарситься как UUID.
          */
         get: operations["list_documents_batch_api_signature_documents_batch_get"];
         put?: never;
@@ -2612,7 +3224,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Карточка документа на подпись */
+        /**
+         * Карточка документа на подпись
+         * @description Права — как на саму сделку (KAM/HEAD/ADMIN), плюс AUDITOR без скоупа сделки: журнал аудита ссылается на документы по id (`audit:read`), и роль должна уметь открыть карточку по этой ссылке — `signature:read`, а не `signature:create` (см. `core/permissions.py`).
+         */
         get: operations["get_document_api_signature_documents__document_id__get"];
         put?: never;
         post?: never;
@@ -2629,7 +3244,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Ссылка на протокол подписания */
+        /**
+         * Ссылка на протокол подписания
+         * @description Права — как у карточки документа (`signature:read`): та же `ensure_read_access`, включая AUDITOR без скоупа сделки.
+         */
         get: operations["get_protocol_api_signature_documents__document_id__protocol_get"];
         put?: never;
         post?: never;
@@ -2688,7 +3306,10 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Запросить одноразовый код */
+        /**
+         * Запросить одноразовый код
+         * @description Отправляет внутреннему подписанту одноразовый код по SMS или email для последующего `/sign`. Не более 5 кодов на один запрос — иначе 422 CRM-1503; не более одной отправки в минуту; канал доставки недоступен — 503 CRM-9503. Роль: подписант (KAM, HEAD, ADMIN).
+         */
         post: operations["challenge_request_api_signature_requests__request_id__challenge_post"];
         delete?: never;
         options?: never;
@@ -2705,7 +3326,7 @@ export type paths = {
         };
         /**
          * PDF документа для просмотра (внутренний подписант)
-         * @description PDF документа запроса с origin приложения: `inline`, без CORS и без ссылки на хранилище. Только свой запрос. Роль: подписант.
+         * @description PDF документа запроса с origin приложения: `inline`, без CORS и без ссылки на хранилище. По умолчанию (`variant=auto`) после подписи отдаёт файл со штампом, а не исходник (B7-2); `variant=original` — всегда исходник; `variant=protocol` — протокол подписания (только у подписанного документа, иначе `DOCUMENT_NOT_SIGNABLE`). Только свой запрос. Роль: подписант.
          */
         get: operations["get_request_file_api_signature_requests__request_id__file_get"];
         put?: never;
@@ -2745,7 +3366,10 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Отклонить документ */
+        /**
+         * Отклонить документ
+         * @description Отклоняет документ с указанием причины: документ переходит в `rejected`, незавершённые запросы других подписантов аннулируются. Запрос или документ уже завершены — 409 CRM-1505. Роль: подписант (KAM, HEAD, ADMIN).
+         */
         post: operations["reject_request_api_signature_requests__request_id__reject_post"];
         delete?: never;
         options?: never;
@@ -2762,7 +3386,10 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Подписать кодом подтверждения */
+        /**
+         * Подписать кодом подтверждения
+         * @description Проверяет код, полученный от `/challenge`, и фиксирует подпись. Неверный, просроченный или уже использованный код, либо исчерпанные попытки — 422 CRM-1503; запрос уже подписан — 409 CRM-1505. Роль: подписант (KAM, HEAD, ADMIN).
+         */
         post: operations["sign_request_api_signature_requests__request_id__sign_post"];
         delete?: never;
         options?: never;
@@ -2779,7 +3406,10 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Отметить ознакомление (внутренний подписант) */
+        /**
+         * Отметить ознакомление (внутренний подписант)
+         * @description Первый вызов переводит запрос из `sent` в `viewed` и отдаёт страницу подписания с превью PDF; повторные вызовы только отдают страницу. Чужой запрос или запрос внешнего подписанта — 404 CRM-9004. Роль: подписант (KAM, HEAD, ADMIN).
+         */
         post: operations["view_request_api_signature_requests__request_id__view_post"];
         delete?: never;
         options?: never;
@@ -2794,7 +3424,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Активные шаблоны документов */
+        /**
+         * Активные шаблоны документов
+         * @description Шаблоны ПЭП, доступные для `POST /api/signature-documents` (`template_code`, название, обязательные подписанты); архивные (`is_active=false`) не отдаются. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["list_templates_api_signature_templates_get"];
         put?: never;
         post?: never;
@@ -2831,7 +3464,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Список задач */
+        /**
+         * Список задач
+         * @description Задачи в скоупе вызывающего (KAM — свои сделки, HEAD — команда, ADMIN — все). Фильтры: `deal_id`, `assignee_id`, `status`, `priority`, `due_before`, `overdue`. Роль: KAM, HEAD, ADMIN.
+         */
         get: operations["list_tasks_api_tasks_get"];
         put?: never;
         /**
@@ -2858,7 +3494,10 @@ export type paths = {
         delete?: never;
         options?: never;
         head?: never;
-        /** Обновить задачу */
+        /**
+         * Обновить задачу
+         * @description Правка полей задачи; родительская сделка должна быть в скоупе на запись. Роль: KAM, HEAD, ADMIN.
+         */
         patch: operations["update_task_api_tasks__task_id__patch"];
         trace?: never;
     };
@@ -2871,7 +3510,10 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Завершить задачу */
+        /**
+         * Завершить задачу
+         * @description Переводит задачу в `done` и фиксирует момент и исполнителя завершения (повторный вызов — без изменений); родительская сделка должна быть в скоупе на запись. Роль: KAM, HEAD, ADMIN.
+         */
         post: operations["complete_task_api_tasks__task_id__complete_post"];
         delete?: never;
         options?: never;
@@ -2899,6 +3541,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/users/{user_id}/handover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Передать портфель без увольнения
+         * @description Тот же мастер передачи дел, что `offboard`, но без изменения статуса сотрудника: отпуск, смена региона, временная разгрузка. ADMIN передаёт портфель любого сотрудника; HEAD — только сотрудника своей команды (`head_scope_member_ids`). Права: `deal:reassign_bulk` и `organization:assign_owner`.
+         */
+        post: operations["handover_user_api_users__user_id__handover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/integrations/bitrix/webhook": {
         parameters: {
             query?: never;
@@ -2908,7 +3570,10 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Приём изменений из Bitrix24 */
+        /**
+         * Приём изменений из Bitrix24
+         * @description Изменение сделки Bitrix24, подписанное HMAC в заголовке X-Signature; применяется только если присланная версия новее сохранённой (last-write-wins), иначе статус ответа — `duplicate`. Повтор того же `external_id` отдаёт результат первой обработки без повторной записи. Неверная подпись — 401 CRM-1701; источник bitrix24 отключён — 503 CRM-1703. Без аутентификации пользователя.
+         */
         post: operations["bitrix_webhook_api_v1_integrations_bitrix_webhook_post"];
         delete?: never;
         options?: never;
@@ -2945,7 +3610,10 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Приём прогресса от LMS (push) */
+        /**
+         * Приём прогресса от LMS (push)
+         * @description Пакет строк прогресса учащихся (`progress_pct`, оценка, даты), подписанный HMAC в заголовке X-Signature; повтор того же `external_id` отдаёт результат первой обработки без повторной записи. Неверная подпись — 401 CRM-1701; источник lms отключён — 503 CRM-1703. Каждая строка — в своём SAVEPOINT: одна «битая» не откатывает остальные. Без аутентификации пользователя.
+         */
         post: operations["lms_progress_push_api_v1_integrations_lms_progress_post"];
         delete?: never;
         options?: never;
@@ -2993,7 +3661,7 @@ export type paths = {
         post?: never;
         /**
          * Удалить черновик воронки
-         * @description Только для воронки в состоянии draft, которая никогда не публиковалась и на которую не заведено ни одной сделки — иначе 409 CRM-1207. Опубликованную воронку удалить нельзя ни при каких условиях, только архивировать статусы по одному (`POST .../statuses/{status_id}/archive`). Роль: запись воронок.
+         * @description Только для воронки в состоянии draft, которая никогда не публиковалась и на которую не заведено ни одной сделки — иначе 409 CRM-1207. Опубликованную воронку удалить нельзя ни при каких условиях: либо вывести из обращения статусы по одному (`POST .../statuses/{status_id}/archive`), либо, если на воронке уже нет ни одной сделки, архивировать воронку целиком (`POST .../archive`). Роль: запись воронок.
          */
         delete: operations["delete_workflow_api_workflows__workflow_id__delete"];
         options?: never;
@@ -3003,6 +3671,26 @@ export type paths = {
          * @description Тело: name и/или is_default. `is_default=true` у опубликованной воронки снимает флаг с прежней воронки того же типа сделки; у черновика флаг вступает в силу при публикации. Граф и опубликованный снимок не меняются, версия воронки растёт. Обязателен If-Match. Роль: запись воронок.
          */
         patch: operations["update_workflow_api_workflows__workflow_id__patch"];
+        trace?: never;
+    };
+    "/api/workflows/{workflow_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Архивировать воронку целиком
+         * @description Переводит воронку в терминальное состояние `archived`: дальше нельзя ни править граф, ни публиковать, ни архивировать статусы по одной — воронка выведена из обращения насовсем. Разрешено только если на воронке уже нет ни одной сделки (любого состояния — черновик или опубликована) и она не воронка по умолчанию своего типа сделок — иначе 409 CRM-1303. Перенос сделок на другую воронку не делается этим вызовом: выводите статусы из обращения по одному (`POST .../statuses/{status_id}/archive`), пока сделок не останется. Обязателен If-Match. Роль: публикация воронок.
+         */
+        post: operations["archive_workflow_api_workflows__workflow_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/workflows/{workflow_id}/graph": {
@@ -3063,6 +3751,26 @@ export type paths = {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/workflows/{workflow_id}/statuses/{status_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Переименовать статус
+         * @description Меняет только подпись статуса — код, тип, переходы и SLA не затрагиваются. Если статус есть в опубликованном снимке, снимок пересобирается с новым именем (has_unpublished_changes не включается из-за самого переименования). Обязателен If-Match. Роль: Руководитель или администратор.
+         */
+        patch: operations["rename_status_api_workflows__workflow_id__statuses__status_id__patch"];
         trace?: never;
     };
     "/api/workflows/{workflow_id}/statuses/{status_id}/archive": {
@@ -3134,7 +3842,7 @@ export type paths = {
         };
         /**
          * Liveness
-         * @description Проверяет, что процесс жив. Роль: доступно без аутентификации.
+         * @description Проверяет, что процесс жив. Не раскрывает версию, профиль и состав инфраструктуры (B6-8) — за этим на `/health/details` с заголовком `X-Health-Token`. Роль: доступно без аутентификации.
          */
         get: operations["live_health_live_get"];
         put?: never;
@@ -3154,7 +3862,7 @@ export type paths = {
         };
         /**
          * Readiness
-         * @description Проверяет PostgreSQL, Redis, Keycloak JWKS, SeaweedFS и очередь arq. Возвращает 503, если недоступна критичная зависимость. Роль: доступно без аутентификации.
+         * @description Возвращает 503, если недоступна критичная зависимость (PostgreSQL, Redis), иначе только сводный статус без списка зависимостей (B6-8) — список доступен на `/health/details` с заголовком `X-Health-Token`. Роль: доступно без аутентификации.
          */
         get: operations["ready_health_ready_get"];
         put?: never;
@@ -3194,7 +3902,10 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Запросить одноразовый код (внешний подписант) */
+        /**
+         * Запросить одноразовый код (внешний подписант)
+         * @description Отправляет внешнему подписанту код по SMS или email для последующего `/{token}/sign`. Токен недействителен или ссылка истекла — 404 CRM-1504; не более 5 кодов на запрос — 422 CRM-1503; канал доставки недоступен — 503 CRM-9503. Без аутентификации, лимит запросов по токену и по IP.
+         */
         post: operations["public_challenge_public_sign__token__challenge_post"];
         delete?: never;
         options?: never;
@@ -3211,7 +3922,7 @@ export type paths = {
         };
         /**
          * PDF документа для просмотра (внешний подписант)
-         * @description Тот же PDF, что по `preview_url`, но с origin приложения: `inline`, без CORS и без ссылки на хранилище. Доступ — по той же ссылке подписи, лимит — общий с ней.
+         * @description Тот же PDF, что по `preview_url`, но с origin приложения: `inline`, без CORS и без ссылки на хранилище. По умолчанию (`variant=auto`) после подписи отдаёт файл со штампом, а не исходник (B7-2); `variant=original` — всегда исходник; `variant=protocol` — протокол подписания (только у подписанного документа). Доступ — по той же ссылке подписи, лимит — общий с ней.
          */
         get: operations["get_sign_file_public_sign__token__file_get"];
         put?: never;
@@ -3231,7 +3942,10 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Отклонить документ (внешний подписант) */
+        /**
+         * Отклонить документ (внешний подписант)
+         * @description Отклоняет документ с указанием причины: документ переходит в `rejected`, незавершённые запросы других подписантов аннулируются. Токен недействителен или истёк — 404 CRM-1504; запрос или документ уже завершены — 409 CRM-1505. Без аутентификации, лимит запросов по токену и по IP.
+         */
         post: operations["public_reject_public_sign__token__reject_post"];
         delete?: never;
         options?: never;
@@ -3248,8 +3962,68 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Подписать кодом подтверждения (внешний подписант) */
+        /**
+         * Подписать кодом подтверждения (внешний подписант)
+         * @description Проверяет код из `/{token}/challenge` и фиксирует подпись. Токен недействителен или истёк — 404 CRM-1504; неверный/просроченный/использованный код либо исчерпанные попытки — 422 CRM-1503; запрос уже подписан — 409 CRM-1505. Без аутентификации, лимит запросов по токену и по IP.
+         */
         post: operations["public_sign_public_sign__token__sign_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/signed/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Скачать подписанный файл по ссылке
+         * @description Ссылка отдельная от токена подписания: не даёт права подписывать, свой TTL (SIGNATURE_DOWNLOAD_TTL_DAYS, 30 дней по умолчанию) и лимит скачиваний. Неизвестный, просроченный и отозванный токен отвечают одинаково. Откат — SIGNATURE_PUBLIC_DOWNLOAD_ENABLED=false.
+         */
+        get: operations["get_signed_file_public_signed__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/signed/{token}/protocol": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Скачать протокол подписания по ссылке */
+        get: operations["get_signed_protocol_public_signed__token__protocol_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/verify/by-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Сверить файл по хэшу публично
+         * @description multipart-файл сверяется по sha256 с сохранёнными подписями — без учётной записи (B7-3), тот же результат, что `POST /api/signatures/verify` для сотрудника.
+         */
+        post: operations["public_verify_by_file_public_verify_by_file_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3280,6 +4054,80 @@ export type paths = {
 export type webhooks = Record<string, never>;
 export type components = {
     schemas: {
+        /** AccessRuleDimensionIn */
+        AccessRuleDimensionIn: {
+            /** Ids */
+            ids?: string[];
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "all" | "allow" | "deny";
+        };
+        /** AccessRuleDimensionOut */
+        AccessRuleDimensionOut: {
+            /** Items */
+            items?: components["schemas"]["AccessRuleItemOut"][];
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "all" | "allow" | "deny";
+        };
+        /** AccessRuleItemOut */
+        AccessRuleItemOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** AccessRulesOut */
+        AccessRulesOut: {
+            /** Access Restricted */
+            access_restricted: boolean;
+            directions: components["schemas"]["AccessRuleDimensionOut"];
+            organizations: components["schemas"]["AccessRuleDimensionOut"];
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Version */
+            version: number;
+        };
+        /** AccessRulesPreviewCounts */
+        AccessRulesPreviewCounts: {
+            /** Hidden */
+            hidden: number;
+            /** Visible After */
+            visible_after: number;
+            /** Visible Before */
+            visible_before: number;
+        };
+        /**
+         * AccessRulesPreviewResponse
+         * @description B4-6: `GET .../access-rules/preview` — последствия ДО сохранения (сухой прогон,
+         *     правила берутся из запроса, а не из БД).
+         */
+        AccessRulesPreviewResponse: {
+            contacts: components["schemas"]["AccessRulesPreviewCounts"];
+            deals: components["schemas"]["AccessRulesPreviewCounts"];
+            organizations: components["schemas"]["AccessRulesPreviewCounts"];
+        };
+        /**
+         * AccessRulesPutRequest
+         * @description B4-5: `PUT /admin/users/{id}/access-rules` — замена целиком, не патч. `{"mode":
+         *     "all", "ids": []}` в обеих размерностях снимает ограничение.
+         */
+        AccessRulesPutRequest: {
+            directions: components["schemas"]["AccessRuleDimensionIn"];
+            organizations: components["schemas"]["AccessRuleDimensionIn"];
+            /** Reason */
+            reason: string;
+        };
         /** ApplyDriftRequest */
         ApplyDriftRequest: {
             /**
@@ -3409,6 +4257,10 @@ export type components = {
              * Format: uuid
              */
             id: string;
+            /** Status History Id */
+            status_history_id?: string | null;
+            /** Status Id */
+            status_id?: string | null;
             /** Uploaded By */
             uploaded_by?: string | null;
         };
@@ -3420,6 +4272,72 @@ export type components = {
             ok: boolean;
             /** Problems */
             problems: string[];
+        };
+        /** AuditCommentListResponse */
+        AuditCommentListResponse: {
+            deal: components["schemas"]["AuditDealRef"];
+            /** Items */
+            items: components["schemas"]["AuditCommentOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /**
+         * AuditCommentOut
+         * @description Тот же набор, что `CommentOut`, плюс `author_name` (у AUDITOR нет `user:read`, своей
+         *     ручки для имён ему не хватило бы) и `is_deleted` явно. Текст живого комментария —
+         *     замаскированный (`mask_contacts_text`: email/телефон/ФИО внутри свободного текста);
+         *     удалённого — не отдаётся вовсе (`body=None`), иначе эта ручка была бы обходом
+         *     `CommentService.delete`, который помечает комментарий удалённым именно ради исключения
+         *     текста из интерфейса.
+         */
+        AuditCommentOut: {
+            /** Author Id */
+            author_id?: string | null;
+            /** Author Name */
+            author_name?: string | null;
+            /** Body */
+            body?: string | null;
+            /** Body Format */
+            body_format: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Deleted At */
+            deleted_at?: string | null;
+            /** Edited At */
+            edited_at?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Deleted */
+            is_deleted: boolean;
+            /** Is Internal */
+            is_internal: boolean;
+            /** Is System */
+            is_system: boolean;
+            /** Parent Id */
+            parent_id?: string | null;
+        };
+        /**
+         * AuditDealRef
+         * @description Минимум для контекста ответа без открытия самой сделки (она вне скоупа AUDITOR) —
+         *     `deleted` вместо полной карточки: B4-3 мягко удаляет сделки, и история переписки по ним
+         *     должна оставаться читаемой аудитору.
+         */
+        AuditDealRef: {
+            /** Deleted */
+            deleted: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number: string;
         };
         /**
          * AuditEntryOut
@@ -3539,10 +4457,67 @@ export type components = {
             /** Logout Token */
             logout_token: string;
         };
+        /** Body_public_verify_by_file_public_verify_by_file_post */
+        Body_public_verify_by_file_public_verify_by_file_post: {
+            /** File */
+            file: string;
+        };
         /** Body_verify_signature_file_api_signatures_verify_post */
         Body_verify_signature_file_api_signatures_verify_post: {
             /** File */
             file: string;
+        };
+        /**
+         * BulkOrganizationOwnerRequest
+         * @description Ровно один из `from_owner_id`/`organization_ids`; `owner_id=None` снимает
+         *     ответственного у всех выбранных вузов.
+         */
+        BulkOrganizationOwnerRequest: {
+            /**
+             * Carry Open Deals
+             * @default false
+             */
+            carry_open_deals: boolean;
+            /** From Owner Id */
+            from_owner_id?: string | null;
+            /** Organization Ids */
+            organization_ids?: string[] | null;
+            /** Owner Id */
+            owner_id?: string | null;
+            /** Reason */
+            reason: string;
+        };
+        /** BulkOrganizationOwnerResponse */
+        BulkOrganizationOwnerResponse: {
+            /**
+             * Batch Id
+             * Format: uuid
+             */
+            batch_id: string;
+            /** Changed */
+            changed: number;
+            /**
+             * Deals Reassigned
+             * @default 0
+             */
+            deals_reassigned: number;
+            /**
+             * Remaining
+             * @default 0
+             */
+            remaining: number;
+            /** Skipped */
+            skipped?: components["schemas"]["BulkOwnerSkipOut"][];
+        };
+        /** BulkOwnerSkipOut */
+        BulkOwnerSkipOut: {
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Reason */
+            reason: string;
         };
         /** BulkReassignRequest */
         BulkReassignRequest: {
@@ -3690,7 +4665,12 @@ export type components = {
             /** Policy Version */
             policy_version: string;
         };
-        /** ContactChannelIn */
+        /**
+         * ContactChannelIn
+         * @description B4-9: значение нормализуется по типу — `phone_extra`/`whatsapp` в E.164,
+         *     `email_extra` в нижний регистр, `telegram` в `@handle` (ссылка `https://t.me/name`
+         *     сводится к нему же). Не разобралось — 422 с именем поля `value`.
+         */
         ContactChannelIn: {
             /**
              * Is Primary
@@ -3704,6 +4684,15 @@ export type components = {
             type: "telegram" | "whatsapp" | "phone_extra" | "email_extra";
             /** Value */
             value: string;
+        };
+        /**
+         * ContactChannelListResponse
+         * @description B4-9: `GET /contacts/{id}/channels` — маскированные значения (`mask_channel_
+         *     value`); полные — только через `POST /contacts/{id}/reveal`.
+         */
+        ContactChannelListResponse: {
+            /** Items */
+            items?: components["schemas"]["ContactChannelOut"][];
         };
         /** ContactChannelOut */
         ContactChannelOut: {
@@ -3869,8 +4858,17 @@ export type components = {
          * ContactUpdateRequest
          * @description Частичное обновление: передаются только меняемые поля. `email`/`phone` пустой строкой
          *     очищаются; `contact_methods` заменяется списком целиком (`null` не допускается).
+         *
+         *     B4-9: `channels` — `null` (поле не пришло или пришло `null`) не меняет каналы, `[]`
+         *     удаляет все, непустой список заменяет целиком (сохраняя `id`/`is_verified`
+         *     совпавших по паре тип+значение). `source` заполненный меняет только ADMIN.
+         *     `consent_id` должен указывать на принятое неотозванное согласие этого контакта.
          */
         ContactUpdateRequest: {
+            /** Channels */
+            channels?: components["schemas"]["ContactChannelIn"][] | null;
+            /** Consent Id */
+            consent_id?: string | null;
             /** Contact Methods */
             contact_methods?: ("email" | "phone" | "telegram" | "whatsapp")[];
             /** Email */
@@ -3889,6 +4887,8 @@ export type components = {
             phone?: string | null;
             /** Position */
             position?: string | null;
+            /** Source */
+            source?: string | null;
         };
         /** CustomFieldDefCreateRequest */
         CustomFieldDefCreateRequest: {
@@ -4195,6 +5195,14 @@ export type components = {
             /** Workflow Id */
             workflow_id?: string | null;
         };
+        /**
+         * DealDeleteRequest
+         * @description B4-3 (A-16): причина обязательна — в отличие от удаления комментария.
+         */
+        DealDeleteRequest: {
+            /** Reason */
+            reason: string;
+        };
         /** DealEventOut */
         DealEventOut: {
             /** Actor Id */
@@ -4227,10 +5235,119 @@ export type components = {
             /** Statuses */
             statuses: components["schemas"]["DealStatusHistoryOut"][];
         };
+        /**
+         * DealListItemOut
+         * @description `DealOut` + колонки, которые ТЗ (Функц.4) требует в таблице и реестре сделок:
+         *     продукты, ИТ-направления и название статуса. Только для `GET /deals` — остальные
+         *     ответы (`create`, `update`, `transition`, карточка) остаются `DealOut`, чтобы не
+         *     тащить лишний запрос туда, где эти поля не нужны.
+         */
+        DealListItemOut: {
+            /** Amount */
+            amount?: string | null;
+            /** Closed At */
+            closed_at?: string | null;
+            /** Contact Id */
+            contact_id?: string | null;
+            /** Contact Name */
+            contact_name?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by?: string | null;
+            /** Currency */
+            currency: string;
+            /** Custom Fields */
+            custom_fields: {
+                [key: string]: unknown;
+            };
+            /** Deal Type */
+            deal_type: string;
+            /** Directions */
+            directions?: components["schemas"]["DirectionBriefOut"][];
+            /** Expected Close Date */
+            expected_close_date?: string | null;
+            /** External Ids */
+            external_ids: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Loss Reason Id */
+            loss_reason_id?: string | null;
+            /** Number */
+            number: string;
+            /** Order Number */
+            order_number?: string | null;
+            /** Organization Id */
+            organization_id?: string | null;
+            /** Organization Name */
+            organization_name?: string | null;
+            /**
+             * Owner Id
+             * Format: uuid
+             */
+            owner_id: string;
+            /** Owner Unavailable */
+            owner_unavailable: boolean;
+            /** Priority */
+            priority: string;
+            /** Products */
+            products?: components["schemas"]["DealProductBriefOut"][];
+            /**
+             * Products Total
+             * @default 0
+             */
+            products_total: number;
+            /** Signature Status */
+            signature_status: string;
+            /** Sla Due At */
+            sla_due_at?: string | null;
+            /** Sla State */
+            sla_state: string;
+            /** Source */
+            source?: string | null;
+            /**
+             * Status Changed At
+             * Format: date-time
+             */
+            status_changed_at: string;
+            /**
+             * Status Id
+             * Format: uuid
+             */
+            status_id: string;
+            /** Status Name */
+            status_name?: string | null;
+            /** Status Type */
+            status_type?: string | null;
+            /** Students Planned */
+            students_planned?: number | null;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+            /**
+             * Workflow Id
+             * Format: uuid
+             */
+            workflow_id: string;
+        };
         /** DealListResponse */
         DealListResponse: {
             /** Items */
-            items: components["schemas"]["DealOut"][];
+            items: components["schemas"]["DealListItemOut"][];
             /** Next Cursor */
             next_cursor?: string | null;
             /**
@@ -4329,6 +5446,31 @@ export type components = {
              */
             workflow_id: string;
         };
+        /**
+         * DealProductBriefOut
+         * @description Продукт сделки для списка/доски (B4-8) — короче `DealProductOut`: без цены и
+         *     скидки, с названием и направлением, которых в `DealProductOut` нет (там достаточно
+         *     id, карточка сама знает контекст).
+         */
+        DealProductBriefOut: {
+            /** Direction Id */
+            direction_id?: string | null;
+            /** Direction Name */
+            direction_name?: string | null;
+            /** Product Code */
+            product_code: string;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Product Name */
+            product_name: string;
+            /** Quantity */
+            quantity: number;
+            /** Stream Number */
+            stream_number?: number | null;
+        };
         /** DealProductIn */
         DealProductIn: {
             /**
@@ -4388,6 +5530,11 @@ export type components = {
         /** DealStatusHistoryOut */
         DealStatusHistoryOut: {
             /**
+             * Attachments Count
+             * @default 0
+             */
+            attachments_count: number;
+            /**
              * Changed At
              * Format: date-time
              */
@@ -4446,6 +5593,16 @@ export type components = {
             students_planned?: number | null;
             /** Title */
             title?: string | null;
+        };
+        /** DirectionBriefOut */
+        DirectionBriefOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
         };
         /** DirectionCreateRequest */
         DirectionCreateRequest: {
@@ -4518,6 +5675,32 @@ export type components = {
         DirectoryResponse: {
             /** Items */
             items: components["schemas"]["DirectoryEntry"][];
+        };
+        /**
+         * DistributionItem
+         * @description B4-4: сколько получил каждый преемник передачи дел.
+         */
+        DistributionItem: {
+            /**
+             * Deals
+             * @default 0
+             */
+            deals: number;
+            /**
+             * Organizations
+             * @default 0
+             */
+            organizations: number;
+            /**
+             * Successor Id
+             * Format: uuid
+             */
+            successor_id: string;
+            /**
+             * Tasks
+             * @default 0
+             */
+            tasks: number;
         };
         /**
          * DownloadUrlOut
@@ -4702,8 +5885,17 @@ export type components = {
          *     совпадает с формой ответа один в один).
          */
         ErasureRequestDetail: {
+            /** Act Document Id */
+            act_document_id?: string | null;
             /** Act File Id */
             act_file_id?: string | null;
+            /** Act Signature Status */
+            act_signature_status?: string | null;
+            /**
+             * Act Signed
+             * @default false
+             */
+            act_signed: boolean;
             /** Blockers */
             blockers?: components["schemas"]["ErasureBlocker"][];
             /** Deadline At */
@@ -4775,6 +5967,44 @@ export type components = {
             subject_id: string;
             /** Subject Type */
             subject_type: string;
+        };
+        /** ErrorCodeListResponse */
+        ErrorCodeListResponse: {
+            /** Items */
+            items: components["schemas"]["ErrorCodeOut"][];
+        };
+        /** ErrorCodeOut */
+        ErrorCodeOut: {
+            /**
+             * Code
+             * @description Код из каталога, `CRM-XXYY`.
+             */
+            code: string;
+            /**
+             * Description
+             * @description Что означает код и когда он возникает.
+             */
+            description: string;
+            /**
+             * Hint
+             * @description Что сделать клиенту, чтобы продолжить.
+             */
+            hint: string;
+            /**
+             * Http Status
+             * @description HTTP-статус, с которым код обычно отдаётся.
+             */
+            http_status: number;
+            /**
+             * Name
+             * @description Имя значения `ErrorCode`, например `VERSION_CONFLICT`.
+             */
+            name: string;
+            /**
+             * Title
+             * @description Короткое название ошибки.
+             */
+            title: string;
         };
         /** EventCodeListResponse */
         EventCodeListResponse: {
@@ -4876,6 +6106,26 @@ export type components = {
             /** Rollout */
             rollout?: number | null;
         };
+        /** FieldMapping */
+        FieldMapping: {
+            /** Approved At */
+            approved_at?: string | null;
+            /** Approved By */
+            approved_by?: string | null;
+            /**
+             * Mode
+             * @default strict
+             * @enum {string}
+             */
+            mode: "strict" | "passthrough";
+            /** Rules */
+            rules?: components["schemas"]["MappingRule"][];
+            /**
+             * Version
+             * @default 1
+             */
+            version: number;
+        };
         /**
          * FileCommitRequest
          * @description Клиент может сообщить контрольную сумму заранее — сервер всё равно
@@ -4931,6 +6181,84 @@ export type components = {
             /** Transitions */
             transitions: components["schemas"]["TransitionOut"][];
             workflow: components["schemas"]["WorkflowOut"];
+        };
+        /**
+         * HandoverExecuteRequest
+         * @description B4-4: `POST /api/users/{id}/handover` — тот же план, что `OffboardRequest`
+         *     собирает из своих полей, но без увольнения: статус сотрудника не меняется.
+         */
+        HandoverExecuteRequest: {
+            /** Deal Successors */
+            deal_successors?: {
+                [key: string]: string;
+            };
+            /**
+             * Default Successor Id
+             * Format: uuid
+             */
+            default_successor_id: string;
+            /**
+             * Include Closed Deals
+             * @default true
+             */
+            include_closed_deals: boolean;
+            /**
+             * Include Organizations
+             * @default true
+             */
+            include_organizations: boolean;
+            /** Organization Successors */
+            organization_successors?: {
+                [key: string]: string;
+            };
+            /** Pool Ids */
+            pool_ids?: string[];
+            /** Reason */
+            reason: string;
+            /** Rules */
+            rules?: components["schemas"]["HandoverRule"][];
+        };
+        /** HandoverExecuteResponse */
+        HandoverExecuteResponse: {
+            /** Distribution */
+            distribution?: components["schemas"]["DistributionItem"][];
+            /** Reassigned Deals */
+            reassigned_deals?: string[];
+            /** Reassigned Organizations */
+            reassigned_organizations?: string[];
+            /**
+             * Reassigned Tasks
+             * @default 0
+             */
+            reassigned_tasks: number;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /** HandoverRule */
+        HandoverRule: {
+            match: components["schemas"]["HandoverRuleMatch"];
+            /**
+             * Successor Id
+             * Format: uuid
+             */
+            successor_id: string;
+        };
+        /**
+         * HandoverRuleMatch
+         * @description Ровно одно поле заполнено — правило понимает один признак за раз (422 иначе).
+         */
+        HandoverRuleMatch: {
+            /** Deal Type */
+            deal_type?: ("b2b" | "b2c") | null;
+            /** Direction Id */
+            direction_id?: string | null;
+            /** Organization Id */
+            organization_id?: string | null;
+            /** Product Id */
+            product_id?: string | null;
         };
         /** HolidayCreateRequest */
         HolidayCreateRequest: {
@@ -5028,7 +6356,15 @@ export type components = {
             /** Target */
             target: string;
         };
-        /** ImportJobCreateRequest */
+        /**
+         * ImportJobCreateRequest
+         * @example {
+         *       "entity_type": "license",
+         *       "file_id": "018f0a3e-4444-7c3e-8c3e-3e7c3e7c3e7c",
+         *       "mode": "upsert",
+         *       "source_format": "xlsx"
+         *     }
+         */
         ImportJobCreateRequest: {
             /**
              * Entity Type
@@ -5084,6 +6420,8 @@ export type components = {
             id: string;
             /** Initiated By */
             initiated_by?: string | null;
+            /** Last Error */
+            last_error?: string | null;
             /** Mapping */
             mapping: {
                 [key: string]: string;
@@ -5203,6 +6541,8 @@ export type components = {
         };
         /** InboundMessageOut */
         InboundMessageOut: {
+            /** Channel */
+            channel: string;
             /** Error */
             error: string | null;
             /** External Id */
@@ -5260,10 +6600,22 @@ export type components = {
             is_active: boolean;
             /** Last Error */
             last_error: string | null;
+            /** Last Run */
+            last_run: {
+                [key: string]: unknown;
+            } | null;
             /** Last Sync At */
             last_sync_at: string | null;
             /** Name */
             name: string;
+            /** Pull Enabled */
+            pull_enabled: boolean;
+            /** Pull Interval Seconds */
+            pull_interval_seconds: number;
+            /** Pull Request */
+            pull_request: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Updated At
              * Format: date-time
@@ -5286,6 +6638,50 @@ export type components = {
             is_active?: boolean | null;
             /** Name */
             name?: string | null;
+            /** Pull Enabled */
+            pull_enabled?: boolean | null;
+            /** Pull Interval Seconds */
+            pull_interval_seconds?: number | null;
+        };
+        /**
+         * IntegrationStatusOut
+         * @description Сводка для экрана источника: `last_run` — снимок момента завершения последнего прогона
+         *     (cron или ручного), `inbound_last_24h`/`outbox_last_24h` — живые счётчики по статусам за
+         *     последние сутки (не из `last_run`).
+         */
+        IntegrationStatusOut: {
+            /** Code */
+            code: string;
+            /** Cursors */
+            cursors: {
+                [key: string]: string | null;
+            };
+            /** Inbound Last 24H */
+            inbound_last_24h: {
+                [key: string]: number;
+            };
+            /** Is Active */
+            is_active: boolean;
+            /** Last Error */
+            last_error: string | null;
+            /** Last Run */
+            last_run: {
+                [key: string]: unknown;
+            } | null;
+            /** Last Sync At */
+            last_sync_at: string | null;
+            /** Outbox Last 24H */
+            outbox_last_24h: {
+                [key: string]: number;
+            };
+            /** Pull Enabled */
+            pull_enabled: boolean;
+            /** Pull Interval Seconds */
+            pull_interval_seconds: number;
+            /** Pull Request */
+            pull_request: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * InviteCheckResponse
@@ -5487,6 +6883,94 @@ export type components = {
             /** Snils */
             snils?: string | null;
         };
+        /**
+         * LicenseCreateRequest
+         * @description B3-6: вендор и ПО принимаются либо ссылкой (`vendor_id`/`product_id`
+         *     — существующая запись каталога), либо текстом (`vendor`/`product_name`
+         *     — как раньше у импорта; сервис пытается найти единственное совпадение
+         *     в каталоге тем же `catalog.license_matching.LicenseMatcher`, что и
+         *     импорт, но не создаёт недостающее автоматически, см. отчёт по эпику).
+         *     Нужно указать хотя бы одно из каждой пары — проверяется в сервисе
+         *     (`ValidationError`, а не здесь: единый формат ошибки Problem Details).
+         *
+         *     `transfer_status` — обычная строка, не `Literal`: сервис пропускает её
+         *     через `catalog.license_values.parse_transfer_status`, который принимает
+         *     и английские коды, и русские синонимы (B3-3) — тем же путём, что и
+         *     импорт, а не отдельной, более строгой проверкой на API.
+         */
+        LicenseCreateRequest: {
+            /** Comment */
+            comment?: string | null;
+            /** Contract Number */
+            contract_number?: string | null;
+            /**
+             * Is Perpetual
+             * @default false
+             */
+            is_perpetual: boolean;
+            /** Is Signed */
+            is_signed?: boolean | null;
+            /** License Signed At */
+            license_signed_at?: string | null;
+            /** License Term Years */
+            license_term_years?: number | null;
+            /** License Valid Until */
+            license_valid_until?: string | null;
+            /** Manager Full Name */
+            manager_full_name?: string | null;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Product Id */
+            product_id?: string | null;
+            /** Product Name */
+            product_name?: string | null;
+            /** Responsible Contacts */
+            responsible_contacts?: string | null;
+            /** Transfer Status */
+            transfer_status?: string | null;
+            /** Vendor */
+            vendor?: string | null;
+            /** Vendor Id */
+            vendor_id?: string | null;
+        };
+        /**
+         * LicenseUpdateRequest
+         * @description Все поля необязательны (PATCH); `organization_id` не редактируется —
+         *     удалить и создать заново (см. задачу B3-6).
+         */
+        LicenseUpdateRequest: {
+            /** Comment */
+            comment?: string | null;
+            /** Contract Number */
+            contract_number?: string | null;
+            /** Is Perpetual */
+            is_perpetual?: boolean | null;
+            /** Is Signed */
+            is_signed?: boolean | null;
+            /** License Signed At */
+            license_signed_at?: string | null;
+            /** License Term Years */
+            license_term_years?: number | null;
+            /** License Valid Until */
+            license_valid_until?: string | null;
+            /** Manager Full Name */
+            manager_full_name?: string | null;
+            /** Product Id */
+            product_id?: string | null;
+            /** Product Name */
+            product_name?: string | null;
+            /** Responsible Contacts */
+            responsible_contacts?: string | null;
+            /** Transfer Status */
+            transfer_status?: string | null;
+            /** Vendor */
+            vendor?: string | null;
+            /** Vendor Id */
+            vendor_id?: string | null;
+        };
         /** LogoutRequest */
         LogoutRequest: {
             /**
@@ -5566,6 +7050,92 @@ export type components = {
             sort_order?: number | null;
         };
         /**
+         * MappingGetResponse
+         * @description Текущий маппинг (`null` — администратор ничего не настраивал) и каталог целей для
+         *     экрана настройки, чтобы форма не хардкодила список.
+         */
+        MappingGetResponse: {
+            mapping: components["schemas"]["FieldMapping"] | null;
+            /** Targets */
+            targets: components["schemas"]["TargetOut"][];
+        };
+        /**
+         * MappingPreviewRequest
+         * @description Либо `record` (образец тела), либо `from_remote: true` (первая запись с источника —
+         *     требует настроенный `CMS_BASE_URL`). `mapping` — черновик для предпросмотра ДО сохранения;
+         *     без него используется уже сохранённый маппинг источника.
+         */
+        MappingPreviewRequest: {
+            /**
+             * From Remote
+             * @default false
+             */
+            from_remote: boolean;
+            mapping?: components["schemas"]["FieldMapping"] | null;
+            /** Record */
+            record?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** MappingPreviewResponse */
+        MappingPreviewResponse: {
+            /** Errors */
+            errors?: components["schemas"]["MappingValidationErrorOut"][];
+            /** Ignored Keys */
+            ignored_keys?: string[];
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Product */
+            product?: {
+                [key: string]: unknown;
+            } | null;
+            /** Record */
+            record: {
+                [key: string]: unknown;
+            };
+            /** Warnings */
+            warnings?: string[];
+        };
+        /** MappingRule */
+        MappingRule: {
+            /** Constant */
+            constant?: unknown;
+            /** Default */
+            default?: unknown;
+            /**
+             * Required
+             * @default false
+             */
+            required: boolean;
+            /** Source */
+            source?: string | null;
+            /** Sources */
+            sources?: string[] | null;
+            /** Target */
+            target: string;
+            /** Template */
+            template?: string | null;
+            /**
+             * Transform
+             * @default none
+             * @enum {string}
+             */
+            transform: "none" | "trim" | "lower" | "upper" | "value_map" | "template" | "join" | "constant";
+            /** Value Map */
+            value_map?: {
+                [key: string]: string;
+            } | null;
+        };
+        /** MappingValidationErrorOut */
+        MappingValidationErrorOut: {
+            /** Field */
+            field: string;
+            /** Reason */
+            reason: string;
+        };
+        /**
          * MePatchRequest
          * @description Свой профиль: имя для отображения, часовой пояс и телефон. Роль, email,
          *     статус и остальное меняет только администратор — лишние поля отклоняются,
@@ -5581,6 +7151,11 @@ export type components = {
         };
         /** MeResponse */
         MeResponse: {
+            /**
+             * Access Restricted
+             * @default false
+             */
+            access_restricted: boolean;
             /** Consent Required */
             consent_required: boolean;
             /** Consent Version */
@@ -5815,6 +7390,38 @@ export type components = {
             /** Subject Template */
             subject_template?: string | null;
         };
+        /** OffboardItemListResponse */
+        OffboardItemListResponse: {
+            /** Items */
+            items: components["schemas"]["OffboardItemOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /**
+         * OffboardItemOut
+         * @description B4-4: строка `GET /admin/users/{id}/offboard/items` — вся сделка/вуз уходящего,
+         *     не только первые 20 из превью.
+         */
+        OffboardItemOut: {
+            /**
+             * Closed
+             * @default false
+             */
+            closed: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number?: string | null;
+            /** Organization Name */
+            organization_name?: string | null;
+            /** Status Id */
+            status_id?: string | null;
+            /** Title */
+            title?: string | null;
+        };
         /** OffboardPreviewItem */
         OffboardPreviewItem: {
             /** Count */
@@ -5838,18 +7445,38 @@ export type components = {
                 [key: string]: string;
             };
             /**
+             * Include Closed Deals
+             * @default true
+             */
+            include_closed_deals: boolean;
+            /**
+             * Include Organizations
+             * @default true
+             */
+            include_organizations: boolean;
+            /**
              * Mode
              * @default preview
              * @enum {string}
              */
             mode: "preview" | "confirm";
+            /** Organization Successors */
+            organization_successors?: {
+                [key: string]: string;
+            };
+            /** Pool Ids */
+            pool_ids?: string[];
             /** Reason */
             reason?: string | null;
+            /** Rules */
+            rules?: components["schemas"]["HandoverRule"][];
             /** Successor Id */
             successor_id?: string | null;
         };
         /** OffboardResponse */
         OffboardResponse: {
+            /** Distribution */
+            distribution?: components["schemas"]["DistributionItem"][];
             /**
              * Mode
              * @enum {string}
@@ -5857,6 +7484,8 @@ export type components = {
             mode: "preview" | "confirm";
             /** Reassigned Deals */
             reassigned_deals?: string[];
+            /** Reassigned Organizations */
+            reassigned_organizations?: string[];
             /**
              * Sessions Terminated
              * @default 0
@@ -5998,19 +7627,26 @@ export type components = {
             /** Website */
             website?: string | null;
         };
+        /** OrganizationDeleteRequest */
+        OrganizationDeleteRequest: {
+            /** Reason */
+            reason: string;
+        };
         /** OrganizationLicenseListResponse */
         OrganizationLicenseListResponse: {
             /** Items */
             items: components["schemas"]["OrganizationLicenseOut"][];
             /** Next Cursor */
             next_cursor?: string | null;
+            /** Total */
+            total?: number | null;
         };
         /** OrganizationLicenseOut */
         OrganizationLicenseOut: {
             /** Comment */
             comment?: string | null;
             /** Contract Number */
-            contract_number: string;
+            contract_number?: string | null;
             /**
              * Created At
              * Format: date-time
@@ -6021,8 +7657,19 @@ export type components = {
              * Format: uuid
              */
             id: string;
+            /**
+             * Is Perpetual
+             * @default false
+             */
+            is_perpetual: boolean;
+            /** Is Signed */
+            is_signed?: boolean | null;
             /** License Signed At */
             license_signed_at?: string | null;
+            /** License Term Years */
+            license_term_years?: number | null;
+            /** License Valid Until */
+            license_valid_until?: string | null;
             /** License Valid Year */
             license_valid_year?: number | null;
             /** Manager Full Name */
@@ -6032,6 +7679,12 @@ export type components = {
              * Format: uuid
              */
             organization_id: string;
+            /** Organization Name */
+            organization_name?: string | null;
+            /** Organization Short Name */
+            organization_short_name?: string | null;
+            /** Product Id */
+            product_id?: string | null;
             /** Product Name */
             product_name: string;
             /** Responsible Contacts */
@@ -6045,6 +7698,8 @@ export type components = {
             updated_at: string;
             /** Vendor */
             vendor: string;
+            /** Vendor Id */
+            vendor_id?: string | null;
             /** Version */
             version: number;
         };
@@ -6139,6 +7794,24 @@ export type components = {
             version: number;
             /** Website */
             website?: string | null;
+        };
+        /**
+         * OrganizationOwnerRemoveRequest
+         * @description `DELETE /organizations/{id}/owner` — вуз становится «ничьим» (B4-2).
+         */
+        OrganizationOwnerRemoveRequest: {
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * OrganizationOwnerSetRequest
+         * @description `PUT /organizations/{id}/owner`. `owner_id=None` — снять ответственного.
+         */
+        OrganizationOwnerSetRequest: {
+            /** Owner Id */
+            owner_id?: string | null;
+            /** Reason */
+            reason: string;
         };
         /**
          * OrganizationRevealOut
@@ -6387,9 +8060,10 @@ export type components = {
         Problem: {
             /**
              * Code
-             * @description Внутренний код из каталога ошибок, `CRM-XXYY`: по нему, а не по тексту, клиент выбирает поведение.
+             * @description Внутренний код из каталога ошибок, `CRM-XXYY`: по нему, а не по тексту, клиент выбирает поведение. Полный справочник — `GET /api/meta/error-codes` (B9-4).
+             * @enum {string}
              */
-            code: string;
+            code: "CRM-1001" | "CRM-1002" | "CRM-1003" | "CRM-1101" | "CRM-1102" | "CRM-1103" | "CRM-1104" | "CRM-1105" | "CRM-1106" | "CRM-1107" | "CRM-1201" | "CRM-1202" | "CRM-1203" | "CRM-1204" | "CRM-1205" | "CRM-1206" | "CRM-1207" | "CRM-1208" | "CRM-1209" | "CRM-1301" | "CRM-1302" | "CRM-1303" | "CRM-1304" | "CRM-1305" | "CRM-1401" | "CRM-1402" | "CRM-1403" | "CRM-1404" | "CRM-1501" | "CRM-1502" | "CRM-1503" | "CRM-1504" | "CRM-1505" | "CRM-1506" | "CRM-1601" | "CRM-1602" | "CRM-1603" | "CRM-1701" | "CRM-1702" | "CRM-1703" | "CRM-1704" | "CRM-1705" | "CRM-1801" | "CRM-1802" | "CRM-1803" | "CRM-1804" | "CRM-1901" | "CRM-1902" | "CRM-1903" | "CRM-8429" | "CRM-9000" | "CRM-9004" | "CRM-9503";
             /**
              * Detail
              * @description Подробность для человека, без стектрейсов и ПДн.
@@ -6505,6 +8179,12 @@ export type components = {
              * @default true
              */
             is_active: boolean;
+            /**
+             * Kind
+             * @default course
+             * @enum {string}
+             */
+            kind: "course" | "software";
             /** Name */
             name: string;
             /** Valid From */
@@ -6553,6 +8233,12 @@ export type components = {
             id: string;
             /** Is Active */
             is_active: boolean;
+            /**
+             * Kind
+             * @default course
+             * @enum {string}
+             */
+            kind: "course" | "software";
             /** Name */
             name: string;
             /**
@@ -6591,6 +8277,8 @@ export type components = {
             format?: ("online" | "offline" | "blended") | null;
             /** Is Active */
             is_active?: boolean | null;
+            /** Kind */
+            kind?: ("course" | "software") | null;
             /** Name */
             name?: string | null;
             /** Valid From */
@@ -6605,6 +8293,30 @@ export type components = {
             /** Graph Hash */
             graph_hash: string;
             workflow: components["schemas"]["WorkflowOut"];
+        };
+        /**
+         * PullRequestBody
+         * @description `updated_since=null` — читать с сохранённого курсора (обычный ручной запуск); дата в
+         *     прошлом — подобрать заявки за период заново (например, упавшие), не откатывая курсор назад
+         *     (`CmsPullService.run`/`sweep_lms_progress_pull`: итоговый курсор — максимум старого и
+         *     вычисленного на этом прогоне).
+         */
+        PullRequestBody: {
+            /** Updated Since */
+            updated_since?: string | null;
+        };
+        /** PullRequestResponse */
+        PullRequestResponse: {
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /**
+             * Status
+             * @default queued
+             */
+            status: string;
         };
         /** ReassignRequest */
         ReassignRequest: {
@@ -6725,6 +8437,18 @@ export type components = {
             reason: string;
         };
         /**
+         * ReportColumnOut
+         * @description Элемент каталога колонок вида отчёта (B1-2, `reporting.spec.ReportSpec.columns`).
+         */
+        ReportColumnOut: {
+            /** Default */
+            default: boolean;
+            /** Key */
+            key: string;
+            /** Title */
+            title: string;
+        };
+        /**
          * ReportDataOut
          * @description rtk_requiriments.md разд. 6.4 («возможность формирования результирующего
          *     json-файла»; см. также backend-issues.md #19): тот же `ReportDataset`,
@@ -6749,6 +8473,13 @@ export type components = {
             rows: unknown[][];
             /** Title */
             title: string;
+            /** Total Rows */
+            total_rows?: number | null;
+            /**
+             * Truncated
+             * @default false
+             */
+            truncated: boolean;
         };
         /** ReportDownloadResponse */
         ReportDownloadResponse: {
@@ -6760,13 +8491,19 @@ export type components = {
             /** Url */
             url: string;
         };
-        /** ReportJobCreateRequest */
+        /**
+         * ReportJobCreateRequest
+         * @example {
+         *       "format": "xlsx",
+         *       "template_code": "sla_compliance"
+         *     }
+         */
         ReportJobCreateRequest: {
             /**
              * Format
              * @enum {string}
              */
-            format: "xlsx" | "pdf" | "png";
+            format: "xlsx" | "xls" | "pdf" | "png" | "json";
             /**
              * Params
              * @description Параметры вида отчёта, накладываются поверх `default_params` шаблона. Специфичные для вида (например `months`/`limit`/`workflow_id`) — см. `GET /report-templates`. Общие для П1 (rtk_requiriments.md разд. 4, ФТ.1/ФТ.4), поддержаны почти всеми видами, кроме `learning_progress`: `date_from`/`date_to` (YYYY-MM-DD, период включительно), `organization_ids`/`direction_ids`/`product_ids`/`owner_ids` (списки UUID). Выгрузка для LMS (`lms_users_upload`, только xlsx) принимает `product_id`, `stream_number`, `status_codes` (по умолчанию `payment_contract` и `lms_enrollment`) и `date_from`/`date_to` по дате создания сделки.
@@ -6795,18 +8532,24 @@ export type components = {
             error: string | null;
             /** Expires At */
             expires_at: string | null;
+            /** File Id */
+            file_id?: string | null;
             /** Finished At */
             finished_at: string | null;
             /**
              * Format
              * @enum {string}
              */
-            format: "xlsx" | "pdf" | "png";
+            format: "xlsx" | "xls" | "pdf" | "png" | "json";
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
             /** Progress Pct */
             progress_pct: number;
             /**
@@ -6814,8 +8557,14 @@ export type components = {
              * Format: uuid
              */
             requested_by: string;
+            /** Result Meta */
+            result_meta?: {
+                [key: string]: unknown;
+            } | null;
             /** Row Count */
             row_count: number | null;
+            /** Started At */
+            started_at?: string | null;
             /**
              * Status
              * @enum {string}
@@ -6835,6 +8584,12 @@ export type components = {
             allowed_roles: string[];
             /** Code */
             code: string;
+            /** Columns */
+            columns?: components["schemas"]["ReportColumnOut"][];
+            /** Date Fields */
+            date_fields?: string[];
+            /** Default Date Field */
+            default_date_field?: string | null;
             /** Default Params */
             default_params: {
                 [key: string]: unknown;
@@ -6851,7 +8606,199 @@ export type components = {
             /** Name */
             name: string;
             /** Output Formats */
-            output_formats: ("xlsx" | "pdf" | "png")[];
+            output_formats: ("xlsx" | "xls" | "pdf" | "png" | "json")[];
+            /** Params */
+            params?: string[];
+        };
+        /** RetentionCategoryResult */
+        RetentionCategoryResult: {
+            /** Category */
+            category: string;
+            /** Deleted */
+            deleted: number;
+            /** Dry Run */
+            dry_run: boolean;
+            /** Error */
+            error?: string | null;
+            /** Status */
+            status: string;
+        };
+        /** RetentionRunListResponse */
+        RetentionRunListResponse: {
+            /** Items */
+            items: components["schemas"]["RetentionRunOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /**
+         * RetentionRunOut
+         * @description Запись `retention_runs` (B6-6) — эксплуатационный журнал, без значений удалённых полей.
+         */
+        RetentionRunOut: {
+            /** Category */
+            category: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Deleted Count */
+            deleted_count: number;
+            /** Dry Run */
+            dry_run: boolean;
+            /** Error */
+            error?: string | null;
+            /**
+             * Finished At
+             * Format: date-time
+             */
+            finished_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Status */
+            status: string;
+            /** Triggered By */
+            triggered_by?: string | null;
+        };
+        /**
+         * RetentionRunRequest
+         * @description `POST /api/admin/retention/run`: `dry_run` по умолчанию `true` — числа без удаления.
+         */
+        RetentionRunRequest: {
+            /** Category */
+            category?: string | null;
+            /**
+             * Dry Run
+             * @default true
+             */
+            dry_run: boolean;
+        };
+        /** RetentionRunResponse */
+        RetentionRunResponse: {
+            /** Results */
+            results: components["schemas"]["RetentionCategoryResult"][];
+        };
+        /** Route */
+        Route: {
+            /**
+             * Deal Type
+             * @default b2c
+             * @enum {string}
+             */
+            deal_type: "b2c" | "b2b";
+            /** Fixed Owner Id */
+            fixed_owner_id?: string | null;
+            /** Initial Status Code */
+            initial_status_code?: string | null;
+            /**
+             * Owner Policy
+             * @default least_loaded
+             * @enum {string}
+             */
+            owner_policy: "least_loaded" | "organization_owner" | "fixed";
+            /** Workflow Code */
+            workflow_code?: string | null;
+        };
+        /** RouteCondition */
+        RouteCondition: {
+            /** Equals */
+            equals?: string | null;
+            /** In */
+            in?: string[] | null;
+            /** Target */
+            target: string;
+        };
+        /** Routing */
+        Routing: {
+            default?: components["schemas"]["Route"];
+            /** Rules */
+            rules?: components["schemas"]["RoutingRule"][];
+        };
+        /**
+         * RoutingGetResponse
+         * @description B5-4: текущая маршрутизация (`null` — не настроена, заявки идут в B2C-воронку по
+         *     умолчанию, как и раньше).
+         */
+        RoutingGetResponse: {
+            routing: components["schemas"]["Routing"] | null;
+        };
+        /** RoutingRule */
+        RoutingRule: {
+            route: components["schemas"]["Route"];
+            when: components["schemas"]["RouteCondition"];
+        };
+        /** SecurityEventListResponse */
+        SecurityEventListResponse: {
+            /** Items */
+            items: components["schemas"]["SecurityEventOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /**
+         * SecurityEventOut
+         * @description Запись `security_events`. `details` уже маскированы на записи (B6-2).
+         */
+        SecurityEventOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            } | null;
+            /** Event Type */
+            event_type: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ip */
+            ip?: string | null;
+            /** Severity */
+            severity: string;
+            /** User Agent */
+            user_agent?: string | null;
+            /** User Display */
+            user_display?: string | null;
+            /** User Id */
+            user_id?: string | null;
+        };
+        /** SecurityEventSummaryOut */
+        SecurityEventSummaryOut: {
+            /** By Type */
+            by_type: components["schemas"]["SecurityEventTypeCount"][];
+            /** Critical Count */
+            critical_count: number;
+            /**
+             * Since
+             * Format: date-time
+             */
+            since: string;
+        };
+        /** SecurityEventTypeCount */
+        SecurityEventTypeCount: {
+            /** Count */
+            count: number;
+            /** Event Type */
+            event_type: string;
+            /**
+             * Last At
+             * Format: date-time
+             */
+            last_at: string;
+            /** Severity */
+            severity: string;
         };
         /** SessionInfo */
         SessionInfo: {
@@ -6891,7 +8838,12 @@ export type components = {
             /** Terminated */
             terminated: number;
         };
-        /** SignRequest */
+        /**
+         * SignRequest
+         * @example {
+         *       "otp": "123456"
+         *     }
+         */
         SignRequest: {
             /** Otp */
             otp: string;
@@ -7065,8 +9017,15 @@ export type components = {
              * Format: uuid
              */
             id: string;
+            /** Last Reminded At */
+            last_reminded_at?: string | null;
             /** Reject Reason */
             reject_reason: string | null;
+            /**
+             * Reminders Sent
+             * @default 0
+             */
+            reminders_sent: number;
             /** Sent At */
             sent_at: string | null;
             /** Sign Order */
@@ -7141,10 +9100,20 @@ export type components = {
             /** File Url */
             file_url?: string | null;
             /**
+             * Has Protocol
+             * @default false
+             */
+            has_protocol: boolean;
+            /**
              * Id
              * Format: uuid
              */
             id: string;
+            /**
+             * Is Signed
+             * @default false
+             */
+            is_signed: boolean;
             /** Preview Url */
             preview_url: string;
             /** Status */
@@ -7250,7 +9219,10 @@ export type components = {
         StatusArchiveRequest: {
             /** Fallback Status Id */
             fallback_status_id?: string | null;
-            /** Mapping Rules */
+            /**
+             * Mapping Rules
+             * @description Зарезервировано для правил переноса значений полей при архивации статуса; сохраняется вместе с заданием переноса, но сейчас не влияет на перенос — он решается только по target_status_id/fallback_status_id/sla_mode.
+             */
             mapping_rules?: {
                 [key: string]: unknown;
             };
@@ -7414,6 +9386,15 @@ export type components = {
             /** Type */
             type: string;
         };
+        /**
+         * StatusRenameRequest
+         * @description B2-5: `PATCH /workflows/{id}/statuses/{status_id}` — только подпись статуса; код, тип,
+         *     переходы и SLA этой ручкой не меняются (конструктор графа остаётся у ADMIN).
+         */
+        StatusRenameRequest: {
+            /** Name */
+            name: string;
+        };
         /** SystemSettingListResponse */
         SystemSettingListResponse: {
             /** Items */
@@ -7445,6 +9426,13 @@ export type components = {
             is_secret?: boolean | null;
             /** Value */
             value: unknown;
+        };
+        /** TargetOut */
+        TargetOut: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
         };
         /** TaskCreateRequest */
         TaskCreateRequest: {
@@ -7726,9 +9714,21 @@ export type components = {
              */
             to_status_id: string;
         };
-        /** TransitionRequest */
+        /**
+         * TransitionRequest
+         * @example {
+         *       "fields": {
+         *         "amount": "1000",
+         *         "custom_fields.contract_number": "Д-1"
+         *       },
+         *       "to_status_id": "018f0a3e-7c3e-7c3e-8c3e-3e7c3e7c3e7c"
+         *     }
+         */
         TransitionRequest: {
-            /** Attachments */
+            /**
+             * Attachments
+             * @description id вложений этой сделки (POST /api/attachments), которые прикладываются к этому переходу
+             */
             attachments?: string[];
             /** Comment */
             comment?: string | null;
@@ -7849,6 +9849,11 @@ export type components = {
         };
         /** UserOut */
         UserOut: {
+            /**
+             * Access Restricted
+             * @default false
+             */
+            access_restricted: boolean;
             /** Activated At */
             activated_at?: string | null;
             /** Anonymized At */
@@ -7963,10 +9968,35 @@ export type components = {
         ValidateResponse: {
             /** Errors */
             errors?: string[];
+            /** Issues */
+            issues?: components["schemas"]["ValidationIssue"][];
             /** Ok */
             ok: boolean;
             /** Warnings */
             warnings?: string[];
+        };
+        /**
+         * ValidationIssue
+         * @description Один пункт валидации графа (B9-6). `severity` и `refs` добавлены вместе с переходом
+         *     редактора воронок на структурированный `issues[]` (B-2 из OPEN-ISSUES) — раньше поле
+         *     существовало, но не использовалось ни одним вызовом (`grep` по коду не находил его, кроме
+         *     самого объявления класса). `refs` — коды статусов, которых касается проблема (воронка:
+         *     недостижимый статус, ловушка); пусто у проблем без привязки к конкретному статусу.
+         */
+        ValidationIssue: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+            /** Path */
+            path?: string | null;
+            /** Refs */
+            refs?: string[];
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "error" | "warning";
         };
         /** VerifyResult */
         VerifyResult: {
@@ -8407,6 +10437,39 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    list_deal_comments_for_audit_api_admin_audit_deals__deal_id__comments_get: {
+        parameters: {
+            query?: {
+                limit?: number | null;
+                cursor?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditCommentListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     export_audit_api_admin_audit_export_get: {
         parameters: {
             query?: {
@@ -8671,7 +10734,9 @@ export interface operations {
     };
     get_erasure_act_api_admin_erasure_requests__request_id__act_get: {
         parameters: {
-            query?: never;
+            query?: {
+                variant?: "signed" | "original" | "protocol";
+            };
             header?: {
                 authorization?: string | null;
             };
@@ -9107,6 +11172,298 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    get_source_mapping_api_admin_integrations_sources__code__mapping_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MappingGetResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    put_source_mapping_api_admin_integrations_sources__code__mapping_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FieldMapping"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldMapping"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    delete_source_mapping_api_admin_integrations_sources__code__mapping_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    preview_source_mapping_api_admin_integrations_sources__code__mapping_preview_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MappingPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MappingPreviewResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    request_source_pull_api_admin_integrations_sources__code__pull_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PullRequestBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PullRequestResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    get_source_routing_api_admin_integrations_sources__code__routing_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutingGetResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    put_source_routing_api_admin_integrations_sources__code__routing_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Routing"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Routing"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    delete_source_routing_api_admin_integrations_sources__code__routing_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    get_source_status_api_admin_integrations_sources__code__status_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationStatusOut"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     list_notification_templates_api_admin_notification_templates_get: {
         parameters: {
             query?: {
@@ -9375,6 +11732,36 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    get_registry_version_api_admin_registry_versions__version_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryVersionOut"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     delete_registry_version_api_admin_registry_versions__version_id__delete: {
         parameters: {
             query?: never;
@@ -9399,6 +11786,171 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    run_retention_api_admin_retention_run_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetentionRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetentionRunResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    list_retention_runs_api_admin_retention_runs_get: {
+        parameters: {
+            query?: {
+                category?: string | null;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetentionRunListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    list_security_events_api_admin_security_events_get: {
+        parameters: {
+            query?: {
+                event_type?: string[] | null;
+                min_severity?: string | null;
+                user_id?: string | null;
+                ip?: string | null;
+                from?: string | null;
+                to?: string | null;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecurityEventListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    export_security_events_api_admin_security_events_export_get: {
+        parameters: {
+            query?: {
+                event_type?: string[] | null;
+                min_severity?: string | null;
+                user_id?: string | null;
+                ip?: string | null;
+                from?: string | null;
+                to?: string | null;
+                limit?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    security_events_summary_api_admin_security_events_summary_get: {
+        parameters: {
+            query?: {
+                hours?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecurityEventSummaryOut"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             422: components["responses"]["UnprocessableEntity"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalServerError"];
@@ -9643,6 +12195,8 @@ export interface operations {
                 status?: string | null;
                 /** @description Поиск по ФИО и email */
                 q?: string | null;
+                /** @description Только пользователи с ограничением видимости (B4-5) */
+                access_restricted?: boolean | null;
                 limit?: number;
                 cursor?: string | null;
             };
@@ -9766,6 +12320,108 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    get_access_rules_api_admin_users__user_id__access_rules_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessRulesOut"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    put_access_rules_api_admin_users__user_id__access_rules_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "If-Match"?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessRulesPutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessRulesOut"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    preview_access_rules_route_api_admin_users__user_id__access_rules_preview_get: {
+        parameters: {
+            query?: {
+                "organizations.mode"?: "all" | "allow" | "deny";
+                "organizations.ids"?: string[] | null;
+                "directions.mode"?: "all" | "allow" | "deny";
+                "directions.ids"?: string[] | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessRulesPreviewResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             422: components["responses"]["UnprocessableEntity"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalServerError"];
@@ -9910,6 +12566,40 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    offboard_items_api_admin_users__user_id__offboard_items_get: {
+        parameters: {
+            query?: {
+                kind?: "deals" | "organizations";
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OffboardItemListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     reset_password_api_admin_users__user_id__reset_password_post: {
         parameters: {
             query?: never;
@@ -9987,6 +12677,7 @@ export interface operations {
             query: {
                 entity_type: string;
                 entity_id: string;
+                status_id?: string | null;
                 limit?: number;
                 cursor?: string | null;
             };
@@ -10428,6 +13119,36 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    list_contact_channels_api_contacts__contact_id__channels_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                contact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactChannelListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             422: components["responses"]["UnprocessableEntity"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalServerError"];
@@ -11022,12 +13743,12 @@ export interface operations {
                 sort?: string | null;
                 workflow_id?: string | null;
                 deal_type?: string | null;
-                organization_id?: string | null;
+                organization_id?: string[] | null;
                 contact_id?: string | null;
-                owner_id?: string | null;
-                product_id?: string | null;
-                direction_id?: string | null;
-                region_id?: string | null;
+                owner_id?: string[] | null;
+                product_id?: string[] | null;
+                direction_id?: string[] | null;
+                region_id?: string[] | null;
                 priority?: string | null;
                 sla_state?: string | null;
                 created_from?: string | null;
@@ -11035,6 +13756,7 @@ export interface operations {
                 closed_from?: string | null;
                 closed_to?: string | null;
                 q?: string | null;
+                deleted?: boolean;
                 limit?: number;
                 cursor?: string | null;
             };
@@ -11157,6 +13879,43 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    delete_deal_api_deals__deal_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "If-Match"?: string | null;
+            };
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DealDeleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["UnprocessableEntity"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalServerError"];
@@ -11324,6 +14083,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DealHistoryResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    get_deal_history_attachments_api_deals__deal_id__history__history_id__attachments_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                deal_id: string;
+                history_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentListResponse"];
                 };
             };
             401: components["responses"]["Unauthorized"];
@@ -11506,6 +14296,38 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    restore_deal_api_deals__deal_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "If-Match"?: string | null;
+            };
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealOut"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     transition_deal_api_deals__deal_id__transition_post: {
         parameters: {
             query?: never;
@@ -11530,6 +14352,36 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "deal": {
+                     *         "amount": "1000.00",
+                     *         "created_at": "2026-03-10T09:00:00+00:00",
+                     *         "created_by": "018f0a3e-3333-7c3e-8c3e-3e7c3e7c3e7c",
+                     *         "currency": "RUB",
+                     *         "custom_fields": {
+                     *           "contract_number": "Д-1"
+                     *         },
+                     *         "deal_type": "b2b",
+                     *         "external_ids": {},
+                     *         "id": "018f0a3e-7c3e-7c3e-8c3e-3e7c3e7c3e7c",
+                     *         "number": "D-2026-000431",
+                     *         "organization_id": "018f0a3e-2222-7c3e-8c3e-3e7c3e7c3e7c",
+                     *         "organization_name": "РТ Университет",
+                     *         "owner_id": "018f0a3e-3333-7c3e-8c3e-3e7c3e7c3e7c",
+                     *         "owner_unavailable": false,
+                     *         "priority": "normal",
+                     *         "signature_status": "none",
+                     *         "sla_state": "ok",
+                     *         "status_changed_at": "2026-03-15T10:30:00+00:00",
+                     *         "status_id": "018f0a3e-7c3e-7c3e-8c3e-3e7c3e7c3e7c",
+                     *         "title": "РТ Университет — Python: базовый курс",
+                     *         "updated_at": "2026-03-15T10:30:00+00:00",
+                     *         "version": 2,
+                     *         "workflow_id": "018f0a3e-1111-7c3e-8c3e-3e7c3e7c3e7c"
+                     *       }
+                     *     }
+                     */
                     "application/json": components["schemas"]["TransitionResponse"];
                 };
             };
@@ -11966,6 +14818,35 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    delete_import_preset_api_import_presets__preset_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                preset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["UnprocessableEntity"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalServerError"];
@@ -12773,6 +15654,28 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    list_error_codes_api_meta_error_codes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorCodeListResponse"];
+                };
+            };
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     list_notifications_api_notifications_get: {
         parameters: {
             query?: {
@@ -12993,6 +15896,14 @@ export interface operations {
         parameters: {
             query?: {
                 organization_id?: string | null;
+                vendor_id?: string | null;
+                product_id?: string | null;
+                transfer_status?: string[] | null;
+                is_signed?: boolean | null;
+                year?: number | null;
+                signed_year?: number | null;
+                q?: string | null;
+                with_total?: boolean;
                 limit?: number;
                 cursor?: string | null;
             };
@@ -13015,6 +15926,42 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    create_organization_license_api_organization_licenses_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                /** @description Ключ идемпотентности, 8–255 символов. Повтор с тем же ключом и телом возвращает сохранённый ответ, с другим телом — 409 CRM-1003. Действует в пределах пользователя, хранится 24 часа. */
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LicenseCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationLicenseOut"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["UnprocessableEntity"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalServerError"];
@@ -13050,6 +15997,72 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    delete_organization_license_api_organization_licenses__license_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                license_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    update_organization_license_api_organization_licenses__license_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "If-Match"?: string | null;
+            };
+            path: {
+                license_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LicenseUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationLicenseOut"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     list_organizations_api_organizations_get: {
         parameters: {
             query?: {
@@ -13063,6 +16076,7 @@ export interface operations {
                 is_accredited?: boolean | null;
                 source?: string | null;
                 q?: string | null;
+                deleted?: boolean;
                 limit?: number;
                 cursor?: string | null;
             };
@@ -13114,6 +16128,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrganizationOut"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    bulk_set_organization_owner_api_organizations_bulk_owner_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkOrganizationOwnerRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkOrganizationOwnerResponse"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -13187,6 +16235,43 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    delete_organization_api_organizations__organization_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "If-Match"?: string | null;
+            };
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationDeleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     update_organization_api_organizations__organization_id__patch: {
         parameters: {
             query?: never;
@@ -13239,6 +16324,80 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ApplyDriftRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationOut"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    set_organization_owner_api_organizations__organization_id__owner_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "If-Match"?: string | null;
+            };
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationOwnerSetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationOut"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    remove_organization_owner_api_organizations__organization_id__owner_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "If-Match"?: string | null;
+            };
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationOwnerRemoveRequest"];
             };
         };
         responses: {
@@ -13331,6 +16490,7 @@ export interface operations {
                 code?: string | null;
                 is_active?: boolean | null;
                 format?: string | null;
+                kind?: ("course" | "software") | null;
                 q?: string | null;
                 limit?: number;
                 cursor?: string | null;
@@ -14020,7 +17180,9 @@ export interface operations {
     };
     get_request_file_api_signature_requests__request_id__file_get: {
         parameters: {
-            query?: never;
+            query?: {
+                variant?: "auto" | "original" | "protocol";
+            };
             header?: {
                 authorization?: string | null;
             };
@@ -14417,6 +17579,42 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    handover_user_api_users__user_id__handover_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HandoverExecuteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HandoverExecuteResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     bitrix_webhook_api_v1_integrations_bitrix_webhook_post: {
         parameters: {
             query?: never;
@@ -14426,7 +17624,25 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Bitrix Id */
+                    bitrix_id: string;
+                    /**
+                     * External Id
+                     * @description Идентификатор доставки для дедупликации
+                     */
+                    external_id: string;
+                    /** Fields */
+                    fields?: {
+                        [key: string]: unknown;
+                    };
+                    /** Version */
+                    version: number;
+                };
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -14439,6 +17655,7 @@ export interface operations {
                     };
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
@@ -14527,7 +17744,21 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * External Id
+                     * @description Идентификатор доставки для дедупликации
+                     */
+                    external_id: string;
+                    /** Items */
+                    items?: {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -14540,6 +17771,7 @@ export interface operations {
                     };
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
@@ -14711,6 +17943,38 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    archive_workflow_api_workflows__workflow_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "If-Match"?: string | null;
+            };
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowOut"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     put_workflow_graph_api_workflows__workflow_id__graph_put: {
         parameters: {
             query?: never;
@@ -14802,6 +18066,44 @@ export interface operations {
                     "application/json": components["schemas"]["PublishResponse"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    rename_status_api_workflows__workflow_id__statuses__status_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+                authorization?: string | null;
+            };
+            path: {
+                workflow_id: string;
+                status_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusRenameRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusOut"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
@@ -15016,7 +18318,9 @@ export interface operations {
     };
     get_sign_file_public_sign__token__file_get: {
         parameters: {
-            query?: never;
+            query?: {
+                variant?: "auto" | "original" | "protocol";
+            };
             header?: never;
             path: {
                 token: string;
@@ -15094,6 +18398,88 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SignatureOut"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    get_signed_file_public_signed__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    get_signed_protocol_public_signed__token__protocol_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    public_verify_by_file_public_verify_by_file_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_public_verify_by_file_public_verify_by_file_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifyResult"];
                 };
             };
             400: components["responses"]["BadRequest"];
