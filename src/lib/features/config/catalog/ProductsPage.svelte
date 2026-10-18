@@ -6,7 +6,7 @@
 	import { Money, StatusChip, TableCell, type Col } from '$lib/ui';
 	import { session } from '$lib/auth/session.svelte';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
-	import { PRODUCT_FORMATS, labelOf } from '../labels';
+	import { PRODUCT_FORMATS, PRODUCT_KINDS, labelOf } from '../labels';
 	import type { Product } from '../types';
 	import FilterBar from '$lib/ui/FilterBar.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
@@ -20,24 +20,25 @@
 	const q = $derived(readQuery('q'));
 	const direction = $derived(readQuery('direction') || null);
 	const format = $derived(readQuery('format') || null);
+	const kind = $derived((readQuery('kind') || null) as 'course' | 'software' | null);
 	const active = $derived(readQuery('active') || null);
 
 	const pager = createPager<Product>((cursor, signal) =>
 		unwrap(
 			api.GET('/api/products', {
-				params: { query: { q: q || undefined, direction_id: direction ?? undefined, format: format ?? undefined, is_active: active === null ? undefined : active === '1', limit: 50, cursor } },
+				params: { query: { q: q || undefined, direction_id: direction ?? undefined, format: format ?? undefined, kind: kind ?? undefined, is_active: active === null ? undefined : active === '1', limit: 50, cursor } },
 				signal
 			})
 		)
 	);
 
 	$effect(() => {
-		void [q, direction, format, active];
+		void [q, direction, format, kind, active];
 		untrack(() => void pager.reload());
 	});
 	ensureDirections();
 
-	const activeCount = $derived([direction, format, active].filter(Boolean).length);
+	const activeCount = $derived([direction, format, kind, active].filter(Boolean).length);
 	const dirItems = $derived(directionOptions(directions.data ?? []));
 	const dirName = (id: string | null | undefined) => directionPath(directions.data ?? [], id) || '—';
 
@@ -58,6 +59,7 @@
 	const columns: Col<Product>[] = [
 		{ key: 'code', title: 'Код', render: codeCell },
 		{ key: 'name', title: 'Название', width: 'minmax(200px, 2fr)', render: nameCell },
+		{ key: 'kind', title: 'Вид', drop: 2, render: kindCell },
 		{ key: 'vendor', title: 'Вендор', width: 'minmax(140px, 1fr)', drop: 3, render: vendorCell },
 		{ key: 'direction', title: 'Направление', width: 'minmax(160px, 1fr)', drop: 2, render: dirCell },
 		{ key: 'format', title: 'Формат', drop: 1, render: formatCell },
@@ -68,6 +70,7 @@
 
 {#snippet codeCell(p: Product)}<TableCell><span class="t-body-s font-mono text-muted">{p.code}</span></TableCell>{/snippet}
 {#snippet nameCell(p: Product)}<TableCell><span class="t-body-m-strong">{p.name}</span></TableCell>{/snippet}
+{#snippet kindCell(p: Product)}<TableCell><StatusChip label={labelOf(PRODUCT_KINDS, p.kind)} tone={p.kind === 'software' ? 'info' : 'neutral'} /></TableCell>{/snippet}
 {#snippet vendorCell(p: Product)}<TableCell><span class="t-body-s text-muted">{p.vendor_name ?? '—'}</span></TableCell>{/snippet}
 {#snippet dirCell(p: Product)}<TableCell><span class="t-body-s text-muted">{dirName(p.direction_id)}</span></TableCell>{/snippet}
 {#snippet formatCell(p: Product)}<TableCell><span class="t-body-s">{labelOf(PRODUCT_FORMATS, p.format)}</span></TableCell>{/snippet}
@@ -82,6 +85,7 @@
 		</div>
 		<div class="t-desc-l flex flex-wrap items-center gap-x-3 gap-y-1 text-muted">
 			<span class="font-mono">{p.code}</span>
+			<StatusChip label={labelOf(PRODUCT_KINDS, p.kind)} tone={p.kind === 'software' ? 'info' : 'neutral'} />
 			{#if p.format}<StatusChip label={labelOf(PRODUCT_FORMATS, p.format)} tone="info" />{/if}
 			{#if p.base_price}<Money value={p.base_price} currency={p.currency} />{/if}
 		</div>
@@ -92,9 +96,10 @@
 
 <CatalogPage active="products" createLabel="Новый продукт" onCreate={() => open(null)}>
 	{#snippet toolbar()}
-		<FilterBar search={q} placeholder="Код или название" onSearch={(v) => setQuery({ q: v })} active={activeCount} onReset={() => setQuery({ direction: null, format: null, active: null })}>
+		<FilterBar search={q} placeholder="Код или название" onSearch={(v) => setQuery({ q: v })} active={activeCount} onReset={() => setQuery({ direction: null, format: null, kind: null, active: null })}>
 			{#snippet filters()}
 				<Pick class="md:w-56" placeholder="Все направления" size="m" search clearable items={dirItems} value={direction} onChange={(v) => setQuery({ direction: v })} />
+				<Pick class="md:w-44" placeholder="Любой вид" size="m" clearable items={PRODUCT_KINDS.map((k) => ({ key: k.key, value: k.value }))} value={kind} onChange={(v) => setQuery({ kind: v })} />
 				<Pick class="md:w-40" placeholder="Любой формат" size="m" clearable items={PRODUCT_FORMATS.map((f) => ({ key: f.key, value: f.value }))} value={format} onChange={(v) => setQuery({ format: v })} />
 				<Pick class="md:w-40" placeholder="Любая активность" size="m" clearable items={[{ key: '1', value: 'Активные' }, { key: '0', value: 'Отключённые' }]} value={active} onChange={(v) => setQuery({ active: v })} />
 			{/snippet}

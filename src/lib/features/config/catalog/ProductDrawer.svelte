@@ -5,7 +5,7 @@
 	import { GLOSSARY } from '$lib/ui/glossary';
 	import { Btn, confirm, toast } from '$lib/ui';
 	import { session } from '$lib/auth/session.svelte';
-	import { PRODUCT_FORMATS } from '../labels';
+	import { PRODUCT_FORMATS, PRODUCT_KINDS } from '../labels';
 	import type { CustomFieldDef, Product } from '../types';
 	import { FormDrawer, FormRow, FormSection } from '$lib/ui';
 	import AreaField from '$lib/ui/fields/AreaField.svelte';
@@ -35,6 +35,7 @@
 	let code = $state('');
 	let name = $state('');
 	let directionId = $state<string | null>(null);
+	let kind = $state<'course' | 'software'>('course');
 	let format = $state<string | null>(null);
 	let price = $state<number | null>(null);
 	let description = $state('');
@@ -68,6 +69,7 @@
 			name = p?.name ?? '';
 			directionId = p?.direction_id ?? null;
 			vendorId = p?.vendor_id ?? null;
+			kind = p?.kind ?? 'course';
 			format = p?.format ?? null;
 			price = p?.base_price != null ? Number(p.base_price) : null;
 			description = p?.description ?? '';
@@ -126,7 +128,7 @@
 				valid_to: validTo,
 				is_active: isActive,
 				custom_fields: custom,
-				kind: item?.kind ?? 'course'
+				kind
 			};
 			if (item) {
 				const saved = await unwrap(api.PATCH('/api/products/{product_id}', { params: { path: { product_id: item.id } }, body, headers: ifMatch(version) }));
@@ -139,7 +141,7 @@
 			}
 			onClose();
 		} catch (e) {
-			const failure = toFormFailure(e, ['code', 'name', 'direction_id', 'vendor_id', 'format', 'base_price', 'currency', 'duration_hours', 'valid_from', 'valid_to']);
+			const failure = toFormFailure(e, ['code', 'name', 'kind', 'direction_id', 'vendor_id', 'format', 'base_price', 'currency', 'duration_hours', 'valid_from', 'valid_to']);
 			errors = { ...failure.fields };
 			formError = failure.form;
 			conflict = failure.conflict;
@@ -186,6 +188,7 @@
 		<TextField label="Код" value={code} readonly hint="Код после создания не меняется" />
 	{/if}
 	<TextField label="Название" required bind:value={name} error={errors.name} maxlength={255} autofocus={!isNew} />
+	<Pick label="Вид" required value={kind} items={PRODUCT_KINDS.map((k) => ({ key: k.key, value: k.value }))} hint={PRODUCT_KINDS.find((k) => k.key === kind)?.hint} error={errors.kind} onChange={(v) => v && (kind = v as 'course' | 'software')} />
 	<Pick label={GLOSSARY.direction.label} hint={GLOSSARY.direction.hint} bind:value={directionId} items={dirItems} error={errors.direction_id} clearable search emptyText={directions.loading ? 'Загрузка…' : 'Направлений нет'} />
 	<OrgPicker label="Вендор" value={vendorId} error={errors.vendor_id} hint="Компания, чей это продукт" onChange={(id) => (vendorId = id)} />
 	<FormRow>
