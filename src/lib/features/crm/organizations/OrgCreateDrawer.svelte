@@ -162,7 +162,7 @@
 
 <FormDrawer {open} title="Новая организация" width={560} saveLabel="Создать" saveTestId="org-create-submit" showSave={step === 'form'} canSave={!blocked} saving={busy} {dirty} formError={failure} onSave={submit} {onClose}>
 	{#key lookupKey}
-		<OrgLookup autofocus={!prefillInn} onPick={picked} />
+		<OrgLookup autofocus={!prefillInn} onPick={picked} onOpenExisting={open_} />
 	{/key}
 
 	{#if step === 'lookup'}
