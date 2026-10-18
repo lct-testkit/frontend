@@ -2,22 +2,23 @@
 	// Входящие сообщения: чей вызов, подпись верна или нет, что обработано и к какой сущности привело.
 	import { untrack } from 'svelte';
 	import { Refresh } from '@lct-testkit/rt-ui/icons';
-	import { api, unwrap } from '$lib/api';
+	import { api } from '$lib/api';
 	import { DateText, FilterBar, IconBtn, Notice, StatusChip, TableCell, type Col } from '$lib/ui';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { INBOUND_STATUSES, INTEGRATION_SOURCES, labelOf } from '../labels';
 	import type { InboundMessage } from '../types';
-	import { createResource } from '../shared/resource.svelte';
+	import { createPager } from '$lib/api/pager.svelte';
 	import CatalogList from '../catalog/CatalogList.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
-	import { LIMITS } from './limits';
+	import { PAGE_SIZE, cursorPage } from './cursorPage';
 	import { inboundHint } from '../hints';
 
 	const source = $derived(readQuery('source') || null);
-	const limit = $derived(Number(readQuery('limit')) || 100);
-	const list = createResource((signal) => unwrap(api.GET('/api/admin/integrations/inbound-messages', { params: { query: { source_code: source, limit } }, signal })).then((r) => r as InboundMessage[]));
+	const list = createPager<InboundMessage>((cursor, signal) =>
+		cursorPage(api.GET('/api/admin/integrations/inbound-messages', { params: { query: { source_code: source, limit: PAGE_SIZE, cursor } }, signal }))
+	);
 	$effect(() => {
-		void [source, limit];
+		void source;
 		untrack(() => void list.reload());
 	});
 
@@ -64,10 +65,9 @@
 
 {#snippet filters()}
 	<Pick label="Источник" clearable placeholder="Любой" value={source} items={INTEGRATION_SOURCES.map((s) => ({ key: s.key, value: s.value }))} onChange={(v) => setQuery({ source: v })} />
-	<Pick label="Показывать" value={String(limit)} items={LIMITS.map((n) => ({ key: String(n), value: `Последние ${n}` }))} onChange={(v) => setQuery({ limit: v === '100' ? null : v })} />
 {/snippet}
 {#snippet trailing()}<IconBtn icon={Refresh} label="Обновить" onclick={() => list.reload()} />{/snippet}
 
 <Notice class="shrink-0" tone="info">Журнал сообщений, которые внешние системы присылают в CRM. Здесь их можно только смотреть.</Notice>
 <FilterBar active={source ? 1 : 0} onReset={() => setQuery({ source: null })} {filters} {trailing} />
-<CatalogList rows={list.data ?? []} {columns} {card} loading={list.loading} error={list.error} onRetry={() => list.reload()} filtered={Boolean(source)} emptyText="Входящих сообщений нет" ariaLabel="Входящие сообщения" />
+<CatalogList rows={list.items} {columns} {card} loading={list.loading} error={list.error} onRetry={() => list.reload()} filtered={Boolean(source)} hasMore={list.hasMore} loadingMore={list.loadingMore} onLoadMore={() => list.loadMore()} emptyText="Входящих сообщений нет" ariaLabel="Входящие сообщения" />

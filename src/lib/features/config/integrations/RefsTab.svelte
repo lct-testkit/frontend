@@ -2,15 +2,15 @@
 	// Связи записей CRM с внешними системами: какому идентификатору снаружи соответствует сделка, организация или контакт.
 	import { untrack } from 'svelte';
 	import { Refresh } from '@lct-testkit/rt-ui/icons';
-	import { api, unwrap } from '$lib/api';
+	import { api } from '$lib/api';
 	import { DateText, FilterBar, IconBtn, Notice, TableCell, type Col } from '$lib/ui';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { INTEGRATION_SOURCES, SYNC_DIRECTIONS, labelOf } from '../labels';
 	import type { ExternalRef } from '../types';
-	import { createResource } from '../shared/resource.svelte';
+	import { createPager } from '$lib/api/pager.svelte';
 	import CatalogList from '../catalog/CatalogList.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
-	import { LIMITS } from './limits';
+	import { PAGE_SIZE, cursorPage } from './cursorPage';
 
 	const ENTITIES = [
 		{ key: 'deal', value: 'Сделки', href: (id: string) => `/deals/${id}` },
@@ -19,10 +19,11 @@
 	];
 	const source = $derived(readQuery('source') || null);
 	const entity = $derived(readQuery('entity') || null);
-	const limit = $derived(Number(readQuery('limit')) || 100);
-	const list = createResource((signal) => unwrap(api.GET('/api/admin/integrations/external-refs', { params: { query: { source_code: source, entity_type: entity, limit } }, signal })).then((r) => r as ExternalRef[]));
+	const list = createPager<ExternalRef>((cursor, signal) =>
+		cursorPage(api.GET('/api/admin/integrations/external-refs', { params: { query: { source_code: source, entity_type: entity, limit: PAGE_SIZE, cursor } }, signal }))
+	);
 	$effect(() => {
-		void [source, entity, limit];
+		void [source, entity];
 		untrack(() => void list.reload());
 	});
 
@@ -63,10 +64,9 @@
 {#snippet filters()}
 	<Pick label="Система" clearable placeholder="Любая" value={source} items={INTEGRATION_SOURCES.map((s) => ({ key: s.key, value: s.value }))} onChange={(v) => setQuery({ source: v })} />
 	<Pick label="Запись" clearable placeholder="Любая" value={entity} items={ENTITIES.map((e) => ({ key: e.key, value: e.value }))} onChange={(v) => setQuery({ entity: v })} />
-	<Pick label="Показывать" value={String(limit)} items={LIMITS.map((n) => ({ key: String(n), value: `Последние ${n}` }))} onChange={(v) => setQuery({ limit: v === '100' ? null : v })} />
 {/snippet}
 {#snippet trailing()}<IconBtn icon={Refresh} label="Обновить" onclick={() => list.reload()} />{/snippet}
 
 <Notice class="shrink-0" tone="info">Соответствие записей CRM и внешних систем: какая сделка или организация какой записи там отвечает. Создаются автоматически при обмене.</Notice>
 <FilterBar active={[source, entity].filter(Boolean).length} onReset={() => setQuery({ source: null, entity: null })} {filters} {trailing} />
-<CatalogList rows={list.data ?? []} {columns} {card} loading={list.loading} error={list.error} onRetry={() => list.reload()} filtered={Boolean(source || entity)} emptyText="Связей пока нет" ariaLabel="Связи с внешними системами" />
+<CatalogList rows={list.items} {columns} {card} loading={list.loading} error={list.error} onRetry={() => list.reload()} filtered={Boolean(source || entity)} hasMore={list.hasMore} loadingMore={list.loadingMore} onLoadMore={() => list.loadMore()} emptyText="Связей пока нет" ariaLabel="Связи с внешними системами" />

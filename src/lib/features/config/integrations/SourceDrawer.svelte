@@ -9,6 +9,8 @@
 	import AreaField from '$lib/ui/fields/AreaField.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import TextField from '$lib/ui/fields/TextField.svelte';
+	import NumberField from '$lib/ui/fields/NumberField.svelte';
+	import Toggle from '$lib/ui/fields/Toggle.svelte';
 	import { toFormFailure } from '../shared/form-errors';
 
 	interface Props {
@@ -25,6 +27,9 @@
 	let authType = $state<string | null>(null);
 	let credentialsRef = $state('');
 	let configText = $state('{}');
+	let pullEnabled = $state(false);
+	/** интервал забора в минутах (бэкенд хранит секунды, 60…86400) */
+	let pullMinutes = $state<number | null>(5);
 	let errors = $state<Record<string, string>>({});
 	let formError = $state<string | null>(null);
 	let saving = $state(false);
@@ -37,11 +42,14 @@
 			authType = source?.auth_type ?? null;
 			credentialsRef = source?.credentials_ref ?? '';
 			configText = JSON.stringify(source?.config ?? {}, null, 2);
+			pullEnabled = source?.pull_enabled ?? false;
+			pullMinutes = Math.round((source?.pull_interval_seconds ?? 300) / 60);
 			errors = {};
 			formError = null;
 		});
 	});
 
+	const pullable = $derived(source?.code === 'cms' || source?.code === 'lms');
 	const passport = $derived(source ? WEBHOOK_PASSPORTS[source.code] : undefined);
 	const url = $derived(passport ? `${location.origin}${passport.path}` : '');
 	const curl = $derived(
@@ -54,6 +62,7 @@
 		if (!source) return;
 		const next: Record<string, string> = {};
 		if (!name.trim()) next.name = 'Укажите название';
+		if (pullable && pullEnabled && (pullMinutes === null || pullMinutes < 1 || pullMinutes > 1440)) next.pull_interval_seconds = 'От 1 минуты до 24 часов (1440)';
 		let config: Record<string, unknown> = {};
 		try {
 			const parsed: unknown = JSON.parse(configText || '{}');
@@ -70,14 +79,14 @@
 			const saved = await unwrap(
 				api.PATCH('/api/admin/integrations/sources/{code}', {
 					params: { path: { code: source.code } },
-					body: { name: name.trim(), base_url: baseUrl.trim() || null, auth_type: authType, credentials_ref: credentialsRef.trim() || null, config }
+					body: { name: name.trim(), base_url: baseUrl.trim() || null, auth_type: authType, credentials_ref: credentialsRef.trim() || null, config, ...(pullable ? { pull_enabled: pullEnabled, pull_interval_seconds: Math.round((pullMinutes ?? 5) * 60) } : {}) }
 				})
 			);
 			toast.success('Источник сохранён');
 			onSaved(saved);
 			onClose();
 		} catch (e) {
-			const failure = toFormFailure(e, ['name', 'base_url', 'auth_type', 'credentials_ref', 'config']);
+			const failure = toFormFailure(e, ['name', 'base_url', 'auth_type', 'credentials_ref', 'config', 'pull_interval_seconds']);
 			errors = failure.fields;
 			formError = failure.form;
 		} finally {
@@ -91,6 +100,12 @@
 	<TextField label="Адрес (base URL)" bind:value={baseUrl} error={errors.base_url} placeholder="https://…" />
 	<Pick label="Авторизация" bind:value={authType} clearable items={AUTH_TYPES.map((a) => ({ key: a.key, value: a.value }))} />
 	<TextField label="Ссылка на секрет" bind:value={credentialsRef} error={errors.credentials_ref} placeholder="CMS_WEBHOOK_SECRET" hint="Имя переменной окружения на сервере. Сам секрет здесь не хранится" />
+	{#if pullable}
+		<FormSection title="Забор по расписанию">
+			<Toggle label="Забирать автоматически" bind:checked={pullEnabled} hint="Иначе данные забираются только кнопкой «Забрать сейчас»" />
+			{#if pullEnabled}<NumberField label="Раз в … минут" bind:value={pullMinutes} integer min={1} max={1440} error={errors.pull_interval_seconds} />{/if}
+		</FormSection>
+	{/if}
 	<AreaField label="Дополнительные настройки (JSON)" bind:value={configText} error={errors.config} rows={5} maxRows={12} />
 
 	{#if passport}

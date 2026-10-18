@@ -25,7 +25,7 @@
 <Page>
 	<PageHeader title="Интеграции">
 		{#snippet tabs(underline)}
-			{#if allowed}<SectionTabs tabs={TABS} active={tab} {underline} onSelect={(k) => setQuery({ tab: k === 'sources' ? null : k, source: null, status: null, entity: null, limit: null })} />{/if}
+			{#if allowed}<SectionTabs tabs={TABS} active={tab} {underline} onSelect={(k) => setQuery({ tab: k === 'sources' ? null : k, source: null, status: null, entity: null })} />{/if}
 		{/snippet}
 	</PageHeader>
 	{#if !allowed}

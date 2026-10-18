@@ -8,17 +8,18 @@
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { OUTBOX_STATUSES, labelOf } from '../labels';
 	import type { OutboxEvent } from '../types';
-	import { createResource } from '../shared/resource.svelte';
+	import { createPager } from '$lib/api/pager.svelte';
 	import CatalogList from '../catalog/CatalogList.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
-	import { LIMITS } from './limits';
+	import { PAGE_SIZE, cursorPage } from './cursorPage';
 	import { outboxHint } from '../hints';
 
 	const status = $derived(readQuery('status') || null);
-	const limit = $derived(Number(readQuery('limit')) || 100);
-	const list = createResource((signal) => unwrap(api.GET('/api/admin/integrations/outbox-events', { params: { query: { status, limit } }, signal })).then((r) => r as OutboxEvent[]));
+	const list = createPager<OutboxEvent>((cursor, signal) =>
+		cursorPage(api.GET('/api/admin/integrations/outbox-events', { params: { query: { status, limit: PAGE_SIZE, cursor } }, signal }))
+	);
 	$effect(() => {
-		void [status, limit];
+		void status;
 		untrack(() => void list.reload());
 	});
 
@@ -29,7 +30,7 @@
 		busy = e.id;
 		try {
 			const saved = await unwrap(api.POST('/api/admin/integrations/outbox-events/{event_id}/retry', { params: { path: { event_id: e.id } } }));
-			list.set((list.data ?? []).map((x) => (x.id === saved.id ? (saved as OutboxEvent) : x)));
+			list.patch((x) => x.id === saved.id, saved as OutboxEvent);
 			toast.success('Событие вернулось в очередь, доставка на ближайшем цикле');
 		} catch (err) {
 			toast.error(err);
@@ -86,10 +87,9 @@
 
 {#snippet filters()}
 	<Pick label="Статус" clearable placeholder="Любой" value={status} items={OUTBOX_STATUSES.map((s) => ({ key: s.key, value: s.value }))} onChange={(v) => setQuery({ status: v })} />
-	<Pick label="Показывать" value={String(limit)} items={LIMITS.map((n) => ({ key: String(n), value: `Последние ${n}` }))} onChange={(v) => setQuery({ limit: v === '100' ? null : v })} />
 {/snippet}
 {#snippet trailing()}<IconBtn icon={Refresh} label="Обновить" onclick={() => list.reload()} />{/snippet}
 
 <Notice class="shrink-0" tone="info">Журнал сообщений, которые система отправляет во внешние системы. События здесь не редактируются; если доставка не удалась, устраните причину и нажмите «Повторить доставку».</Notice>
 <FilterBar active={status ? 1 : 0} onReset={() => setQuery({ status: null })} {filters} {trailing} />
-<CatalogList rows={list.data ?? []} {columns} {card} loading={list.loading} error={list.error} onRetry={() => list.reload()} filtered={Boolean(status)} emptyText="Исходящих событий нет" ariaLabel="Исходящие события" />
+<CatalogList rows={list.items} {columns} {card} loading={list.loading} error={list.error} onRetry={() => list.reload()} filtered={Boolean(status)} hasMore={list.hasMore} loadingMore={list.loadingMore} onLoadMore={() => list.loadMore()} emptyText="Исходящих событий нет" ariaLabel="Исходящие события" />
