@@ -10,9 +10,11 @@
 	import OutboxTab from './OutboxTab.svelte';
 	import RefsTab from './RefsTab.svelte';
 	import SourcesTab from './SourcesTab.svelte';
+	import SubscriptionsTab from './SubscriptionsTab.svelte';
 
 	const TABS = [
 		{ key: 'sources', label: 'Источники' },
+		{ key: 'subscriptions', label: 'Подписки' },
 		{ key: 'outbox', label: 'Исходящие' },
 		{ key: 'inbound', label: 'Входящие' },
 		{ key: 'refs', label: 'Связи' }
@@ -20,10 +22,11 @@
 
 	const tab = $derived(TABS.some((t) => t.key === readQuery('tab')) ? readQuery('tab') : 'sources');
 	const allowed = $derived(session.can('integration:admin'));
+	let subscriptions = $state<SubscriptionsTab | null>(null);
 </script>
 
 <Page>
-	<PageHeader title="Интеграции">
+	<PageHeader title="Интеграции" primary={!allowed ? undefined : tab === 'subscriptions' ? { label: 'Новая подписка', onclick: () => subscriptions?.create(), testid: 'sub-create' } : undefined}>
 		{#snippet tabs(underline)}
 			{#if allowed}<SectionTabs tabs={TABS} active={tab} {underline} onSelect={(k) => setQuery({ tab: k === 'sources' ? null : k, source: null, status: null, entity: null })} />{/if}
 		{/snippet}
@@ -34,6 +37,8 @@
 		<HealthBar />
 		{#if tab === 'sources'}
 			<SourcesTab />
+		{:else if tab === 'subscriptions'}
+			<SubscriptionsTab bind:this={subscriptions} />
 		{:else if tab === 'outbox'}
 			<OutboxTab />
 		{:else if tab === 'inbound'}
