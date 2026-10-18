@@ -13,6 +13,7 @@
 	import { helpAttention } from '$lib/stores/help-attention.svelte';
 	import NotificationBell from '$lib/features/crm/notifications/NotificationBell.svelte';
 	import { signatureInbox } from '$lib/features/signing/inbox.svelte';
+	import { accessInbox } from '$lib/features/crm/access/inbox.svelte';
 	import GlobalSearch from './GlobalSearch.svelte';
 	import Brand from './Brand.svelte';
 	import Notice from './Notice.svelte';
@@ -38,8 +39,11 @@
 		}
 		menuOpen = saved ? saved === '1' : window.innerWidth >= 1400;
 		helpAttention.init();
-		// counter next to «Подписание»: only for those who can sign
-		if (session.canAny('signature:sign', 'signature:create')) return signatureInbox.start();
+		// counters next to «Подписание» (only for those who can sign) and «Доступ к вузам» (the server returns only requests I may decide)
+		const stops: Array<() => void> = [];
+		if (session.canAny('signature:sign', 'signature:create')) stops.push(signatureInbox.start());
+		if (session.can('organization:read')) stops.push(accessInbox.start());
+		return () => stops.forEach((stop) => stop());
 	});
 
 	function toggleMenu() {
@@ -55,7 +59,7 @@
 	const expanded = $derived(menuOpen && bp.isDesktop);
 
 	const sections = $derived(NAV.map((s) => ({ ...s, items: s.items.filter((i) => isVisible(i, (p) => session.can(p))) })).filter((s) => s.items.length > 0));
-	const counters = $derived({ signing: signatureInbox.count });
+	const counters = $derived({ signing: signatureInbox.count, access: accessInbox.count });
 	// «Справка» просит внимания, пока её не открыли (после обновления глав — снова)
 	const attention = $derived({ help: helpAttention.show });
 
