@@ -25,7 +25,7 @@
 	const result = $derived(e ? auditResultMeta(e.result) : null);
 	const changes = $derived(e ? formatChanges(e.changes) : []);
 	const href = $derived(e ? entityHref(e.entity_type, e.entity_id) : null);
-	const label = $derived(e ? entityLabel(e.entity_type, e.entity_id) : null);
+	const label = $derived(e ? entityLabel(e.entity_type, e.entity_id, e) : null);
 </script>
 
 <AppDrawer open={!!entry} title={e ? auditActionLabel(e.action) : ''} width={560} {onClose}>

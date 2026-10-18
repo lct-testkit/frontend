@@ -253,7 +253,17 @@ export const ENTITY_TYPE_LABEL: Record<string, string> = {
 	import_preset: 'Пресет импорта',
 	registry_version: 'Версия реестра',
 	participant: 'Участник сделки',
-	organization_registry: 'Реестр ЕГРЮЛ'
+	organization_registry: 'Реестр ЕГРЮЛ',
+	deal_comment: 'Комментарий к сделке',
+	learner: 'Обучающийся',
+	organization_license: 'Лицензия вуза',
+	outbox_event: 'Исходящее событие',
+	payment: 'Платёж',
+	status_mapping_job: 'Перенос сделок',
+	vendor_contact: 'Контакт вендора',
+	erasure_request: 'Запрос на удаление ПДн',
+	retention_run: 'Очистка по срокам хранения',
+	security_event: 'Событие безопасности'
 };
 
 export const entityTypeLabel = (type: string | null | undefined): string =>
