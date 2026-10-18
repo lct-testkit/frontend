@@ -3,6 +3,11 @@ import type { Condition } from './dsl';
 import {
 	defaultLayers,
 	edgeLayer,
+	insertStepAfter,
+	isOptionalStep,
+	moveStep,
+	setOptional,
+	stepsOf,
 	fromServer,
 	layerCounts,
 	layoutByLevels,
@@ -448,5 +453,110 @@ describe('слои рёбер (воронка из 14 шагов)', () => {
 		expect(counts.skip).toBe(0);
 		const into = plain.transitions.find((t) => t.from === stepId(4) && t.to === stepId(5))!;
 		expect(edgeLayer(withArchived, into)).toBe('main');
+	});
+});
+
+describe('порядок шагов и необязательный шаг', () => {
+	const base = () => fromServer(funnel14({ optionalStep5: false }));
+	const order = (d: GraphDraft) => stepsOf(d).map((s) => s.key);
+	const ids = (n: number[]) => n.map(stepId);
+	const pair = (d: GraphDraft, from: string, to: string) => d.transitions.filter((t) => t.from === from && t.to === to).length;
+
+	it('stepsOf: только не архивные начальный и промежуточные, по порядку', () => {
+		const d = base();
+		expect(order(d)).toEqual(ids([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]));
+		const archived: GraphDraft = { ...d, statuses: d.statuses.map((s) => (s.key === stepId(3) ? { ...s, is_archived: true } : s)) };
+		expect(order(archived)).not.toContain(stepId(3));
+	});
+
+	describe('moveStep', () => {
+		it('шаг 7 выше — становится шестым, номера перенумерованы 10, 20, 30…', () => {
+			const moved = moveStep(base(), stepId(7), -1);
+			expect(order(moved).slice(4, 8)).toEqual(ids([5, 7, 6, 8]));
+			expect(stepsOf(moved).map((s) => s.sort_order)).toEqual([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140]);
+		});
+		it('вниз', () => {
+			expect(order(moveStep(base(), stepId(7), 1)).slice(5, 8)).toEqual(ids([6, 8, 7]));
+		});
+		it('на границах: первый не уходит выше, начальный не уходит ниже второго, никто не встаёт выше начального', () => {
+			const d = base();
+			expect(moveStep(d, stepId(1), -1)).toBe(d);
+			expect(moveStep(d, stepId(1), 1)).toBe(d);
+			expect(moveStep(d, stepId(2), -1)).toBe(d);
+			expect(moveStep(d, stepId(14), 1)).toBe(d);
+		});
+		it('одинаковый порядок у двух шагов: сдвиг всё равно меняет их местами и даёт разные номера', () => {
+			const d = base();
+			const same: GraphDraft = { ...d, statuses: d.statuses.map((s) => (s.key === stepId(4) ? { ...s, sort_order: 30 } : s)) };
+			expect(order(same).slice(2, 4)).toEqual(ids([3, 4]));
+			const moved = moveStep(same, stepId(4), -1);
+			expect(order(moved).slice(2, 4)).toEqual(ids([4, 3]));
+			expect(new Set(stepsOf(moved).map((s) => s.sort_order)).size).toBe(14);
+		});
+		it('завершающие статусы не трогаются', () => {
+			const moved = moveStep(base(), stepId(7), -1);
+			expect(moved.statuses.filter((s) => s.type === 'won' || s.type === 'lost' || s.type === 'parked').map((s) => s.sort_order)).toEqual([1000, 1010, 1020]);
+		});
+	});
+
+	describe('insertStepAfter', () => {
+		it('обязательный шаг после шага 6: два новых перехода (вперёд и назад) с каждой стороны, прямой 6 → 7 заменён путём через новый', () => {
+			const { draft, key } = insertStepAfter(base(), stepId(6), { name: 'Согласование' });
+			expect(order(draft).slice(5, 8)).toEqual([stepId(6), key, stepId(7)]);
+			expect(pair(draft, stepId(6), key)).toBe(1);
+			expect(pair(draft, key, stepId(6))).toBe(1);
+			expect(pair(draft, key, stepId(7))).toBe(1);
+			expect(pair(draft, stepId(7), key)).toBe(1);
+			expect(pair(draft, stepId(6), stepId(7))).toBe(0);
+			expect(draft.transitions).toHaveLength(base().transitions.length - 1 + 4);
+			expect(draft.statuses.find((s) => s.key === key)).toMatchObject({ type: 'intermediate', id: null });
+		});
+		it('необязательный шаг: прямой переход 6 → 7 остаётся', () => {
+			const { draft, key } = insertStepAfter(base(), stepId(6), { required: false });
+			expect(pair(draft, stepId(6), stepId(7))).toBe(1);
+			expect(isOptionalStep(draft, key)).toBe(true);
+		});
+		it('после последнего шага — только пара «после ↔ новый»', () => {
+			const { draft, key } = insertStepAfter(base(), stepId(14));
+			expect(order(draft).at(-1)).toBe(key);
+			expect(draft.transitions).toHaveLength(base().transitions.length + 2);
+		});
+		it('неизвестный ключ — ничего не меняется', () => {
+			const d = base();
+			expect(insertStepAfter(d, 'nope')).toEqual({ draft: d, key: '' });
+		});
+	});
+
+	describe('setOptional', () => {
+		it('включение создаёт ровно один переход 4 → 6, повторное не дублирует, выключение удаляет', () => {
+			const d = base();
+			const on = setOptional(d, stepId(5), true);
+			expect(pair(on, stepId(4), stepId(6))).toBe(1);
+			expect(on.transitions.find((t) => t.from === stepId(4) && t.to === stepId(6))?.name).toMatch(/^Пропустить: /);
+			expect(setOptional(on, stepId(5), true)).toBe(on);
+			expect(isOptionalStep(on, stepId(5))).toBe(true);
+			const off = setOptional(on, stepId(5), false);
+			expect(pair(off, stepId(4), stepId(6))).toBe(0);
+			expect(isOptionalStep(off, stepId(5))).toBe(false);
+		});
+		it('у первого и последнего шага переключать нечего', () => {
+			const d = base();
+			expect(setOptional(d, stepId(1), true)).toBe(d);
+			expect(setOptional(d, stepId(14), true)).toBe(d);
+			expect(isOptionalStep(d, stepId(1))).toBe(false);
+		});
+	});
+
+	describe('newStatus', () => {
+		it('при завершающих статусах 1000–1020 новый шаг получает номер до 1000, а не 1030', () => {
+			const d = base();
+			expect(newStatus(d).sort_order).toBe(150);
+		});
+		it('новый завершающий — за последним завершающим', () => {
+			expect(newStatus(base(), { type: 'lost' }).sort_order).toBe(1030);
+		});
+		it('в пустой воронке — 10', () => {
+			expect(newStatus({ statuses: [], transitions: [], sla_rules: [] }).sort_order).toBe(10);
+		});
 	});
 });

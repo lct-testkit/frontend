@@ -315,9 +315,26 @@ export function statusByKey(draft: GraphDraft, key: string): StatusDraft | undef
 	return draft.statuses.find((s) => s.key === key);
 }
 
+/** Шаги воронки: не архивные начальный и промежуточные статусы по `sort_order` (при равном порядке — как в черновике). */
+export function stepsOf(draft: GraphDraft): StatusDraft[] {
+	return draft.statuses
+		.map((s, i) => [s, i] as const)
+		.filter(([s]) => !s.is_archived && (s.type === 'initial' || s.type === 'intermediate'))
+		.sort((a, b) => a[0].sort_order - b[0].sort_order || a[1] - b[1])
+		.map(([s]) => s);
+}
+
+/** Порядок завершающих статусов начинается с этого числа: шаги всегда левее (шагов не больше 99). */
+export const TERMINAL_ORDER_FROM = 1000;
+
 export function newStatus(draft: GraphDraft, init: Partial<Pick<StatusDraft, 'name' | 'type' | 'color'>> = {}): StatusDraft {
 	const name = init.name?.trim() || 'Новый статус';
-	const maxOrder = draft.statuses.reduce((m, s) => Math.max(m, s.sort_order), 0);
+	// шаг встаёт за последним шагом (а не за «Заморожена» с порядком 1020: иначе переход из заморозки в него считался бы «вперёд»),
+	// завершающий — за последним завершающим
+	const terminal = init.type === 'won' || init.type === 'lost' || init.type === 'parked';
+	const maxOrder = terminal
+		? draft.statuses.filter((s) => s.sort_order >= TERMINAL_ORDER_FROM).reduce((m, s) => Math.max(m, s.sort_order), TERMINAL_ORDER_FROM - 10)
+		: draft.statuses.filter((s) => s.sort_order < TERMINAL_ORDER_FROM).reduce((m, s) => Math.max(m, s.sort_order), 0);
 	return {
 		key: newKey('status'),
 		id: null,
@@ -357,6 +374,76 @@ export function removeStatus(draft: GraphDraft, key: string): GraphDraft {
 		transitions: draft.transitions.filter((t) => t.from !== key && t.to !== key),
 		sla_rules: draft.sla_rules.filter((r) => r.status !== key)
 	};
+}
+
+/** Порядок шагов 10, 20, 30… по списку; остальные статусы (завершающие, архивные) не трогаются. */
+function renumberSteps(draft: GraphDraft, ordered: readonly StatusDraft[]): GraphDraft {
+	const order = new Map(ordered.map((s, i) => [s.key, (i + 1) * 10] as const));
+	return { ...draft, statuses: draft.statuses.map((s) => (order.has(s.key) ? { ...s, sort_order: order.get(s.key)! } : s)) };
+}
+
+/**
+ * Сдвиг шага на одну позицию (−1 выше, +1 ниже). Начальный шаг остаётся первым: он не двигается, и никто не встаёт выше него.
+ * Порядок шагов перенумеровывается 10, 20, 30…; завершающие статусы (1000 и больше) не трогаются.
+ */
+export function moveStep(draft: GraphDraft, key: string, delta: -1 | 1): GraphDraft {
+	const steps = stepsOf(draft);
+	const i = steps.findIndex((s) => s.key === key);
+	const j = i + delta;
+	if (i < 0 || j < 0 || j >= steps.length || steps[i].type === 'initial' || steps[j].type === 'initial') return draft;
+	const next = [...steps];
+	[next[i], next[j]] = [next[j], next[i]];
+	return renumberSteps(draft, next);
+}
+
+const hasTransition = (draft: GraphDraft, from: string, to: string): boolean => draft.transitions.some((t) => t.from === from && t.to === to);
+
+/**
+ * Новый шаг после указанного, с переходами вперёд и назад. `required` (по умолчанию да): прямой переход «после → следующий» заменяется
+ * путём через новый шаг; `required: false` оставляет прямой переход (новый шаг можно пропустить). После последнего шага — только пара «после ↔ новый».
+ */
+export function insertStepAfter(draft: GraphDraft, afterKey: string, init: { name?: string; required?: boolean } = {}): { draft: GraphDraft; key: string } {
+	const steps = stepsOf(draft);
+	const i = steps.findIndex((s) => s.key === afterKey);
+	if (i < 0) return { draft, key: '' };
+	const created = newStatus(draft, { name: init.name, type: 'intermediate' });
+	const next = steps[i + 1];
+	const ordered = [...steps.slice(0, i + 1), created, ...steps.slice(i + 1)];
+	let result: GraphDraft = renumberSteps({ ...draft, statuses: [...draft.statuses, created] }, ordered);
+	const add = (from: string, to: string, name?: string) => {
+		if (hasTransition(result, from, to)) return;
+		const t = newTransition(result, from, to);
+		result = { ...result, transitions: [...result.transitions, name ? { ...t, name } : t] };
+	};
+	add(afterKey, created.key);
+	add(created.key, afterKey, `Назад: ${steps[i].name}`);
+	if (next) {
+		add(created.key, next.key);
+		add(next.key, created.key, `Назад: ${created.name}`);
+		if (init.required ?? true) result = { ...result, transitions: result.transitions.filter((t) => !(t.from === afterKey && t.to === next.key)) };
+	}
+	return { draft: result, key: created.key };
+}
+
+/** Шаг необязателен, если есть переход с предыдущего шага сразу на следующий. */
+export function isOptionalStep(draft: GraphDraft, key: string): boolean {
+	const steps = stepsOf(draft);
+	const i = steps.findIndex((s) => s.key === key);
+	return i > 0 && i < steps.length - 1 && hasTransition(draft, steps[i - 1].key, steps[i + 1].key);
+}
+
+/**
+ * Необязательность шага = переход с предыдущего шага на следующий («Пропустить: имя»). Включение дважды не дублирует переход,
+ * выключение удаляет его; у первого и последнего шага (нет соседа) ничего не меняется.
+ */
+export function setOptional(draft: GraphDraft, key: string, optional: boolean): GraphDraft {
+	const steps = stepsOf(draft);
+	const i = steps.findIndex((s) => s.key === key);
+	if (i <= 0 || i >= steps.length - 1) return draft;
+	const [prev, next] = [steps[i - 1], steps[i + 1]];
+	if (!optional) return { ...draft, transitions: draft.transitions.filter((t) => !(t.from === prev.key && t.to === next.key)) };
+	if (hasTransition(draft, prev.key, next.key)) return draft;
+	return { ...draft, transitions: [...draft.transitions, { ...newTransition(draft, prev.key, next.key), name: `Пропустить: ${steps[i].name}` }] };
 }
 
 export function slaOf(draft: GraphDraft, statusKey: string): SlaDraft | null {

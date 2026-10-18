@@ -4,7 +4,7 @@
 	import { ArrowLeft, ArrowRight, Archive, Trash } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { Btn, IconBtn, confirm, toast } from '$lib/ui';
-	import { STATUS_TYPE_LABELS, STATUS_TYPES, makeCode, type StatusDraft, type StatusType } from '../graph';
+	import { STATUS_TYPE_LABELS, STATUS_TYPES, isOptionalStep, makeCode, stepsOf, type StatusDraft, type StatusType } from '../graph';
 	import { STATUS_COLORS, statusColor } from '../palette';
 	import type { WorkflowEditor } from './editor.svelte';
 	import PanelIssues from './PanelIssues.svelte';
@@ -12,6 +12,7 @@
 	import MultiPick from '$lib/ui/fields/MultiPick.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import TextField from '$lib/ui/fields/TextField.svelte';
+	import Toggle from '$lib/ui/fields/Toggle.svelte';
 	import { hasSameName, normalizeStatusName, statusNameError } from '../statusName';
 
 	interface Props {
@@ -29,6 +30,14 @@
 	const requiredItems = $derived(
 		editor.catalogue.filter((f) => f.group !== 'attachment' && !['tasks.open_count', 'products.count', 'signature_status'].includes(f.key)).map((f) => ({ key: f.key, value: f.label }))
 	);
+	// «Необязательный шаг» — только у промежуточного шага с соседями; признак — переход с предыдущего шага на следующий
+	const canOptional = $derived.by(() => {
+		if (status.type !== 'intermediate' || isNew) return false;
+		const list = stepsOf(editor.draft);
+		const i = list.findIndex((s) => s.key === status.key);
+		return i > 0 && i < list.length - 1;
+	});
+	const optional = $derived(isOptionalStep(editor.draft, status.key));
 	const errs = $derived(editor.issues.filter((i) => i.statusKeys.includes(status.key)));
 
 	let codeTouched = $state(false);
@@ -108,6 +117,16 @@
 		items={STATUS_TYPES.map((t) => ({ key: t, value: STATUS_TYPE_LABELS[t] }))}
 		onChange={(v) => v && editor.updateStatus(status.key, { type: v as StatusType })}
 	/>
+
+	{#if canOptional}
+		<Toggle
+			label="Необязательный шаг"
+			checked={optional}
+			disabled={editor.readonly}
+			hint="Сделку можно пропустить этот шаг: добавляется переход «Пропустить» с предыдущего шага на следующий"
+			onChange={(v) => editor.setOptional(status.key, v)}
+		/>
+	{/if}
 
 	<div class="flex flex-col gap-1.5">
 		<span class="t-desc-l text-muted">Цвет</span>
