@@ -1,6 +1,7 @@
 <script lang="ts">
 	// Назначить, сменить или снять ответственного за вуз (Руководитель, Администратор): кому, причина, при желании — вместе с открытыми сделками вуза.
 	// Смена — `PUT /api/organizations/{id}/owner`, снятие — `DELETE` (оба с If-Match и причиной); со сделками — массовая ручка на один вуз.
+	import { untrack } from 'svelte';
 	import { ApiError, api, errorMessage, ifMatch, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
 	import { CheckField, FormModal, Notice, UserName, UserPicker, toast } from '$lib/ui';
@@ -39,8 +40,17 @@
 	const title = $derived(removing ? 'Снять ответственного' : hasOwner ? 'Сменить ответственного' : 'Назначить ответственного');
 	const saveLabel = $derived(removing ? 'Снять' : hasOwner ? 'Сменить' : 'Назначить');
 
+	// поля сбрасываются только при открытии окна: после «Обновить» в баннере конфликта организация в `org` меняется, а введённое должно остаться
+	let wasOpen = false;
 	$effect(() => {
-		if (!open) return;
+		const opened = open;
+		untrack(() => {
+			if (opened && !wasOpen) reset();
+			wasOpen = opened;
+		});
+	});
+
+	function reset() {
 		successor = null;
 		removing = startRemoving;
 		reason = '';
@@ -59,7 +69,7 @@
 				openDeals = null;
 			}
 		})();
-	});
+	}
 
 	function validate(): boolean {
 		const next: { successor?: string; reason?: string } = {};
