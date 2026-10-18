@@ -23,7 +23,7 @@
 		hasMore?: boolean;
 		loadingMore?: boolean;
 		onLoadMore?: () => void;
-		ariaLabel?: string;
+		ariaLabel: string;
 	}
 
 	let { rows, columns, card, loading = false, error = null, onRetry, filtered = false, emptyText, createLabel = 'Создать', onCreate, onEdit, hasMore = false, loadingMore = false, onLoadMore, ariaLabel }: Props = $props();

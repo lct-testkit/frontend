@@ -6,7 +6,9 @@
 	// Three ways to open it: the pointer resting on the element, keyboard focus (the element is a tab stop; Esc closes it) and a tap on a phone (the touch browser sends the
 	// mouse events, the tap does not reach the card or row under it, a tap elsewhere closes the tip). The DS opens only on hover, so the tip is driven from here (`isOpened`).
 	import type { Snippet } from 'svelte';
+	import { getContext } from 'svelte';
 	import { Tooltip } from '@lct-testkit/rt-ui';
+	import { NO_TAB_STOPS } from './no-tab-stops';
 
 	interface Props {
 		/** what it means: one or two short sentences */
@@ -18,9 +20,12 @@
 		/** the element the tip belongs to */
 		children: Snippet;
 		class?: string;
+		/** a tab stop of its own (default: yes, except inside a table cell or a card — see NoTabStops) */
+		focusable?: boolean;
 	}
 
-	let { text, title, placement = 'auto', children, class: className = '' }: Props = $props();
+	let { text, title, placement = 'auto', children, class: className = '', focusable }: Props = $props();
+	const stop = $derived(focusable ?? !getContext(NO_TAB_STOPS));
 
 	let hover = $state(false);
 	let focus = $state(false);
@@ -38,13 +43,13 @@
 	}
 </script>
 
-<!-- the wrapper takes the keyboard focus (the DS trigger inside is aria-hidden and cannot); it is named by the tip itself -->
-<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+<!-- the wrapper takes the keyboard focus (the DS trigger inside is aria-hidden and cannot); it is named by the tip itself. Without a stop (a cell, a card) the meaning is read as text -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <span
 	class={['inline-flex max-w-full min-w-0 rounded-sm', className]}
-	tabindex="0"
-	role="note"
-	aria-label={title ? `${title}. ${text}` : text}
+	tabindex={stop ? 0 : undefined}
+	role={stop ? 'note' : undefined}
+	aria-label={stop ? (title ? `${title}. ${text}` : text) : undefined}
 	onmouseenter={() => {
 		over = true;
 		arm(() => (hover = over));
@@ -72,6 +77,7 @@
 		}
 	}}
 >
+	{#if !stop}<span class="sr-only">{title ? `${title}. ${text}` : text}</span>{/if}
 	{#if armed}
 	<Tooltip
 		{title}

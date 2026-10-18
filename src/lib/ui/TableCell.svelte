@@ -4,6 +4,7 @@
 	// once, for every table. Text goes in as it is: it inherits the DS cell font (14/20). It is at least 40 px high — the height of the DS
 	// checkbox cell — so a table with and a table without selection have the same rows. One line per cell: every row keeps one height.
 	import type { Snippet } from 'svelte';
+	import NoTabStops from './NoTabStops.svelte';
 
 	interface Props {
 		children?: Snippet;
@@ -15,4 +16,4 @@
 	let { children, align = 'left', class: className = '' }: Props = $props();
 </script>
 
-<div class={['flex h-full min-h-10 min-w-0 items-center gap-2 px-[15px]', align === 'right' && 'justify-end text-right', className]}>{@render children?.()}</div>
+<div class={['flex h-full min-h-10 min-w-0 items-center gap-2 px-[15px]', align === 'right' && 'justify-end text-right', className]}><NoTabStops>{@render children?.()}</NoTabStops></div>

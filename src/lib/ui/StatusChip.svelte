@@ -40,7 +40,6 @@
 	<!-- the DS tooltip hides its trigger from screen readers: the label and the meaning are given as text -->
 	<span class="inline-flex max-w-full min-w-0">
 		<Tip title={label} text={hint}>{@render pill(undefined)}</Tip>
-		<span class="sr-only">{label}. {hint}</span>
 	</span>
 {:else}
 	{@render pill(title)}
