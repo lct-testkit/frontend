@@ -1,5 +1,5 @@
 // Names of colleagues (authors, owners, assignees, signers…). Backed by GET /api/users/directory: one batched request per tick,
-// results cached for the session. `people.name(id)` is reactive: it shows a short id until the name arrives.
+// results cached for the session. `people.name(id)` is reactive: it shows «…» until the name arrives and «Пользователь недоступен» when the directory does not know the id.
 import { SvelteMap } from 'svelte/reactivity';
 import { api } from './client';
 
@@ -12,7 +12,9 @@ export interface Person {
 	status: string;
 }
 
-const short = (id: string) => `#${id.slice(-4)}`;
+/** пока имя грузится — многоточие, а не фрагмент id: «#52a5» в карточке читается как ошибка */
+const LOADING = '…';
+const UNKNOWN = 'Пользователь недоступен';
 
 class People {
 	/** undefined = never asked · null = asked, not found */
@@ -35,9 +37,9 @@ class People {
 		const person = this.#cache.get(id);
 		if (person === undefined) {
 			this.ensure([id]);
-			return short(id);
+			return LOADING;
 		}
-		return person ? person.display_name || person.full_name : short(id);
+		return person ? person.display_name || person.full_name : UNKNOWN;
 	}
 
 	ensure(ids: (string | null | undefined)[]): void {

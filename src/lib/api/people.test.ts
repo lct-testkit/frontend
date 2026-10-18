@@ -70,13 +70,21 @@ describe('people.ensure — дедуп параллельных запросов
 		expect(people.get('a')?.id).toBe('a');
 	});
 
-	it('name() отдаёт короткий id пока грузится, полное имя — после ответа', async () => {
+	it('name() отдаёт многоточие пока грузится, полное имя — после ответа', async () => {
 		get.mockResolvedValue({ data: { items: [person('12345678')] } });
 		const { people } = await load();
 
-		expect(people.name('12345678')).toBe('#5678');
+		expect(people.name('12345678')).toBe('…');
 		await vi.advanceTimersByTimeAsync(15);
 
 		expect(people.name('12345678')).toBe('Сотрудник 12345678');
+	});
+
+	it('name() для id, которого нет в справочнике, — «Пользователь недоступен», а не хэш', async () => {
+		get.mockResolvedValue({ data: { items: [] } });
+		const { people } = await load();
+		people.name('ghost-0001');
+		await vi.advanceTimersByTimeAsync(15);
+		expect(people.name('ghost-0001')).toBe('Пользователь недоступен');
 	});
 });
