@@ -86,6 +86,32 @@ try {
 	const after = (await api('head', 'GET', `/api/organization-licenses/${created[0].id}`)).json;
 	check(after.transfer_status === 'transferred', 'после загрузки актуальной версии правка сохранилась');
 	check(after.comment === 'правка в другой вкладке', 'чужая правка комментария не затёрта');
+
+	console.log('(e) удаление');
+	await page.goto(`${BASE}/licenses?edit=${created[0].id}`);
+	await drawer.getByText('E2E Вендор').first().waitFor();
+	check((await drawer.getByRole('button', { name: 'Удалить' }).count()) === 0, 'КАМ: кнопки «Удалить» нет (нет права license:delete)');
+	const headPage = await newPage(browser, { who: 'head', width: 1440, height: 900 });
+	await headPage.goto(`${BASE}/licenses?q=E2E-001`);
+	await headPage.waitForSelector('text=Найдено: 1');
+	await headPage.getByText('E2E-001').first().click();
+	const hd = headPage.locator('.atmr-drawer');
+	await hd.getByRole('button', { name: 'Удалить' }).click();
+	await headPage.locator('button.atmr-button--secondary', { hasText: 'Отмена' }).click();
+	check((await mine()).length === 1, 'отказ в подтверждении ничего не удаляет');
+	await hd.getByRole('button', { name: 'Удалить' }).click();
+	await headPage.locator('button.atmr-button--primary, button.atmr-button--danger', { hasText: 'Удалить' }).last().click();
+	await headPage.waitForSelector('text=Лицензия удалена');
+	await headPage.waitForSelector('text=Ничего не найдено');
+	check((await mine()).length === 0, 'после удаления записи нет ни в списке, ни в базе');
+	const twin = (await api('head', 'POST', '/api/organization-licenses', { organization_id: created[0].organization_id, vendor: 'E2E Вендор', product_name: 'E2E Программа 2', contract_number: 'E2E-002' }, { 'Idempotency-Key': crypto.randomUUID() })).json;
+	await headPage.goto(`${BASE}/licenses?q=E2E-002`);
+	await headPage.getByText('E2E-002').first().click();
+	await api('head', 'DELETE', `/api/organization-licenses/${twin.id}`);
+	await hd.getByRole('button', { name: 'Удалить' }).click();
+	await headPage.locator('button.atmr-button--primary, button.atmr-button--danger', { hasText: 'Удалить' }).last().click();
+	await headPage.waitForSelector('text=Лицензия уже удалена');
+	ok('повторное удаление: «Лицензия уже удалена», без ошибки');
 } finally {
 	await cleanup();
 	await browser.close();

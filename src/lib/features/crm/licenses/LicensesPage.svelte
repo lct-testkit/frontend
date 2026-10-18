@@ -80,6 +80,12 @@
 		}
 	}
 
+	function deleted(id: string) {
+		const had = pager.items.some((r) => r.id === id);
+		pager.remove((r) => r.id === id);
+		if (had && pager.total !== undefined) pager.total = Math.max(0, pager.total - 1);
+	}
+
 	const change = (c: Partial<LicenseFilters>) => void setQuery(patchFor(c, filters));
 	const resetFilters = () => void setQuery(Object.fromEntries(FILTER_KEYS.filter((k) => k !== 'q').map((k) => [k, null])));
 	const resetAll = () => void setQuery(Object.fromEntries(FILTER_KEYS.map((k) => [k, null])));
@@ -156,4 +162,4 @@
 	{/if}
 </Page>
 
-<LicenseDrawer open={creating || editing !== null} item={creating ? null : editing} onClose={closeDrawer} onSaved={saved} />
+<LicenseDrawer open={creating || editing !== null} item={creating ? null : editing} onClose={closeDrawer} onSaved={saved} onDeleted={deleted} />

@@ -2,9 +2,9 @@
 	// Панель лицензии: создать или изменить договор вуз–вендор–ПО, не уходя со списка. Права, `Idempotency-Key`, `If-Match`, плашка конфликта версий —
 	// как у остальных форм (образец — ProductDrawer). ФИО менеджера и ответственные без права `contact:reveal` приходят маской: показываются, но не правятся.
 	import { onMount, untrack } from 'svelte';
-	import { api, unwrap, idem, ifMatch } from '$lib/api';
+	import { api, unwrap, idem, ifMatch, ApiError } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
-	import { FormDrawer, FormRow, toast } from '$lib/ui';
+	import { Btn, FormDrawer, FormRow, confirm, toast } from '$lib/ui';
 	import AreaField from '$lib/ui/fields/AreaField.svelte';
 	import DateField from '$lib/ui/fields/DateField.svelte';
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
@@ -30,9 +30,11 @@
 		orgId?: string | null;
 		onClose: () => void;
 		onSaved: (license: OrganizationLicense, created: boolean) => void;
+		/** лицензия удалена (или её уже не было) — убрать строку из списка */
+		onDeleted?: (id: string) => void;
 	}
 
-	let { open, item, orgId = null, onClose, onSaved }: Props = $props();
+	let { open, item, orgId = null, onClose, onSaved, onDeleted }: Props = $props();
 
 	let v = $state<LicenseValues>({ ...EMPTY_VALUES });
 	let version = $state(0);
@@ -103,6 +105,24 @@
 		}
 	}
 
+	async function remove() {
+		if (!item) return;
+		const ok = await confirm({ title: 'Удалить лицензию?', message: 'Запись исчезнет из каталога; повторный импорт этого договора создаст её заново.', confirmLabel: 'Удалить', danger: true });
+		if (!ok) return;
+		try {
+			await unwrap(api.DELETE('/api/organization-licenses/{license_id}', { params: { path: { license_id: item.id } } }));
+			toast.success('Лицензия удалена');
+		} catch (e) {
+			if (!(e instanceof ApiError && e.isNotFound)) {
+				toast.error(e);
+				return;
+			}
+			toast.info('Лицензия уже удалена');
+		}
+		onDeleted?.(item.id);
+		onClose();
+	}
+
 	/** После конфликта версий берём актуальную версию записи; введённое остаётся в форме. */
 	async function reloadVersion() {
 		if (!item) return;
@@ -144,4 +164,7 @@
 	<TextField label="ФИО менеджера" bind:value={v.manager} error={errors.manager_full_name} maxlength={MAX_LEN.manager} disabled={readOnly || piiLocked} hint={piiLocked ? maskedHint : undefined} />
 	<AreaField label="Ответственные от вуза" bind:value={v.responsible} disabled={readOnly || piiLocked} hint={piiLocked ? maskedHint : undefined} />
 	<AreaField label="Комментарий" bind:value={v.comment} disabled={readOnly} />
+	{#snippet extra()}
+		{#if item && access.remove}<Btn label="Удалить" variant="outline" colorScheme="neutral" danger onclick={remove} />{/if}
+	{/snippet}
 </FormDrawer>
