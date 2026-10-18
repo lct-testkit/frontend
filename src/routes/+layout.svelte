@@ -11,6 +11,7 @@
 	import { ExtMotionProvider } from '@lct-testkit/rt-ui/ext';
 	import { theme } from '$lib/stores/theme.svelte';
 	import ConfirmHost from '$lib/ui/ConfirmHost.svelte';
+	import { installFieldA11y } from '$lib/ui/fields/field-a11y';
 	import ToastHost from '$lib/ui/ToastHost.svelte';
 	import AnnouncerHost from '$lib/ui/AnnouncerHost.svelte';
 
@@ -19,6 +20,7 @@
 	onMount(() => {
 		theme.init();
 		document.body.setAttribute('data-theme-ready', '');
+		return installFieldA11y();
 	});
 </script>
 
