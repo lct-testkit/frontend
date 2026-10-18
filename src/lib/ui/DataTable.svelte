@@ -116,6 +116,11 @@
 
 	const bp = useBreakpoint();
 
+	// A click on a row checkbox also bubbles up to the row (`rowConfig.onClick`) — the DS example ignores it by remembering where the click started
+	// (rt-ui/src/routes/examples/crm/Organizations.svelte). Without this a selectable table with a clickable row opens the row instead of selecting it.
+	let clickStartedInCheckbox = false;
+	const markPointer = (event: Event) => (clickStartedInCheckbox = (event.target as HTMLElement | null)?.closest('.atmr-checkbox') != null);
+
 	// `rowHref`: preload a row's page on hover. The DS row (`_LayoutRow.svelte`) carries no id, only a
 	// `--row-index` custom property it uses to place itself in the CSS grid — the header row gets one too, always
 	// the smallest value present, so `thisIndex - headerIndex - 1` is the row's position in `rows` regardless of
@@ -317,6 +322,11 @@
 	}
 </script>
 
+<!-- панель выбранных строк в таблице DS: содержимое страницы (число, кнопки) ложится в один ряд, а не столбиком -->
+{#snippet gridBar()}
+	<div class="flex min-h-12 w-full min-w-0 flex-wrap items-center gap-3 px-4 py-2" role="toolbar" aria-label="Действия с выбранными" data-testid="selection-bar">{@render actionBar?.()}</div>
+{/snippet}
+
 {#snippet selectAll()}
 	<Checkbox variant="primary" checked={allSelected} indeterminate={selected.length > 0 && !allSelected} aria-label="Выбрать все" onChange={(v: boolean) => onSelectionChange?.(v ? rows.map((r) => String(r.id)) : [])} />
 {/snippet}
@@ -337,7 +347,7 @@
 
 <!-- `pointerover` below is a perf hint only (preloads a row's page on hover): the rows themselves, not this div, stay the real click/keyboard target -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div bind:this={area} class={['w-full min-w-0', fill && 'md:min-h-0 md:flex-1 md:basis-0 md:overflow-hidden', embedded && 'dt-embedded', onRowClick && 'dt-rows-open', !onRowClick && !selectable && 'dt-static']} aria-busy={loading || undefined} onpointerover={rowHref ? onRowsPointerOver : undefined} use:rowKeydown use:headerSort={{ sortable: sortableKeys, sort, hints: headerHints }}>
+<div bind:this={area} class={['w-full min-w-0', fill && 'md:min-h-0 md:flex-1 md:basis-0 md:overflow-hidden', embedded && 'dt-embedded', onRowClick && 'dt-rows-open', !onRowClick && !selectable && 'dt-static']} aria-busy={loading || undefined} onpointerover={rowHref ? onRowsPointerOver : undefined} onpointerdowncapture={markPointer} onkeydowncapture={() => (clickStartedInCheckbox = false)} use:rowKeydown use:headerSort={{ sortable: sortableKeys, sort, hints: headerHints }}>
 	{#if error}
 		<ErrorState {error} {onRetry} />
 	{:else if loading && rows.length === 0}
@@ -365,13 +375,13 @@
 			style={{ width: '100%' }}
 			containerStyle={scrollInside ? { maxHeight: areaHeight - 2 } : undefined}
 			rowConfig={{
-				onClick: onRowClick ? (rowId: string | number) => onRowClick(rows.find((r) => String(r.id) === String(rowId))!) : undefined,
+				onClick: onRowClick ? (rowId: string | number) => !clickStartedInCheckbox && onRowClick(rows.find((r) => String(r.id) === String(rowId))!) : undefined,
 				selection: selectable ? { defaultSelected: selected, onSelectionChange, renderFirstColumnHeader: selectAll } : undefined
 			}}
 			renders={{
 				emptyTable: rows.length === 0 ? emptyView : undefined,
 				footer: rows.length > 0 && !noFooter ? footer : undefined,
-				actionBar: selectable && actionBar ? actionBar : undefined
+				actionBar: selectable && actionBar ? gridBar : undefined
 			}}
 		/>
 	{/if}
