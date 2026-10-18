@@ -6,7 +6,8 @@
 	import { CheckLarge } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
-	import { FormDrawer, Notice } from '$lib/ui';
+	import { goto } from '$app/navigation';
+	import { Btn, FormDrawer, Notice } from '$lib/ui';
 	import { count } from '$lib/utils/format';
 	import type { ReportTemplate } from '../types';
 	import ParamsForm, { type WorkflowOption } from './ParamsForm.svelte';
@@ -15,7 +16,7 @@
 	import { columnsKey, formatKey, recall, recallStrings, remember } from './memory';
 	import { jobNoteInput, reportNotes } from './notes';
 	import ReportNotes from './ReportNotes.svelte';
-	import { useReportRun } from './run.svelte';
+	import { clock, useReportRun } from './run.svelte';
 
 	interface Props {
 		template: ReportTemplate | null;
@@ -62,31 +63,42 @@
 	});
 
 	function start() {
-		if (!template || busy || run.cooldown) return;
+		if (!template || busy || !run.canRetry) return;
 		errors = validateParams(defs, values, { workflowTypes: Object.fromEntries(workflows.map((w) => [w.id, w.deal_type])) });
 		if (Object.keys(errors).length) return;
 		const body = normalizeParams(defs, values);
 		remember(columnsKey(template.code), Array.isArray(body.columns) ? body.columns : undefined);
 		remember(formatKey(template.code), format);
-		void run.run(template.code, format, body);
+		void run.run(template.code, format, body, template.name);
 	}
+
+	/** Закрытие панели: идущий отчёт сворачивается (о готовности скажет тост), а не теряется. */
+	function close() {
+		if (run.phase === 'running') {
+			if (!run.job) return; // задание ещё создаётся (доли секунды)
+			run.minimize();
+		}
+		onClose();
+	}
+
+	const inForm = $derived(run.phase === 'form' || run.phase === 'failed');
+	const queued = $derived(run.jobStatus === 'queued');
 </script>
 
 <FormDrawer
 	open={template !== null}
 	title={template?.name ?? ''}
 	width={hasScope ? 560 : 460}
-	saveLabel={run.phase === 'done' ? 'Скачать' : run.phase === 'failed' ? 'Повторить' : 'Запустить'}
-	cancelLabel={run.phase === 'done' ? 'Закрыть' : 'Отмена'}
-	showSave={run.phase !== 'running'}
-	canSave={run.phase === 'done' || !run.cooldown}
-	saving={busy}
+	saveLabel={run.phase === 'done' ? 'Скачать' : run.phase === 'failed' || run.phase === 'limit' ? 'Повторить' : 'Запустить'}
+	cancelLabel={run.phase === 'running' ? 'Свернуть' : run.phase === 'form' || run.phase === 'failed' ? 'Отмена' : 'Закрыть'}
+	showSave={run.phase !== 'running' && run.phase !== 'background'}
+	canSave={run.phase === 'done' || run.canRetry}
 	dirty={run.phase === 'form' ? undefined : false}
 	onSave={run.phase === 'done' ? () => run.download() : start}
-	onClose={() => (busy ? undefined : onClose())}
+	onClose={close}
 >
 	{#if template}
-		{#if run.phase === 'form' || run.phase === 'failed'}
+		{#if inForm}
 			<div class="flex flex-col gap-4">
 				{#if template.description}<p class="t-body-s text-muted">{describeTemplate(template.description)}</p>{/if}
 				{#if spec?.hint && (!spec.hintRoles || spec.hintRoles.some((r) => session.isRole(r)))}<p class="t-desc-l text-muted">{spec.hint}</p>{/if}
@@ -101,12 +113,25 @@
 					</div>
 				{/if}
 				<ParamsForm {defs} bind:values {errors} {workflows} />
-				{#if run.phase === 'failed'}<Notice class="shrink-0" tone="error">{run.message}</Notice>{/if}
+				{#if run.phase === 'failed'}<Notice class="shrink-0" tone="error" title="Не удалось сформировать отчёт">{run.message}</Notice>{/if}
 			</div>
 		{:else if run.phase === 'running'}
 			<div class="flex flex-col gap-3 py-8 text-center" aria-busy="true">
-				<Progress indeterminate label="Формируем отчёт…" />
-				<p class="t-desc-l text-muted">Обычно это занимает несколько секунд</p>
+				<Progress indeterminate label={queued ? 'В очереди' : 'Формируем отчёт…'} />
+				<p class="t-desc-l text-muted">
+					{queued ? 'Большие отчёты берутся в работу раз в минуту, обычно ждать до минуты.' : 'Обычно несколько секунд.'}
+					Прошло {clock(run.elapsed)}
+				</p>
+			</div>
+		{:else if run.phase === 'background'}
+			<div class="flex flex-col items-center gap-2 py-8 text-center">
+				<p class="t-body-l-strong">Отчёт ещё формируется</p>
+				<p class="t-desc-l text-muted">Он появится в «Мои отчёты», мы сообщим, когда он будет готов</p>
+			</div>
+		{:else if run.phase === 'limit'}
+			<div class="flex flex-col gap-3 py-4">
+				<Notice tone="warning" title="Слишком много отчётов в работе">{run.message}</Notice>
+				<p class="t-desc-l text-muted">В работе у вас: {run.unfinished ?? '…'} из {run.limit}. Кнопка «Повторить» включится, когда освободится место.</p>
 			</div>
 		{:else}
 			<div class="flex flex-col items-center gap-3 py-8 text-center">
@@ -117,4 +142,7 @@
 			</div>
 		{/if}
 	{/if}
+	{#snippet extra()}
+		{#if run.phase === 'background' || run.phase === 'limit'}<Btn label="Мои отчёты" variant="outline" colorScheme="neutral" onclick={() => void goto('/reports/history')} />{/if}
+	{/snippet}
 </FormDrawer>

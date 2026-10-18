@@ -6,7 +6,7 @@
 	import { AddLarge, Edit, MenuKebab, Refresh } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
-	import { Btn, EmptyState, ErrorState, IconBtn, Page, PageHeader, Skeleton, StatusChip, confirm, toast } from '$lib/ui';
+	import { Btn, EmptyState, ErrorState, IconBtn, Notice, Page, PageHeader, Skeleton, StatusChip, confirm, toast } from '$lib/ui';
 	import { formatTime } from '$lib/utils/format';
 	import type { Dashboard, DashboardWidget, ReportTemplate } from '../types';
 	import { createResource } from '../shared/resource.svelte';
@@ -151,6 +151,11 @@
 			{#snippet action()}{#if canEdit}<Btn label="Добавить виджет" icon={AddLarge} onclick={() => openWidget(null)} />{/if}{/snippet}
 		</EmptyState>
 	{:else}
+		{#if data.limited}
+			<Notice tone="warning" actions={[{ label: 'Мои отчёты', onclick: () => void goto('/reports/history') }]}>
+				Слишком много отчётов в работе. Дождитесь готовности запущенных и обновите данные ещё раз.
+			</Notice>
+		{/if}
 		<div class="grid grid-cols-1 gap-3 md:grid-cols-6 lg:grid-cols-12">
 			{#each widgets as w, i (w.id)}
 				<div class={['min-w-0', spanOf(w)]}>
@@ -159,6 +164,7 @@
 						{data}
 						{templateName}
 						{editing}
+						{canEdit}
 						first={i === 0}
 						last={i === widgets.length - 1}
 						onMove={(dir) => move(i, dir)}

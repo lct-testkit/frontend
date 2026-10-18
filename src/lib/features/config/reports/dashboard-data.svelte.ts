@@ -1,7 +1,7 @@
 // Данные виджетов дашборда. Каждый запуск отчёта = файл в хранилище + запись аудита, поэтому при открытии дашборда ничего не запускается:
 // показывается кэш (sessionStorage, 5 минут, см. dashboard-cache.ts), а «Обновить данные» запускает отчёты пакетно (одинаковые — один раз, не больше двух одновременно).
 import { errorMessage } from '$lib/api';
-import { ReportFailed, fetchReportData, isRateLimited, startReport, waitForReport } from './api';
+import { ReportFailed, ReportStillRunning, fetchReportData, isReportLimit, isTooManyRequests, startReport, waitForReport } from './api';
 import { isReportBusy, normalizeParams, paramsFor } from './params';
 import { readCache, writeCache, type CacheEntry } from './dashboard-cache';
 import { fromReportData, type ReportTable } from './table';
@@ -13,6 +13,8 @@ export class DashboardData {
 	loading = $state.raw<Record<string, boolean>>({});
 	errors = $state.raw<Record<string, string>>({});
 	refreshing = $state(false);
+	/** хотя бы один виджет упёрся в лимит отчётов в работе */
+	limited = $state(false);
 	#ctrl: AbortController | null = null;
 
 	constructor(dashboardId: string) {
@@ -59,6 +61,7 @@ export class DashboardData {
 		for (const c of configs) unique.set(runKey(c), c);
 		const queue = [...unique.entries()];
 		this.errors = {};
+		this.limited = false;
 		const worker = async () => {
 			for (let item = queue.shift(); item && !ctrl.signal.aborted; item = queue.shift()) await this.#runOne(item[0], item[1], ctrl.signal);
 		};
@@ -85,7 +88,13 @@ export class DashboardData {
 			writeCache(this.dashboardId, key, entry);
 		} catch (e) {
 			if (signal.aborted) return;
-			const message = isRateLimited(e) ? 'Слишком много отчётов в работе — подождите и обновите ещё раз' : e instanceof ReportFailed || e instanceof Error ? errorMessage(e) : errorMessage(e);
+			// лимит отчётов: фраза про него стоит один раз над сеткой, в карточке — коротко
+			let message: string;
+			if (isReportLimit(e)) {
+				this.limited = true;
+				message = 'Не обновлено';
+			} else if (e instanceof ReportStillRunning) message = 'Отчёт ещё формируется: обновите чуть позже';
+			else message = isTooManyRequests(e) ? 'Слишком много запросов: подождите немного' : errorMessage(e);
 			this.errors = { ...this.errors, [key]: message };
 		} finally {
 			this.loading = { ...this.loading, [key]: false };

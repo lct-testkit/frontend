@@ -11,7 +11,26 @@ export class ReportFailed extends Error {
 	}
 }
 
-export const isRateLimited = (e: unknown): boolean => e instanceof ApiError && (e.status === 429 || e.code === 'CRM-1601');
+/** Лимит отчётов в работе (CRM-1601): незавершённых не больше `reports_max_concurrent`. */
+export const isReportLimit = (e: unknown): boolean => e instanceof ApiError && (e.code === 'CRM-1601' || (e.status === 429 && /Не завершено отчётов/.test(e.detail)));
+/** Любой другой 429, например общий лимит запросов (CRM-8429). */
+export const isTooManyRequests = (e: unknown): boolean => e instanceof ApiError && e.status === 429 && !isReportLimit(e);
+
+/** Задание живо, но не завершилось за время ожидания: оно идёт в очереди или в обработке, это не сбой. */
+export class ReportStillRunning extends Error {
+	readonly job: ReportJob;
+	constructor(job: ReportJob) {
+		super('Отчёт ещё формируется');
+		this.name = 'ReportStillRunning';
+		this.job = job;
+	}
+}
+
+/** Сколько отчётов пользователя не завершено (очередь и обработка) — по последним 50 заданиям. */
+export async function countUnfinished(): Promise<number> {
+	const res = await unwrap(api.GET('/api/reports', { params: { query: { limit: 50 } } }));
+	return res.items.filter((j) => isReportBusy(j.status)).length;
+}
 
 export async function startReport(templateCode: string, format: ReportFormat, params: Record<string, unknown>): Promise<ReportJob> {
 	return unwrap(api.POST('/api/reports', { body: { template_code: templateCode, format: format as ReportJob['format'], params }, headers: idem() }));
@@ -19,16 +38,17 @@ export async function startReport(templateCode: string, format: ReportFormat, pa
 
 export const getReport = (id: string, signal?: AbortSignal): Promise<ReportJob> => unwrap(api.GET('/api/reports/{report_id}', { params: { path: { report_id: id } }, signal }));
 
-/** Опрашивает отчёт до `completed`; `failed` и таймаут — исключение с человеческим текстом. */
-export async function waitForReport(job: ReportJob, opts: { interval?: number; timeout?: number; signal?: AbortSignal } = {}): Promise<ReportJob> {
-	const { interval = 1500, timeout = 120_000, signal } = opts;
+/** Опрашивает отчёт до `completed`; `failed` — исключение с текстом ошибки, таймаут — `ReportStillRunning` (задание живо). `onUpdate` вызывается на каждом опросе. */
+export async function waitForReport(job: ReportJob, opts: { interval?: number; timeout?: number; signal?: AbortSignal; onUpdate?: (job: ReportJob) => void } = {}): Promise<ReportJob> {
+	const { interval = 1500, timeout = 180_000, signal, onUpdate } = opts;
 	const deadline = Date.now() + timeout;
 	let current = job;
 	while (isReportBusy(current.status)) {
 		if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-		if (Date.now() > deadline) throw new ReportFailed('Отчёт формируется дольше обычного. Загляните в «Мои отчёты» чуть позже.');
+		if (Date.now() > deadline) throw new ReportStillRunning(current);
 		await new Promise((r) => setTimeout(r, interval));
 		current = await getReport(current.id, signal);
+		onUpdate?.(current);
 	}
 	if (current.status === 'failed') throw new ReportFailed(current.error || 'Не удалось сформировать отчёт.');
 	return current;

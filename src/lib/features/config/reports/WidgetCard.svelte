@@ -14,6 +14,8 @@
 		data: DashboardData;
 		templateName: (code: string) => string;
 		editing: boolean;
+		/** может менять дашборд (владелец или администратор) */
+		canEdit?: boolean;
 		first: boolean;
 		last: boolean;
 		onMove: (dir: -1 | 1) => void;
@@ -21,7 +23,7 @@
 		onDelete: () => void;
 	}
 
-	let { widget, data, templateName, editing, first, last, onMove, onEdit, onDelete }: Props = $props();
+	let { widget, data, templateName, editing, canEdit = false, first, last, onMove, onEdit, onDelete }: Props = $props();
 
 	const config = $derived(readConfig(widget.config));
 	const name = $derived(config ? templateName(config.template_code) : 'Виджет');
@@ -47,7 +49,7 @@
 	</header>
 	<div class="min-h-0 flex-1 px-4 pt-1 pb-4 max-md:px-3">
 		{#if !config}
-			<p class="t-body-s py-6 text-center text-danger">Виджет настроен неверно — измените или удалите его</p>
+			<p class="t-body-s py-6 text-center text-danger">{canEdit ? 'Виджет настроен неверно — измените или удалите его' : 'Виджет настроен неверно. Сообщите владельцу дашборда'}</p>
 		{:else if table}
 			<div class={loading ? 'opacity-50' : undefined}><WidgetBody type={widget.widget_type} {config} {table} {name} /></div>
 			<p class="t-desc-m flex flex-wrap items-center gap-x-2 gap-y-1 pt-2 text-soft">
