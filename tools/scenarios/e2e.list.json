@@ -1,0 +1,206 @@
+{
+	"_comment": "Сценарии для tools/run-scenarios.mjs. tier: smoke — быстрые на каждый прогон, full — полный ночной. excluded — файлы каталога, которые не сценарии (отладка, снимки, сиды, библиотеки): новый файл обязан попасть в scenarios или в excluded (проверяет tools/run-scenarios.test.ts). Сценарии меняют данные стенда: гонять только на одноразовом.",
+	"scenarios": [
+		{
+			"file": "a-board-flow.mjs",
+			"tier": "smoke"
+		},
+		{
+			"file": "a-comment-delete.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "a-deal-flow.mjs",
+			"tier": "smoke"
+		},
+		{
+			"file": "a-drift-flow.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "a-misc-flow.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "a-org-flow.mjs",
+			"tier": "smoke"
+		},
+		{
+			"file": "a-reassign-flow.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "a-transition-flow.mjs",
+			"tier": "smoke"
+		},
+		{
+			"file": "b-admin.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "b-catalog.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "b-imports.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "b-reports-export.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "b-reports-json.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "b-reports-limits.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "b-reports-new.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "b-reports-params.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "b-reports.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "b-workflow-guard.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "b-workflow-published.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "b-workflow.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "c-audit.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "c-deal-signing.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "c-sign.mjs",
+			"tier": "smoke"
+		},
+		{
+			"file": "e-approvals.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "e-integrations.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "e-licenses.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "e-security.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "f-audit-entities.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "f-audit-pending.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "f-board-counts.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "f-deals-filters.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "f-files-upload.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "f-offboard-allocation.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "f-org-owner-carry.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "f-org-owner.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "f-recent.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "f-role-hint.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "f-transition-files.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "f-workflow-14.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "f-workflow-migrate.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "lead-edm.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "lead-erasure.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "lead-prod-login.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "lead-search.mjs",
+			"tier": "full"
+		},
+		{
+			"file": "lead-session.mjs",
+			"tier": "smoke"
+		}
+	],
+	"excluded": {
+		"a-cleanup": "уборка следов сценариев",
+		"a-comment-debug": "отладка",
+		"a-css": "отладка вёрстки",
+		"a-debug": "отладка",
+		"a-id": "отладка",
+		"a-lib": "общая библиотека сценариев",
+		"a-menu-z": "отладка",
+		"a-phone-shots": "снимки",
+		"a-tokens": "отладка",
+		"b-seed-catalogs": "сид",
+		"b-shot-imports": "снимки",
+		"b-shot-wf": "снимки",
+		"d-shots": "снимки",
+		"d-shots2": "снимки",
+		"f-lib": "общая библиотека сценариев",
+		"lead-debug": "отладка",
+		"lead-debug2": "отладка",
+		"lead-seed-erasure": "сид",
+		"xlsx-lite": "вспомогательный разбор xlsx"
+	}
+}
