@@ -13,13 +13,20 @@
 
 	let { editor, issues, onPicked }: Props = $props();
 
+	/** замечание про несколько узлов или переходов сразу: подпись «Узлов: 3» / «Переходов: 14» */
+	const scope = (issue: GraphIssue): string | null =>
+		issue.transitionKeys.length > 1 ? `Переходов: ${issue.transitionKeys.length}` : issue.statusKeys.length > 1 ? `Узлов: ${issue.statusKeys.length}` : null;
+
 	function pick(issue: GraphIssue) {
 		const status = issue.statusKeys[0];
 		const transition = issue.transitionKeys[0];
 		if (transition) editor.select({ kind: 'transition', key: transition });
 		else if (status) editor.select({ kind: 'status', key: status });
 		else return;
-		editor.showOnCanvas(transition ?? status);
+		// клик по замечанию с несколькими узлами показывает и подсвечивает все (выбран первый — его панель открыта)
+		const all = issue.transitionKeys.length ? issue.transitionKeys : issue.statusKeys;
+		if (all.length > 1) editor.markOnCanvas(all);
+		else editor.showOnCanvas(transition ?? status);
 		onPicked?.();
 	}
 </script>
@@ -41,6 +48,7 @@
 					<Attention class="mt-0.5 size-4 flex-none fill-warning" />
 				{/if}
 				<span class="t-body-s min-w-0 flex-1 wrap-anywhere">{issue.message}</span>
+				{#if scope(issue)}<span class="t-desc-l flex-none rounded-sm bg-surface-3 px-1.5 text-muted">{scope(issue)}</span>{/if}
 			</button>
 		</li>
 	{/each}
