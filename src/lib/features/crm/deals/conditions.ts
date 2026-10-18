@@ -19,6 +19,10 @@ export function fieldLabel(field: string, defs: CustomFieldDef[] = []): string {
 		const code = field.slice(CUSTOM.length);
 		return defs.find((d) => d.code === code)?.label ?? code.replace(/_/g, ' ');
 	}
+	if (field.startsWith('step_attachments.')) {
+		const category = field.slice('step_attachments.'.length);
+		return `Файл «${ATTACHMENT_CATEGORY_LABELS[category] ?? category}» на этом шаге`;
+	}
 	if (field.startsWith('attachments.')) {
 		const category = field.slice('attachments.'.length);
 		return `Файл «${ATTACHMENT_CATEGORY_LABELS[category] ?? category}»`;
@@ -56,6 +60,7 @@ export function describeCondition(leaf: ConditionLike, defs: CustomFieldDef[] = 
 		case 'is_null':
 			return `${label}: не заполнено`;
 		case 'exists':
+			if (leaf.field.startsWith('step_attachments.')) return `Приложен ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
 			return leaf.field.startsWith('attachments.') ? `Прикреплён ${label.charAt(0).toLowerCase()}${label.slice(1)}` : `${label}: есть`;
 		case 'eq':
 			return `${label}: ${formatValue(leaf.field, expected)}`;

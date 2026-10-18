@@ -82,6 +82,80 @@ export interface TransitionFormField {
 	alternative?: boolean;
 }
 
+/** Условия-файлы: `attachments.<категория>` — файл в сделке вообще, `step_attachments.<категория>` — файл, приложенный на ЭТОМ шаге. */
+export function fileLeaf(field: string): { category: string; stepScoped: boolean } | null {
+	for (const [prefix, stepScoped] of [
+		['step_attachments.', true],
+		['attachments.', false]
+	] as const) {
+		if (field.startsWith(prefix) && field.length > prefix.length) return { category: field.slice(prefix.length), stepScoped };
+	}
+	return null;
+}
+
+export interface FileRequirement {
+	field: string;
+	category: string;
+	label: string;
+	/** файл нужен именно на этом шаге (приложенный раньше не считается) */
+	stepScoped: boolean;
+	/** сервер уже считает условие выполненным */
+	satisfied: boolean;
+	/** условие из группы «одно из»: достаточно любого из условий группы (например, подписанный документ ИЛИ договор) */
+	alternative: boolean;
+}
+
+/** Поля, входящие в группы «одно из» (any из двух и более веток) на любой глубине дерева. */
+export function anyGroupFields(node: ConditionNode | null | undefined): Set<string> {
+	const out = new Set<string>();
+	const walk = (n: ConditionNode | null | undefined) => {
+		if (!n || typeof n !== 'object' || !isGroup(n)) return;
+		const any = n.any ?? [];
+		if (any.length > 1) for (const b of any) for (const l of flattenLeaves(b)) out.add(l.field);
+		for (const b of [...(n.all ?? []), ...any]) walk(b);
+	};
+	walk(node);
+	return out;
+}
+
+/** Файловые требования перехода по листьям условий (и выполненные, и нет — выполненные показываем как «приложен»). */
+export function fileRequirements(conditions: readonly ConditionLeaf[], tree?: ConditionNode | null): FileRequirement[] {
+	const alt = anyGroupFields(tree ?? null);
+	const out: FileRequirement[] = [];
+	for (const leaf of conditions) {
+		const f = fileLeaf(leaf.field);
+		if (!f) continue;
+		out.push({
+			field: leaf.field,
+			category: f.category,
+			label: ATTACHMENT_CATEGORY_LABELS[f.category] ?? f.category,
+			stepScoped: f.stepScoped,
+			satisfied: leaf.satisfied,
+			alternative: alt.has(leaf.field)
+		});
+	}
+	return out;
+}
+
+/**
+ * Хватит ли файлов, приложенных в диалоге (категории `pending`), чтобы выполнить условия-файлы: лист-файл считается выполненным,
+ * если его уже выполнил сервер или в диалоге приложен файл этой категории. Остальные листья считаем как есть (их закрывают поля и сервер).
+ * Возвращает поля файловых условий, которые всё ещё нужны (пусто — файлов достаточно).
+ */
+export function missingFileFields(conditions: readonly ConditionLeaf[], tree: ConditionNode | null | undefined, pending: ReadonlySet<string>): string[] {
+	const satisfiedNow = new Set(conditions.filter((c) => c.satisfied).map((c) => c.field));
+	const fileFields = conditions.filter((c) => !c.satisfied && fileLeaf(c.field)).map((c) => c.field);
+	if (!fileFields.length) return [];
+	const leafOk = (leaf: { field: string }) => {
+		if (satisfiedNow.has(leaf.field)) return true;
+		const f = fileLeaf(leaf.field);
+		if (f) return pending.has(f.category);
+		return isFillableField(leaf.field); // поля закрывает форма диалога; подпись, задачи и т. п. — только если уже выполнены
+	};
+	const ok = tree ? treeSatisfiable(tree, leafOk) : conditions.every((c) => leafOk(c));
+	return ok ? [] : fileFields.filter((f) => !pending.has(fileLeaf(f)!.category));
+}
+
 export type TransitionHintKind = 'attachment' | 'signature' | 'tasks' | 'products' | 'edit' | 'role' | 'other';
 
 export interface TransitionHint {
@@ -89,6 +163,9 @@ export interface TransitionHint {
 	field: string;
 	text: string;
 	satisfied: boolean;
+	/** для `attachment`: категория файла и нужен ли он именно на этом шаге */
+	category?: string;
+	stepScoped?: boolean;
 }
 
 export interface TransitionForm {
@@ -243,10 +320,17 @@ function labelFor(field: string, def: CustomFieldDefLike | undefined): string {
 
 function hintFor(leaf: ConditionLeaf): TransitionHint | null {
 	const { field, satisfied } = leaf;
-	if (field.startsWith('attachments.')) {
-		const category = field.slice('attachments.'.length);
-		const label = ATTACHMENT_CATEGORY_LABELS[category] ?? category;
-		return { kind: 'attachment', field, satisfied, text: `Прикрепите файл категории «${label}» во вкладке «Файлы»` };
+	const file = fileLeaf(field);
+	if (file) {
+		const label = ATTACHMENT_CATEGORY_LABELS[file.category] ?? file.category;
+		return {
+			kind: 'attachment',
+			field,
+			satisfied,
+			category: file.category,
+			stepScoped: file.stepScoped,
+			text: file.stepScoped ? `Приложите файл «${label}» на этом шаге` : `Прикрепите файл категории «${label}»`
+		};
 	}
 	if (field === 'signature_status') {
 		const expected = typeof leaf.expected === 'string' ? leaf.expected : 'signed';
@@ -276,9 +360,11 @@ export interface BuildTransitionFormInput {
 	targetStatus?: StatusLike | null;
 	deal: DealLike;
 	customFieldDefs?: CustomFieldDefLike[];
+	/** у пользователя есть право загружать файлы: условия-файлы закрываются прямо в диалоге */
+	canUploadFiles?: boolean;
 }
 
-export function buildTransitionForm({ transition, conditionTree, targetStatus, deal, customFieldDefs = [] }: BuildTransitionFormInput): TransitionForm {
+export function buildTransitionForm({ transition, conditionTree, targetStatus, deal, customFieldDefs = [], canUploadFiles = true }: BuildTransitionFormInput): TransitionForm {
 	const defs = new Map(customFieldDefs.filter((d) => d.is_active !== false).map((d) => [CUSTOM_PREFIX + d.code, d]));
 	const fields = new Map<string, TransitionFormField>();
 	const hints: TransitionHint[] = [];
@@ -331,7 +417,8 @@ export function buildTransitionForm({ transition, conditionTree, targetStatus, d
 
 	// 3. Выполнимость: лист считается закрываемым, если он уже выполнен или его можно заполнить полем диалога.
 	const satisfiedNow = new Set(transition.conditions.filter((c) => c.satisfied).map((c) => c.field));
-	const leafOk = (leaf: { field: string }) => satisfiedNow.has(leaf.field) || isFillableField(leaf.field);
+	// файл закрывается загрузкой прямо в диалоге — если есть право на файлы
+	const leafOk = (leaf: { field: string }) => satisfiedNow.has(leaf.field) || isFillableField(leaf.field) || (canUploadFiles && fileLeaf(leaf.field) !== null);
 	const satisfiable = conditionTree ? treeSatisfiable(conditionTree, leafOk) : transition.conditions.every(leafOk);
 
 	let blocked = false;

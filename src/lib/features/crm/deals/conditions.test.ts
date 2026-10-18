@@ -39,4 +39,9 @@ describe('formatValue / currentText', () => {
 		expect(currentText({ field: 'signature_status', op: 'eq', actual: 'signed', satisfied: true })).toBe('');
 		expect(currentText({ field: 'amount', op: 'not_null', satisfied: false })).toBe('');
 	});
+
+	it('условие-файл «на этом шаге» подписано отдельно от файла в сделке', () => {
+		expect(fieldLabel('step_attachments.contract')).toBe('Файл «Договор» на этом шаге');
+		expect(describeCondition({ field: 'step_attachments.contract', op: 'exists' })).toBe('Приложен файл «Договор» на этом шаге');
+	});
 });
