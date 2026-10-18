@@ -7,6 +7,8 @@
 	import TextField from '$lib/ui/fields/TextField.svelte';
 	import { formatDateTime } from '$lib/utils/format';
 	import type { UserCreated } from '../types';
+	import { inviteMailStatus } from '../mail';
+	import MailStatusChip from '../MailStatusChip.svelte';
 
 	let { result, onClose }: { result: UserCreated | null; onClose: () => void } = $props();
 
@@ -16,9 +18,13 @@
 
 <AppModal open={!!result} title="Приглашение готово" size="m" {onClose}>
 	{#if result}
-		<p class="t-body-m m-0">
-			{result.user.full_name}{#if result.invite_email_sent}: письмо с приглашением отправлено на {result.user.email}.{:else}: письмо не отправлялось, передайте ссылку сами.{/if}
-		</p>
+		<div class="flex flex-col gap-2">
+			<p class="t-body-m m-0">{result.user.full_name}</p>
+			<div class="flex flex-wrap items-center gap-2">
+				<MailStatusChip status={inviteMailStatus(result.invite_email_sent)} />
+				<span class="t-desc-l text-muted">{#if result.invite_email_sent}на {result.user.email}{:else}передайте ссылку сами{/if}</span>
+			</div>
+		</div>
 		{#if url}
 			<div class="flex flex-col gap-2">
 				<div class="flex items-center gap-1">

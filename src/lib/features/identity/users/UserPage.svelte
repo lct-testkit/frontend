@@ -188,7 +188,7 @@
 				<section class="flex flex-col gap-2 rounded-lg border border-line bg-surface p-4 max-md:p-3" aria-label="Действия">
 					<h2 class="t-body-m-strong m-0 mb-1">Действия</h2>
 					{#if status === 'invited'}
-						<Btn {...outline} label="Отправить приглашение повторно" loading={invitingBusy} onclick={reinvite} data-testid="user-reinvite" />
+						<Btn {...outline} label="Выдать новую ссылку-приглашение" loading={invitingBusy} onclick={reinvite} data-testid="user-reinvite" />
 					{/if}
 					{#if status === 'active' && !isMe}
 						<Btn {...outline} label="Заблокировать" danger onclick={() => ((autoUnblock = ''), (block = true))} data-testid="user-block" />
@@ -241,7 +241,7 @@
 		title="Сбросить пароль"
 		confirmLabel="Сбросить"
 		danger
-		note={session.mode === 'demo' ? 'Демо-режим: вход в один клик для этой учётной записи перестанет работать, пока пароль не будет задан заново.' : 'Сотруднику придёт ссылка на установку нового пароля, сессии завершатся.'}
+		note={session.mode === 'demo' ? 'Демо-режим: вход в один клик для этой учётной записи перестанет работать, пока пароль не будет задан заново.' : 'Сессии завершатся. Ссылка на установку нового пароля уйдёт на почту, только если на сервере настроена почта; иначе её придётся передать вручную.'}
 		onSubmit={doReset}
 		onClose={() => (reset = false)}
 	>
