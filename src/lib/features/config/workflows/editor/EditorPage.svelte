@@ -152,7 +152,7 @@
 				{#if editor.dirty}
 					<StatusChip label="Не сохранено" tone="warning" />
 				{:else if unpublished && w.state === 'published'}
-					<StatusChip label="Не опубликовано" tone="warning" />
+					<StatusChip label="Есть неопубликованные изменения" tone="warning" />
 				{/if}
 				{#if editor.issues.length}
 					<Chip

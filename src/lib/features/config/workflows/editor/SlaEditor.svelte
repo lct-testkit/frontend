@@ -22,26 +22,28 @@
 	const on = $derived(Boolean(rule?.is_active));
 
 	// единица ввода запоминается на время редактирования; при первом показе — дни, если срок кратен суткам
-	let unit = $state<'hours' | 'days'>('hours');
+	type Unit = 'minutes' | 'hours' | 'days';
+	const HOURS_IN: Record<Unit, number> = { minutes: 1 / 60, hours: 1, days: 24 };
+	let unit = $state<Unit>('hours');
 	$effect(() => {
 		void status.key;
 		untrack(() => {
 			const h = slaOf(editor.draft, status.key)?.max_duration_hours ?? 0;
-			unit = h >= 24 && h % 24 === 0 ? 'days' : 'hours';
+			unit = h > 0 && h < 1 ? 'minutes' : h >= 24 && h % 24 === 0 ? 'days' : 'hours';
 		});
 	});
-	const amount = $derived(rule ? (unit === 'days' ? Math.round(rule.max_duration_hours / 24) : rule.max_duration_hours) : null);
+	const amount = $derived(rule ? Math.max(1, Math.round(rule.max_duration_hours / HOURS_IN[unit])) : null);
 
 	function setAmount(n: number | null) {
 		if (n === null) return;
-		editor.setSla(status.key, { max_duration_hours: Math.max(1, unit === 'days' ? n * 24 : n) });
+		editor.setSla(status.key, { max_duration_hours: Math.max(1, n) * HOURS_IN[unit] });
 	}
 	/** Смена единицы сохраняет число: «5 часов» → «5 дней» (в модель срок всегда пишется в часах). */
 	function setUnit(next: string | null) {
 		if (!next || !rule || next === unit) return;
 		const n = Math.max(1, amount ?? 1);
-		unit = next as 'hours' | 'days';
-		editor.setSla(status.key, { max_duration_hours: unit === 'days' ? n * 24 : n });
+		unit = next as Unit;
+		editor.setSla(status.key, { max_duration_hours: n * HOURS_IN[unit] });
 	}
 </script>
 
@@ -59,6 +61,7 @@
 				value={unit}
 				disabled={editor.readonly}
 				items={[
+					{ key: 'minutes', value: 'Минут' },
 					{ key: 'hours', value: 'Часов' },
 					{ key: 'days', value: 'Дней' }
 				]}
