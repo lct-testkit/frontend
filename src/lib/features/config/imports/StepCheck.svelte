@@ -5,6 +5,7 @@
 	import { Btn, ErrorState, WizardCard, toast } from '$lib/ui';
 	import { count } from '$lib/utils/format';
 	import type { ImportFlow } from './flow.svelte';
+	import CheckSummary from './CheckSummary.svelte';
 	import ImportRows from './ImportRows.svelte';
 	import JobSummary from './JobSummary.svelte';
 	import { openErrorReport } from './job';
@@ -16,6 +17,8 @@
 	const validated = $derived(job?.status === 'validated');
 	const rows = $derived(job ? job.ok_rows + job.warn_rows : 0);
 	let downloading = $state(false);
+	/** выбранная в сводке проблема: сужает список строк */
+	let issue = $state<{ code: string; message: string } | null>(null);
 
 	async function report() {
 		if (!job) return;
@@ -53,7 +56,8 @@
 				{#if job.result_file_id}<Btn label="Отчёт об ошибках" icon={Download} size="s" variant="outline" colorScheme="neutral" loading={downloading} onclick={report} />{/if}
 			</div>
 		{/if}
-		{#key job.id}<ImportRows jobId={job.id} total={job.total_rows} warn={job.warn_rows} error={job.error_rows} />{/key}
+		{#if flow.summary}<CheckSummary summary={flow.summary} issue={issue?.code ?? null} onPick={(code, message) => (issue = code ? { code, message: message ?? code } : null)} />{/if}
+		{#key job.id}<ImportRows jobId={job.id} total={job.total_rows} warn={job.warn_rows} error={job.error_rows} issue={issue?.code ?? null} issueLabel={issue?.message ?? null} onClearIssue={() => (issue = null)} />{/key}
 		{#snippet actions()}
 			<Btn label={rows > 0 ? `Применить ${count(rows, ['строку', 'строки', 'строк'])}` : 'Нечего применять'} disabled={!canApplyImport(job)} loading={flow.busy} onclick={() => flow.apply()} />
 			<Btn label="К сопоставлению" variant="outline" colorScheme="neutral" onclick={() => (flow.step = 1)} />

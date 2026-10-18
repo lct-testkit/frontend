@@ -1,12 +1,13 @@
 <script lang="ts">
 	// Шаг 1: что загружаем, как обрабатывать существующие записи, файл (перетаскиванием или выбором).
 	import { Progress } from '@lct-testkit/rt-ui/ext';
+	import { session } from '$lib/auth/session.svelte';
 	import { Btn, ErrorState, FormBody, Notice, RadioField, Skeleton, WizardCard } from '$lib/ui';
 	import FileField from '$lib/ui/fields/FileField.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import FileFormatHint from './FileFormatHint.svelte';
 	import type { ImportFlow } from './flow.svelte';
-	import { IMPORT_ACCEPT, IMPORT_MODES, IMPORT_MODE_LABELS, entityInfo, type ImportEntity } from './mapping';
+	import { IMPORT_ACCEPT, IMPORT_MODES, IMPORT_MODE_LABELS, entityInfo, importTypeAvailable, type ImportEntity } from './mapping';
 
 	let { flow }: { flow: ImportFlow } = $props();
 	const current = $derived(flow.entityTypes.find((t) => t.code === flow.entity));
@@ -23,7 +24,7 @@
 		columns={2}
 		value={flow.entity}
 		disabled={flow.uploading}
-		items={flow.entityTypes.map((t) => ({ key: t.code, label: entityInfo(t).label, hint: entityInfo(t).hint }))}
+		items={flow.entityTypes.map((t) => ({ key: t.code, label: entityInfo(t).label, hint: entityInfo(t).hint, disabled: !importTypeAvailable(t, session.role) }))}
 		onChange={(v) => (flow.entity = v as ImportEntity)}
 	/>
 

@@ -6,18 +6,24 @@ import { uploadFile } from '$lib/api/upload';
 import { toast } from '$lib/ui';
 import type { ImportJob, ImportPreset, ImportProfile } from '../types';
 import { createPoller } from '../shared/polling.svelte';
-import { loadEntityTypes } from './job';
+import { loadEntityTypes, loadImportSummary } from './job';
+import type { ImportSummary } from './check';
 import {
 	IMPORT_MAX_FILE_BYTES,
 	applyPreset,
+	applyPresetOptions,
 	checkMapping,
+	defaultOptionsForm,
+	importTypeAvailable,
 	importStep,
 	isImportBusy,
+	optionsPayload,
 	presetKey,
 	sourceFormatFromName,
 	type ImportEntity,
 	type ImportEntityType,
 	type ImportMode,
+	type ImportOptionsForm,
 	type MappingCheck
 } from './mapping';
 
@@ -41,6 +47,14 @@ export class ImportFlow {
 	/** колонка файла → поле системы; пусто — не импортировать */
 	mapping = $state<Record<string, string>>({});
 	presetId = $state<string | null>(null);
+	/** параметры чтения файла: лист, строка заголовка, заполнение сверху, создание справочников */
+	options = $state<ImportOptionsForm>(defaultOptionsForm());
+	/** пользователь менял параметры: без этого `options` в запрос не идёт и сохранённые на сервере остаются */
+	optionsTouched = $state(false);
+	/** сводка проверки (`GET /summary`) */
+	summary = $state<ImportSummary | null>(null);
+	/** предпросмотр другого листа / строки заголовка в пути */
+	previewing = $state(false);
 	savePreset = $state(false);
 	presetName = $state('');
 	loading = $state(false);
@@ -158,6 +172,9 @@ export class ImportFlow {
 			]);
 			this.profile = profile;
 			this.presets = presets;
+			// что уже выбрано на сервере (лист, строка заголовка); остальное сервер назад не отдаёт — оно остаётся как есть, пока пользователь не изменит
+			this.options = { ...defaultOptionsForm(), sheet: profile.sheet ?? null, headerRow: profile.header_row ?? null };
+			this.optionsTouched = false;
 			const saved = this.job.mapping && Object.keys(this.job.mapping).length ? this.job.mapping : profile.suggested_mapping;
 			this.mapping = { ...saved };
 		} catch (e) {
@@ -165,6 +182,39 @@ export class ImportFlow {
 		} finally {
 			this.loading = false;
 		}
+	}
+
+	/** Другой лист или строка заголовка: предпросмотр с сервера (ничего не сохраняет), колонки и подбор — по новому разбору. */
+	async previewProfile(): Promise<void> {
+		if (!this.job || this.previewing) return;
+		this.previewing = true;
+		try {
+			const sheet = this.options.allSheets ? undefined : (this.options.sheet ?? undefined);
+			const profile = await unwrap(
+				api.GET('/api/imports/{job_id}/profile', { params: { path: { job_id: this.job.id }, query: { sheet, header_row: this.options.headerRow ?? undefined } } })
+			);
+			this.profile = profile;
+			this.mapping = { ...profile.suggested_mapping };
+			this.options.fillDown = this.options.fillDown.filter((h) => profile.headers.includes(h));
+			this.presetId = null;
+		} catch (e) {
+			toast.error(e, 'Не удалось прочитать лист');
+		} finally {
+			this.previewing = false;
+		}
+	}
+
+	/** Правка параметра чтения; лист и строка заголовка пересчитывают колонки. */
+	setOptions(patch: Partial<ImportOptionsForm>, reread = false): void {
+		this.options = { ...this.options, ...patch };
+		this.optionsTouched = true;
+		if (reread) void this.previewProfile();
+	}
+
+	/** Типы импорта, которые доступны этой роли (админские — только администратору). */
+	typeAvailable(code: string, role: string | null | undefined): boolean {
+		const type = this.entityTypes.find((t) => t.code === code);
+		return type ? importTypeAvailable(type, role) : true;
 	}
 
 	setTarget(header: string, target: string | null): void {
@@ -178,7 +228,16 @@ export class ImportFlow {
 	usePreset(id: string | null): void {
 		this.presetId = id;
 		const preset = this.presets.find((p) => presetKey(p) === id);
-		if (preset) this.mapping = applyPreset(this.mapping, preset.mapping, this.headers);
+		if (!preset) return;
+		const before = this.options;
+		this.options = applyPresetOptions(this.options, preset.options);
+		const changed = this.options !== before;
+		if (changed) this.optionsTouched = true;
+		// у пресета свой лист / строка заголовка: сначала перечитать файл, потом накладывать колонки
+		const reread = changed && (this.options.sheet !== before.sheet || this.options.headerRow !== before.headerRow || this.options.allSheets !== before.allSheets);
+		const apply = () => (this.mapping = applyPreset(this.mapping, preset.mapping, this.headers));
+		if (reread) void this.previewProfile().then(apply);
+		else apply();
 	}
 
 	async saveMapping(): Promise<void> {
@@ -189,7 +248,7 @@ export class ImportFlow {
 			this.job = await unwrap(
 				api.PUT('/api/imports/{job_id}/mapping', {
 					params: { path: { job_id: this.job.id } },
-					body: { mapping, save_as_preset: this.savePreset && this.presetName.trim() ? this.presetName.trim() : null }
+					body: { mapping, ...(this.optionsTouched ? { options: optionsPayload(this.options, this.headers, this.entity) } : {}), save_as_preset: this.savePreset && this.presetName.trim() ? this.presetName.trim() : null }
 				})
 			);
 			this.step = 2;
@@ -210,6 +269,8 @@ export class ImportFlow {
 		this.busy = true;
 		try {
 			this.job = await unwrap(api.POST('/api/imports/{job_id}/dry-run', { params: { path: { job_id: this.job.id } } }));
+			// сводка — дополнение к плиткам: не получилась, остаются плитки и список строк
+			this.summary = await loadImportSummary(this.job.id).catch(() => null);
 		} catch (e) {
 			this.error = e;
 		} finally {

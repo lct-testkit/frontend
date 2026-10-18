@@ -383,3 +383,79 @@ describe('сохранение сопоставления, проверка, п�
 		expect(flow.job?.status).toBe('completed');
 	});
 });
+
+describe('параметры чтения файла и сводка', () => {
+	async function ready() {
+		serve(job({ status: 'uploaded' }));
+		const flow = await newFlow();
+		await flow.restore('j1');
+		return flow;
+	}
+
+	it('параметры не менялись — `options` в запрос не идёт (сохранённые на сервере остаются)', async () => {
+		put.mockResolvedValue({ data: job({ status: 'mapped' }) });
+		post.mockResolvedValue({ data: job({ status: 'validated' }) });
+		const flow = await ready();
+
+		await flow.saveMapping();
+
+		expect(put.mock.calls[0][1].body).not.toHaveProperty('options');
+	});
+
+	it('изменённые параметры уходят в `options`: строка заголовка, заполнение сверху — только по существующим колонкам', async () => {
+		put.mockResolvedValue({ data: job({ status: 'mapped' }) });
+		post.mockResolvedValue({ data: job({ status: 'validated' }) });
+		const flow = await ready();
+
+		flow.setOptions({ headerRow: 3, fillDown: ['Название', 'Нет такой'] });
+		await flow.saveMapping();
+
+		expect(put.mock.calls[0][1].body.options).toMatchObject({ header_row: 3, fill_down: ['Название'] });
+	});
+
+	it('другая строка заголовка перечитывает файл с этими параметрами и берёт новый подбор колонок', async () => {
+		const flow = await ready();
+		get.mockImplementation(async (url: string) => {
+			if (url === '/api/imports/{job_id}/profile') return { data: { ...PROFILE, headers: ['Вуз', 'ИНН'], suggested_mapping: { Вуз: 'name', ИНН: 'inn' }, header_row: 3 } };
+			return { error: 'не подготовлено' };
+		});
+
+		flow.setOptions({ headerRow: 3 }, true);
+		await vi.waitFor(() => expect(flow.headers).toEqual(['Вуз', 'ИНН']));
+
+		expect(get).toHaveBeenLastCalledWith('/api/imports/{job_id}/profile', expect.objectContaining({ params: expect.objectContaining({ query: { sheet: undefined, header_row: 3 } }) }));
+		expect(flow.mapping).toEqual({ Вуз: 'name', ИНН: 'inn' });
+		expect(flow.optionsTouched).toBe(true);
+	});
+
+	it('проверка подтягивает сводку', async () => {
+		post.mockResolvedValue({ data: job({ status: 'validated', ok_rows: 2 }) });
+		const flow = await ready();
+		get.mockImplementation(async (url: string) => (url === '/api/imports/{job_id}/summary' ? { data: { status: 'validated', total_rows: 2, ok_rows: 2, warn_rows: 0, error_rows: 0, by_issue: [], would: { create: { license: 2 } }, applied: {} } } : { error: 'не подготовлено' }));
+
+		await flow.dryRun();
+
+		expect(flow.summary?.would).toEqual({ create: { license: 2 } });
+	});
+
+	it('сводка не пришла — проверка всё равно прошла', async () => {
+		post.mockResolvedValue({ data: job({ status: 'validated', ok_rows: 2 }) });
+		const flow = await ready();
+		get.mockImplementation(async () => ({ error: 'нет сводки' }));
+
+		await flow.dryRun();
+
+		expect(flow.summary).toBeNull();
+		expect(flow.job?.status).toBe('validated');
+	});
+
+	it('пресет с параметрами чтения применяет их и помечает параметры изменёнными', async () => {
+		const flow = await ready();
+		flow.presets = [{ id: 'p2', name: 'Реестр', entity_type: 'organization', mapping: { ИНН: 'inn' }, options: { fill_down: ['Название'], header_row: 1 }, builtin: false, created_at: '2026-09-26T00:00:00Z' }];
+
+		flow.usePreset('p2');
+
+		expect(flow.options.fillDown).toEqual(['Название']);
+		expect(flow.optionsTouched).toBe(true);
+	});
+});

@@ -1,5 +1,6 @@
 // Общие помощники импорта: статус задания, типы сущностей с сервера, скачивание отчёта об ошибках, ссылки на результат.
 import { api, unwrap } from '$lib/api';
+import { saveBytes } from '../../signing/download';
 import type { ImportJob } from '../types';
 import { IMPORT_ENTITY_INFO, IMPORT_JOB_STATUS_INFO, IMPORT_MODE_LABELS, type ImportEntityType, type ImportMode, type ImportJobStatus } from './mapping';
 
@@ -32,7 +33,9 @@ const RESULTS: Record<string, { href: string; label: string }> = {
 	product: { href: '/catalog/products', label: 'продукты' },
 	vendor_contact: { href: '/contacts', label: 'контакты' },
 	learner: { href: '/contacts', label: 'контакты' },
-	payment: { href: '/deals', label: 'сделки' }
+	payment: { href: '/deals', label: 'сделки' },
+	direction: { href: '/catalog/directions', label: 'направления' },
+	responsible: { href: '/organizations', label: 'организации' }
 };
 export const resultHref = (entity: string): string => RESULTS[entity]?.href ?? '/organizations';
 export const resultLabel = (entity: string): string => RESULTS[entity]?.label ?? entityLabel(entity).toLowerCase();
@@ -57,3 +60,15 @@ export async function openErrorReport(job: Pick<ImportJob, 'id' | 'result_file_i
 	);
 	window.open(res.download_url, '_blank', 'noopener');
 }
+
+export type TemplateFormat = 'xlsx' | 'xls';
+const TEMPLATE_MIME: Record<TemplateFormat, string> = { xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', xls: 'application/vnd.ms-excel' };
+
+/** Шаблон файла для типа импорта с сервера: заголовки, учебные строки, лист «Инструкция» (в xlsx ещё выпадающие списки). Сохраняется как файл. */
+export async function downloadImportTemplate(code: string, format: TemplateFormat): Promise<void> {
+	const bytes = (await unwrap(api.GET('/api/imports/templates/{entity_type}', { params: { path: { entity_type: code }, query: { format } }, parseAs: 'arrayBuffer' }))) as ArrayBuffer;
+	saveBytes(bytes, `${code}-template.${format}`, TEMPLATE_MIME[format]);
+}
+
+/** Сводка проверки: коды проблем с числом строк и примерами, что будет создано/обновлено; после применения — что сделано. */
+export const loadImportSummary = (jobId: string) => unwrap(api.GET('/api/imports/{job_id}/summary', { params: { path: { job_id: jobId } } }));

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
 	applyPreset,
+	applyPresetOptions,
+	defaultOptionsForm,
+	importTypeAvailable,
+	optionsPayload,
 	canApplyImport,
 	canRollbackImport,
 	checkMapping,
@@ -168,5 +172,40 @@ describe('ENTITY_KEYS', () => {
 	it('для лицензий ключ — вуз, вендор, ПО и номер договора', () => {
 		expect(ENTITY_KEYS.license).toContain('номер договора');
 		expect(ENTITY_KEYS.license).toContain('вендор');
+	});
+});
+
+describe('параметры чтения файла', () => {
+	const headers = ['Название ВУЗа', 'Вендор'];
+	it('по умолчанию: только флаги справочников со значениями сервера', () => {
+		expect(optionsPayload(defaultOptionsForm(), headers, 'organization')).toEqual({ create_missing_vendors: true, create_missing_software: true, create_missing_organizations: false });
+	});
+	it('лист, строка заголовка, заполнение сверху (только колонки файла), флаги лицензий', () => {
+		const form = { ...defaultOptionsForm(), sheet: 'Данные', headerRow: 3, fillDown: ['Название ВУЗа', 'Нет такой'], createOrganizations: true, createVendors: false };
+		expect(optionsPayload(form, headers, 'license')).toEqual({ sheet: 'Данные', header_row: 3, fill_down: ['Название ВУЗа'], create_missing_vendors: false, create_missing_software: true, create_missing_organizations: true });
+	});
+	it('все листы вытесняют один лист; для не-лицензий флаги остаются умолчаниями', () => {
+		const form = { ...defaultOptionsForm(), sheet: 'Данные', allSheets: true, createOrganizations: true };
+		const payload = optionsPayload(form, headers, 'product');
+		expect(payload.sheets).toEqual(['*']);
+		expect(payload).not.toHaveProperty('sheet');
+		expect(payload.create_missing_organizations).toBe(false);
+	});
+	it('applyPresetOptions: накладывает заданное, остальное не трогает; без options — форма как была', () => {
+		const form = defaultOptionsForm();
+		expect(applyPresetOptions(form, null)).toBe(form);
+		const next = applyPresetOptions(form, { sheet: 'Архив', header_row: 2, fill_down: ['Вендор'], create_missing_organizations: true });
+		expect(next).toMatchObject({ sheet: 'Архив', headerRow: 2, fillDown: ['Вендор'], createOrganizations: true, createVendors: true });
+		expect(applyPresetOptions(next, { sheets: ['*'] }).allSheets).toBe(true);
+	});
+});
+
+describe('importTypeAvailable', () => {
+	it('админские типы доступны только администратору', () => {
+		expect(importTypeAvailable({ admin_only: true }, 'ADMIN')).toBe(true);
+		expect(importTypeAvailable({ admin_only: true }, 'HEAD')).toBe(false);
+		expect(importTypeAvailable({ admin_only: true }, null)).toBe(false);
+		expect(importTypeAvailable({ admin_only: false }, 'HEAD')).toBe(true);
+		expect(importTypeAvailable({}, 'KAM')).toBe(true);
 	});
 });

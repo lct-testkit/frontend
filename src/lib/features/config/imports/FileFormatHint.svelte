@@ -1,16 +1,26 @@
 <script lang="ts">
 	// «Какие колонки ждёт файл»: колонки выбранного типа (из `GET /api/imports/entity-types`), какие обязательные и в каком виде писать значение,
-	// плюс шаблон для скачивания. Список приходит с сервера — копий в интерфейсе нет.
+	// плюс шаблон для скачивания (xlsx и xls с сервера: заголовки, учебные строки, лист «Инструкция»). Список приходит с сервера — копий в интерфейсе нет.
 	import { Download } from '@lct-testkit/rt-ui/icons';
-	import { Btn, FormSection, StatusChip } from '$lib/ui';
+	import { Btn, FormSection, StatusChip, toast } from '$lib/ui';
 	import { fieldFormatHint } from './hints';
-	import { LICENSE_EXAMPLE, buildTemplateCsv, saveTextFile, templateFileName } from './licenseImport';
+	import { downloadImportTemplate, type TemplateFormat } from './job';
 	import { entityInfo, type ImportEntityType } from './mapping';
 
 	let { type }: { type: ImportEntityType } = $props();
 
-	const example = $derived(type.code === 'license' ? LICENSE_EXAMPLE : null);
-	const download = () => saveTextFile(templateFileName(type.code), buildTemplateCsv(type, example));
+	let loading = $state<TemplateFormat | null>(null);
+	async function download(format: TemplateFormat) {
+		if (loading) return;
+		loading = format;
+		try {
+			await downloadImportTemplate(type.code, format);
+		} catch (e) {
+			toast.error(e, 'Не удалось скачать шаблон');
+		} finally {
+			loading = null;
+		}
+	}
 </script>
 
 <FormSection collapsible title="Какие колонки ждёт файл" summary={`${type.fields.length}`}>
@@ -26,11 +36,9 @@
 			</li>
 		{/each}
 	</ul>
-	{#if example}
-		<p class="t-desc-l m-0 text-muted">В шаблоне вторая строка — пример: вуза с таким названием нет, поэтому при проверке она получит замечание «вуз не найден». Замените её своими данными.</p>
-	{/if}
-	<div class="flex flex-wrap items-center gap-3">
-		<Btn label="Скачать шаблон (CSV)" icon={Download} variant="outline" colorScheme="neutral" onclick={download} data-testid="import-template" />
-		<span class="t-desc-l text-muted">CSV с разделителем «;» — так его открывает русский Excel.</span>
+	<p class="t-desc-l m-0 text-muted">Шаблон — заголовки, две учебные строки и лист «Инструкция» с допустимыми значениями. Учебные строки замените своими данными. В .xlsx есть выпадающие списки, в .xls их нет.</p>
+	<div class="flex flex-wrap items-center gap-3 max-md:flex-col max-md:items-stretch">
+		<Btn label="Скачать шаблон .xlsx" icon={Download} variant="outline" colorScheme="neutral" loading={loading === 'xlsx'} disabled={loading !== null} onclick={() => download('xlsx')} data-testid="import-template-xlsx" />
+		<Btn label="Скачать шаблон .xls" icon={Download} variant="ghost" colorScheme="neutral" loading={loading === 'xls'} disabled={loading !== null} onclick={() => download('xls')} data-testid="import-template-xls" />
 	</div>
 </FormSection>

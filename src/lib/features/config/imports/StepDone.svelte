@@ -1,14 +1,16 @@
 <script lang="ts">
 	// Шаги 4–5: применение (фоновая задача) и итог. Откат — с подтверждением; ход отката и применения — опросом задания.
 	import { Progress } from '@lct-testkit/rt-ui/ext';
-	import { CheckLarge } from '@lct-testkit/rt-ui/icons';
+	import { CheckLarge, Download } from '@lct-testkit/rt-ui/icons';
 	import { goto } from '$app/navigation';
-	import { Btn, Notice, WizardCard, confirm } from '$lib/ui';
+	import { Btn, Notice, WizardCard, confirm, toast } from '$lib/ui';
 	import { formatNumber } from '$lib/utils/format';
 	import type { ImportFlow } from './flow.svelte';
+	import CheckSummary from './CheckSummary.svelte';
+	import type { ImportSummary } from './check';
 	import ImportRows from './ImportRows.svelte';
 	import JobSummary from './JobSummary.svelte';
-	import { entityLabel, resultHref, resultLabel } from './job';
+	import { entityLabel, loadImportSummary, openErrorReport, resultHref, resultLabel } from './job';
 	import { canRollbackImport } from './mapping';
 
 	let { flow }: { flow: ImportFlow } = $props();
@@ -16,6 +18,30 @@
 	const job = $derived(flow.job);
 	const applying = $derived(job?.status === 'applying');
 	const rolling = $derived(job?.status === 'rolling_back');
+
+	// итог по строкам: что создано, обновлено, пропущено (после применения сервер дополняет сводку проверки)
+	let summary = $state<ImportSummary | null>(null);
+	let issue = $state<{ code: string; message: string } | null>(null);
+	$effect(() => {
+		const id = job?.id;
+		const status = job?.status;
+		if (!id || (status !== 'completed' && status !== 'completed_with_errors')) return;
+		let live = true;
+		void loadImportSummary(id).then((s) => live && (summary = s)).catch(() => {});
+		return () => (live = false);
+	});
+	let downloading = $state(false);
+	async function report() {
+		if (!job) return;
+		downloading = true;
+		try {
+			await openErrorReport(job);
+		} catch (e) {
+			toast.error(e, 'Не удалось скачать отчёт');
+		} finally {
+			downloading = false;
+		}
+	}
 
 	async function rollback() {
 		if (!job) return;
@@ -52,7 +78,8 @@
 			<h2 class="t-h4">{job.status === 'rolled_back' ? 'Импорт откачен' : job.status === 'completed_with_errors' ? 'Импорт завершён с пропусками' : 'Импорт завершён'}</h2>
 		</div>
 		{#if job.status !== 'rolled_back'}<JobSummary {job} done />{/if}
-		{#key job.status}<ImportRows jobId={job.id} total={job.total_rows} warn={job.warn_rows} error={job.error_rows} />{/key}
+		{#if summary && job.status !== 'rolled_back'}<CheckSummary {summary} phase="applied" issue={issue?.code ?? null} onPick={(code, message) => (issue = code ? { code, message: message ?? code } : null)} />{/if}
+		{#key job.status}<ImportRows jobId={job.id} total={job.total_rows} warn={job.warn_rows} error={job.error_rows} issue={issue?.code ?? null} issueLabel={issue?.message ?? null} onClearIssue={() => (issue = null)} />{/key}
 		{#snippet actions()}
 			{#if job.status !== 'rolled_back'}
 				<Btn label={`Открыть: ${resultLabel(job.entity_type)}`} onclick={() => goto(resultHref(job.entity_type))} />
@@ -60,6 +87,7 @@
 			{:else}
 				<Btn label="Новый импорт" onclick={() => goto('/imports/new')} />
 			{/if}
+			{#if job.result_file_id && job.status !== 'rolled_back'}<Btn label="Отчёт .xlsx" icon={Download} variant="outline" colorScheme="neutral" loading={downloading} onclick={report} data-testid="import-report" />{/if}
 			{#if canRollbackImport(job)}<Btn label="Откатить импорт" variant="outline" colorScheme="neutral" danger loading={flow.busy} onclick={rollback} />{/if}
 		{/snippet}
 	</WizardCard>

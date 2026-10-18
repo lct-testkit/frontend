@@ -110,6 +110,10 @@
 			"tier": "full"
 		},
 		{
+			"file": "e-imports-f9.mjs",
+			"tier": "full"
+		},
+		{
 			"file": "e-integrations.mjs",
 			"tier": "full"
 		},
