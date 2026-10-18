@@ -151,3 +151,18 @@ export async function auditLayout(page) {
 		return { viewport: vw, hscroll, offenders, tableScroll };
 	});
 }
+
+/**
+ * Опубликованная воронка B2B, по которой работает стенд: не по коду (коды меняются между версиями набора), а по типу сделки —
+ * воронка по умолчанию, иначе с наибольшей версией. `api(path)` возвращает разобранный JSON ответа.
+ */
+export async function findB2bWorkflow(api) {
+	const res = await api('/api/workflows?state=published&limit=100');
+	const list = (Array.isArray(res) ? res : res.items ?? []).filter((w) => w.deal_type === 'b2b' && (w.state ?? 'published') === 'published');
+	return list.find((w) => w.is_default) ?? list.sort((a, b) => b.version - a.version)[0] ?? null;
+}
+
+/** Шаги воронки по порядку из графа (`GET /api/workflows/{id}`): без архивных и терминальных, шаг N — `steps[N - 1]`. */
+export function graphSteps(graph) {
+	return graph.statuses.filter((s) => !s.is_archived && (s.type === 'initial' || s.type === 'intermediate')).sort((a, b) => a.sort_order - b.sort_order);
+}

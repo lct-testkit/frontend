@@ -13,7 +13,8 @@ const api = async (method, path, body, headers = {}) => {
 const find = async (q) => (await api('GET', `/api/deals?q=${encodeURIComponent(q)}&limit=1`)).json.items[0];
 const created = async () => {
 	const org = (await api('GET', '/api/organizations?q=КГТУ&limit=1')).json.items[0];
-	return (await api('POST', '/api/deals', { title: `Снимки D ${Date.now().toString().slice(-5)}`, deal_type: 'b2b', organization_id: org.id, amount: '100000', currency: 'RUB', priority: 'normal' }, { 'Idempotency-Key': crypto.randomUUID() })).json;
+	const contact = (await api('GET', `/api/contacts?organization_id=${org.id}&limit=1`)).json.items[0];
+	return (await api('POST', '/api/deals', { title: `Снимки D ${Date.now().toString().slice(-5)}`, deal_type: 'b2b', organization_id: org.id, contact_id: contact?.id, amount: '100000', currency: 'RUB', priority: 'normal' }, { 'Idempotency-Key': crypto.randomUUID() })).json;
 };
 
 const browser = await newBrowser();
@@ -21,7 +22,7 @@ try {
 	for (const [w, h, label] of [[1440, 900, 'desktop'], [390, 844, 'phone'], [360, 640, 'phone-s']]) {
 		const page = await newPage(browser, { who: 'kam', width: w, height: h, theme });
 		step(`${label}: заблокированный переход`);
-		const blocked = await find('D-2026-000006');
+		const blocked = await find('Курс по сетевым технологиям для магистратуры');
 		await page.goto(`${BASE}/deals/${blocked.id}`, { waitUntil: 'load' });
 		await page.getByTestId('deal-primary-transition').click();
 		await page.getByTestId('conditions').waitFor();

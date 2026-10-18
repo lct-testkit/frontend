@@ -2,7 +2,8 @@
 // в организации, сделки — по названию; повторный запуск ничего не дублирует, переходы делаются только для новых сделок.
 //   node tools/seed-demo.mjs            (по умолчанию http://localhost:5273 → прокси на бэкенд)
 //   APP_URL=http://localhost:8080 node tools/seed-demo.mjs
-import { BASE, accessToken, ensureConsent } from './lib.mjs';
+import { BASE, accessToken, ensureConsent, graphSteps } from './lib.mjs';
+import { apiAs, attachPdf } from './scenarios/f-lib.mjs';
 
 // ---------------------------------------------------------------- HTTP
 const tokens = {};
@@ -100,36 +101,39 @@ const PERSONS = [
 	['Гусев', 'Кирилл', 'Олегович', 'gusev.ko@example.ru', '+79161234509', 'head']
 ];
 
-// Сделки: [владелец, тип, организация/контакт, название, сумма, студентов, приоритет, целевой статус, дней до закрытия]
+// Сделки: [владелец, тип, организация/контакт, название, сумма, студентов, приоритет, цель, дней до закрытия].
+// Цель B2B-сделки — номер шага из задания, а не код статуса: `{ step: 8 }`; `back: true` — дойти до шага и вернуться на шаг назад;
+// `{ end: 'lost' | 'parked' | 'won', at: N }` — закрыть с шага N. Цель B2C — код статуса воронки B2C.
+// Каждая третья сделка, которой нужно пройти шаг 5 («корректировка документов», необязательный), идёт через него, остальные пропускают.
 const DEALS = [
-	['kam', 'b2b', 'КГТУ', 'Программа «Разработка на Python» для 3 курса', '1250000', 120, 'high', 'kp_approval', 45],
-	['kam', 'b2b', 'СУТИ', 'Курс по сетевым технологиям для магистратуры', '840000', 60, 'normal', 'meeting_held', 60],
-	['kam', 'b2b', 'ППУ', 'Пилот «Основы Data Science»', '390000', 40, 'normal', 'qualification', 90],
-	['kam', 'b2b', 'НИЦТ', 'Цифровая кафедра: DevOps-трек', '2100000', 150, 'critical', 'legal_approval', 30],
-	['kam', 'b2b', 'УФИИ', 'Летняя ИТ-школа для абитуриентов', '560000', 200, 'normal', 'requirements', 75],
-	['kam', 'b2b', 'КубГАТУ', 'Курс «Кибербезопасность» для агроинженеров', '720000', 80, 'high', 'contract_signing', 20],
-	['kam', 'b2b', 'РКСИ', 'Программа переподготовки преподавателей', '310000', 25, 'low', 'first_contact', 120],
-	['kam', 'b2b', 'УАТУ', 'Трек «Промышленный интернет вещей»', '1650000', 90, 'high', 'lms_transfer', 15],
-	['kam', 'b2b', 'ЧИПМ', 'Курс «Машинное обучение» — 2025/26', '480000', 35, 'normal', 'lost', 40],
-	['kam', 'b2b', 'ВГКИТ', 'Стажировочная программа для выпускников', '150000', 30, 'low', 'parked', 180],
-	['kam', 'b2b', 'СПбИЦЭ', 'Обучение сотрудников университета работе с LMS', '290000', 50, 'normal', 'identification', 100],
-	['kam', 'b2b', 'МОУПН', 'Партнёрская программа «Цифровые кафедры 2026»', '3400000', 400, 'critical', 'training_launch', 10],
-	['kam', 'b2b', 'КСУТ', 'Курс по мобильной разработке', '610000', 45, 'normal', 'kp_preparation', 55],
-	['kam', 'b2b', 'Цифровые кадры', 'Корпоративное обучение аналитиков данных', '990000', 20, 'high', 'meeting_scheduled', 35],
+	['kam', 'b2b', 'КГТУ', 'Программа «Разработка на Python» для 3 курса', '1250000', 120, 'high', { step: 8 }, 45],
+	['kam', 'b2b', 'СУТИ', 'Курс по сетевым технологиям для магистратуры', '840000', 60, 'normal', { step: 4 }, 60],
+	['kam', 'b2b', 'ППУ', 'Пилот «Основы Data Science»', '390000', 40, 'normal', { step: 2 }, 90],
+	['kam', 'b2b', 'НИЦТ', 'Цифровая кафедра: DevOps-трек', '2100000', 150, 'critical', { step: 6 }, 30],
+	['kam', 'b2b', 'УФИИ', 'Летняя ИТ-школа для абитуриентов', '560000', 200, 'normal', { step: 3 }, 75],
+	['kam', 'b2b', 'КубГАТУ', 'Курс «Кибербезопасность» для агроинженеров', '720000', 80, 'high', { step: 11 }, 20],
+	['kam', 'b2b', 'РКСИ', 'Программа переподготовки преподавателей', '310000', 25, 'low', { step: 1 }, 120],
+	['kam', 'b2b', 'УАТУ', 'Трек «Промышленный интернет вещей»', '1650000', 90, 'high', { step: 7 }, 15],
+	['kam', 'b2b', 'ЧИПМ', 'Курс «Машинное обучение» — 2025/26', '480000', 35, 'normal', { end: 'lost', at: 3 }, 40],
+	['kam', 'b2b', 'ВГКИТ', 'Стажировочная программа для выпускников', '150000', 30, 'low', { end: 'parked', at: 4 }, 180],
+	['kam', 'b2b', 'СПбИЦЭ', 'Обучение сотрудников университета работе с LMS', '290000', 50, 'normal', { step: 1 }, 100],
+	['kam', 'b2b', 'МОУПН', 'Партнёрская программа «Цифровые кафедры 2026»', '3400000', 400, 'critical', { step: 10, back: true }, 10],
+	['kam', 'b2b', 'КСУТ', 'Курс по мобильной разработке', '610000', 45, 'normal', { step: 5 }, 55],
+	['kam', 'b2b', 'Цифровые кадры', 'Корпоративное обучение аналитиков данных', '990000', 20, 'high', { step: 3 }, 35],
 	['kam', 'b2c', 'Смирнова', 'Frontend-разработчик с нуля — Смирнова Е. А.', '89000', 1, 'normal', 'consultation', 14],
 	['kam', 'b2c', 'Волков', 'Data Science Pro — Волков П. Д.', '129000', 1, 'normal', 'won', 7],
 	['kam', 'b2c', 'Егорова', 'Python для анализа данных — Егорова А. Р.', '59000', 1, 'low', 'contact_verification', 21],
-	['head', 'b2b', 'МОУПН', 'Расширение программы на второй кампус', '1800000', 160, 'high', 'monitoring', 25],
-	['head', 'b2b', 'УФИИ', 'Хакатон-интенсив для студентов', '240000', 300, 'normal', 'closing_prolongation', 12],
-	['head', 'b2b', 'КГТУ', 'Пролонгация программы 2024 года', '1100000', 110, 'normal', 'won', 5],
+	['head', 'b2b', 'МОУПН', 'Расширение программы на второй кампус', '1800000', 160, 'high', { step: 12 }, 25],
+	['head', 'b2b', 'УФИИ', 'Хакатон-интенсив для студентов', '240000', 300, 'normal', { step: 14 }, 12],
+	['head', 'b2b', 'КГТУ', 'Пролонгация программы 2024 года', '1100000', 110, 'normal', { end: 'won', at: 14 }, 5],
 	// вторая волна: ранние статусы с короткими SLA (Истекает / Нарушен) и больше B2C
-	['kam', 'b2b', 'СУТИ', 'Модуль «Облачные технологии» для бакалавриата', '430000', 70, 'high', 'first_contact', 50],
-	['kam', 'b2b', 'ППУ', 'Курс «Тестирование программного обеспечения»', '380000', 45, 'normal', 'qualification', 65],
-	['kam', 'b2b', 'НИЦТ', 'Стажировки для студентов 4 курса', '270000', 60, 'normal', 'meeting_scheduled', 40],
-	['kam', 'b2b', 'КубГАТУ', 'Летняя школа по робототехнике', '520000', 90, 'low', 'first_contact', 85],
-	['kam', 'b2b', 'РКСИ', 'Сетевая академия: расширение программы', '340000', 30, 'normal', 'qualification', 70],
-	['head', 'b2b', 'КГТУ', 'Кибербезопасность для преподавателей', '410000', 40, 'high', 'meeting_scheduled', 30],
-	['head', 'b2b', 'УФИИ', 'Цифровая кафедра: анализ данных', '1350000', 120, 'critical', 'qualification', 55],
+	['kam', 'b2b', 'СУТИ', 'Модуль «Облачные технологии» для бакалавриата', '430000', 70, 'high', { step: 1 }, 50],
+	['kam', 'b2b', 'ППУ', 'Курс «Тестирование программного обеспечения»', '380000', 45, 'normal', { step: 2 }, 65],
+	['kam', 'b2b', 'НИЦТ', 'Стажировки для студентов 4 курса', '270000', 60, 'normal', { step: 3 }, 40],
+	['kam', 'b2b', 'КубГАТУ', 'Летняя школа по робототехнике', '520000', 90, 'low', { step: 1 }, 85],
+	['kam', 'b2b', 'РКСИ', 'Сетевая академия: расширение программы', '340000', 30, 'normal', { step: 2 }, 70],
+	['head', 'b2b', 'КГТУ', 'Кибербезопасность для преподавателей', '410000', 40, 'high', { step: 3 }, 30],
+	['head', 'b2b', 'УФИИ', 'Цифровая кафедра: анализ данных', '1350000', 120, 'critical', { step: 2 }, 55],
 	['kam', 'b2c', 'Назаров', 'DevOps с нуля — Назаров И. С.', '99000', 1, 'normal', 'lms_enrollment', 10],
 	['kam', 'b2c', 'Кузьмина', 'Аналитик данных — Кузьмина Т. В.', '109000', 1, 'low', 'lost', 12],
 	['kam', 'b2c', 'Тарасов', 'Java-разработчик — Тарасов А. М.', '119000', 1, 'high', 'payment_contract', 9],
@@ -137,11 +141,11 @@ const DEALS = [
 	['kam', 'b2c', 'Беляева', 'Python-старт — Беляева М. С.', '45000', 1, 'normal', 'contact_verification', 18],
 	['head', 'b2c', 'Гусев', 'Тестировщик ПО — Гусев К. О.', '69000', 1, 'low', 'training_completed', 6],
 	// третья волна: короткие SLA на ранних статусах — сделки быстро уходят в «Истекает» и «Нарушен»
-	['kam', 'b2b', 'КГТУ', 'Пилот по кибербезопасности для магистров', '260000', 35, 'high', 'first_contact', 60],
-	['kam', 'b2b', 'СУТИ', 'Курс «Сети 5G» для бакалавров', '310000', 40, 'normal', 'qualification', 70],
-	['head', 'b2b', 'ППУ', 'Летняя практика для студентов ИТ-института', '180000', 60, 'normal', 'meeting_scheduled', 45],
-	['kam', 'b2b', 'УАТУ', 'Программа «Умное производство»', '890000', 75, 'critical', 'qualification', 50],
-	['kam', 'b2b', 'ЧИПМ', 'Введение в анализ данных для преподавателей', '145000', 25, 'low', 'first_contact', 90],
+	['kam', 'b2b', 'КГТУ', 'Пилот по кибербезопасности для магистров', '260000', 35, 'high', { step: 1 }, 60],
+	['kam', 'b2b', 'СУТИ', 'Курс «Сети 5G» для бакалавров', '310000', 40, 'normal', { step: 2 }, 70],
+	['head', 'b2b', 'ППУ', 'Летняя практика для студентов ИТ-института', '180000', 60, 'normal', { step: 3 }, 45],
+	['kam', 'b2b', 'УАТУ', 'Программа «Умное производство»', '890000', 75, 'critical', { step: 2 }, 50],
+	['kam', 'b2b', 'ЧИПМ', 'Введение в анализ данных для преподавателей', '145000', 25, 'low', { step: 1 }, 90],
 	['kam', 'b2c', 'Егорова', 'SQL и базы данных — Егорова А. Р.', '39000', 1, 'low', 'consultation', 10]
 ];
 
@@ -168,7 +172,7 @@ const COMMENTS = [
 ];
 
 // ---------------------------------------------------------------- шаги
-const summary = { orgs: 0, contacts: 0, deals: 0, transitions: 0, comments: 0, tasks: 0, participants: 0, sla: 0 };
+const summary = { orgs: 0, contacts: 0, deals: 0, advanced: 0, transitions: 0, comments: 0, tasks: 0, participants: 0, sla: 0 };
 
 const TEAM_NAME = 'Отдел вузов';
 
@@ -221,13 +225,16 @@ async function ensureReferenceData() {
 
 // Короткие календарные сроки на ранних статусах: свежие демо-сделки там быстро становятся «Истекает» / «Нарушен».
 // Остальные промежуточные статусы — 72 рабочих часа, начальный — 24.
-const SLA_SHORT_HOURS = { first_contact: 0.05, qualification: 0.15, meeting_scheduled: 1, contact_verification: 0.05, consultation: 1.5 };
+// B2C — по кодам статусов; B2B — по номерам шагов задания 1–3 (коды воронки меняются между версиями набора).
+const SLA_SHORT_HOURS = { contact_verification: 0.05, consultation: 1.5 };
+const SLA_SHORT_B2B_STEPS = [0.05, 0.15, 1];
 
 function wantedSla(graph) {
-	return graph.statuses
-		.filter((s) => !s.is_archived && (s.type === 'initial' || s.type === 'intermediate'))
+	const b2b = graph.workflow.deal_type === 'b2b';
+	const order = graphSteps(graph);
+	return order
 		.map((s) => {
-			const short = SLA_SHORT_HOURS[s.code];
+			const short = b2b ? SLA_SHORT_B2B_STEPS[order.indexOf(s)] : SLA_SHORT_HOURS[s.code];
 			return {
 				status: s.id,
 				max_duration_hours: short ?? (s.type === 'initial' ? 24 : 72),
@@ -544,6 +551,66 @@ async function walk(who, deal, graph, targetCode, lossReasonId) {
 	return current;
 }
 
+/**
+ * Маршрут B2B-сделки по цели из DEALS: номера шагов подряд (шаг 5 — только если `via5`), затем возврат на шаг назад или завершающий статус.
+ * Шаг 5 необязателен: без него переход идёт 4 → 6 напрямую.
+ */
+export function routeFor(target, via5) {
+	const at = target.at ?? target.step;
+	const route = [];
+	for (let n = 2; n <= at; n += 1) if (n !== 5 || via5 || at < 6) route.push(n);
+	if (target.back && at > 1) route.push(at === 6 && !via5 ? 4 : at - 1);
+	if (target.end) route.push(target.end);
+	return route;
+}
+
+let b2bFlow = null; // воронка B2B: список шагов и все статусы (нужны walkB2b)
+
+/** Условия перехода → поля, файлы и комментарий тела запроса; подпись выполнить нельзя — такой переход пропускается с понятной строкой. */
+async function bodyFor(who, j, deal, t, status, lossReasonId) {
+	const body = { to_status_id: status.id, fields: {}, attachments: [] };
+	if (t.requires_comment) body.comment = status.type === 'lost' ? 'Вуз выбрал другого поставщика после сравнения КП.' : status.type === 'parked' ? 'Ждём решения учёного совета, вернёмся к сделке позже.' : `Переход: ${t.name}.`;
+	if (status.type === 'lost') body.fields.loss_reason_id = lossReasonId;
+	if (status.type === 'parked') body.fields['custom_fields.park_reason'] = 'Решение учёного совета отложено';
+	if (t.satisfied) return body;
+	let needSignature = false;
+	for (const leaf of t.conditions ?? []) {
+		if (leaf.satisfied) continue;
+		const file = /^step_attachments\.(.+)$/.exec(leaf.field);
+		if (file) {
+			if (!body.attachments.length) body.attachments.push(await attachPdf(j, deal.id, file[1]));
+		} else if (leaf.field === 'signature_status') needSignature = true;
+		else if (leaf.field === 'loss_reason_id' || leaf.field === 'custom_fields.park_reason' || leaf.field === 'custom_fields.resume_at') continue;
+		else if (leaf.field.startsWith('custom_fields.')) body.fields[leaf.field] = leaf.expected ?? 'Демо';
+	}
+	if (needSignature && !body.attachments.length) throw new Error('переход требует подписи: пропущен');
+	return body;
+}
+
+async function walkB2b(who, deal, route, lossReasonId) {
+	const j = await apiAs(who);
+	let current = deal;
+	for (const stop of route) {
+		const status = typeof stop === 'number' ? b2bFlow.steps[stop - 1] : b2bFlow.all.find((x) => x.type === stop);
+		const available = (await get(who, `/api/deals/${current.id}/available-transitions`)).items;
+		const t = available.find((x) => x.to_status_id === status.id);
+		if (!t || !t.role_allowed) {
+			console.log(`    ! ${deal.number}: нет доступного перехода в «${status.name.slice(0, 40)}»${t ? ' (не по роли)' : ''}`);
+			return current;
+		}
+		try {
+			const body = await bodyFor(who, j, current, t, status, lossReasonId);
+			const res = await post(who, `/api/deals/${current.id}/transition`, body, ifMatch(current.version));
+			current = res.deal;
+			summary.transitions += 1;
+		} catch (e) {
+			console.log(`    ! ${deal.number}: переход «${t.name.slice(0, 50)}» не выполнен (${e.message.slice(0, 140)})`);
+			return current;
+		}
+	}
+	return current;
+}
+
 /** Демо-задачи из первого прогона одинаковые: даём им разные названия, часть отмечаем выполненными (идемпотентно — трогаем только типовые названия). */
 async function varyTasks() {
 	let renamed = 0;
@@ -589,6 +656,8 @@ async function main() {
 	const graphs = {};
 	for (const wf of workflows.filter((w) => w.is_default)) graphs[wf.deal_type] = await ensureSla(wf);
 	if (!graphs.b2b || !graphs.b2c) throw new Error('Нет опубликованных воронок по умолчанию: сначала python -m app.modules.workflow.seed');
+	b2bFlow = { steps: graphSteps(graphs.b2b), all: graphs.b2b.statuses.filter((x) => !x.is_archived) };
+	console.log(`  B2B: «${graphs.b2b.workflow.name}», шагов ${b2bFlow.steps.length}`);
 
 	console.log('Организации…');
 	const ownerOf = (org) => (org.short === 'МОУПН' || org.short === 'УФИИ' ? 'head' : 'kam');
@@ -605,12 +674,35 @@ async function main() {
 
 	console.log('Сделки…');
 	const created = [];
+	let needFive = 0; // сколько сделок уже должны были пройти шаг 5: каждая третья идёт через него
 	for (const [plannedWho, type, party, title, amount, students, priority, target, closeDays] of DEALS) {
 		// Менеджер не может завести сделку на чужую организацию (бэкенд отвечает 404, как для несуществующей): если организацию
 		// ведёт руководитель, сделку по ней заводит он. Организации руководителя — только МОУПН и УФИИ (`ownerOf` выше).
 		const who = type === 'b2b' && plannedWho === 'kam' && ownerByShort[party] === 'head' ? 'head' : plannedWho;
+		const isB2b = type === 'b2b' && typeof target === 'object';
+		const passesFive = isB2b && (target.at ?? target.step) >= 6;
+		const via5 = passesFive && needFive++ % 3 === 0;
+		const lossReasonId = lossReasons[Math.abs(hash(title)) % lossReasons.length]?.id;
 		const found = await get(who, `/api/deals?q=${encodeURIComponent(title)}&limit=5`);
-		if (found.items.some((d) => d.title === title)) continue;
+		const existing = found.items.find((d) => d.title === title);
+		if (existing) {
+			// сделка уже есть: если она остановилась на маршруте раньше цели (сид шёл по старой воронке), доводим до цели с того места;
+			// историю не переписываем: сделка вне маршрута или уже у цели остаётся как есть
+			if (isB2b) {
+				const full = (await get(who, `/api/deals/${existing.id}`)).deal;
+				const route = routeFor(target, via5);
+				const here = b2bFlow.steps.findIndex((x) => x.id === full.status_id) + 1;
+				const from = here === 1 ? -1 : here > 1 ? route.lastIndexOf(here) : -2;
+				if (from > -2 && !full.closed_at && from < route.length - 1) {
+					const moved = await walkB2b(who, full, route.slice(from + 1), lossReasonId);
+					if (moved.status_id !== full.status_id) {
+						summary.advanced += 1;
+						console.log(`  ↑ ${full.number} «${title}» → ${JSON.stringify(target)}`);
+					}
+				}
+			}
+			continue;
+		}
 		const org = type === 'b2b' ? orgsByShort[party] : null;
 		const contact = type === 'b2b' ? Object.entries(contacts).find(([k]) => k.startsWith(`${party}:`))?.[1] : contacts[party];
 		if (type === 'b2b' && !org) continue;
@@ -622,9 +714,9 @@ async function main() {
 		};
 		let deal = await post(who, '/api/deals', body, idem());
 		summary.deals += 1;
-		deal = await walk(who, deal, graphs[type], target, lossReasons[Math.abs(hash(title)) % lossReasons.length]?.id);
+		deal = isB2b ? await walkB2b(who, deal, routeFor(target, via5), lossReasonId) : await walk(who, deal, graphs[type], target, lossReasonId);
 		created.push({ who, deal, party });
-		console.log(`  + ${deal.number} «${title}» → ${target}`);
+		console.log(`  + ${deal.number} «${title}» → ${typeof target === 'string' ? target : JSON.stringify(target)}`);
 	}
 
 	console.log('Комментарии, задачи, участники…');
