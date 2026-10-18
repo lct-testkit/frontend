@@ -14,6 +14,7 @@
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import { ATTACHMENT_CATEGORY_LABELS } from '../shared/labels';
 	import { fileKind } from './file-kind';
+	import { downloadFile } from './download';
 	import FileDrop from './FileDrop.svelte';
 	import { linkAttachment } from './link';
 	import type { Attachment } from '../types';
@@ -94,15 +95,6 @@
 
 	const nameOf = (a: Attachment) => a.file?.original_filename || a.description || 'Файл';
 
-	async function download(a: Attachment) {
-		try {
-			const res = await unwrap(api.GET('/api/files/{file_id}/download-url', { params: { path: { file_id: a.file_id }, query: { entity_type: entityType, entity_id: entityId } } }));
-			window.open(res.download_url, '_blank', 'noopener');
-		} catch (e) {
-			toast.error(e);
-		}
-	}
-
 	async function remove(a: Attachment) {
 		if (!(await confirm({ title: `Отвязать «${nameOf(a)}»?`, confirmLabel: 'Отвязать', danger: true }))) return;
 		try {
@@ -150,7 +142,7 @@
 									{#if a.file}{formatBytes(a.file.size_bytes)} · {fileKind(a.file.mime_type, a.file.original_filename)} · {/if}<DateText value={a.created_at} time />{#if a.uploaded_by} · {people.name(a.uploaded_by)}{/if}
 								</span>
 							</span>
-							{#if canDownload}<IconBtn icon={Download} label="Скачать" onclick={() => download(a)} />{/if}
+							{#if canDownload}<IconBtn icon={Download} label="Скачать" onclick={() => downloadFile(a.file_id, entityType, entityId)} />{/if}
 							{#if canRemove}<IconBtn icon={Trash} label="Отвязать" danger onclick={() => remove(a)} />{/if}
 						</li>
 					{/each}
