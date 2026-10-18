@@ -2,7 +2,7 @@
 	// Оформить соглашение об ЭДО: сторона (организация, контакт или сотрудник), способ заключения, сроки и скан подписанного соглашения.
 	import { Progress } from '@lct-testkit/rt-ui/ext';
 	import { CloseLarge } from '@lct-testkit/rt-ui/icons';
-	import { ApiError, api, errorMessage, unwrap } from '$lib/api';
+	import { ApiError, api, errorTextWithCode, unwrap } from '$lib/api';
 	import { uploadFile, type UploadedFile } from '$lib/api/upload';
 	import ContactPicker from '$lib/features/crm/shared/pickers/ContactPicker.svelte';
 	import OrgPicker from '$lib/features/crm/shared/pickers/OrgPicker.svelte';
@@ -74,7 +74,7 @@
 		try {
 			file = await uploadFile(picked, { purpose: 'edm_agreement', category: 'contract', onProgress: (f) => (progress = f) });
 		} catch (e) {
-			uploadError = errorMessage(e);
+			uploadError = errorTextWithCode(e);
 		} finally {
 			progress = null;
 		}
@@ -126,7 +126,7 @@
 			onCreated(created);
 		} catch (e) {
 			if (e instanceof ApiError && e.isValidation) fieldErrors = e.fieldErrors();
-			failure = errorMessage(e);
+			failure = errorTextWithCode(e);
 		} finally {
 			saving = false;
 		}

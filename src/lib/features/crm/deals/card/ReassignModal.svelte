@@ -1,6 +1,6 @@
 <script lang="ts">
 	// Смена ответственного (HEAD/ADMIN): новый сотрудник и обязательная причина; в сделке появится системная запись, сотрудник получит уведомление.
-	import { ApiError, errorMessage } from '$lib/api';
+	import { ApiError, errorTextWithCode } from '$lib/api';
 	import { FormModal, UserPicker, toast } from '$lib/ui';
 	import AreaField from '$lib/ui/fields/AreaField.svelte';
 	import type { DealCardState } from './dealCard.svelte';
@@ -41,7 +41,7 @@
 			onClose();
 		} catch (e) {
 			conflict = e instanceof ApiError && e.isConflict;
-			error = conflict ? 'Сделка изменена другим пользователем. Обновите данные и повторите.' : errorMessage(e);
+			error = conflict ? 'Сделка изменена другим пользователем. Обновите данные и повторите.' : errorTextWithCode(e);
 		} finally {
 			busy = false;
 		}

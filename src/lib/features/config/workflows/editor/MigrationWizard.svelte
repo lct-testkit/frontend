@@ -6,7 +6,7 @@
 	import { untrack } from 'svelte';
 	import { Progress } from '@lct-testkit/rt-ui/ext';
 	import { CheckLarge, AttentionMark } from '@lct-testkit/rt-ui/icons';
-	import { api, errorMessage, ifMatch, unwrap } from '$lib/api';
+	import { api, errorTextWithCode, ifMatch, unwrap } from '$lib/api';
 	import { Btn, ErrorState, Notice, Skeleton, WizardSteps } from '$lib/ui';
 	import AppModal from '$lib/ui/AppModal.svelte';
 	import CheckField from '$lib/ui/fields/CheckField.svelte';
@@ -108,7 +108,7 @@
 			await editor.load(true);
 			return null;
 		} catch (e) {
-			return errorMessage(e);
+			return errorTextWithCode(e);
 		}
 	}
 

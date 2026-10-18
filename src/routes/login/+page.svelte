@@ -5,7 +5,7 @@
 	import { page } from '$app/state';
 	import { Loader } from '@lct-testkit/rt-ui';
 	import { ArrowRight, SignIn } from '@lct-testkit/rt-ui/icons';
-	import { errorMessage } from '$lib/api';
+	import { errorTextWithCode } from '$lib/api';
 	import { session, ROLE_LABEL } from '$lib/auth/session.svelte';
 	import { getConfig, type DemoAccount } from '$lib/config';
 	import { landingFor } from '$lib/nav';
@@ -46,7 +46,7 @@
 		try {
 			await session.loginDemo(account.username, account.password);
 		} catch (e) {
-			failure = errorMessage(e);
+			failure = errorTextWithCode(e);
 		} finally {
 			busy = null;
 		}
@@ -76,7 +76,7 @@
 			{#if session.status === 'loading'}
 				<div class="flex justify-center p-8" aria-busy="true"><Loader size="m" /></div>
 			{:else if session.error}
-				<Notice class="shrink-0" tone="error" actions={[{ label: 'Повторить', onclick: () => session.load() }]}>{errorMessage(session.error)}</Notice>
+				<Notice class="shrink-0" tone="error" actions={[{ label: 'Повторить', onclick: () => session.load() }]}>{errorTextWithCode(session.error)}</Notice>
 			{:else if cfg.mode === 'demo'}
 				<ul class="m-0 grid list-none grid-cols-1 gap-3 p-0 min-[560px]:max-[899px]:grid-cols-2">
 					{#each cfg.demoAccounts as account (account.username)}

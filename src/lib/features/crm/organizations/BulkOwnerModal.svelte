@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Массовая смена ответственного у выбранных вузов (Руководитель, Администратор): кому (или снять), причина, при желании — с открытыми сделками.
 	// Вузы уходят пакетами по 100; в конце — отчёт «Назначено: N. Пропущено: M» со списком пропущенных и причинами.
-	import { api, errorMessage, unwrap } from '$lib/api';
+	import { api, errorTextWithCode, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
 	import { CheckField, FormModal, Notice, UserPicker } from '$lib/ui';
 	import AreaField from '$lib/ui/fields/AreaField.svelte';
@@ -63,7 +63,7 @@
 				(body) => unwrap(api.POST('/api/organizations/bulk/owner', { body }))
 			);
 		} catch (e) {
-			error = errorMessage(e);
+			error = errorTextWithCode(e);
 		} finally {
 			busy = false;
 		}

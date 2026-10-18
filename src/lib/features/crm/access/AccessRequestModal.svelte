@@ -1,7 +1,7 @@
 <script lang="ts">
 	// «Запросить доступ» к вузу, который ведёт коллега: причина (видит владелец и руководитель его команды), срок назначает тот, кто решает.
 	// Ошибки сервера говорят сами: 409 — запрос уже ждёт ответа, 422 — доступ уже есть / вуз без ответственного / вне ваших ограничений.
-	import { ApiError, api, errorMessage, unwrap } from '$lib/api';
+	import { ApiError, api, errorTextWithCode, unwrap } from '$lib/api';
 	import { AreaField, FormModal, toast } from '$lib/ui';
 	import type { AccessRequest } from '../types';
 
@@ -44,7 +44,7 @@
 			onSent?.(request);
 			onClose();
 		} catch (e) {
-			error = e instanceof ApiError && e.status === 409 ? 'Запрос на этот вуз уже отправлен и ждёт ответа.' : errorMessage(e);
+			error = e instanceof ApiError && e.status === 409 ? 'Запрос на этот вуз уже отправлен и ждёт ответа.' : errorTextWithCode(e);
 		} finally {
 			busy = false;
 		}

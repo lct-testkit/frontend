@@ -2,7 +2,7 @@
 	// Задача: создание (в карточке сделки — с известной сделкой, на странице задач — с выбором сделки) и правка.
 	// Срок — дата; считаем концом рабочего дня (18:00), чтобы «сегодня» не становилось просрочкой с утра.
 	import { untrack } from 'svelte';
-	import { api, ApiError, errorMessage, unwrap } from '$lib/api';
+	import { api, ApiError, errorTextWithCode, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
 	import { FormDrawer, FormRow, UserPicker, toast } from '$lib/ui';
 	import AreaField from '$lib/ui/fields/AreaField.svelte';
@@ -90,7 +90,7 @@
 			onSaved(saved);
 		} catch (e) {
 			if (e instanceof ApiError && e.isValidation && Object.keys(e.fieldErrors()).length) errors = e.fieldErrors();
-			else failure = errorMessage(e);
+			else failure = errorTextWithCode(e);
 		} finally {
 			busy = false;
 		}

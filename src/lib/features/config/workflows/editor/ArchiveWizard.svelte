@@ -5,7 +5,7 @@
 	import { onDestroy, untrack } from 'svelte';
 	import { Progress } from '@lct-testkit/rt-ui/ext';
 	import { CheckLarge } from '@lct-testkit/rt-ui/icons';
-	import { api, unwrap, ifMatch, errorMessage } from '$lib/api';
+	import { api, unwrap, ifMatch, errorTextWithCode } from '$lib/api';
 	import { Btn, ErrorState, Notice, RadioField, Skeleton, WizardSteps } from '$lib/ui';
 	import AppModal from '$lib/ui/AppModal.svelte';
 	import { count } from '$lib/utils/format';
@@ -149,7 +149,7 @@
 				poller.start();
 			}
 		} catch (e) {
-			await finish('failed', errorMessage(e));
+			await finish('failed', errorTextWithCode(e));
 		}
 	}
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	// Решение по запросу доступа: одобрить на N дней (по умолчанию 30) или отклонить с обязательным комментарием.
-	import { api, errorMessage, unwrap } from '$lib/api';
+	import { api, errorTextWithCode, unwrap } from '$lib/api';
 	import { AreaField, FormModal, NumberField, UserName, toast } from '$lib/ui';
 	import type { AccessRequest } from '../types';
 	import { DEFAULT_ACCESS_DAYS, MAX_ACCESS_DAYS, validateDays } from './accessRequests';
@@ -47,7 +47,7 @@
 			toast.success(mode === 'approve' ? 'Доступ выдан' : 'Запрос отклонён');
 			onDone(done);
 		} catch (e) {
-			error = errorMessage(e);
+			error = errorTextWithCode(e);
 		} finally {
 			busy = false;
 		}

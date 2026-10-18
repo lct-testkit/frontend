@@ -38,7 +38,7 @@
 			lookup.query = hit.inn;
 			onPick?.(entry);
 		} catch (e) {
-			toast.error(errorMessage(e));
+			toast.error(e);
 		} finally {
 			picking = null;
 		}

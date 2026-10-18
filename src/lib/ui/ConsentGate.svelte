@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Blocking dialog until the user accepts the current personal-data policy (new_spec §4.2). Refusal = sign out.
 	import { goto } from '$app/navigation';
-	import { api, unwrap, errorMessage } from '$lib/api';
+	import { api, unwrap, errorTextWithCode } from '$lib/api';
 	import { POLICY_TEXT } from '$lib/content/policy';
 	import { renderMarkdown } from '$lib/utils/markdown';
 	import { sha256Hex } from '$lib/features/signing/hash';
@@ -28,7 +28,7 @@
 			await session.reload();
 			toast.success('Согласие сохранено');
 		} catch (e) {
-			failure = errorMessage(e);
+			failure = errorTextWithCode(e);
 		} finally {
 			busy = false;
 		}

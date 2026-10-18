@@ -3,7 +3,7 @@
 	// Один компонент для внешнего подписанта (/sign/[token]) и сотрудника (/signing/requests/[id]).
 	import { onMount, tick } from 'svelte';
 	import { TimeStroke } from '@lct-testkit/rt-ui/icons';
-	import { errorMessage } from '$lib/api';
+	import { errorTextWithCode } from '$lib/api';
 	import { AreaField, FormModal } from '$lib/ui';
 	import Btn from '$lib/ui/Btn.svelte';
 	import CopyButton from '$lib/ui/CopyButton.svelte';
@@ -50,7 +50,7 @@
 			await session.reject(reason);
 			rejectOpen = false;
 		} catch (e) {
-			rejectError = errorMessage(e);
+			rejectError = errorTextWithCode(e);
 			toast.error(e);
 		}
 	}

@@ -4,7 +4,7 @@
 	// показываются понятными фразами, введённое не теряется.
 	import { untrack } from 'svelte';
 	import { CheckSmall, CloseSmall } from '@lct-testkit/rt-ui/icons';
-	import { ApiError, api, errorMessage, ifMatch, unwrap } from '$lib/api';
+	import { ApiError, api, errorTextWithCode, ifMatch, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
 	import { CheckField, FormModal, Notice, StatusChip, toast } from '$lib/ui';
 	import AreaField from '$lib/ui/fields/AreaField.svelte';
@@ -242,7 +242,7 @@
 					return;
 			}
 		}
-		banner = { tone: 'error', text: errorMessage(e) };
+		banner = { tone: 'error', text: errorTextWithCode(e) };
 	}
 
 	async function refresh() {

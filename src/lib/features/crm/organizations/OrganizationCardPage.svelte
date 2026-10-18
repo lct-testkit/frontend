@@ -14,7 +14,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Refresh } from '@lct-testkit/rt-ui/icons';
-	import { ApiError, api, errorMessage, ifMatch, unwrap } from '$lib/api';
+	import { ApiError, api, errorTextWithCode, ifMatch, unwrap } from '$lib/api';
 	import { people } from '$lib/api/people.svelte';
 	import { session } from '$lib/auth/session.svelte';
 	import { Avatar, Btn, DateText, ErrorState, IconBtn, Notice, Page, PageHeader, Skeleton, StatusChip, TabsBar, Term, UserName, toast } from '$lib/ui';
@@ -115,7 +115,7 @@
 		} catch (e) {
 			if (e instanceof ApiError && e.isConflict) banner = { text: 'Организация изменена другим пользователем. Обновите данные — введённое сохранится.', conflict: true };
 			else if (e instanceof ApiError && e.isValidation && Object.keys(e.fieldErrors()).length) errors = e.fieldErrors();
-			else banner = { text: errorMessage(e), conflict: false };
+			else banner = { text: errorTextWithCode(e), conflict: false };
 		} finally {
 			saving = false;
 		}

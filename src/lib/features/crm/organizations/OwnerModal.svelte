@@ -2,7 +2,7 @@
 	// Назначить, сменить или снять ответственного за вуз (Руководитель, Администратор): кому, причина, при желании — вместе с открытыми сделками вуза.
 	// Смена — `PUT /api/organizations/{id}/owner`, снятие — `DELETE` (оба с If-Match и причиной); со сделками — массовая ручка на один вуз.
 	import { untrack } from 'svelte';
-	import { ApiError, api, errorMessage, ifMatch, unwrap } from '$lib/api';
+	import { ApiError, api, errorTextWithCode, ifMatch, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
 	import { CheckField, FormModal, Notice, UserName, UserPicker, toast } from '$lib/ui';
 	import AreaField from '$lib/ui/fields/AreaField.svelte';
@@ -108,8 +108,8 @@
 			else if (e instanceof ApiError && e.isValidation && e.errors.length) {
 				const f = e.fieldErrors();
 				fieldErrors = { successor: f.owner_id, reason: f.reason };
-				if (!f.owner_id && !f.reason) error = errorMessage(e);
-			} else error = errorMessage(e);
+				if (!f.owner_id && !f.reason) error = errorTextWithCode(e);
+			} else error = errorTextWithCode(e);
 		} finally {
 			busy = false;
 		}

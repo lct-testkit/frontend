@@ -1,6 +1,6 @@
 <script lang="ts">
 	// Массовая передача выбранных сделок другому сотруднику (HEAD/ADMIN): преемник и причина.
-	import { api, errorMessage, unwrap } from '$lib/api';
+	import { api, errorTextWithCode, unwrap } from '$lib/api';
 	import { FormModal, UserPicker, toast } from '$lib/ui';
 	import AreaField from '$lib/ui/fields/AreaField.svelte';
 
@@ -38,7 +38,7 @@
 			toast.success(`Передано сделок: ${res.reassigned_count} из ${dealIds.length}`);
 			onDone();
 		} catch (e) {
-			error = errorMessage(e);
+			error = errorTextWithCode(e);
 		} finally {
 			busy = false;
 		}

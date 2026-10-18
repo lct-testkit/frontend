@@ -25,12 +25,13 @@ describe('видимость глав', () => {
 		expect(slugs('HEAD')).toContain('audit');
 	});
 
-	it('аудитор не видит сделок и организаций, но видит журнал аудита', () => {
+	it('аудитор не видит сделок и организаций, но видит журнал аудита и справочник ошибок', () => {
 		const s = slugs('AUDITOR');
 		expect(s).not.toContain('deals');
 		expect(s).not.toContain('funnel');
 		expect(s).not.toContain('files');
 		expect(s).toContain('audit');
+		expect(s).toContain('errors');
 	});
 
 	it('администратор видит всё', () => {
