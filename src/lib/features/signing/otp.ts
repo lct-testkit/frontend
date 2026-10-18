@@ -1,5 +1,6 @@
 // Логика ввода одноразового кода и таймера повторной отправки (dop.md §10.4 п.11–13, §10.8).
 // Ничего не знает об API и DOM: время передаётся снаружи, чтобы всё было тестируемо.
+import { plural } from '$lib/utils/format';
 
 export const OTP_LENGTH = 6;
 /** Совпадает с `signature_otp_max_attempts` бэкенда; сервер остаток не отдаёт, поэтому считаем сами. */
@@ -56,11 +57,4 @@ export function secondsUntil(expiresAtMs: number, now: number): number {
 }
 
 /** Склонение: 1 попытка, 2 попытки, 5 попыток. */
-export function attemptsWord(n: number): string {
-	const abs = Math.abs(n) % 100;
-	const last = abs % 10;
-	if (abs > 10 && abs < 20) return 'попыток';
-	if (last === 1) return 'попытка';
-	if (last >= 2 && last <= 4) return 'попытки';
-	return 'попыток';
-}
+export const attemptsWord = (n: number): string => plural(n, ['попытка', 'попытки', 'попыток']);
