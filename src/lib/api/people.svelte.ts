@@ -15,6 +15,7 @@ export interface Person {
 /** пока имя грузится — многоточие, а не фрагмент id: «#52a5» в карточке читается как ошибка */
 const LOADING = '…';
 const UNKNOWN = 'Пользователь недоступен';
+const BATCH = 100;
 
 class People {
 	/** undefined = never asked · null = asked, not found */
@@ -26,6 +27,9 @@ class People {
 	// `inflight` map in features/signing/known.ts).
 	#inflight = new Set<string>();
 	#timer: ReturnType<typeof setTimeout> | undefined;
+	/** ids, чей запрос не удался несколько раз подряд: показываем прочерк, а не вечное «…» */
+	#failed = new Set<string>();
+	#attempts = new Map<string, number>();
 
 	get(id: string | null | undefined): Person | null | undefined {
 		return id ? this.#cache.get(id) : undefined;
@@ -36,6 +40,7 @@ class People {
 		if (!id) return fallback;
 		const person = this.#cache.get(id);
 		if (person === undefined) {
+			if (this.#failed.has(id)) return fallback;
 			this.ensure([id]);
 			return LOADING;
 		}
@@ -44,29 +49,46 @@ class People {
 
 	ensure(ids: (string | null | undefined)[]): void {
 		for (const id of ids) {
-			if (id && !this.#cache.has(id) && !this.#queue.has(id) && !this.#inflight.has(id)) this.#queue.add(id);
+			if (!id || !id.trim() || /[,\s]/.test(id)) continue; // пустой или кривой id завалил бы весь пакет (422)
+			if (!this.#cache.has(id) && !this.#queue.has(id) && !this.#inflight.has(id) && !this.#failed.has(id)) this.#queue.add(id);
 		}
 		if (this.#queue.size && this.#timer === undefined) this.#timer = setTimeout(() => void this.#flush(), 15);
 	}
 
 	async #flush(): Promise<void> {
 		this.#timer = undefined;
-		const batch = [...this.#queue].slice(0, 200);
+		// ручка отдаёт не больше `limit` записей (по умолчанию 50, максимум 100): режем пакеты по 100 и просим ровно столько
+		const batch = [...this.#queue].slice(0, BATCH);
 		for (const id of batch) {
 			this.#queue.delete(id);
 			this.#inflight.add(id);
 		}
 		if (!batch.length) return;
+		let retryIn = 15;
 		try {
-			const { data } = await api.GET('/api/users/directory', { params: { query: { ids: batch.join(',') } } });
-			const found = new Map((data?.items ?? []).map((p) => [p.id, p as Person]));
-			for (const id of batch) this.#cache.set(id, found.get(id) ?? null);
+			// openapi-fetch не бросает на 4xx/5xx — смотрим `error`, иначе любой отказ (429, 5xx) превратился бы в «все не найдены»
+			const { data, error } = await api.GET('/api/users/directory', { params: { query: { ids: batch.join(','), limit: batch.length } } });
+			if (error || !data) throw error ?? new Error('empty');
+			const found = new Map(data.items.map((p) => [p.id, p as Person]));
+			// «не найден» — только для id, которых нет в УСПЕШНОМ ответе
+			for (const id of batch) {
+				this.#cache.set(id, found.get(id) ?? null);
+				this.#attempts.delete(id);
+			}
 		} catch {
-			// leave unknown: the next `ensure` retries
+			
+			// отказ не кэшируем: вернём id в очередь и повторим позже (2 с, 4 с, 8 с), после третьей неудачи — прочерк
+			for (const id of batch) {
+				const n = (this.#attempts.get(id) ?? 0) + 1;
+				this.#attempts.set(id, n);
+				if (n >= 4) this.#failed.add(id);
+				else this.#queue.add(id);
+			}
+			retryIn = 2000 * 2 ** ((Math.max(...batch.map((id) => this.#attempts.get(id) ?? 1)) - 1) || 0);
 		} finally {
 			for (const id of batch) this.#inflight.delete(id);
 		}
-		if (this.#queue.size) this.#timer = setTimeout(() => void this.#flush(), 15);
+		if (this.#queue.size && this.#timer === undefined) this.#timer = setTimeout(() => void this.#flush(), retryIn);
 	}
 
 	/** Typeahead: active colleagues by name, optionally only some roles. */
