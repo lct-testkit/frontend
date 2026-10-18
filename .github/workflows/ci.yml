@@ -27,7 +27,7 @@ jobs:
   check:
     name: lint · check · test · build
     runs-on: [self-hosted, lct]
-    timeout-minutes: 25
+    timeout-minutes: 30
     env:
       NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # чтение @lct-testkit/rt-ui
     steps:
@@ -76,6 +76,18 @@ jobs:
 
       - name: Аудит зависимостей (runtime, high+)
         run: pnpm audit --prod --audit-level high
+
+      # ночью: полный аудит, включая dev-зависимости и moderate; неблокирующий, печатает в summary
+      - name: Аудит всех зависимостей (moderate+, ночью, не блокирует)
+        if: github.event_name == 'schedule'
+        continue-on-error: true
+        run: |
+          {
+            echo '### pnpm audit (все зависимости, moderate+)'
+            echo '```'
+            pnpm audit --audit-level moderate || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   contract:
     name: контракт API · Dockerfile · секреты
@@ -133,6 +145,57 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
           skip-dirs: node_modules,docs
+
+  mock-stand:
+    name: мок-стенд · экраны · производительность
+    needs: check
+    runs-on: [self-hosted, lct]
+    timeout-minutes: 20
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # чтение @lct-testkit/rt-ui
+      PW_CHANNEL: chromium # свой Chromium Playwright, системного Chrome на раннере нет
+      APP_URL: http://127.0.0.1:4273
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@d9184bf108216479bc5a137cc391f4d7b14c870b # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@lct-testkit'
+
+      - name: Установить зависимости (rt-ui — из GitHub Packages)
+        run: pnpm install --frozen-lockfile
+
+      - name: Production build
+        run: pnpm build
+
+      # без --with-deps: на раннере нет sudo, системные библиотеки браузера должны быть на машине заранее
+      - name: Chromium для Playwright
+        run: pnpm exec playwright install chromium
+
+      - name: Запустить production-клиент (preview)
+        run: |
+          nohup pnpm exec vite preview --host 127.0.0.1 --port 4273 --strictPort > "${RUNNER_TEMP}/preview.log" 2>&1 &
+          for _ in $(seq 1 30); do curl -fsS "${APP_URL}/config.json" > /dev/null && exit 0; sleep 1; done
+          cat "${RUNNER_TEMP}/preview.log"; exit 1
+
+      - name: Каждый экран открывается на моке (ok / empty / error), запросов вне мока нет
+        run: node tools/mock/selfcheck.mjs
+
+      - name: Поведение общих блоков на моке (пусто, ошибка, клавиатура)
+        run: node tools/mock/ui-checks.mjs
+
+      - name: XSS-векторы в комментарии сделки безвредны
+        run: node tools/xss-check.mjs
+
+      # шумно на двух vCPU: пока не блокирует; медиана из трёх прогонов, предел +20 % от tools/perf-baseline.json
+      - name: Производительность списка на 1000 сделок
+        continue-on-error: true
+        run: node tools/perf.mjs --check
 
   publish:
     name: publish образа web
