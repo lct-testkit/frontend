@@ -523,17 +523,22 @@ export async function renderCard(card: ExportCard): Promise<HTMLCanvasElement> {
 	}
 	if (rows.length) {
 		ctx.font = font(13);
+		// центр квадрата — на центре строчных букв подписи (базовая линия − половина высоты «x»), а не по верху или низу строки
+		ctx.textBaseline = 'alphabetic';
+		const xHeight = ctx.measureText('x').actualBoundingBoxAscent;
 		for (const r of rows) {
+			const middle = y + 11;
 			let x = pad;
 			for (const item of r) {
 				ctx.fillStyle = item.color;
-				ctx.fillRect(x, y + 3, 12, 12);
+				ctx.fillRect(x, middle - 6, 12, 12);
 				ctx.fillStyle = fg;
-				ctx.fillText(item.text, x + 18, y + 1);
+				ctx.fillText(item.text, x + 18, middle + xHeight / 2);
 				x += 16 + ctx.measureText(item.text).width + 20;
 			}
 			y += 22;
 		}
+		ctx.textBaseline = 'top';
 		y += 8;
 	}
 	ctx.fillStyle = muted;
