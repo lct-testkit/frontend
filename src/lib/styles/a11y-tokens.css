@@ -39,6 +39,7 @@ body.Theme_root_rtk_default_dark,
 body.Theme_root_rtk_purple_dark {
 	--app-control-edge: rgba(181, 183, 192, 0.5);
 	--app-warning-text: var(--atmr-warning-default);
+	--atmr-fg-muted: #a9acb7; /* между neutral-300 и 200: 4,5:1 и выше на панелях (surface4), но темнее fg-soft */
 	--atmr-input-primary-border-color-default: var(--app-control-edge);
 	--atmr-input-primary-border-color-hover: rgba(181, 183, 192, 0.65);
 	--atmr-checkbox-primary-border-color-default: var(--app-control-edge);

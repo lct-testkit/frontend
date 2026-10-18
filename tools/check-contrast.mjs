@@ -88,8 +88,8 @@ export function catalogue() {
 	const add = (group, name, fg, bg, kind = 'text', req = true) => P.push({ group, name, fg, bg, kind, req });
 	const G = { t: 'Текст на фонах', c: 'Цветной текст и ссылки', b: 'Кнопки', s: 'Чипы статусов (Badge secondary)', n: 'Плашки (Notice)', u: 'Границы и фокус (WCAG 1.4.11, 3:1)', g: 'Графики (метки 3:1, rt-ui charts.css)' };
 	const surfaces = ['bg-page', 'bg-surface1', 'bg-surface2', 'bg-surface3', 'bg-surface4', 'bg-surface5'];
-	// bg-surface4/5 (#e8e8ee, #d3d4db) под текстом в приложении не встречаются (bg-surface-4: 0 использований), поэтому для soft и muted они справочные
-	for (const fg of ['fg-default', 'fg-soft', 'fg-muted']) for (const bg of surfaces) add(G.t, `${fg} на ${bg}`, fg, bg, 'text', fg === 'fg-default' || !/surface[45]$/.test(bg));
+	// bg-surface4 (панели и окна: elevated-xl в тёмных) обязателен, bg-surface5 справочный
+	for (const fg of ['fg-default', 'fg-soft', 'fg-muted']) for (const bg of surfaces) add(G.t, `${fg} на ${bg}`, fg, bg, 'text', fg === 'fg-default' || !/surface5$/.test(bg));
 	for (const bg of surfaces) add(G.t, `fg-disabled на ${bg} (исключение WCAG для неактивных)`, 'fg-disabled', bg, 'text', false);
 	for (const s of ['accent', 'error', 'success', 'warning', 'info', 'neutral']) for (const bg of ['bg-surface1', 'bg-surface3']) add(G.c, `${s}-default на ${bg}`, `${s}-default`, bg, 'text', !(s === 'warning' || (s === 'info' && bg === 'bg-surface3')));
 	add(G.c, 'accent-hover (ссылка при наведении) на surface1', 'accent-hover', 'bg-surface1');
