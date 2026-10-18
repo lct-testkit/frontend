@@ -4,6 +4,7 @@ import {
 	canApplyImport,
 	canRollbackImport,
 	checkMapping,
+	entityFromQuery,
 	entityInfo,
 	importStep,
 	missingRequirements,
@@ -144,5 +145,18 @@ describe('applyPreset / sampleValues / форматы', () => {
 		expect(canApplyImport({ status: 'validated', ok_rows: 1, warn_rows: 0 })).toBe(true);
 		expect(canRollbackImport({ status: 'completed_with_errors', rollback_available: true })).toBe(true);
 		expect(canRollbackImport({ status: 'rolled_back', rollback_available: false })).toBe(false);
+	});
+});
+
+describe('entityFromQuery', () => {
+	const types = [{ code: 'organization' }, { code: 'license' }];
+	it('известный тип читается из адреса', () => {
+		expect(entityFromQuery('license', types)).toBe('license');
+		expect(entityFromQuery(' license ', types)).toBe('license');
+	});
+	it('неизвестный код, пустое значение и отсутствие — null', () => {
+		expect(entityFromQuery('foo', types)).toBeNull();
+		expect(entityFromQuery('', types)).toBeNull();
+		expect(entityFromQuery(null, types)).toBeNull();
 	});
 });

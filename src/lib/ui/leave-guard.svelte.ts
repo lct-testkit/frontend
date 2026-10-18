@@ -7,6 +7,8 @@ export function useLeaveGuard(dirty: () => boolean, message: string, title = 'В
 	let leaving = false;
 	beforeNavigate((nav) => {
 		if (leaving || !dirty() || nav.willUnload || !nav.to) return;
+		// the same page with another query (the wizard writes `?job=` into its own address) is not leaving it
+		if (nav.from && nav.to.url.pathname === nav.from.url.pathname) return;
 		nav.cancel();
 		const to = nav.to.url;
 		void confirm({ title, message, confirmLabel: 'Выйти', danger: true }).then((yes) => {

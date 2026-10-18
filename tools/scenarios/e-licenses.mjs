@@ -1,5 +1,8 @@
 // Лицензии вуз–вендор–ПО (F2): сквозной сценарий на живом бэкенде. Свои записи — с номерами договоров `E2E-…`, в конце все удаляются.
 //   APP_URL=http://localhost:5274 node tools/scenarios/e-licenses.mjs
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { BASE, accessToken, newBrowser, newPage } from '../lib.mjs';
 
 const ok = (m) => console.log(`  ✓ ${m}`);
@@ -135,6 +138,46 @@ try {
 	await headPage.waitForSelector('text=E2E-003');
 	const globalList = (await api('head', 'GET', '/api/organization-licenses?q=E2E-003&limit=5')).json.items;
 	check(globalList.length === 1 && globalList[0].organization_id === orgCard.id, 'лицензия есть и в глобальном списке, на этом вузе');
+	console.log('(h) импорт: шаблон и проверка файла');
+	await headPage.goto(`${BASE}/imports/new?entity=license`);
+	await headPage.waitForSelector('text=Какие колонки ждёт файл');
+	check(await headPage.locator('label.atmr-radiobutton', { hasText: /Лицензии/ }).locator('input').isChecked(), '?entity=license: мастер открыт на «Лицензии»');
+	await headPage.getByRole('button', { name: /Какие колонки ждёт файл/ }).click();
+	for (const name of ['Название ВУЗа', 'Вендор', 'ПО', 'Номер договора', 'Подписание лицензии', 'Срок действия лицензии (год)', 'Статус по передаче', 'ФИО Менеджера', 'Ответственные от ВУЗа', 'Комментарий']) {
+		if ((await headPage.locator('ul[aria-label^="Колонки файла"] li', { hasText: name }).count()) < 1) fail(`в подсказке нет колонки «${name}»`);
+	}
+	ok('подсказка показывает десять колонок ТЗ');
+	const [download] = await Promise.all([headPage.waitForEvent('download'), headPage.getByRole('button', { name: /Скачать шаблон/ }).click()]);
+	const dir = await mkdtemp(join(tmpdir(), 'lic-'));
+	const template = join(dir, 'template.csv');
+	await download.saveAs(template);
+	const raw = await readFile(template, 'utf8');
+	const BOM = String.fromCharCode(0xfeff);
+	const EOL = String.fromCharCode(13, 10);
+	check(raw.startsWith(BOM) && raw.split(EOL)[0].split(';').length === 10, 'шаблон: BOM и десять колонок');
+	const header = raw.replace(BOM, '').split(EOL)[0];
+	const org = 'Красноярский сибирский университет технологий';
+	const file = join(dir, 'three.csv');
+	const lines = [header, `${org};E2E Вендор;E2E ПО;E2E-IMP-1;15.03.2026;2027;в работе;Иванов Иван;Петров П.;ок`, `${org};E2E Вендор;E2E ПО 2;E2E-IMP-2;да;3 года;передано;;;`, `${org};E2E Вендор;E2E ПО 3;E2E-IMP-3;;;кое-что;;;`];
+	await writeFile(file, BOM + lines.join(EOL) + EOL);
+	await headPage.locator('input[type=file]').setInputFiles(file);
+	await headPage.getByRole('button', { name: 'Загрузить и продолжить' }).click();
+	await headPage.waitForSelector('text=Колонка файла', { timeout: 30000 });
+	const next = headPage.getByRole('button', { name: 'Далее', exact: true });
+	check(await next.isEnabled(), 'автосопоставление: «Далее» доступна без ручных правок');
+	await next.click();
+	await headPage.waitForSelector('text=Всего строк в файле', { timeout: 60000 });
+	const job = (await api('head', 'GET', `/api/imports/${new URL(headPage.url()).searchParams.get('job')}`)).json;
+	check(job.total_rows === 3 && job.error_rows === 1, `проверка: 3 строки, одна с ошибкой (всего ${job.total_rows}, ошибок ${job.error_rows})`);
+	await headPage.goto(`${BASE}/imports/new?entity=license`);
+	await headPage.waitForSelector('text=Какие колонки ждёт файл');
+	await headPage.locator('input[type=file]').setInputFiles(template);
+	await headPage.getByRole('button', { name: 'Загрузить и продолжить' }).click();
+	await headPage.waitForSelector('text=Колонка файла', { timeout: 30000 });
+	await headPage.getByRole('button', { name: 'Далее', exact: true }).click();
+	await headPage.waitForSelector('text=Всего строк в файле', { timeout: 60000 });
+	const tplJob = (await api('head', 'GET', `/api/imports/${new URL(headPage.url()).searchParams.get('job')}`)).json;
+	check(tplJob.total_rows === 1 && tplJob.error_rows === 1, 'шаблон проходит проверку без правок: единственная ошибка — вуз из примера не найден');
 } finally {
 	await cleanup();
 	await browser.close();

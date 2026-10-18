@@ -4,10 +4,12 @@
 	import { Btn, ErrorState, FormBody, Notice, RadioField, Skeleton, WizardCard } from '$lib/ui';
 	import FileField from '$lib/ui/fields/FileField.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
+	import FileFormatHint from './FileFormatHint.svelte';
 	import type { ImportFlow } from './flow.svelte';
 	import { IMPORT_ACCEPT, IMPORT_MODES, IMPORT_MODE_LABELS, entityInfo, type ImportEntity } from './mapping';
 
 	let { flow }: { flow: ImportFlow } = $props();
+	const current = $derived(flow.entityTypes.find((t) => t.code === flow.entity));
 </script>
 
 {#if flow.typesError}
@@ -24,6 +26,8 @@
 		items={flow.entityTypes.map((t) => ({ key: t.code, label: entityInfo(t).label, hint: entityInfo(t).hint }))}
 		onChange={(v) => (flow.entity = v as ImportEntity)}
 	/>
+
+	{#if current}<FileFormatHint type={current} />{/if}
 
 	<FormBody>
 		<Pick
