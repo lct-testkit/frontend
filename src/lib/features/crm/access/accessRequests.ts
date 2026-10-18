@@ -4,7 +4,7 @@ import type { AccessRequest } from '../types';
 export type RequestTone = 'neutral' | 'success' | 'warning' | 'error' | 'info';
 
 export const REQUEST_STATUS: Record<string, { label: string; tone: RequestTone; hint: string }> = {
-	pending: { label: 'Ожидает', tone: 'warning', hint: 'Владелец вуза, руководитель его команды или администратор ещё не ответили.' },
+	pending: { label: 'Ожидает решения', tone: 'warning', hint: 'Владелец вуза, руководитель его команды или администратор ещё не ответили.' },
 	approved: { label: 'Одобрен', tone: 'success', hint: 'Вуз виден в вашем списке до конца срока.' },
 	rejected: { label: 'Отклонён', tone: 'error', hint: 'Доступ не дали — причина указана в комментарии.' },
 	cancelled: { label: 'Отменён', tone: 'neutral', hint: 'Инициатор отозвал запрос до ответа.' },
@@ -63,4 +63,10 @@ export function validateDays(days: number | null): string | null {
 /** «Доступ до 18.11.2026» — для одобренных; прочерк у остальных. */
 export function accessUntil(r: Pick<AccessRequest, 'status' | 'expires_at'>, fmt: (iso: string) => string): string | null {
 	return r.status === 'approved' && r.expires_at ? `до ${fmt(r.expires_at)}` : null;
+}
+
+/** Подходит ли запрос под фильтр статуса (бэкенд игнорирует `status` для «Моих запросов», поэтому фильтруем и на клиенте). */
+export function matchesStatus(r: Pick<AccessRequest, 'status' | 'expires_at'>, key: string, now = Date.now()): boolean {
+	if (key === 'all') return true;
+	return effectiveStatus(r, now) === key;
 }

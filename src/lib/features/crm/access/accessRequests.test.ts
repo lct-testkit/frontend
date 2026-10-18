@@ -29,9 +29,20 @@ describe('запросы доступа', () => {
 		expect(validateDays(1.5)).toBe('От 1 до 365 дней');
 	});
 	it('подписи и срок', () => {
-		expect(statusMeta('pending').label).toBe('Ожидает');
+		expect(statusMeta('pending').label).toBe('Ожидает решения');
 		expect(statusMeta('что-то').label).toBe('что-то');
 		expect(accessUntil(req('approved', '2026-11-17T00:00:00Z'), () => '17.11.2026')).toBe('до 17.11.2026');
 		expect(accessUntil(req('rejected'), () => 'x')).toBeNull();
+	});
+});
+
+describe('фильтр статуса на клиенте', () => {
+	it('всё / ожидают / одобрены (до срока)', async () => {
+		const { matchesStatus } = await import('./accessRequests');
+		expect(matchesStatus(req('rejected'), 'all')).toBe(true);
+		expect(matchesStatus(req('rejected'), 'pending')).toBe(false);
+		expect(matchesStatus(req('pending'), 'pending')).toBe(true);
+		expect(matchesStatus(req('approved', '2026-10-01T00:00:00Z'), 'approved', NOW)).toBe(false);
+		expect(matchesStatus(req('approved', '2026-12-01T00:00:00Z'), 'approved', NOW)).toBe(true);
 	});
 });

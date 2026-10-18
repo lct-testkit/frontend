@@ -21,7 +21,7 @@
 	import Card from '$lib/ui/Card.svelte';
 	import { formatDate } from '$lib/utils/format';
 	import { setQuery } from '$lib/utils/query-state.svelte';
-	import AccessRequestModal from '../access/AccessRequestModal.svelte';
+	import OrgNoAccess from '../access/OrgNoAccess.svelte';
 	import Attachments from '../files/Attachments.svelte';
 	import { pushRecent } from '../recent/localRecent';
 	import { orgCache, orgTitle } from '../shared/entityCache.svelte';
@@ -50,7 +50,6 @@
 	let saving = $state(false);
 	let banner = $state<{ text: string; conflict: boolean } | null>(null);
 	let hideDrift = $state(false);
-	let requestingAccess = $state(false);
 
 	const TABS = ['reqs', 'contacts', 'deals', 'journey', 'branches', 'licenses', 'files'] as const;
 	const tab = $derived.by(() => {
@@ -143,14 +142,11 @@
 		<Skeleton kind="rows" rows={2} />
 		<Skeleton kind="rows" rows={6} />
 	{:else if error}
-		<ErrorState {error} onRetry={() => load()} />
-		<!-- вуз вне доступа сервер скрывает под 404: можно попросить доступ у ответственного -->
-		{#if error instanceof ApiError && error.isNotFound && session.can('organization:read')}
-			<div class="-mt-6 flex flex-col items-center gap-3">
-				<p class="t-body-m m-0 text-muted">Если вуз ведёт другой менеджер, можно запросить доступ.</p>
-				<Btn label="Запросить доступ" variant="outline" colorScheme="neutral" onclick={() => (requestingAccess = true)} data-testid="org-request-access" />
-			</div>
-			<AccessRequestModal open={requestingAccess} orgId={id} onClose={() => (requestingAccess = false)} />
+		<!-- вуз вне доступа сервер скрывает под 404: вместо ошибки — запрос доступа -->
+		{#if error instanceof ApiError && (error.isNotFound || error.isForbidden) && session.can('organization:read')}
+			<OrgNoAccess orgId={id} />
+		{:else}
+			<ErrorState {error} onRetry={() => load()} />
 		{/if}
 	{:else if org}
 		<PageHeader title={orgTitle(org)} back="/organizations" primary={session.can('deal:create') ? { label: 'Новая сделка', onclick: () => goto(`/deals?new=1&org=${org!.id}`), testid: 'org-new-deal' } : undefined}>
