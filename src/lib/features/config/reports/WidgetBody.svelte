@@ -3,7 +3,7 @@
 	import { BarChart, DonutChart, LineChart } from '@lct-testkit/rt-ui/charts';
 	import { formatMoneyShort, formatNumber } from '$lib/utils/format';
 	import type { ReportTable } from './table';
-	import { CHART_PRESETS, chartRows, isMoneyMetric, metricLabel, previewRows, tileValue, type WidgetConfig } from './widgets';
+	import { CHART_PRESETS, chartRows, integerAxis, isMoneyMetric, metricLabel, previewRows, tileValue, type WidgetConfig } from './widgets';
 
 	interface Props {
 		type: string;
@@ -19,6 +19,8 @@
 	const tile = $derived(tileValue(table, config.metric));
 	const money = $derived(isMoneyMetric(config.template_code, config.metric));
 	const preview = $derived(previewRows(table, 8));
+	const axisInfo = $derived(integerAxis(rows, preset?.series ?? []));
+	const intTick = (v: number) => (Number.isInteger(v) ? formatNumber(v) : '');
 	const series = $derived(preset?.series.map((s) => ({ key: s, label: s, y: s })) ?? []);
 </script>
 
@@ -33,9 +35,9 @@
 	{:else if preset.kind === 'donut'}
 		<div class="flex justify-center"><DonutChart data={rows} name="name" value={preset.series[0]} size={180} label={name} /></div>
 	{:else if preset.kind === 'line'}
-		<LineChart data={rows} x="name" {series} smooth height={220} label={name} />
+		<LineChart data={rows} x="name" {series} smooth height={220} label={name} yTicks={axisInfo.yTicks ?? undefined} tickFormat={axisInfo.yTicks !== null ? intTick : undefined} />
 	{:else}
-		<BarChart data={rows} x="name" {series} horizontal={preset.horizontal} height={preset.horizontal ? Math.min(420, Math.max(180, rows.length * 24)) : 220} label={name} />
+		<BarChart data={rows} x="name" {series} horizontal={preset.horizontal} valueLabels yTicks={axisInfo.yTicks ?? undefined} tickFormat={axisInfo.yTicks !== null ? intTick : undefined} height={preset.horizontal ? Math.min(420, Math.max(180, rows.length * 24)) : 220} label={name} />
 	{/if}
 {:else}
 	{#if preview.rows.length === 0}
