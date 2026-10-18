@@ -137,3 +137,20 @@ export const runKey = (config: Pick<WidgetConfig, 'template_code' | 'params' | '
 			.sort(([a], [b]) => a.localeCompare(b))
 			.map(([k, v]) => [k, canonical(k, v)])
 	)}`;
+
+/**
+ * Ось счёта: если во всех значениях рядов целые числа (сделки, вузы), деления тоже целые, без «0,5; 1,5».
+ * `yTicks` — число делений, при котором шаг оси целый (для малых значений: 5 сделок — 6 делений 0…5); null — оставить выбор диаграмме.
+ */
+export function integerAxis(rows: readonly ChartRow[], series: readonly string[]): { integer: boolean; yTicks: number | null } {
+	let max = 0;
+	for (const row of rows) {
+		for (const s of series) {
+			const v = row[s];
+			if (typeof v !== 'number') continue;
+			if (!Number.isInteger(v)) return { integer: false, yTicks: null };
+			max = Math.max(max, v);
+		}
+	}
+	return { integer: true, yTicks: max > 0 && max <= 10 ? max + 1 : null };
+}

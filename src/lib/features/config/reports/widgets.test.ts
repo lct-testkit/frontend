@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHART_PRESETS, canChart, isMoneyMetric, chartRows, columnSum, effectiveParams, readConfig, runKey, tileValue, toNumber } from './widgets';
+import { CHART_PRESETS, canChart, isMoneyMetric, chartRows, columnSum, effectiveParams, integerAxis, readConfig, runKey, tileValue, toNumber } from './widgets';
 import { fromReportData, type ReportTable } from './table';
 
 const funnel: ReportTable = fromReportData({
@@ -91,5 +91,16 @@ describe('виджеты дашборда', () => {
 		expect(effectiveParams({ params: { date_from: '2026-01-01' }, period: 'all' }, new Date(2026, 9, 16))).toEqual({});
 		expect(readConfig({ template_code: 'x', period: 'this_year' })?.period).toBe('this_year');
 		expect(readConfig({ template_code: 'x', period: 'сегодня' })?.period).toBeUndefined();
+	});
+});
+
+describe('ось счёта', () => {
+	it('целые значения до 10 — целые деления', () => {
+		expect(integerAxis([{ name: 'a', Сделок: 5 }, { name: 'b', Сделок: 0 }], ['Сделок'])).toEqual({ integer: true, yTicks: 6 });
+	});
+	it('большие целые — выбор диаграмме, дробные — тоже', () => {
+		expect(integerAxis([{ name: 'a', Сделок: 500 }], ['Сделок'])).toEqual({ integer: true, yTicks: null });
+		expect(integerAxis([{ name: 'a', Сумма: 2.5 }], ['Сумма'])).toEqual({ integer: false, yTicks: null });
+		expect(integerAxis([], ['Сделок'])).toEqual({ integer: true, yTicks: null });
 	});
 });
