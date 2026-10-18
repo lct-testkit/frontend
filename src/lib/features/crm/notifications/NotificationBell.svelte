@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { Notification, NotificationNew } from '@lct-testkit/rt-ui/icons';
 	import { Btn } from '$lib/ui';
+	import { preloadDeals } from '../shared/entityCache.svelte';
 	import PopPanel from '../shared/PopPanel.svelte';
 	import type { NotificationItem } from '../types';
 	import NotificationRow from './NotificationRow.svelte';
@@ -14,6 +15,11 @@
 	onMount(() => notifications.start());
 
 	const latest = $derived(notifications.items.slice(0, 10));
+
+	// названия сделок для строк нужны только у открытой панели
+	$effect(() => {
+		if (open) void preloadDeals(latest.filter((n) => n.entity_type === 'deal').map((n) => n.entity_id)).catch(() => {});
+	});
 
 	async function pick(item: NotificationItem, href: string | null) {
 		open = false;
@@ -43,7 +49,10 @@
 {/snippet}
 
 <PopPanel {open} onClose={() => (open = false)} title="Уведомления" trigger={bell} footer={actions}>
-	{#if latest.length}
+	<!-- строки создаются только у открытой панели: им нужны названия сделок, и спрашивать их на каждой странице незачем -->
+	{#if !open}
+		<!-- закрыто -->
+	{:else if latest.length}
 		<ul class="m-0 flex list-none flex-col p-0">
 			{#each latest as item (item.id)}
 				<NotificationRow {item} onOpen={pick} onRead={(n) => notifications.markRead([n.id])} />

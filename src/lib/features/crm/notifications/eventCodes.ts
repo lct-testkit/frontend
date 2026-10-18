@@ -30,7 +30,10 @@ const EVENT_CODE_LABELS: EventCodeInfo[] = [
 	{ code: 'DEAL_SLA_BREACHED', label: 'Нарушен срок статуса (SLA)', group: 'deals' },
 	{ code: 'DEAL_MENTION', label: 'Меня упомянули в комментарии', group: 'deals' },
 	{ code: 'DEAL_EVENT', label: 'События по сделке из воронки', group: 'deals' },
+	{ code: 'DEAL_DELETED', label: 'Моя сделка удалена', group: 'deals' },
 	{ code: 'USER_OFFBOARD_SUCCESSOR', label: 'Переданы сделки уволенного сотрудника', group: 'deals' },
+	{ code: 'ORG_OWNER_ASSIGNED', label: 'Меня назначили ответственным за вуз', group: 'organizations' },
+	{ code: 'ORG_OWNER_REMOVED', label: 'Меня сняли с ответственных за вуз', group: 'organizations' },
 	{ code: 'ORG_REQUISITES_DRIFT_DETECTED', label: 'Изменились реквизиты организации', group: 'organizations' },
 	{ code: 'ORG_DRIFT_APPLIED', label: 'Реквизиты обновлены из ЕГРЮЛ', group: 'organizations' },
 	{ code: 'ORG_LIQUIDATION_DETECTED', label: 'Контрагент ликвидируется', group: 'organizations' },
@@ -38,6 +41,9 @@ const EVENT_CODE_LABELS: EventCodeInfo[] = [
 	{ code: 'SIGNATURE_DOCUMENT_SIGNED', label: 'Документ подписан', group: 'signing' },
 	{ code: 'SIGNATURE_DOCUMENT_REJECTED', label: 'Подписание отклонено', group: 'signing' },
 	{ code: 'SIGNATURE_DOCUMENT_EXPIRED', label: 'Истёк срок подписания', group: 'signing' },
+	{ code: 'SIGNATURE_AUTO_ADVANCED', label: 'Сделка переведена после подписания', group: 'signing' },
+	{ code: 'SIGNATURE_DEADLINE_REMINDER', label: 'Скоро истекает срок подписания', group: 'signing' },
+	{ code: 'SIGNATURE_REMINDER_MANUAL', label: 'Напоминание о подписании', group: 'signing' },
 	{ code: 'SIGNATURE_OTP_LOCKED', label: 'Запрос на подпись заблокирован (неверный код)', group: 'signing' },
 	{ code: 'EDM_AGREEMENT_MISSING', label: 'Нет соглашения об ЭДО', group: 'signing' },
 	{ code: 'USER_PASSWORD_CHANGED', label: 'Пароль изменён', group: 'account', locked: true },
@@ -47,6 +53,7 @@ const EVENT_CODE_LABELS: EventCodeInfo[] = [
 	{ code: 'USER_ROLE_CHANGED', label: 'Изменена роль', group: 'account', locked: true },
 	{ code: 'USER_INVITE_EXPIRED', label: 'Приглашение не принято за 30 дней', group: 'account' },
 	{ code: 'ERASURE_REQUEST_BLOCKED', label: 'Запрос на удаление данных заблокирован', group: 'account' },
+	{ code: 'ERASURE_ACT_NO_SIGNER', label: 'Для акта удаления данных нет подписанта', group: 'account' },
 	{ code: 'ERASURE_COMPLETED', label: 'Запрос на удаление данных исполнен', group: 'account' }
 ];
 

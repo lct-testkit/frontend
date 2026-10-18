@@ -1,6 +1,7 @@
 // Журнал аудита: разбор `changes` (форматы `{field: {old, new}}`, `{field: [old, new]}` и скаляры).
 import { people } from '$lib/api/people.svelte';
-import { contactCache, contactLabel, dealCache, dealLabel, orgCache, orgLabel } from '$lib/features/crm/shared/entityCache.svelte';
+import { session } from '$lib/auth/session.svelte';
+import { contactCache, contactLabel, dealLabel, orgCache, orgLabel, preloadDeals } from '$lib/features/crm/shared/entityCache.svelte';
 
 export interface ChangeRow {
 	field: string;
@@ -116,7 +117,8 @@ export function shortId(id: string | null | undefined): string {
 /** Подгружает сущности события в те же кэши, что уже держат имена в карточках и списках CRM — до этого
  * колонка «Сущность» показывала только фрагмент id (`01a0ddae`) даже для сделок и организаций. */
 export function ensureAuditEntities(items: { entity_type?: string | null; entity_id?: string | null }[]): void {
-	dealCache.ensure(items.filter((i) => i.entity_type === 'deal').map((i) => i.entity_id));
+	// сделки — только тем, кто их видит (Аудитору сделки недоступны: каждый запрос был бы 403), и списком, а не по одной (удалённые не дают 404)
+	if (session.can('deal:read')) void preloadDeals(items.filter((i) => i.entity_type === 'deal').map((i) => i.entity_id)).catch(() => {});
 	orgCache.ensure(items.filter((i) => i.entity_type === 'organization').map((i) => i.entity_id));
 	contactCache.ensure(items.filter((i) => i.entity_type === 'contact').map((i) => i.entity_id));
 	people.ensure(items.filter((i) => i.entity_type === 'user').map((i) => i.entity_id));
@@ -129,7 +131,7 @@ export function entityLabel(type: string | null | undefined, id: string | null |
 	if (!id) return null;
 	switch (type) {
 		case 'deal':
-			return dealLabel(id);
+			return session.can('deal:read') ? dealLabel(id) : null;
 		case 'organization':
 			return orgLabel(id);
 		case 'contact':
