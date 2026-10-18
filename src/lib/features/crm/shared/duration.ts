@@ -1,5 +1,6 @@
 // Длительности: разбор ISO 8601 (`P1DT2H30M` — так pydantic сериализует timedelta, например `duration_in_prev`
 // в истории статусов) и человекочитаемый вывод по-русски.
+import { plural } from '$lib/utils/format';
 
 const ISO_DURATION = /^(-)?P(?:(\d+(?:\.\d+)?)Y)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)W)?(?:(\d+(?:\.\d+)?)D)?(?:T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?$/;
 
@@ -31,14 +32,7 @@ export function parseIsoDuration(value: string | number | null | undefined): num
 }
 
 /** Склонение: plural(3, ['день', 'дня', 'дней']) → 'дня'. */
-export function pluralRu(n: number, forms: [string, string, string]): string {
-	const abs = Math.abs(Math.trunc(n));
-	const mod10 = abs % 10;
-	const mod100 = abs % 100;
-	if (mod10 === 1 && mod100 !== 11) return forms[0];
-	if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return forms[1];
-	return forms[2];
-}
+export const pluralRu = (n: number, forms: [string, string, string]): string => plural(Math.trunc(n), forms);
 
 /**
  * Короткая человекочитаемая длительность: «2 д 3 ч», «45 мин», «меньше минуты».

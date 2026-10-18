@@ -1,4 +1,5 @@
 // Мастер передачи дел (new_spec §4.7): сводка preview и проверка шага подтверждения.
+import { plural } from '$lib/utils/format';
 import type { OffboardItem } from './types';
 
 export interface CriticalDeal {
@@ -78,16 +79,6 @@ export function validateOffboard(form: OffboardForm, step: 'successor' | 'confir
 	return { ok: Object.keys(errors).length === 0, errors };
 }
 
-/** Склонение для сводки: 1 сделка / 2 сделки / 5 сделок. */
-export function plural(n: number, one: string, few: string, many: string): string {
-	const abs = Math.abs(n) % 100;
-	const last = abs % 10;
-	if (abs > 10 && abs < 20) return many;
-	if (last === 1) return one;
-	if (last >= 2 && last <= 4) return few;
-	return many;
-}
-
-export const dealsWord = (n: number): string => plural(n, 'сделка', 'сделки', 'сделок');
-export const tasksWord = (n: number): string => plural(n, 'задача', 'задачи', 'задач');
-export const requestsWord = (n: number): string => plural(n, 'запрос', 'запроса', 'запросов');
+export const dealsWord = (n: number): string => plural(n, ['сделка', 'сделки', 'сделок']);
+export const tasksWord = (n: number): string => plural(n, ['задача', 'задачи', 'задач']);
+export const requestsWord = (n: number): string => plural(n, ['запрос', 'запроса', 'запросов']);

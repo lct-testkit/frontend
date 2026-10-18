@@ -1,6 +1,6 @@
 // Запросы на удаление/обезличивание (new_spec §4.8.4, erasure_service.py): отсчёт отсрочки и доступные действия.
 import type { BlockerHint } from './labels';
-import { plural } from './offboard';
+import { plural } from '$lib/utils/format';
 
 export interface GraceCountdown {
 	state: 'none' | 'active' | 'expired';
@@ -21,8 +21,8 @@ export function graceCountdown(graceUntil: string | null | undefined, now: numbe
 	const hours = Math.floor((left % DAY) / HOUR);
 	const label =
 		days > 0
-			? `Исполнение через ${days} ${plural(days, 'день', 'дня', 'дней')}`
-			: `Исполнение через ${Math.max(1, hours)} ${plural(Math.max(1, hours), 'час', 'часа', 'часов')}`;
+			? `Исполнение через ${days} ${plural(days, ['день', 'дня', 'дней'])}`
+			: `Исполнение через ${Math.max(1, hours)} ${plural(Math.max(1, hours), ['час', 'часа', 'часов'])}`;
 	return { state: 'active', days, hours, label };
 }
 
