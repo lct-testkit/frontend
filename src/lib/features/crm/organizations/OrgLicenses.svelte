@@ -10,7 +10,7 @@
 	import { formatDate } from '$lib/utils/format';
 	import { TRANSFER_STATUS_SCHEMES } from '../shared/labels';
 	import type { OrganizationLicense } from '../types';
-	import { licenseTermLabel, transferStatusLabel } from './licenseUtils';
+	import { licenseTermInfo, transferStatusLabel } from '../licenses/licenseUtils';
 
 	let { orgId }: { orgId: string } = $props();
 
@@ -35,7 +35,7 @@
 {#snippet productCell(row: OrganizationLicense)}<TableCell><span class="truncate">{row.product_name}</span></TableCell>{/snippet}
 {#snippet statusCell(row: OrganizationLicense)}<TableCell><StatusChip label={transferStatusLabel(row.transfer_status)} tone={row.transfer_status ? TRANSFER_STATUS_SCHEMES[row.transfer_status] ?? 'neutral' : 'neutral'} /></TableCell>{/snippet}
 {#snippet signedCell(row: OrganizationLicense)}<TableCell><span class="whitespace-nowrap text-muted">{row.license_signed_at ? formatDate(row.license_signed_at) : '—'}</span></TableCell>{/snippet}
-{#snippet termCell(row: OrganizationLicense)}<TableCell><span class="whitespace-nowrap text-muted">{licenseTermLabel(row.license_valid_year)}</span></TableCell>{/snippet}
+{#snippet termCell(row: OrganizationLicense)}<TableCell><span class="whitespace-nowrap text-muted">{licenseTermInfo(row).text}</span></TableCell>{/snippet}
 {#snippet contractCell(row: OrganizationLicense)}<TableCell><span class="truncate text-muted">{row.contract_number}</span></TableCell>{/snippet}
 {#snippet managerCell(row: OrganizationLicense)}<TableCell><span class="truncate text-muted">{row.manager_full_name ?? '—'}</span></TableCell>{/snippet}
 {#snippet respCell(row: OrganizationLicense)}<TableCell><span class="truncate text-muted">{row.responsible_contacts ?? '—'}</span></TableCell>{/snippet}
@@ -47,7 +47,7 @@
 			<StatusChip label={transferStatusLabel(row.transfer_status)} tone={row.transfer_status ? TRANSFER_STATUS_SCHEMES[row.transfer_status] ?? 'neutral' : 'neutral'} />
 		</div>
 		<span class="t-desc-l text-muted">Договор № {row.contract_number}</span>
-		<span class="t-desc-l text-muted">Подписан: {row.license_signed_at ? formatDate(row.license_signed_at) : '—'} · Срок: {licenseTermLabel(row.license_valid_year)}</span>
+		<span class="t-desc-l text-muted">Подписан: {row.license_signed_at ? formatDate(row.license_signed_at) : '—'} · Срок: {licenseTermInfo(row).text}</span>
 		{#if row.manager_full_name}<span class="t-desc-l text-muted">Менеджер: {row.manager_full_name}</span>{/if}
 		{#if row.responsible_contacts}<span class="t-desc-l text-muted wrap-anywhere">Ответственные от вуза: {row.responsible_contacts}</span>{/if}
 		{#if row.comment}<span class="t-desc-l text-soft wrap-anywhere">{row.comment}</span>{/if}

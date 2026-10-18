@@ -17,6 +17,7 @@
 	const BACK_LABELS: Record<string, string> = {
 		'/deals': 'Сделки',
 		'/organizations': 'Организации',
+		'/licenses': 'Лицензии',
 		'/contacts': 'Контакты',
 		'/tasks': 'Задачи',
 		'/notifications': 'Уведомления',
