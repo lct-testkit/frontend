@@ -114,6 +114,10 @@
 			"tier": "full"
 		},
 		{
+			"file": "e-incidents.mjs",
+			"tier": "full"
+		},
+		{
 			"file": "e-integrations.mjs",
 			"tier": "full"
 		},
