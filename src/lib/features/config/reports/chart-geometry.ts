@@ -54,3 +54,33 @@ export function readableOn(rgb: string, dark = '#111111', light = '#ffffff'): st
 export function legendText(label: string, value: string, secondary: string): string {
 	return `${label}${value ? ` — ${value}` : ''}${secondary ? ` (${secondary})` : ''}`;
 }
+
+/** Вершины ломаной или сглаженной линии rt-ui (`M x,y`, `L x,y`, `C c1 c2 x,y`): конечная точка каждой команды. */
+export function pathVertices(d: string): [number, number][] {
+	const out: [number, number][] = [];
+	for (const m of d.matchAll(/([MLC])([^MLC]*)/g)) {
+		const nums = m[2].split(/[\s,]+/).filter(Boolean).map(Number);
+		if (nums.length >= 2 && nums.every(Number.isFinite)) out.push([nums[nums.length - 2], nums[nums.length - 1]]);
+	}
+	return out;
+}
+
+export interface PointLabel {
+	x: number;
+	y: number;
+	value: number;
+	text: string;
+}
+
+/**
+ * Какие подписи точек линий оставить: нули не подписываются (ось есть), а подписи, которые слиплись (ближе `gap` по вертикали при пересечении по горизонтали),
+ * разрешаются в пользу большего значения.
+ */
+export function pickPointLabels(points: PointLabel[], gap: number, width: (text: string) => number): PointLabel[] {
+	const kept: PointLabel[] = [];
+	for (const p of [...points].filter((q) => q.value !== 0).sort((a, b) => b.value - a.value)) {
+		const clash = kept.some((k) => Math.abs(k.y - p.y) < gap && Math.abs(k.x - p.x) < (width(k.text) + width(p.text)) / 2 + 2);
+		if (!clash) kept.push(p);
+	}
+	return kept;
+}
