@@ -193,6 +193,7 @@ describe('JSON-выдача', () => {
 		expect(canDownloadJson({ status: 'completed', template_code: 'lms_users_upload' })).toBe(false);
 		expect(canDownloadJson({ status: 'failed', template_code: 'deal_register' })).toBe(false);
 		expect(canDownloadJson({ status: 'queued', template_code: 'deal_register' })).toBe(false);
+		expect(canDownloadJson({ status: 'completed', template_code: 'deal_register', expires_at: '2020-01-01T00:00:00Z' } as never)).toBe(true);
 	});
 });
 
