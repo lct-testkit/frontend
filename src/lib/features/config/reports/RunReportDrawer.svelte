@@ -138,11 +138,15 @@
 				<span class="inline-flex size-12 items-center justify-center rounded-full bg-success-soft"><CheckLarge class="size-6 fill-success" /></span>
 				<p class="t-body-l-strong">Отчёт готов</p>
 				{#if run.job?.row_count != null}<p class="t-desc-l text-muted">{count(run.job.row_count, ['строка', 'строки', 'строк'])}</p>{/if}
-				<div class="flex w-full flex-col gap-2 text-left"><ReportNotes {notes} /></div>
+				<div class="flex w-full flex-col gap-2 text-left">
+					{#if run.job?.row_count === 0}<Notice tone="info">В отчёте нет строк. Проверьте период и фильтры</Notice>{/if}
+					<ReportNotes {notes} />
+				</div>
 			</div>
 		{/if}
 	{/if}
 	{#snippet extra()}
 		{#if run.phase === 'background' || run.phase === 'limit'}<Btn label="Мои отчёты" variant="outline" colorScheme="neutral" onclick={() => void goto('/reports/history')} />{/if}
+		{#if run.phase === 'done' && run.job?.row_count === 0}<Btn label="Изменить параметры" variant="outline" colorScheme="neutral" onclick={() => run.reset()} />{/if}
 	{/snippet}
 </FormDrawer>
