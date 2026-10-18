@@ -39,7 +39,10 @@ function closure(start) {
 		for (const file of frontier) {
 			for (const m of readFileSync(file, 'utf8').matchAll(/(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/g)) {
 				const found = resolveImport(file, m[1]);
-				if (found && !seen.has(found) && /\.(svelte|ts)$/.test(found) && !found.endsWith('.test.ts') && ownCode(found)) (seen.add(found), next.push(found));
+				if (found && !seen.has(found) && /\.(svelte|ts)$/.test(found) && !found.endsWith('.test.ts') && ownCode(found)) {
+					seen.add(found);
+					next.push(found);
+				}
 			}
 		}
 		frontier = next;
