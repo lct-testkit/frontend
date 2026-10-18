@@ -44,7 +44,6 @@
 		<FileField
 			accept={IMPORT_ACCEPT}
 			label="Перетащите файл сюда"
-			required
 			hint="Excel (.xlsx, .xls), CSV или JSON, до 50 МБ"
 			disabled={flow.uploading}
 			loading={flow.uploading}

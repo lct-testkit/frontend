@@ -30,7 +30,7 @@
 	onDestroy(() => flow.stop());
 </script>
 
-<Page narrow class="max-w-4xl!">
+<Page>
 	<PageHeader title="Новый импорт" back="/imports" />
 	{#if !session.can('import:run')}
 		<ErrorState error={new ApiError({ status: 403, detail: 'Импорт доступен руководителю и администратору.' })} />
