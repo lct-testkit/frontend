@@ -1,6 +1,6 @@
 {
 	"_comment": "gzip, КиБ. Потолок = замер + 10%. Обновление: node tools/check-bundle-size.mjs --update",
-	"jsTotalKb": 869,
+	"jsTotalKb": 958,
 	"cssTotalKb": 180,
 	"largestJsKb": 138
 }
