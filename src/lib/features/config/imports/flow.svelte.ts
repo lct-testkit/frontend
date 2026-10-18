@@ -13,6 +13,7 @@ import {
 	checkMapping,
 	importStep,
 	isImportBusy,
+	presetKey,
 	sourceFormatFromName,
 	type ImportEntity,
 	type ImportEntityType,
@@ -176,7 +177,7 @@ export class ImportFlow {
 
 	usePreset(id: string | null): void {
 		this.presetId = id;
-		const preset = this.presets.find((p) => p.id === id);
+		const preset = this.presets.find((p) => presetKey(p) === id);
 		if (preset) this.mapping = applyPreset(this.mapping, preset.mapping, this.headers);
 	}
 

@@ -1,6 +1,16 @@
-# Эндпоинты бэкенда (249)
+# Эндпоинты бэкенда (284)
 
 _Сгенерировано tools/gen-api.mjs._
+
+## access-requests
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/api/access-requests` | Мои запросы или входящие на решение |
+| POST | `/api/access-requests` | Запросить доступ к чужому вузу |
+| POST | `/api/access-requests/{request_id}/cancel` | Отменить свой ожидающий запрос |
+| POST | `/api/access-requests/{request_id}/decision` | Одобрить или отклонить запрос доступа |
+| POST | `/api/access-requests/{request_id}/revoke` | Снять ранее выданный доступ |
 
 ## admin
 
@@ -12,11 +22,21 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/admin/feature-flags` | Список флагов |
 | POST | `/api/admin/feature-flags` | Создать флаг |
 | PATCH | `/api/admin/feature-flags/{code}` | Изменить флаг |
+| GET | `/api/admin/incidents` | Список инцидентов |
+| POST | `/api/admin/incidents` | Завести инцидент вручную |
+| GET | `/api/admin/incidents/{incident_id}` | Карточка инцидента |
+| PATCH | `/api/admin/incidents/{incident_id}` | Править карточку инцидента |
+| POST | `/api/admin/incidents/{incident_id}/close` | Закрыть инцидент |
+| POST | `/api/admin/incidents/{incident_id}/confirm` | Подтвердить кандидата |
+| POST | `/api/admin/incidents/{incident_id}/rkn-notice/{stage}` | Сформировать текст уведомления РКН |
+| POST | `/api/admin/incidents/{incident_id}/rkn-notice/{stage}/sent` | Отметить отправку уведомления РКН |
+| POST | `/api/admin/incidents/{incident_id}/subjects-notice` | Сформировать уведомление субъектам |
 | POST | `/api/admin/retention/run` | Запустить очистку по сроку хранения вручную |
 | GET | `/api/admin/retention/runs` | Журнал запусков очистки по сроку хранения |
 | GET | `/api/admin/security-events` | Журнал безопасности |
 | GET | `/api/admin/security-events/export` | Экспорт журнала безопасности |
 | GET | `/api/admin/security-events/summary` | Сводка журнала безопасности |
+| GET | `/api/admin/security/posture` | Посадочная панель безопасности |
 | GET | `/api/admin/system-settings` | Список настроек |
 | PUT | `/api/admin/system-settings/{key}` | Изменить настройку |
 
@@ -77,6 +97,7 @@ _Сгенерировано tools/gen-api.mjs._
 | POST | `/api/auth/backchannel-logout` | Backchannel logout от Keycloak |
 | POST | `/api/auth/callback` | Завершить OIDC-поток |
 | GET | `/api/auth/invite/{token}` | Проверить приглашение |
+| POST | `/api/auth/invite/{token}/password` | Задать пароль по ссылке |
 | GET | `/api/auth/login` | Начать OIDC-поток |
 | POST | `/api/auth/logout` | Выйти из системы |
 
@@ -131,6 +152,7 @@ _Сгенерировано tools/gen-api.mjs._
 | PUT | `/api/deals/{deal_id}/products` | Заменить продукты сделки |
 | POST | `/api/deals/{deal_id}/reassign` | Назначить ответственного |
 | POST | `/api/deals/{deal_id}/restore` | Восстановить сделку |
+| GET | `/api/deals/{deal_id}/stages` | Контроль исполнения этапов |
 | POST | `/api/deals/{deal_id}/transition` | Перейти по статусу |
 | POST | `/api/deals/bulk/reassign` | Массовая передача сделок |
 
@@ -156,8 +178,8 @@ _Сгенерировано tools/gen-api.mjs._
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/health/live` | Liveness |
-| GET | `/health/ready` | Readiness |
+| GET | `/health/live` | Проверка живости процесса |
+| GET | `/health/ready` | Проверка готовности принимать трафик |
 
 ## holidays
 
@@ -183,12 +205,17 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/imports/{job_id}/profile` | Профиль файла: первые строки и подсказка маппинга |
 | POST | `/api/imports/{job_id}/rollback` | Откатить импорт |
 | GET | `/api/imports/{job_id}/rows` | Результаты по строкам |
+| GET | `/api/imports/{job_id}/summary` | Сводка проверки: коды проблем и что будет создано/обновлено |
 | GET | `/api/imports/entity-types` | Типы импорта и их поля |
+| GET | `/api/imports/templates/{entity_type}` | Шаблон файла для скачивания |
 
 ## integrations-admin
 
 | Метод | Путь | Описание |
 |---|---|---|
+| GET | `/api/admin/integrations/api-keys` | Список API-ключей |
+| POST | `/api/admin/integrations/api-keys` | Создать API-ключ |
+| DELETE | `/api/admin/integrations/api-keys/{api_key_id}` | Отозвать API-ключ |
 | GET | `/api/admin/integrations/external-refs` | Связи с внешними системами |
 | GET | `/api/admin/integrations/inbound-messages` | Входящие сообщения |
 | GET | `/api/admin/integrations/outbox-events` | Исходящие события |
@@ -204,6 +231,14 @@ _Сгенерировано tools/gen-api.mjs._
 | PUT | `/api/admin/integrations/sources/{code}/routing` | Сохранить маршрутизацию |
 | DELETE | `/api/admin/integrations/sources/{code}/routing` | Вернуть прежнее поведение (без маршрутизации) |
 | GET | `/api/admin/integrations/sources/{code}/status` | Статус синхронизации источника |
+| GET | `/api/admin/integrations/webhooks` | Список webhook-подписок |
+| POST | `/api/admin/integrations/webhooks` | Создать webhook-подписку |
+| PATCH | `/api/admin/integrations/webhooks/{subscription_id}` | Изменить webhook-подписку |
+| DELETE | `/api/admin/integrations/webhooks/{subscription_id}` | Удалить webhook-подписку |
+| GET | `/api/admin/integrations/webhooks/{subscription_id}/deliveries` | Доставки подписки |
+| POST | `/api/admin/integrations/webhooks/{subscription_id}/rotate-secret` | Сменить секрет подписки |
+| POST | `/api/admin/integrations/webhooks/{subscription_id}/test` | Тестовая отправка (PING) |
+| POST | `/api/admin/integrations/webhooks/deliveries/{delivery_id}/retry` | Повторить доставку webhook |
 
 ## integrations-public
 
@@ -286,6 +321,11 @@ _Сгенерировано tools/gen-api.mjs._
 | PATCH | `/api/organizations/{organization_id}` | Обновить организацию |
 | DELETE | `/api/organizations/{organization_id}` | Удалить организацию |
 | POST | `/api/organizations/{organization_id}/apply-drift` | Принять изменения реквизитов |
+| GET | `/api/organizations/{organization_id}/branches` | Филиалы и институты вуза |
+| POST | `/api/organizations/{organization_id}/branches` | Завести филиал/институт |
+| PATCH | `/api/organizations/{organization_id}/branches/{branch_id}` | Изменить филиал/институт |
+| DELETE | `/api/organizations/{organization_id}/branches/{branch_id}` | Удалить филиал/институт |
+| POST | `/api/organizations/{organization_id}/dismiss-drift` | Отклонить расхождения реквизитов («Оставить как есть») |
 | PUT | `/api/organizations/{organization_id}/owner` | Назначить или сменить ответственного за вуз |
 | DELETE | `/api/organizations/{organization_id}/owner` | Снять ответственного за вуз |
 | POST | `/api/organizations/{organization_id}/restore` | Восстановить удалённую организацию |

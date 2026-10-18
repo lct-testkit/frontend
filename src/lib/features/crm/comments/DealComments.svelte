@@ -74,7 +74,7 @@
 			const created = await unwrap(
 				api.POST('/api/deals/{deal_id}/comments', {
 					params: { path: { deal_id: dealId } },
-					body: { body, parent_id: replyTo?.id ?? null, is_internal: internal, mentions: [...new Set(mentions)] }
+					body: { body, body_format: 'plain', parent_id: replyTo?.id ?? null, is_internal: internal, mentions: [...new Set(mentions)] }
 				})
 			);
 			items = [...items, created];
