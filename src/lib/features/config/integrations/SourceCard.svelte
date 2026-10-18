@@ -95,7 +95,7 @@
 		{#each cursors as c (c.key)}
 			<dt class="t-desc-l text-muted">Курсор</dt>
 			<dd class="m-0 flex min-w-0 items-center gap-1">
-				<span class="t-desc-l min-w-0 font-mono break-all">{cursors.length > 1 ? `${c.label}: ` : ''}{c.value}</span>
+				<span class="t-body-s min-w-0" title={`Курсор: ${c.value}`}>{cursors.length > 1 ? `${c.label} ` : ''}{c.text}</span>
 				<CopyButton value={c.value} label="Скопировать курсор" />
 			</dd>
 		{/each}

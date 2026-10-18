@@ -40,8 +40,8 @@ describe('runCounts', () => {
 describe('cursorLines', () => {
 	it('пустые курсоры скрыты, известные названы по-русски, неизвестные — кодом', () => {
 		expect(cursorLines({ leads_updated_since: '2026-10-18T09:00:00Z', students_progress: null, other: 'v' })).toEqual([
-			{ key: 'leads_updated_since', label: 'Заявки с сайта', value: '2026-10-18T09:00:00Z' },
-			{ key: 'other', label: 'other', value: 'v' }
+			{ key: 'leads_updated_since', label: 'Заявки с сайта', value: '2026-10-18T09:00:00Z', text: expect.stringMatching(/^до 18\.10\.2026, \d\d:\d\d$/) },
+			{ key: 'other', label: 'other', value: 'v', text: 'v' }
 		]);
 		expect(cursorLines(undefined)).toEqual([]);
 	});
@@ -66,5 +66,17 @@ describe('disableMessage', () => {
 		expect(disableMessage('lms')).toMatch(/забор прогресса/);
 		expect(disableMessage('cms')).toMatch(/Входящие сообщения/);
 		expect(disableMessage('bitrix24')).toMatch(/Входящие сообщения/);
+	});
+});
+
+describe('sourcesSummary', () => {
+	const src = (is_active: boolean, last_error: string | null = null, name = 'S') => ({ is_active, name, last_error });
+	it('включено 1 из 3, все отключены, ошибка у включённого', async () => {
+		const { sourcesSummary } = await import('./sourceState');
+		expect(sourcesSummary([])).toBeNull();
+		expect(sourcesSummary([src(true), src(false), src(false)])).toEqual({ text: 'Включено источников: 1 из 3', tone: 'neutral' });
+		expect(sourcesSummary([src(true), src(true)])?.tone).toBe('success');
+		expect(sourcesSummary([src(false), src(false)])).toEqual({ text: 'Все источники отключены', tone: 'warning' });
+		expect(sourcesSummary([src(true, 'нет связи', 'Сайт'), src(false, 'старая')])).toEqual({ text: 'Ошибка забора: Сайт', tone: 'error' });
 	});
 });

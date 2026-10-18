@@ -1,3 +1,5 @@
+import { formatDateTime } from '$lib/utils/format';
+
 // Состояние источника для карточки: итог последнего забора (`last_run`), курсоры, подпись и тон чипа. Поля `last_run` бэкенд пишет по-разному
 // для сайта (created/duplicates) и LMS (applied), поэтому читаем осторожно, а незнакомое не показываем.
 
@@ -68,14 +70,22 @@ const CURSOR_LABELS: Record<string, string> = { leads_updated_since: 'Заявк
 export interface CursorLine {
 	key: string;
 	label: string;
+	/** сырое значение курсора: его копируют и показывают в подсказке */
 	value: string;
+	/** то же по-человечески: «до 18.10.2026, 11:20» в часовом поясе пользователя */
+	text: string;
+}
+
+/** Курсор — момент времени: показываем «до …»; не дата — как есть. */
+export function cursorText(value: string): string {
+	return Number.isNaN(Date.parse(value)) ? value : `до ${formatDateTime(value)}`;
 }
 
 /** Курсоры забора («с какого момента читаем»): пустые не показываем; незнакомый ресурс — под своим кодом. */
 export function cursorLines(cursors: Record<string, string | null> | undefined): CursorLine[] {
 	return Object.entries(cursors ?? {})
 		.filter((e): e is [string, string] => Boolean(e[1]))
-		.map(([key, value]) => ({ key, label: CURSOR_LABELS[key] ?? key, value }));
+		.map(([key, value]) => ({ key, label: CURSOR_LABELS[key] ?? key, value, text: cursorText(value) }));
 }
 
 /** Почему «Забрать сейчас» недоступна, или `null`, если можно. */
@@ -95,4 +105,19 @@ export function intervalLabel(seconds: number): string {
 export function disableMessage(code: string): string {
 	if (code === 'lms') return 'Автоматический забор прогресса остановится, а события для LMS перестанут отправляться.';
 	return 'Входящие сообщения источника перестанут приниматься, исходящие события — отправляться.';
+}
+
+export interface SourcesSummary {
+	text: string;
+	tone: Tone;
+}
+
+/** Сводка по источникам для плашки состояния: «все системы работают» не говорит, что источники выключены. */
+export function sourcesSummary(sources: { is_active: boolean; name: string; last_error: string | null }[]): SourcesSummary | null {
+	if (!sources.length) return null;
+	const active = sources.filter((s) => s.is_active);
+	if (!active.length) return { text: 'Все источники отключены', tone: 'warning' };
+	const broken = active.filter((s) => s.last_error);
+	if (broken.length) return { text: `Ошибка забора: ${broken.map((s) => s.name).join(', ')}`, tone: 'error' };
+	return { text: `Включено источников: ${active.length} из ${sources.length}`, tone: active.length === sources.length ? 'success' : 'neutral' };
 }
