@@ -110,6 +110,7 @@
 	};
 
 	const publishedList = $derived(workflows.published.value ?? []);
+	const boardFlowName = $derived(publishedList.find((w) => w.id === f.workflow)?.name ?? '…');
 	const flowItems = $derived(publishedList.map((w) => ({ key: w.id, value: w.name, hint: DEAL_TYPE_LABELS[w.deal_type] })));
 	const statusItems = $derived.by(() => {
 		const list = f.workflow ? publishedList.filter((w) => w.id === f.workflow) : f.type ? publishedList.filter((w) => w.deal_type === f.type) : publishedList;
@@ -252,7 +253,8 @@
 
 		{#if f.view === 'board'}
 			{#if f.workflow}
-				<DealsBoard bind:this={board} workflowId={f.workflow} {query} {collapse} onChange={recount} />
+				<p class="t-desc-l m-0 -mt-1 text-muted">Доска показывает одну воронку — «{boardFlowName}», числа на вкладках считаются по ней. Другую выберите в фильтре «Воронка».</p>
+				<DealsBoard bind:this={board} workflowId={f.workflow} {query} {collapse} onChange={recount} filtered={filterCount > 0 || !!f.q || f.quick !== 'all'} onReset={() => setQuery({ q: null, quick: null, ...cleared, workflow: f.workflow })} onCreate={canCreate ? openCreate : undefined} />
 			{/if}
 		{:else}
 			<DealsTable
