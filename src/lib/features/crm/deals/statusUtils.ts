@@ -149,3 +149,16 @@ export function roleList(roles: readonly unknown[] | null | undefined): string |
 
 /** Подсказка у недоступного роли перехода: «Недоступно вашей роли. Только: Руководитель, Администратор». */
 export const deniedText = (who: string | null): string => (who ? `Недоступно вашей роли. Только: ${who}` : 'Недоступно вашей роли');
+
+/** Пункты меню «Перевести» на карточке доски: куда можно перейти из текущего статуса; недоступные роли серые, с подсказкой. */
+export function moveMenuItems(items: AvailableTransition[], statusOf: (id: string) => WorkflowStatus | undefined) {
+	return items.map((t) => {
+		const to = statusOf(t.to_status_id)?.name;
+		return {
+			key: t.id,
+			value: to ? `В статус «${statusName(to)}»` : t.name,
+			hint: t.role_allowed ? undefined : 'Недоступно вашей роли',
+			disabled: !t.role_allowed
+		};
+	});
+}

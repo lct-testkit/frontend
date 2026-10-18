@@ -4,18 +4,19 @@
 	// следующие 25 по курсору этого столбца. Перетаскивание карточки в другую колонку открывает тот же диалог перехода, что и в карточке
 	// сделки; после успешного перехода счётчики обоих столбцов сразу меняются на 1 и затем перечитываются с сервера.
 	// Телефон — горизонтальная лента колонок со «снапом».
-	import { Counter } from '@lct-testkit/rt-ui';
+	import { Counter, DropdownMenu } from '@lct-testkit/rt-ui';
+	import { session } from '$lib/auth/session.svelte';
 	import { people } from '$lib/api/people.svelte';
 	import { api, unwrap } from '$lib/api';
-	import { AddLarge } from '@lct-testkit/rt-ui/icons';
-	import { Avatar, Btn, EmptyState, ErrorState, Money, Skeleton, toast } from '$lib/ui';
+	import { AddLarge, MenuKebab } from '@lct-testkit/rt-ui/icons';
+	import { Avatar, Btn, EmptyState, ErrorState, IconBtn, Money, Skeleton, toast } from '$lib/ui';
 	import PriorityChip from '../../shared/PriorityChip.svelte';
 	import SlaIndicator from '../../shared/SlaIndicator.svelte';
 	import type { AvailableTransition, Deal, WorkflowStatus } from '../../types';
 	import { COLUMN_PAGE, applyMove, emptyColumn, isFolded, mergeItems, remaining, runLimited, withTotals, type BoardColumn } from './boardColumns';
 	import { productLine, productsTitle, type DealRow } from './dealProducts';
 	import TransitionDialog from '../card/TransitionDialog.svelte';
-	import { isTerminal, roleHint, statusName, statusTone, steps, terminals, type StatusTone } from '../statusUtils';
+	import { isTerminal, moveMenuItems, roleHint, statusName, statusTone, steps, terminals, type StatusTone } from '../statusUtils';
 	import { createTransitionsCache, dropVerdict, type DropVerdict } from './boardDrop';
 	import { workflows } from '../workflows.svelte';
 	import type { DealQuery } from './dealFilters';
@@ -193,6 +194,38 @@
 		}
 	}
 
+	// the same move without dragging: a button on the card (keyboard and phone; WCAG 2.1.1 and 2.5.7). One request, only on the click.
+	const canMove = $derived(session.can('deal:transition'));
+	let menuFor = $state<string | null>(null);
+	let menuItems = $state<ReturnType<typeof moveMenuItems>>([]);
+	let menuTransitions: AvailableTransition[] = [];
+	let menuBusy = false;
+
+	async function openMenu(deal: DealRow) {
+		if (menuFor === deal.id) {
+			menuFor = null;
+			return;
+		}
+		if (menuBusy) return;
+		menuBusy = true;
+		try {
+			menuTransitions = await transitionsOf(deal.id);
+			menuItems = moveMenuItems(menuTransitions, (id) => workflows.status(id));
+			if (menuItems.length) menuFor = deal.id;
+			else toast.info('Из этого статуса переходов нет');
+		} catch (e) {
+			toast.error(e, 'Не удалось получить переходы');
+		} finally {
+			menuBusy = false;
+		}
+	}
+
+	function pickMove(deal: DealRow, item: { key: string | number }) {
+		menuFor = null;
+		const transition = menuTransitions.find((t) => t.id === item.key);
+		if (transition) dialog = { deal, transition };
+	}
+
 	// Переход прошёл: счётчики обоих столбцов сразу меняются на 1 (карточка встаёт первой в целевом), затем числа перечитываются с сервера.
 	// Диалог перехода открывается до отправки, поэтому при отказе сервера ничего менять не приходится — карточка остаётся в своём столбце.
 	async function moved(updated: Deal) {
@@ -218,6 +251,7 @@
 </script>
 
 {#snippet dealCard(deal: DealRow)}
+	<div class="relative">
 	<a
 		href="/deals/{deal.id}"
 		draggable="true"
@@ -236,7 +270,7 @@
 			verdicts = null;
 		}}
 	>
-		<span class="flex items-center justify-between gap-2">
+		<span class={['flex items-center justify-between gap-2', canMove && 'pr-8']}>
 			<span class="t-desc-l text-muted">{deal.number}</span>
 			<PriorityChip priority={deal.priority} hideNormal />
 		</span>
@@ -252,6 +286,14 @@
 			<span class="truncate">{people.name(deal.owner_id)}</span>
 		</span>
 	</a>
+	{#if canMove}
+		<div class="absolute top-1 right-1">
+			<DropdownMenu class="w-auto flex-none" items={menuItems} isOpened={menuFor === deal.id} placement="bottomRight" onClose={() => (menuFor = null)} onClickItem={(item: { key: string | number }) => pickMove(deal, item)}>
+				<IconBtn icon={MenuKebab} size="s" label="Перевести сделку {deal.number} в другой статус" aria-haspopup="menu" aria-expanded={menuFor === deal.id} onclick={() => void openMenu(deal)} data-testid="board-move" />
+			</DropdownMenu>
+		</div>
+	{/if}
+	</div>
 {/snippet}
 
 {#if error}

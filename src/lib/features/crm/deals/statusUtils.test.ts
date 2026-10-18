@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AvailableTransition, WorkflowGraph, WorkflowStatus } from '../types';
 import { funnel14, stepId } from '../../config/workflows/fixtures/workflow14';
-import { classifyTransitions, isTerminal, optionalStepIds, roleHint, roleList, statusName, stepStates, steps, terminals, transitionKind } from './statusUtils';
+import { classifyTransitions, isTerminal, moveMenuItems, optionalStepIds, roleHint, roleList, statusName, stepStates, steps, terminals, transitionKind } from './statusUtils';
 
 const st = (id: string, type: string, sort: number, extra: Partial<WorkflowStatus> = {}): WorkflowStatus => ({
 	id,
@@ -191,5 +191,23 @@ describe('воронка из 14 шагов', () => {
 			expect(res[at(5)]).toBe('skipped');
 			expect(res.filter((x) => x === 'done')).toHaveLength(13);
 		});
+	});
+});
+
+describe('moveMenuItems', () => {
+	const statusOf = (id: string) => graph.statuses.find((s) => s.id === id);
+	it('называет статус назначения', () => {
+		expect(moveMenuItems([tr('t1', 'b')], statusOf)[0].value).toBe(`В статус «${statusName(statusOf('b')!.name)}»`);
+	});
+	it('роль без права: пункт серый, с подсказкой', () => {
+		const [item] = moveMenuItems([tr('t2', 'lost', { role_allowed: false })], statusOf);
+		expect(item.disabled).toBe(true);
+		expect(item.hint).toBe('Недоступно вашей роли');
+	});
+	it('статус неизвестен: берём название перехода', () => {
+		expect(moveMenuItems([tr('t3', 'nope', { name: 'Вернуть в работу' })], statusOf)[0].value).toBe('Вернуть в работу');
+	});
+	it('переходов нет: меню пустое', () => {
+		expect(moveMenuItems([], statusOf)).toEqual([]);
 	});
 });
