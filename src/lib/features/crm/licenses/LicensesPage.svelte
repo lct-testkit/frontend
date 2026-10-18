@@ -18,6 +18,7 @@
 	import { FILTER_KEYS, activeCount, moreCount, patchFor, readFilters, toQuery, yearOptions, type LicenseFilters } from './licenseFilters';
 	import LicenseTable from './LicenseTable.svelte';
 	import { softwareOf } from './licenseCatalog';
+	import { shortVendor } from './licenseUtils';
 	import { softwareCatalog, vendorsOf } from './licenseCatalog.svelte';
 
 	const access = $derived(licenseAccess((p) => session.can(p)));
@@ -44,7 +45,7 @@
 	const hasFilters = $derived(count > 0 || !!filters.q);
 	const statusItems = Object.entries(TRANSFER_STATUS_LABELS).map(([key, value]) => ({ key, value }));
 	const yearItems = $derived(yearOptions());
-	const vendorItems = $derived(vendorsOf(softwareCatalog.value).map((v) => ({ key: v.id, value: v.name })));
+	const vendorItems = $derived(vendorsOf(softwareCatalog.value).map((v) => ({ key: v.id, value: shortVendor(v.name) })));
 	const productItems = $derived(softwareOf(softwareCatalog.value ?? [], filters.vendor || null).map((p) => ({ key: p.id, value: p.name })));
 	const catalogEmpty = $derived(softwareCatalog.loading ? 'Загрузка…' : 'Справочник ПО пуст');
 	const signedItems = [
