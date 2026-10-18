@@ -1,6 +1,7 @@
 // Выгрузка диаграммы виджета в PNG и PDF на клиенте, без зависимостей: SVG графика rt-ui с встроенными стилями → картинка → canvas → PNG;
 // PDF собирается из того же растра (pdf-writer.ts). Картинка совпадает с тем, что человек видел на экране, — это условие «объективности диаграмм».
 // Цвета графика заданы CSS-переменными и `color-mix`, поэтому у «голого» SVG пропали бы заливки: стили копируются из вычисленных и переводятся в sRGB через canvas.
+import { legendText, readableOn, ringGeometry, textWidth } from './chart-geometry';
 import { buildPdf, pageSizeFor, type PdfImage } from './pdf-writer';
 import { isoDate } from './period';
 
@@ -115,6 +116,16 @@ interface Tick {
 	value: number;
 }
 
+/** Куда дотянулись добавленные подписи (в единицах SVG): по этому прямоугольнику расширяется поле картинки, чтобы ничего не обрезалось. */
+interface Extent {
+	minX: number;
+	minY: number;
+	maxX: number;
+	maxY: number;
+}
+
+const emptyExtent = (): Extent => ({ minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
+
 function readTicks(svg: SVGSVGElement, axis: 'x' | 'y'): { numeric: Tick[]; names: Tick[] } {
 	const all = [...svg.querySelectorAll<SVGTextElement>(`text.rt-chart__tick--${axis}`)].map((t) => {
 		const text = (t.textContent ?? '').replace(/\s/g, '').replace(',', '.');
@@ -123,19 +134,30 @@ function readTicks(svg: SVGSVGElement, axis: 'x' | 'y'): { numeric: Tick[]; name
 	return { numeric: all.filter((t) => Number.isFinite(t.value)), names: all.filter((t) => !Number.isFinite(t.value)) };
 }
 
+/** Сдвиг группы `<g transform="translate(a, b)">`: подписи считаются в её координатах, а поле картинки — в координатах всего SVG. */
+function translateOf(g: Element): [number, number] {
+	const m = /translate\(\s*(-?[\d.]+)[ ,]+(-?[\d.]+)\s*\)/.exec(g.getAttribute('transform') ?? '');
+	return m ? [Number(m[1]), Number(m[2])] : [0, 0];
+}
+
 /**
  * Подписи значений у столбцов: на графике только ось, а в файле нужны числа («объективность диаграммы»). Значение берётся из положения столбца по шкале оси
  * (линейная подгонка по двум числовым делениям), а у отсутствующего столбца (нулевое значение) явно пишется «0» — пустой шаг не должен выглядеть как пропуск данных.
  */
-function addValueLabels(svg: SVGSVGElement, clone: SVGSVGElement, color: string): void {
+function addValueLabels(svg: SVGSVGElement, clone: SVGSVGElement, color: string): Extent {
+	const extent = emptyExtent();
 	const plot = clone.querySelector(':scope > g');
 	const bars = [...svg.querySelectorAll<SVGGraphicsElement>('path.rt-chart__bar')];
-	if (!plot || !bars.length) return;
+	if (!plot || !bars.length) return extent;
 	const yAxis = readTicks(svg, 'y');
 	const xAxis = readTicks(svg, 'x');
 	const horizontal = xAxis.numeric.length >= 2;
 	const scale = horizontal ? xAxis.numeric : yAxis.numeric;
-	if (scale.length < 2) return;
+	if (scale.length < 2) return extent;
+	// размер подписи — как у делений оси
+	const tick = svg.querySelector<SVGTextElement>('text.rt-chart__tick--x, text.rt-chart__tick--y');
+	const fs = Math.max(10, Math.min(16, parseFloat(tick ? getComputedStyle(tick).fontSize : '') || 11));
+	const [dx, dy] = translateOf(plot);
 	const pos = (t: Tick) => (horizontal ? t.x : t.y);
 	const first = scale[0];
 	const last = scale[scale.length - 1];
@@ -143,7 +165,7 @@ function addValueLabels(svg: SVGSVGElement, clone: SVGSVGElement, color: string)
 	const valueAt = (p: number) => first.value + (p - pos(first)) * k;
 	const whole = scale.every((t) => Number.isInteger(t.value));
 	const fmt = (v: number) => NUMBER.format(whole ? Math.round(v) : Math.round(v * 10) / 10);
-	const zeroAt = (first.value === 0 ? pos(first) : pos(first) - first.value / k);
+	const zeroAt = first.value === 0 ? pos(first) : pos(first) - first.value / k;
 	const fill = (el: Element) => toRgb(getComputedStyle(el).fill);
 	const label = (text: string, x: number, y: number, anchor: 'start' | 'middle') => {
 		const t = document.createElementNS(SVG_NS, 'text');
@@ -152,17 +174,22 @@ function addValueLabels(svg: SVGSVGElement, clone: SVGSVGElement, color: string)
 		t.setAttribute('y', String(y));
 		t.setAttribute('text-anchor', anchor);
 		t.setAttribute('dominant-baseline', 'middle');
-		t.setAttribute('style', `font-size:11px;font-weight:500;fill:${color}`);
+		t.setAttribute('style', `font-size:${fs}px;font-weight:500;fill:${color}`);
 		plot.appendChild(t);
+		const w = textWidth(text, fs);
+		extent.minX = Math.min(extent.minX, dx + (anchor === 'start' ? x : x - w / 2));
+		extent.maxX = Math.max(extent.maxX, dx + (anchor === 'start' ? x + w : x + w / 2));
+		extent.minY = Math.min(extent.minY, dy + y - fs / 2);
+		extent.maxY = Math.max(extent.maxY, dy + y + fs / 2);
 	};
 	const boxes = bars.map((b) => ({ box: b.getBBox(), color: fill(b) }));
 	if (horizontal) {
 		for (const { box } of boxes) label(fmt(valueAt(box.x + box.width)), box.x + box.width + 4, box.y + box.height / 2, 'start');
 		// категории без столбца — явный ноль
 		for (const name of yAxis.names) if (!boxes.some(({ box }) => Math.abs(box.y + box.height / 2 - name.y) < box.height)) label('0', zeroAt + 4, name.y, 'start');
-		return;
+		return extent;
 	}
-	for (const { box } of boxes) label(fmt(valueAt(box.y)), box.x + box.width / 2, box.y - 7, 'middle');
+	for (const { box } of boxes) label(fmt(valueAt(box.y)), box.x + box.width / 2, box.y - fs / 2 - 3, 'middle');
 	// сгруппированные столбцы: положение серии внутри группы известно по другим категориям, нулевой столбец помечается на своём месте
 	const centers = xAxis.names.length ? xAxis.names.map((t) => t.x) : xAxis.numeric.map((t) => t.x);
 	const offsets = new Map<string, number>();
@@ -175,17 +202,85 @@ function addValueLabels(svg: SVGSVGElement, clone: SVGSVGElement, color: string)
 	for (const center of centers) {
 		for (const [c, off] of offsets) {
 			const cx = center + off;
-			if (!boxes.some((b) => b.color === c && Math.abs(b.box.x + b.box.width / 2 - cx) < width / 2)) label('0', cx, zeroAt - 7, 'middle');
+			if (!boxes.some((b) => b.color === c && Math.abs(b.box.x + b.box.width / 2 - cx) < width / 2)) label('0', cx, zeroAt - fs / 2 - 3, 'middle');
 		}
 	}
+	return extent;
+}
+
+/**
+ * Кольцевая диаграмма: значение и доля на каждом сегменте и итог в центре — на экране это показывают легенда и HTML-блок посередине, которых в SVG нет.
+ * Узкий сегмент (подпись не помещается в кольцо) подписывается снаружи.
+ */
+function addDonutLabels(svg: SVGSVGElement, clone: SVGSVGElement, legend: HTMLElement | null | undefined, color: string, pxPerUnit: number): Extent {
+	const extent = emptyExtent();
+	const slices = [...svg.querySelectorAll<SVGPathElement>('path.rt-chart__slice')];
+	const box = svg.viewBox?.baseVal;
+	if (!slices.length || !box || box.width <= 0) return extent;
+	const cx = box.x + box.width / 2;
+	const cy = box.y + box.height / 2;
+	// размеры задаются в пикселях готовой картинки, а рисуются в единицах SVG
+	const unit = (px: number) => px / Math.max(0.2, pxPerUnit);
+	const fs = unit(14);
+	const parts = new Map<string, { value: string; share: string }>();
+	legend?.querySelectorAll<HTMLElement>('.rt-chart__legend-item').forEach((item) => {
+		const part = (cls: string) => item.querySelector(`.rt-chart__legend-${cls}`)?.textContent?.trim() ?? '';
+		parts.set(item.getAttribute('data-key') ?? '', { value: part('value'), share: part('secondary') });
+	});
+	const add = (text: string, x: number, y: number, o: { size: number; weight: number; fill: string; anchor?: 'start' | 'middle' | 'end' }) => {
+		const t = document.createElementNS(SVG_NS, 'text');
+		t.textContent = text;
+		t.setAttribute('x', String(x));
+		t.setAttribute('y', String(y));
+		t.setAttribute('text-anchor', o.anchor ?? 'middle');
+		t.setAttribute('dominant-baseline', 'middle');
+		t.setAttribute('style', `font-size:${o.size}px;font-weight:${o.weight};fill:${o.fill}`);
+		clone.appendChild(t);
+		const w = textWidth(text, o.size);
+		const x0 = o.anchor === 'start' ? x : o.anchor === 'end' ? x - w : x - w / 2;
+		extent.minX = Math.min(extent.minX, x0);
+		extent.maxX = Math.max(extent.maxX, x0 + w);
+		extent.minY = Math.min(extent.minY, y - o.size / 2);
+		extent.maxY = Math.max(extent.maxY, y + o.size / 2);
+	};
+	let hole = 0;
+	for (const path of slices) {
+		const ring = ringGeometry(path.getAttribute('d') ?? '', cx, cy);
+		const text = parts.get(path.getAttribute('data-series') ?? '');
+		if (!ring || !text?.value) continue;
+		hole = Math.max(hole, ring.r0);
+		const rm = (ring.r0 + ring.r1) / 2;
+		const at = (r: number) => [cx + r * Math.sin(ring.mid), cy - r * Math.cos(ring.mid)] as const;
+		const fits = ring.span * rm >= textWidth(text.share || text.value, fs) + unit(8) && ring.r1 - ring.r0 >= fs * 2.4;
+		if (fits) {
+			const [x, y] = at(rm);
+			const ink = readableOn(toRgb(getComputedStyle(path).fill));
+			add(text.value, x, y - fs * 0.55, { size: fs, weight: 700, fill: ink });
+			if (text.share) add(text.share, x, y + fs * 0.65, { size: fs * 0.85, weight: 500, fill: ink });
+		} else {
+			const [x, y] = at(ring.r1 + unit(12));
+			const side = Math.sin(ring.mid);
+			add(text.share ? `${text.value} · ${text.share}` : text.value, x, y, { size: fs, weight: 600, fill: color, anchor: side > 0.3 ? 'start' : side < -0.3 ? 'end' : 'middle' });
+		}
+	}
+	const total = svg.parentElement?.querySelector('.rt-chart__center-value')?.textContent?.trim();
+	const caption = svg.parentElement?.querySelector('.rt-chart__center-label')?.textContent?.trim();
+	if (total && hole > 0) {
+		add(total, cx, cy - (caption ? unit(9) : 0), { size: unit(30), weight: 700, fill: color });
+		if (caption) add(caption, cx, cy + unit(19), { size: unit(13), weight: 400, fill: withAlpha(color, 0.62) });
+	}
+	return extent;
 }
 
 /** Копия SVG с явными размерами и встроенными стилями: открывается как отдельная картинка и выглядит так же, как на экране. */
-export function inlineSvg(svg: SVGSVGElement, opts: { css?: string; color?: string } = {}): { markup: string; width: number; height: number } {
+export function inlineSvg(
+	svg: SVGSVGElement,
+	opts: { css?: string; color?: string; legend?: HTMLElement | null; pxPerUnit?: number } = {}
+): { markup: string; width: number; height: number } {
 	const box = svg.viewBox?.baseVal;
 	const rect = svg.getBoundingClientRect();
-	const width = box && box.width > 0 ? box.width : rect.width;
-	const height = box && box.height > 0 ? box.height : rect.height;
+	let width = box && box.width > 0 ? box.width : rect.width;
+	let height = box && box.height > 0 ? box.height : rect.height;
 	const clone = svg.cloneNode(true) as SVGSVGElement;
 	const from = [svg, ...svg.querySelectorAll('*')];
 	const to = [clone, ...clone.querySelectorAll('*')];
@@ -198,7 +293,21 @@ export function inlineSvg(svg: SVGSVGElement, opts: { css?: string; color?: stri
 			if (raw) target.style.setProperty(prop, COLOR_PROPS.has(prop) ? toRgb(raw) : raw);
 		}
 	});
-	addValueLabels(svg, clone, opts.color ?? '#111');
+	const color = opts.color ?? '#111';
+	const bars = addValueLabels(svg, clone, color);
+	const ring = addDonutLabels(svg, clone, opts.legend, color, opts.pxPerUnit ?? 1);
+	if (box && box.width > 0) {
+		// подпись не должна обрезаться краем картинки: поле расширяется ровно настолько, насколько она вылезла
+		const lo = (a: number, b: number, own: number) => Math.min(own, Number.isFinite(a) ? Math.floor(a - 2) : own, Number.isFinite(b) ? Math.floor(b - 2) : own);
+		const hi = (a: number, b: number, own: number) => Math.max(own, Number.isFinite(a) ? Math.ceil(a + 2) : own, Number.isFinite(b) ? Math.ceil(b + 2) : own);
+		const x0 = lo(bars.minX, ring.minX, box.x);
+		const y0 = lo(bars.minY, ring.minY, box.y);
+		const x1 = hi(bars.maxX, ring.maxX, box.x + box.width);
+		const y1 = hi(bars.maxY, ring.maxY, box.y + box.height);
+		clone.setAttribute('viewBox', `${x0} ${y0} ${x1 - x0} ${y1 - y0}`);
+		width = x1 - x0;
+		height = y1 - y0;
+	}
 	if (opts.css) {
 		const style = document.createElementNS(SVG_NS, 'style');
 		style.textContent = opts.css;
@@ -235,7 +344,7 @@ export function readLegend(legend: HTMLElement | null | undefined): LegendItem[]
 		if (item.getAttribute('aria-pressed') === 'false') return;
 		const swatch = item.querySelector<HTMLElement>('.rt-chart__swatch');
 		const part = (cls: string) => item.querySelector(`.rt-chart__legend-${cls}`)?.textContent?.trim() ?? '';
-		const text = [part('label'), part('value'), part('secondary')].filter(Boolean).join('  ');
+		const text = legendText(part('label'), part('value'), part('secondary'));
 		if (text) items.push({ color: swatch ? toRgb(getComputedStyle(swatch).backgroundColor) : '#888', text });
 	});
 	return items;
@@ -257,6 +366,10 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): st
 	return lines;
 }
 
+/** Строка мелкого текста (примечания, подвал) и высота крупного числа плитки. */
+const SMALL_LINE = 17;
+const TILE_VALUE_H = 76;
+
 /** Рисует карточку виджета (название, параметры, график с легендой или число, примечания, подвал) на canvas. */
 export async function renderCard(card: ExportCard): Promise<HTMLCanvasElement> {
 	const scale = card.scale ?? 2;
@@ -269,10 +382,15 @@ export async function renderCard(card: ExportCard): Promise<HTMLCanvasElement> {
 
 	const css = card.svg ? await fontFaceCss() : '';
 	if (css) await Promise.all(FONT_FILES.map(([w]) => document.fonts?.load(`${w} 16px "Rostelecom Basis"`).catch(() => [])));
-	const svg = card.svg ? inlineSvg(card.svg, { css, color: fg }) : null;
-	const image = svg ? await loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.markup)}`) : null;
 	// вытянутый график занимает всю ширину; почти квадратный (кольцо) не растягивается на всю карточку, а стоит по центру
 	const MAX_IMAGE_H = 460;
+	// во сколько раз единица SVG станет крупнее в готовой картинке: от этого зависит размер подписей, которые мы дорисовываем сами
+	const box = card.svg?.viewBox?.baseVal;
+	const srcW = box && box.width > 0 ? box.width : (card.svg?.getBoundingClientRect().width ?? 1);
+	const srcH = box && box.height > 0 ? box.height : (card.svg?.getBoundingClientRect().height ?? 1);
+	const pxPerUnit = Math.min(inner / srcW, MAX_IMAGE_H / srcH);
+	const svg = card.svg ? inlineSvg(card.svg, { css, color: fg, legend: card.legend, pxPerUnit }) : null;
+	const image = svg ? await loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.markup)}`) : null;
 	const fullH = svg ? Math.round((inner * svg.height) / svg.width) : 0;
 	const imageH = Math.min(fullH, MAX_IMAGE_H);
 	const imageW = svg ? Math.round((imageH * svg.width) / svg.height) : 0;
@@ -285,10 +403,11 @@ export async function renderCard(card: ExportCard): Promise<HTMLCanvasElement> {
 	const titleLines = wrap(probe, card.title, inner);
 	probe.font = font(13);
 	const subtitleLines = card.subtitle ? wrap(probe, card.subtitle, inner) : [];
-	// примечания — тем же мелким серым кеглем, что и подвал, и по ширине графика
+	// примечания и подвал — одним мелким серым кеглем, строки переносятся по ширине графика (у плитки — по ширине карточки)
 	probe.font = font(12);
-	const noteW = svg ? Math.max(imageW, 420) : inner;
-	const noteLines = (card.notes ?? []).flatMap((n) => wrap(probe, n, noteW));
+	const textW = svg ? Math.min(inner, Math.max(imageW, 420)) : inner;
+	const noteLines = (card.notes ?? []).flatMap((n) => wrap(probe, n, textW));
+	const footerLines = wrap(probe, card.footer, textW);
 
 	// легенда: пункты в ряд с переносом
 	probe.font = font(13);
@@ -310,11 +429,11 @@ export async function renderCard(card: ExportCard): Promise<HTMLCanvasElement> {
 	let H = pad + titleLines.length * 28;
 	if (subtitleLines.length) H += 4 + subtitleLines.length * 18;
 	H += 16;
-	if (card.tile) H += 86 + 28;
+	if (card.tile) H += TILE_VALUE_H + 28;
 	if (image) H += imageH + 12;
 	if (rows.length) H += rows.length * 22 + 8;
-	if (noteLines.length) H += 8 + noteLines.length * 17;
-	H += 16 + 18 + pad;
+	if (noteLines.length) H += noteLines.length * SMALL_LINE + 6;
+	H += footerLines.length * SMALL_LINE + pad;
 
 	const canvas = document.createElement('canvas');
 	canvas.width = Math.round(W * scale);
@@ -347,7 +466,7 @@ export async function renderCard(card: ExportCard): Promise<HTMLCanvasElement> {
 		ctx.fillStyle = fg;
 		ctx.font = font(64, 700);
 		ctx.fillText(card.tile.value, pad, y);
-		y += 86;
+		y += TILE_VALUE_H;
 		ctx.fillStyle = muted;
 		ctx.font = font(16);
 		ctx.fillText(card.tile.label, pad, y);
@@ -372,18 +491,17 @@ export async function renderCard(card: ExportCard): Promise<HTMLCanvasElement> {
 		}
 		y += 8;
 	}
-	if (noteLines.length) {
-		y += 8;
-		ctx.fillStyle = muted;
-		ctx.font = font(12);
-		for (const line of noteLines) {
-			ctx.fillText(line, pad + (svg ? (inner - imageW) / 2 : 0), y);
-			y += 17;
-		}
-	}
 	ctx.fillStyle = muted;
 	ctx.font = font(12);
-	ctx.fillText(card.footer, pad, H - pad - 14);
+	for (const line of noteLines) {
+		ctx.fillText(line, pad, y);
+		y += SMALL_LINE;
+	}
+	if (noteLines.length) y += 6;
+	for (const line of footerLines) {
+		ctx.fillText(line, pad, y);
+		y += SMALL_LINE;
+	}
 	return canvas;
 }
 
