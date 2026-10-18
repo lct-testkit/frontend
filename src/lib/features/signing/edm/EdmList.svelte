@@ -13,10 +13,12 @@
 
 <script lang="ts">
 	// Соглашения об ЭДО (dop.md §10.1): без действующего соглашения внешняя подпись блокируется.
-	// Список целиком (у ручки нет страниц); тип стороны фильтруется на сервере, состояние — на клиенте, потому что «истекло» вытекает из дат.
+	// Курсорная пагинация (limit/cursor, «Показать ещё» и догрузка у конца списка); сторона приходит готовой в `party_display`, имя по id — запасной путь.
+	// Тип стороны фильтруется на сервере, состояние — на клиенте (по загруженным строкам), потому что «истекло» вытекает из дат.
 	import { onMount } from 'svelte';
 	import { CloseLarge, DocumentDownload } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
+	import { createPager } from '$lib/api/pager.svelte';
 	import { session } from '$lib/auth/session.svelte';
 	import { ensureSubjects, subjectName } from '$lib/features/identity/erasure/subject';
 	import ReasonModal from '$lib/features/identity/ReasonModal.svelte';
@@ -38,41 +40,29 @@
 	const partyType = $derived(readQuery('party_type'));
 	const canAdmin = $derived(session.can('edm:admin'));
 
-	let all = $state<EdmAgreement[]>([]);
-	let loading = $state(true);
-	let error = $state<unknown>(null);
-	let seq = 0;
-
-	async function load() {
-		const mine = ++seq;
-		loading = true;
-		error = null;
-		try {
-			const res = await unwrap(api.GET('/api/admin/edm-agreements', { params: { query: { party_type: partyType || undefined } } }));
-			if (mine !== seq) return;
-			all = res.items;
-			ensureSubjects(res.items.map((a) => ({ subject_type: a.party_type, subject_id: a.party_id })));
-		} catch (e) {
-			if (mine === seq) error = e;
-		} finally {
-			if (mine === seq) loading = false;
-		}
-	}
+	const pager = createPager<EdmAgreement>(async (cursor, signal) => {
+		const res = await unwrap(api.GET('/api/admin/edm-agreements', { params: { query: { party_type: partyType || undefined, limit: 50, cursor: cursor ?? undefined } }, signal }));
+		// имя стороны приходит в party_display; по id догружаем только то, что сервер не назвал
+		ensureSubjects(res.items.filter((a) => !a.party_display).map((a) => ({ subject_type: a.party_type, subject_id: a.party_id })));
+		return res;
+	});
 	$effect(() => {
 		void partyType;
-		void load();
+		void pager.reload();
 	});
-	onMount(() => () => void seq++);
+	onMount(() => () => pager.abort());
 
-	const rows = $derived(stateFilter ? all.filter((a) => edmState(a) === stateFilter || (stateFilter === 'active' && edmState(a) === 'upcoming')) : all);
+	const partyName = (a: EdmAgreement): string => a.party_display || subjectName(a.party_type, a.party_id);
+
+	const rows = $derived(stateFilter ? pager.items.filter((a) => edmState(a) === stateFilter || (stateFilter === 'active' && edmState(a) === 'upcoming')) : pager.items);
 
 	export function reload() {
-		void load();
+		void pager.reload();
 	}
 	/** только что оформленное соглашение — сразу наверх, без повторного запроса */
 	export function add(agreement: EdmAgreement) {
-		all = [agreement, ...all.filter((a) => a.id !== agreement.id)];
-		ensureSubjects([{ subject_type: agreement.party_type, subject_id: agreement.party_id }]);
+		pager.prepend(agreement);
+		if (!agreement.party_display) ensureSubjects([{ subject_type: agreement.party_type, subject_id: agreement.party_id }]);
 	}
 
 	let revoking = $state<EdmAgreement | null>(null);
@@ -80,7 +70,7 @@
 	async function revoke(reason: string) {
 		if (!revoking) return;
 		const next = await unwrap(api.POST('/api/admin/edm-agreements/{agreement_id}/revoke', { params: { path: { agreement_id: revoking.id } }, body: { reason } }));
-		all = all.map((a) => (a.id === next.id ? next : a));
+		pager.patch((a) => a.id === next.id, next);
 		revoking = null;
 		toast.success('Соглашение отозвано', 'Внешняя подпись по нему больше не пройдёт');
 	}
@@ -115,7 +105,7 @@
 {#snippet party(a: EdmAgreement)}
 	<TableCell>
 		<span class="flex min-w-0 flex-col py-2">
-			<span class="t-body-s-strong truncate">{subjectName(a.party_type, a.party_id)}</span>
+			<span class="t-body-s-strong truncate">{partyName(a)}</span>
 			<span class="t-desc-m truncate text-muted">{edmPartyLabel(a.party_type)}</span>
 		</span>
 	</TableCell>
@@ -146,7 +136,7 @@
 	{@const meta = edmStateMeta(edmState(a))}
 	<div class="flex min-w-0 flex-col gap-1">
 		<div class="flex items-start justify-between gap-2">
-			<span class="t-body-s-strong min-w-0 wrap-anywhere">{subjectName(a.party_type, a.party_id)}</span>
+			<span class="t-body-s-strong min-w-0 wrap-anywhere">{partyName(a)}</span>
 			<StatusChip label={meta.label} tone={meta.tone} hint={edmHint(a)} />
 		</div>
 		<span class="t-desc-l text-muted">{edmPartyLabel(a.party_type)} · {edmMethodLabel(a.conclusion_method)}{a.agreement_number ? ` · № ${a.agreement_number}` : ''}</span>
@@ -166,9 +156,12 @@
 	{rows}
 	{columns}
 	{card}
-	{loading}
-	{error}
-	onRetry={load}
+	loading={pager.loading}
+	error={pager.error}
+	onRetry={() => pager.reload()}
+	hasMore={pager.hasMore}
+	loadingMore={pager.loadingMore}
+	onLoadMore={() => pager.loadMore()}
 	emptyText={stateFilter || partyType ? 'Соглашений с такими условиями нет' : 'Соглашений об ЭДО пока нет'}
 	ariaLabel="Соглашения об ЭДО"
 />
