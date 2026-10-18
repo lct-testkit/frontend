@@ -1,4 +1,4 @@
-# Эндпоинты бэкенда (210)
+# Эндпоинты бэкенда (249)
 
 _Сгенерировано tools/gen-api.mjs._
 
@@ -12,6 +12,11 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/admin/feature-flags` | Список флагов |
 | POST | `/api/admin/feature-flags` | Создать флаг |
 | PATCH | `/api/admin/feature-flags/{code}` | Изменить флаг |
+| POST | `/api/admin/retention/run` | Запустить очистку по сроку хранения вручную |
+| GET | `/api/admin/retention/runs` | Журнал запусков очистки по сроку хранения |
+| GET | `/api/admin/security-events` | Журнал безопасности |
+| GET | `/api/admin/security-events/export` | Экспорт журнала безопасности |
+| GET | `/api/admin/security-events/summary` | Сводка журнала безопасности |
 | GET | `/api/admin/system-settings` | Список настроек |
 | PUT | `/api/admin/system-settings/{key}` | Изменить настройку |
 
@@ -39,12 +44,17 @@ _Сгенерировано tools/gen-api.mjs._
 | POST | `/api/admin/users` | Создать пользователя |
 | GET | `/api/admin/users/{user_id}` | Карточка пользователя |
 | PATCH | `/api/admin/users/{user_id}` | Изменить пользователя |
+| GET | `/api/admin/users/{user_id}/access-rules` | Ограничения видимости пользователя |
+| PUT | `/api/admin/users/{user_id}/access-rules` | Задать ограничения видимости пользователя |
+| GET | `/api/admin/users/{user_id}/access-rules/preview` | Предпросмотр последствий ограничения |
 | POST | `/api/admin/users/{user_id}/block` | Заблокировать пользователя |
 | POST | `/api/admin/users/{user_id}/erasure-request` | Запрос на удаление или обезличивание |
 | POST | `/api/admin/users/{user_id}/invite` | Повторно выдать приглашение |
 | POST | `/api/admin/users/{user_id}/offboard` | Мастер передачи дел |
+| GET | `/api/admin/users/{user_id}/offboard/items` | Все сделки/вузы уходящего (постранично) |
 | POST | `/api/admin/users/{user_id}/reset-password` | Сбросить пароль |
 | POST | `/api/admin/users/{user_id}/unblock` | Разблокировать пользователя |
+| POST | `/api/users/{user_id}/handover` | Передать портфель без увольнения |
 
 ## attachments
 
@@ -53,6 +63,12 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/attachments` | Вложения сущности |
 | POST | `/api/attachments` | Привязать файл к сущности |
 | DELETE | `/api/attachments/{attachment_id}` | Отвязать файл |
+
+## audit
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/api/admin/audit/deals/{deal_id}/comments` | Комментарии сделки для аудитора |
 
 ## auth
 
@@ -79,6 +95,7 @@ _Сгенерировано tools/gen-api.mjs._
 | POST | `/api/contacts` | Создать контакт |
 | GET | `/api/contacts/{contact_id}` | Карточка контакта |
 | PATCH | `/api/contacts/{contact_id}` | Обновить контакт |
+| GET | `/api/contacts/{contact_id}/channels` | Каналы связи контакта (маскированные) |
 | GET | `/api/contacts/{contact_id}/learner-profile` | Профиль учащегося (маскированный) |
 | PUT | `/api/contacts/{contact_id}/learner-profile` | Обновить профиль учащегося |
 | POST | `/api/contacts/{contact_id}/learner-profile/reveal` | Раскрыть полный профиль учащегося |
@@ -102,15 +119,18 @@ _Сгенерировано tools/gen-api.mjs._
 | POST | `/api/deals` | Создать сделку |
 | GET | `/api/deals/{deal_id}` | Карточка сделки |
 | PATCH | `/api/deals/{deal_id}` | Обновить сделку |
+| DELETE | `/api/deals/{deal_id}` | Удалить сделку |
 | GET | `/api/deals/{deal_id}/available-transitions` | Доступные переходы |
 | GET | `/api/deals/{deal_id}/comments` | Комментарии сделки |
 | POST | `/api/deals/{deal_id}/comments` | Добавить комментарий |
 | GET | `/api/deals/{deal_id}/history` | История статусов и событий |
+| GET | `/api/deals/{deal_id}/history/{history_id}/attachments` | Файлы, приложенные к записи истории |
 | GET | `/api/deals/{deal_id}/participants` | Участники сделки |
 | POST | `/api/deals/{deal_id}/participants` | Добавить участника |
 | DELETE | `/api/deals/{deal_id}/participants/{participant_id}` | Удалить участника |
 | PUT | `/api/deals/{deal_id}/products` | Заменить продукты сделки |
 | POST | `/api/deals/{deal_id}/reassign` | Назначить ответственного |
+| POST | `/api/deals/{deal_id}/restore` | Восстановить сделку |
 | POST | `/api/deals/{deal_id}/transition` | Перейти по статусу |
 | POST | `/api/deals/bulk/reassign` | Массовая передача сделок |
 
@@ -153,6 +173,7 @@ _Сгенерировано tools/gen-api.mjs._
 | Метод | Путь | Описание |
 |---|---|---|
 | GET | `/api/import-presets` | Список пресетов маппинга |
+| DELETE | `/api/import-presets/{preset_id}` | Удалить пресет маппинга |
 | GET | `/api/imports` | Список заданий импорта |
 | POST | `/api/imports` | Создать задание импорта |
 | GET | `/api/imports/{job_id}` | Карточка задания импорта |
@@ -172,8 +193,17 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/admin/integrations/inbound-messages` | Входящие сообщения |
 | GET | `/api/admin/integrations/outbox-events` | Исходящие события |
 | POST | `/api/admin/integrations/outbox-events/{event_id}/retry` | Повторить доставку события |
-| GET | `/api/admin/integrations/sources` | List Sources |
-| PATCH | `/api/admin/integrations/sources/{code}` | Update Source |
+| GET | `/api/admin/integrations/sources` | Список источников интеграций |
+| PATCH | `/api/admin/integrations/sources/{code}` | Изменить источник интеграции |
+| GET | `/api/admin/integrations/sources/{code}/mapping` | Текущий маппинг полей и каталог целей |
+| PUT | `/api/admin/integrations/sources/{code}/mapping` | Сохранить маппинг полей |
+| DELETE | `/api/admin/integrations/sources/{code}/mapping` | Вернуть прежнее поведение (без маппинга) |
+| POST | `/api/admin/integrations/sources/{code}/mapping/preview` | Предпросмотр маппинга без записи в БД |
+| POST | `/api/admin/integrations/sources/{code}/pull` | Забрать сейчас |
+| GET | `/api/admin/integrations/sources/{code}/routing` | Текущая маршрутизация (воронка/тип сделки на источник) |
+| PUT | `/api/admin/integrations/sources/{code}/routing` | Сохранить маршрутизацию |
+| DELETE | `/api/admin/integrations/sources/{code}/routing` | Вернуть прежнее поведение (без маршрутизации) |
+| GET | `/api/admin/integrations/sources/{code}/status` | Статус синхронизации источника |
 
 ## integrations-public
 
@@ -206,6 +236,12 @@ _Сгенерировано tools/gen-api.mjs._
 | DELETE | `/api/me/sessions/{sid}` | Завершить сессию |
 | POST | `/api/me/sessions/terminate-others` | Завершить все остальные сессии |
 
+## meta
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/api/meta/error-codes` | Справочник кодов ошибок |
+
 ## notifications
 
 | Метод | Путь | Описание |
@@ -235,7 +271,10 @@ _Сгенерировано tools/gen-api.mjs._
 | Метод | Путь | Описание |
 |---|---|---|
 | GET | `/api/organization-licenses` | Список лицензий/договоров вуз-вендор-ПО |
+| POST | `/api/organization-licenses` | Создать лицензию/договор |
 | GET | `/api/organization-licenses/{license_id}` | Карточка лицензии/договора |
+| PATCH | `/api/organization-licenses/{license_id}` | Изменить лицензию/договор |
+| DELETE | `/api/organization-licenses/{license_id}` | Удалить лицензию/договор |
 
 ## organizations
 
@@ -245,9 +284,13 @@ _Сгенерировано tools/gen-api.mjs._
 | POST | `/api/organizations` | Создать организацию |
 | GET | `/api/organizations/{organization_id}` | Карточка организации |
 | PATCH | `/api/organizations/{organization_id}` | Обновить организацию |
+| DELETE | `/api/organizations/{organization_id}` | Удалить организацию |
 | POST | `/api/organizations/{organization_id}/apply-drift` | Принять изменения реквизитов |
+| PUT | `/api/organizations/{organization_id}/owner` | Назначить или сменить ответственного за вуз |
+| DELETE | `/api/organizations/{organization_id}/owner` | Снять ответственного за вуз |
 | POST | `/api/organizations/{organization_id}/restore` | Восстановить удалённую организацию |
 | POST | `/api/organizations/{organization_id}/reveal` | Раскрыть полные реквизиты организации |
+| POST | `/api/organizations/bulk/owner` | Массовая смена ответственного за вуз |
 | GET | `/api/organizations/check-duplicate` | Проверить дубль по ИНН/ОГРН |
 
 ## products
@@ -274,6 +317,7 @@ _Сгенерировано tools/gen-api.mjs._
 |---|---|---|
 | POST | `/api/admin/registry/import` | Загрузить новую выгрузку ЕГРЮЛ |
 | GET | `/api/admin/registry/versions` | Список версий реестра |
+| GET | `/api/admin/registry/versions/{version_id}` | Карточка версии реестра |
 | DELETE | `/api/admin/registry/versions/{version_id}` | Удалить версию реестра |
 
 ## reporting
@@ -329,7 +373,10 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/public/sign/{token}/file` | PDF документа для просмотра (внешний подписант) |
 | POST | `/public/sign/{token}/reject` | Отклонить документ (внешний подписант) |
 | POST | `/public/sign/{token}/sign` | Подписать кодом подтверждения (внешний подписант) |
+| GET | `/public/signed/{token}` | Скачать подписанный файл по ссылке |
+| GET | `/public/signed/{token}/protocol` | Скачать протокол подписания по ссылке |
 | GET | `/public/verify/{signature_id}` | Проверить подпись публично |
+| POST | `/public/verify/by-file` | Сверить файл по хэшу публично |
 
 ## tasks
 
@@ -355,9 +402,11 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/workflows/{workflow_id}` | Граф воронки |
 | PATCH | `/api/workflows/{workflow_id}` | Изменить имя и воронку по умолчанию |
 | DELETE | `/api/workflows/{workflow_id}` | Удалить черновик воронки |
+| POST | `/api/workflows/{workflow_id}/archive` | Архивировать воронку целиком |
 | PUT | `/api/workflows/{workflow_id}/graph` | Сохранить черновик графа |
 | GET | `/api/workflows/{workflow_id}/mapping-jobs/{job_id}` | Задача переноса сделок |
 | POST | `/api/workflows/{workflow_id}/publish` | Опубликовать воронку |
+| PATCH | `/api/workflows/{workflow_id}/statuses/{status_id}` | Переименовать статус |
 | POST | `/api/workflows/{workflow_id}/statuses/{status_id}/archive` | Архивировать статус с переносом сделок |
 | GET | `/api/workflows/{workflow_id}/statuses/{status_id}/impact` | Предпросмотр архивирования статуса |
 | POST | `/api/workflows/{workflow_id}/validate` | Провалидировать граф |
