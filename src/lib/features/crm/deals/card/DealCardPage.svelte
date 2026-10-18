@@ -1,5 +1,5 @@
 <script lang="ts">
-	// Карточка сделки: шапка с действиями, лента шагов воронки, вкладки (обзор, обсуждение, файлы, задачи, история, подписание).
+	// Карточка сделки: шапка с действиями, лента шагов воронки, вкладки (обзор, этапы, обсуждение, файлы, задачи, история, подписание).
 	// Вкладка — в адресе (`?tab=`), так ссылки из уведомлений и кнопка «Назад» ведут туда, куда нужно.
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
@@ -14,6 +14,7 @@
 	import DealHeader from './DealHeader.svelte';
 	import DealHistory from './DealHistory.svelte';
 	import DealOverview from './DealOverview.svelte';
+	import DealStages from './DealStages.svelte';
 	import DealStepper from './DealStepper.svelte';
 	import EditDealDrawer from './EditDealDrawer.svelte';
 	import ReassignModal from './ReassignModal.svelte';
@@ -27,7 +28,7 @@
 
 	onMount(() => void card.load());
 
-	const TABS = ['overview', 'comments', 'files', 'tasks', 'history', 'signing'] as const;
+	const TABS = ['overview', 'stages', 'comments', 'files', 'tasks', 'history', 'signing'] as const;
 	type Tab = (typeof TABS)[number];
 	const tab = $derived.by<Tab>(() => {
 		const raw = page.url.searchParams.get('tab');
@@ -46,6 +47,7 @@
 	const signaturePending = $derived(card.deal?.signature_status === 'pending' || card.deal?.signature_status === 'partially_signed');
 	const tabs = $derived([
 		{ key: 'overview', label: 'Обзор' },
+		{ key: 'stages', label: 'Этапы' },
 		{ key: 'comments', label: 'Обсуждение', count: comments || undefined },
 		{ key: 'files', label: 'Файлы' },
 		{ key: 'tasks', label: 'Задачи', count: tasks || undefined },
@@ -103,6 +105,8 @@
 
 		{#if tab === 'overview'}
 			<DealOverview {card} />
+		{:else if tab === 'stages'}
+			<DealStages dealId={deal.id} refreshKey={card.epoch} />
 		{:else if tab === 'comments'}
 			<DealComments dealId={deal.id} canWrite={session.can('deal:update') && card.writable} refreshKey={card.epoch} onCount={(n) => (commentCount = n)} />
 		{:else if tab === 'files'}
