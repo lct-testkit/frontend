@@ -53,14 +53,18 @@ describe('fetchReportData: полный ответ', () => {
 	});
 });
 
-describe('isRateLimited', () => {
-	it('429 или CRM-1601 — да; другая ошибка API или не ApiError — нет', async () => {
-		const { isRateLimited } = await load();
+describe('лимиты', () => {
+	it('лимит отчётов — CRM-1601 или 429 с текстом про незавершённые; другой 429 — общий лимит запросов', async () => {
+		const { isReportLimit, isTooManyRequests } = await load();
 		const { ApiError } = await import('$lib/api');
-		expect(isRateLimited(new ApiError({ status: 429 }))).toBe(true);
-		expect(isRateLimited(new ApiError({ status: 409, code: 'CRM-1601' }))).toBe(true);
-		expect(isRateLimited(new ApiError({ status: 500 }))).toBe(false);
-		expect(isRateLimited(new Error('x'))).toBe(false);
+		expect(isReportLimit(new ApiError({ status: 429, code: 'CRM-1601' }))).toBe(true);
+		expect(isReportLimit(new ApiError({ status: 409, code: 'CRM-1601' }))).toBe(true);
+		expect(isReportLimit(new ApiError({ status: 429, detail: 'Не завершено отчётов: 10 (лимит 10)' }))).toBe(true);
+		expect(isReportLimit(new ApiError({ status: 429, code: 'CRM-8429' }))).toBe(false);
+		expect(isTooManyRequests(new ApiError({ status: 429, code: 'CRM-8429' }))).toBe(true);
+		expect(isTooManyRequests(new ApiError({ status: 429, code: 'CRM-1601' }))).toBe(false);
+		expect(isReportLimit(new ApiError({ status: 500 }))).toBe(false);
+		expect(isReportLimit(new Error('x'))).toBe(false);
 	});
 });
 
@@ -122,7 +126,33 @@ describe('reportUrl / downloadReport', () => {
 	});
 });
 
+describe('countUnfinished', () => {
+	it('считает только задания в очереди и в обработке', async () => {
+		get.mockResolvedValue(ok({ items: [job({ status: 'queued' }), job({ status: 'processing' }), job({ status: 'completed' }), job({ status: 'failed' })] }));
+		const { countUnfinished } = await load();
+		expect(await countUnfinished()).toBe(2);
+		expect(get).toHaveBeenCalledWith('/api/reports', { params: { query: { limit: 50 } } });
+	});
+});
+
 describe('waitForReport', () => {
+	it('onUpdate вызывается на каждом опросе', async () => {
+		get.mockResolvedValueOnce(ok(job({ status: 'processing' }))).mockResolvedValueOnce(ok(job({ status: 'completed' })));
+		const { waitForReport } = await load();
+		const seen: string[] = [];
+		await waitForReport(job({ status: 'queued' }), { interval: 0, onUpdate: (j) => seen.push(j.status) });
+		expect(seen).toEqual(['processing', 'completed']);
+	});
+
+	it('таймаут — ReportStillRunning с заданием, а не ReportFailed', async () => {
+		get.mockResolvedValue(ok(job({ status: 'queued' })));
+		const { waitForReport, ReportStillRunning, ReportFailed } = await load();
+		const e = await waitForReport(job({ status: 'queued' }), { interval: 0, timeout: -1 }).catch((x) => x);
+		expect(e).toBeInstanceOf(ReportStillRunning);
+		expect(e).not.toBeInstanceOf(ReportFailed);
+		expect(e.job.status).toBe('queued');
+	});
+
 	it('опрашивает, пока задание в очереди/обработке, и возвращает готовое', async () => {
 		get.mockResolvedValueOnce(ok(job({ status: 'processing' }))).mockResolvedValueOnce(ok(job({ status: 'completed' })));
 		const { waitForReport } = await load();
