@@ -30,11 +30,14 @@ export type ReportParamKind =
 	| 'text_list'
 	| 'enum'
 	| 'enum_multi'
-	| 'bool';
+	| 'bool'
+	| 'columns';
 
 export interface ReportParamOption {
 	key: string;
 	value: string;
+	/** колонка входит в набор по умолчанию (`kind: 'columns'`) */
+	default?: boolean;
 }
 
 export interface ReportParamDef {
@@ -51,6 +54,8 @@ export interface ReportParamDef {
 	/** поле блокируется (и не уходит в тело), если заполнен любой из этих ключей */
 	disabledBy?: readonly string[];
 	disabledHint?: string;
+	/** колонки «как в ТЗ» (`kind: 'columns'`) */
+	tz?: readonly string[];
 	/** поле общего блока «период + вуз + направление + продукт + ответственный» */
 	group?: 'scope';
 }
@@ -97,6 +102,8 @@ export interface ReportSpec {
 	ownersLabel?: string;
 	/** у шаблона есть выбор колонок (если сервер отдал `columns`) */
 	columns?: boolean;
+	/** колонки «как в ТЗ» (ключи каталога): кнопка в блоке выбора колонок */
+	tzColumns?: readonly string[];
 }
 
 const ALL_FILTERS = { organizations: true, directions: true, products: true, owners: true } as const;
@@ -124,7 +131,7 @@ export const REPORT_SPECS: Record<string, ReportSpec> = {
 		extra: [{ key: 'months', label: 'Месяцев', kind: 'int', min: 1, max: 36, default: 12, required: true, disabledBy: ['date_from', 'date_to'], disabledHint: 'Задан период — число месяцев не используется' }]
 	},
 	stuck_deals: { scope: { period: DEAL_DATES, ...ALL_FILTERS }, extra: [], tail: [limitDef(500)], hint: 'Только сделки с нарушенным SLA. Лишние строки по лимиту отсекаются' },
-	deal_register: { scope: { period: DEAL_DATES, ...ALL_FILTERS }, extra: [], tail: [limitDef(1000)], columns: true },
+	deal_register: { scope: { period: DEAL_DATES, ...ALL_FILTERS }, extra: [], tail: [limitDef(1000)], columns: true, tzColumns: ['organization', 'direction', 'product', 'status', 'owner'] },
 	learning_progress: {
 		scope: { period: ['last_activity_at', 'enrolled_at', 'completed_at'], ...ALL_FILTERS },
 		extra: [],
@@ -173,6 +180,7 @@ export const REPORT_SPECS: Record<string, ReportSpec> = {
 			limitDef(1000)
 		],
 		columns: true,
+		tzColumns: ['organization', 'vendor', 'product_name', 'contract_number', 'is_signed', 'license_valid_year', 'transfer_status', 'manager_full_name', 'responsible_contacts', 'comment'],
 		personalData: true,
 		hint: 'Фамилии менеджеров и ответственных без права просмотра контактов скрыты'
 	},
@@ -203,6 +211,8 @@ export const hasSpec = (templateCode: string): boolean => templateCode in REPORT
 export interface TemplateInfo {
 	dateFields?: readonly string[];
 	defaultDateField?: string | null;
+	/** каталог колонок шаблона (`columns` из `GET /api/report-templates`); пусто — выбор колонок не поддерживается */
+	columns?: readonly { key: string; title: string; default: boolean }[];
 }
 
 /** Подпись поля периода: «Период» или «Сделка закрыта», если дата одна и зафиксирована. */
@@ -241,6 +251,13 @@ export function scopeDefs(spec: ReportSpec, dateFields: readonly string[], defau
 	return defs;
 }
 
+/** Поле «Колонки» — только если шаблон умеет и сервер отдал каталог. */
+function columnsDefs(spec: ReportSpec, info?: TemplateInfo): ReportParamDef[] {
+	if (!spec.columns || !info?.columns?.length) return [];
+	const options = info.columns.map((c) => ({ key: c.key, value: c.title, default: c.default }));
+	return [{ key: 'columns', label: 'Колонки', kind: 'columns', options, tz: spec.tzColumns, default: options.filter((o) => o.default).map((o) => o.key) }];
+}
+
 /**
  * Определения параметров шаблона с учётом `default_params` сервера.
  * Порядок: поля отчёта, общий блок, хвост (лимит). Для кода без описания — пустой список.
@@ -249,7 +266,7 @@ export function paramsFor(templateCode: string, defaults: Record<string, unknown
 	const spec = REPORT_SPECS[templateCode];
 	if (!spec) return [];
 	const dateFields = dateFieldsFor(templateCode, info);
-	const all = [...spec.extra, ...scopeDefs(spec, dateFields, info?.defaultDateField), ...(spec.tail ?? [])];
+	const all = [...spec.extra, ...scopeDefs(spec, dateFields, info?.defaultDateField), ...(spec.tail ?? []), ...columnsDefs(spec, info)];
 	return all.map((def) => (def.key in defaults ? { ...def, default: defaults[def.key] } : def));
 }
 
@@ -288,6 +305,13 @@ export function normalizeParams(defs: readonly ReportParamDef[], values: Record<
 		} else if (MULTI_KINDS.has(def.kind)) {
 			const list = toList(raw);
 			if (list.length) out[def.key] = list;
+		} else if (def.kind === 'columns') {
+			// только известные ключи (колонку могли убрать на сервере), в порядке выбора; набор по умолчанию в тело не идёт
+			const known = new Set((def.options ?? []).map((o) => o.key));
+			const list = toList(raw).filter((k) => known.has(k));
+			const dflt = Array.isArray(def.default) ? (def.default as string[]) : [];
+			const same = list.length === dflt.length && list.every((k, i) => k === dflt[i]);
+			if (list.length && !same) out[def.key] = list;
 		} else if (def.kind === 'bool') {
 			if (raw === true) out[def.key] = true;
 		} else if (def.kind === 'date_field') {
@@ -310,6 +334,10 @@ export function validateParams(defs: readonly ReportParamDef[], values: Record<s
 	const errors: Record<string, string> = {};
 	for (const def of defs) {
 		if (isDisabled(def, values)) continue;
+		if (def.kind === 'columns') {
+			if (Array.isArray(values[def.key]) && (values[def.key] as unknown[]).length === 0) errors[def.key] = 'Выберите хотя бы одну колонку';
+			continue;
+		}
 		const raw = effective(def, values);
 		if (isBlank(raw)) {
 			if (def.required) errors[def.key] = 'Обязательное поле';

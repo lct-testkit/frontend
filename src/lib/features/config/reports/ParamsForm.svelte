@@ -13,6 +13,7 @@
 	import { DEAL_TYPES, DEAL_TYPE_LABELS } from '../workflows/graph';
 	import { isDisabled, toList, type ReportParamDef } from './params';
 	import type { PeriodPreset } from './period';
+	import ColumnsPicker from './ColumnsPicker.svelte';
 	import ReportScopeFields from './ReportScopeFields.svelte';
 	import { productResolve, productSearch } from './pickers';
 
@@ -30,9 +31,11 @@
 		/** виджет дашборда: быстрый период хранится пресетом */
 		widget?: boolean;
 		period?: PeriodPreset;
+		/** не больше стольких колонок (табличный виджет) */
+		maxColumns?: number;
 	}
 
-	let { defs, values = $bindable({}), errors = {}, workflows = [], widget = false, period = $bindable() }: Props = $props();
+	let { defs, values = $bindable({}), errors = {}, workflows = [], widget = false, period = $bindable(), maxColumns }: Props = $props();
 
 	// поля общего блока рисует один компонент — на месте первого из них
 	const scopeDefs = $derived(defs.filter((d) => d.group === 'scope'));
@@ -117,6 +120,8 @@
 			error={errors[def.key]}
 			onInput={(v) => set(def.key, v)}
 		/>
+	{:else if def.kind === 'columns'}
+		<ColumnsPicker options={def.options ?? []} value={Array.isArray(values[def.key]) ? (values[def.key] as string[]) : undefined} tz={def.tz} max={maxColumns} error={errors[def.key]} onChange={(v) => set(def.key, v)} />
 	{:else if def.kind === 'bool'}
 		<CheckField label={def.label} hint={def.hint} checked={values[def.key] === true} onChange={(v) => set(def.key, v || undefined)} />
 	{:else}

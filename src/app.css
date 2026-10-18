@@ -445,3 +445,11 @@
 .dt-embedded .rt-ext-cards__main {
 	padding-inline: 15px;
 }
+
+/* a closed Tip (ui/Tip.svelte): the popper hides the box and flings it far to the right (translate 1251 px on a desktop) — it stays in the layout, so the page grew wider than a phone and
+   the whole app (drawers included) slid right; a hidden box goes to the origin instead, an open one is placed by the popper as usual */
+@layer components {
+	.atmr-tooltip.rt-tip[data-popper-reference-hidden] {
+		transform: none !important;
+	}
+}

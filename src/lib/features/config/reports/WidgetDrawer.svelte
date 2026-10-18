@@ -42,7 +42,7 @@
 	const isNew = $derived(widget === null);
 	const available = $derived(templates.filter((t) => t.is_active && (type !== 'report_chart' || canChart(t.code))));
 	const template = $derived(templates.find((t) => t.code === code));
-	const defs = $derived(code ? paramsFor(code, template?.default_params, { dateFields: template?.date_fields, defaultDateField: template?.default_date_field }) : []);
+	const defs = $derived(code ? paramsFor(code, template?.default_params, { dateFields: template?.date_fields, defaultDateField: template?.default_date_field, columns: template?.columns }).filter((d) => d.kind !== 'columns' || type === 'report_table') : []);
 	const metricItems = $derived([{ key: 'rows', value: 'Число строк в отчёте' }, ...sumColumnsOf(code ?? '').map((c) => ({ key: `sum:${c}`, value: `Сумма: ${c}` }))]);
 
 	$effect(() => {
@@ -106,7 +106,7 @@
 	</div>
 	<Pick label="Отчёт" required search bind:value={code} items={available.map((t) => ({ key: t.code, value: t.name }))} error={errors.template_code} hint={type === 'report_chart' ? 'График доступен для отчётов с числовыми колонками' : undefined} />
 	{#if code}
-		<ParamsForm {defs} bind:values {workflows} widget bind:period />
+		<ParamsForm {defs} bind:values {workflows} widget bind:period maxColumns={5} />
 		{#if type === 'stat_tile'}<Pick label="Показатель" bind:value={metric} items={metricItems} />{/if}
 	{/if}
 	<TextField label="Заголовок" bind:value={title} maxlength={120} />

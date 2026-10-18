@@ -65,8 +65,11 @@ export class DashboardData {
 	async #runOne(key: string, config: WidgetConfig, signal: AbortSignal): Promise<void> {
 		this.loading = { ...this.loading, [key]: true };
 		try {
-			const defs = paramsFor(config.template_code);
-			let job = await startReport(config.template_code, 'xlsx', normalizeParams(defs, effectiveParams(config)));
+			const effective = effectiveParams(config);
+			// каталог колонок здесь неизвестен: ключи выбранных колонок сервер проверит сам
+			const columns = Array.isArray(effective.columns) ? effective.columns.map((k) => ({ key: String(k), title: String(k), default: false })) : undefined;
+			const defs = paramsFor(config.template_code, {}, columns ? { columns } : undefined);
+			let job = await startReport(config.template_code, 'xlsx', normalizeParams(defs, effective));
 			if (isReportBusy(job.status)) job = await waitForReport(job, { signal });
 			if (job.status === 'failed') throw new ReportFailed(job.error || 'Не удалось сформировать отчёт.');
 			const table = fromReportData(await fetchReportData(job.id, signal));
