@@ -5,6 +5,7 @@
 	import { session } from '$lib/auth/session.svelte';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import SectionTabs from '../shared/SectionTabs.svelte';
+	import ApiKeysTab from './ApiKeysTab.svelte';
 	import HealthBar from './HealthBar.svelte';
 	import InboundTab from './InboundTab.svelte';
 	import OutboxTab from './OutboxTab.svelte';
@@ -15,6 +16,7 @@
 	const TABS = [
 		{ key: 'sources', label: 'Источники' },
 		{ key: 'subscriptions', label: 'Подписки' },
+		{ key: 'keys', label: 'Ключи API' },
 		{ key: 'outbox', label: 'Исходящие' },
 		{ key: 'inbound', label: 'Входящие' },
 		{ key: 'refs', label: 'Связи' }
@@ -23,10 +25,11 @@
 	const tab = $derived(TABS.some((t) => t.key === readQuery('tab')) ? readQuery('tab') : 'sources');
 	const allowed = $derived(session.can('integration:admin'));
 	let subscriptions = $state<SubscriptionsTab | null>(null);
+	let keys = $state<ApiKeysTab | null>(null);
 </script>
 
 <Page>
-	<PageHeader title="Интеграции" primary={!allowed ? undefined : tab === 'subscriptions' ? { label: 'Новая подписка', onclick: () => subscriptions?.create(), testid: 'sub-create' } : undefined}>
+	<PageHeader title="Интеграции" primary={!allowed ? undefined : tab === 'subscriptions' ? { label: 'Новая подписка', onclick: () => subscriptions?.create(), testid: 'sub-create' } : tab === 'keys' ? { label: 'Выпустить ключ', onclick: () => keys?.create(), testid: 'key-create' } : undefined}>
 		{#snippet tabs(underline)}
 			{#if allowed}<SectionTabs tabs={TABS} active={tab} {underline} onSelect={(k) => setQuery({ tab: k === 'sources' ? null : k, source: null, status: null, entity: null })} />{/if}
 		{/snippet}
@@ -39,6 +42,8 @@
 			<SourcesTab />
 		{:else if tab === 'subscriptions'}
 			<SubscriptionsTab bind:this={subscriptions} />
+		{:else if tab === 'keys'}
+			<ApiKeysTab bind:this={keys} />
 		{:else if tab === 'outbox'}
 			<OutboxTab />
 		{:else if tab === 'inbound'}

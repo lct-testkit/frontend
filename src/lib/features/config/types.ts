@@ -57,3 +57,4 @@ export interface HealthReport {
 
 export type WebhookSubscription = S['WebhookSubscriptionOut'];
 export type WebhookDelivery = S['WebhookDeliveryOut'];
+export type ApiKey = S['ApiKeyOut'];
