@@ -84,7 +84,7 @@
 		try {
 			const next = await unwrap(api.GET('/api/organizations/{organization_id}', { params: { path: { organization_id: id } } }));
 			adopt(next, keepEdits);
-			pushRecent(session.me?.id, { type: 'organization', id: next.id, title: orgTitle(next) });
+			pushRecent(session.me?.id, { type: 'organization', id: next.id });
 		} catch (e) {
 			error = e;
 		} finally {

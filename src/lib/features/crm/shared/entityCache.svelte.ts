@@ -4,6 +4,8 @@ import { SvelteMap } from 'svelte/reactivity';
 import { api, unwrap, ApiError } from '$lib/api';
 import { session } from '$lib/auth/session.svelte';
 import type { Contact, Organization } from '../types';
+import { clearAllDrafts } from '../deals/card/transitionDrafts';
+import { clearRecent } from '../recent/localRecent';
 import { clearGone, isGone, markGone, type GoneKind } from './goneEntities';
 
 /** Сколько ждать перед повторной попыткой после 429 или 5xx (мс); сбой сети повторяется со следующим ensure. */
@@ -132,6 +134,9 @@ export const dealCache = new EntityCache<Deal>(
 	goneHooks('deal')
 );
 session.onReset(clearGone);
+// выход из системы: история «Недавних» и черновики диалога перехода (в них бывают ПДн) не остаются на общем компьютере
+session.onReset(clearRecent);
+session.onReset(clearAllDrafts);
 
 /** Названия сделок для подписей. Сначала страницами списка (одиночный `GET /deals/{id}` пишет сделку в «Недавние»).
  * Если список прочитан до конца, а нужной сделки в нём нет — её удалили (или она вне доступа): запрос не нужен вовсе. */

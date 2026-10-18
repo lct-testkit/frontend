@@ -44,18 +44,6 @@ export type OrgDetails = S['OrgDetailsOut'];
 export type DuplicateCandidate = S['DuplicateCandidateOut'];
 export type OrganizationLicense = S['OrganizationLicenseOut'];
 
-/** Ответ `GET /api/me/recent` — у ручки нет `response_model`, поэтому в OpenAPI она нетипизирована. */
-export interface RecentItem {
-	type: 'deal' | 'organization' | 'contact' | 'report' | string;
-	id: string;
-	title: string;
-	opened_at: string;
-}
-
-export interface RecentResponse {
-	items: RecentItem[];
-}
-
 /** Роли из `/api/me → role`. */
 export type Role = 'KAM' | 'HEAD' | 'ADMIN' | 'AUDITOR' | 'INTEGRATION';
 
