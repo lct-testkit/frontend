@@ -41,7 +41,7 @@
 			contact = c;
 			contactCache.put(c);
 			orgCache.ensure([c.organization_id]);
-			pushRecent(session.me?.id, { type: 'contact', id: c.id, title: contactFullName(c) });
+			pushRecent(session.me?.id, { type: 'contact', id: c.id });
 		} catch (e) {
 			error = e;
 		} finally {
