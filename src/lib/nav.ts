@@ -20,6 +20,7 @@ import {
 	Portfolio,
 	Security,
 	SecurityCheck,
+	SecurityHealth,
 	Settings,
 	Task,
 	Trash,
@@ -84,6 +85,7 @@ export const NAV: NavSection[] = [
 			{ id: 'erasure', label: 'Удаление ПДн', href: '/admin/erasure', icon: Trash, permission: 'erasure:manage' },
 			{ id: 'audit', label: 'Журнал аудита', href: '/admin/audit', icon: History, permission: 'audit:read' },
 			{ id: 'security', label: 'События безопасности', href: '/admin/security', icon: Security, permission: 'security_event:read' },
+			{ id: 'incidents', label: 'Инциденты ПДн', href: '/admin/incidents', icon: SecurityHealth, permission: 'incident:read' },
 			{ id: 'settings', label: 'Настройки', href: '/admin/settings', icon: Settings, permission: 'settings:write' }
 		]
 	}
