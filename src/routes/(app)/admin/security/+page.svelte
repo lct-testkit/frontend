@@ -7,19 +7,27 @@
 	import { session } from '$lib/auth/session.svelte';
 	import { apiQuery, describeFilters, exportFilename, readFilters } from '$lib/features/identity/security/security-query';
 	import SecurityList from '$lib/features/identity/security/SecurityList.svelte';
+	import SecurityPosture from '$lib/features/identity/security/SecurityPosture.svelte';
 	import SecuritySummary from '$lib/features/identity/security/SecuritySummary.svelte';
 	import ErrorState from '$lib/ui/ErrorState.svelte';
 	import IconBtn from '$lib/ui/IconBtn.svelte';
 	import Page from '$lib/ui/Page.svelte';
 	import PageHeader from '$lib/ui/PageHeader.svelte';
+	import TabsBar from '$lib/ui/TabsBar.svelte';
 	import { confirm } from '$lib/ui/confirm.svelte';
 	import { toast } from '$lib/ui/toast.svelte';
-	import { readQuery } from '$lib/utils/query-state.svelte';
+	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 
 	const allowed = $derived(session.can('security_event:read'));
 	let summary = $state<components['schemas']['SecurityEventSummaryOut'] | null>(null);
 	let summaryError = $state(false);
 	let exporting = $state(false);
+	// вкладки: журнал событий и состояние защиты (`?view=posture`)
+	const VIEWS = [
+		{ key: 'events', label: 'События' },
+		{ key: 'posture', label: 'Состояние защиты' }
+	] as const;
+	const view = $derived(readQuery('view') === 'posture' ? 'posture' : 'events');
 
 	onMount(async () => {
 		if (!session.can('security_event:read')) return;
@@ -60,9 +68,15 @@
 <svelte:head><title>События безопасности · RTK School</title></svelte:head>
 
 <Page>
-	<PageHeader title="События безопасности" />
+	<PageHeader title="События безопасности">
+		{#snippet tabs(underline)}
+			{#if allowed}<TabsBar items={VIEWS} value={view} label="Раздел" {underline} onChange={(k) => void setQuery({ view: k === 'events' ? null : k })} />{/if}
+		{/snippet}
+	</PageHeader>
 	{#if !allowed}
 		<ErrorState error={new ApiError({ status: 403, detail: 'События безопасности доступны администратору и аудитору.' })} />
+	{:else if view === 'posture'}
+		<SecurityPosture />
 	{:else}
 		<SecuritySummary {summary} failed={summaryError} />
 		<SecurityList extraTypes={summary?.by_type.map((t) => t.event_type) ?? []}>
