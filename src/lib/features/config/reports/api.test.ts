@@ -44,6 +44,15 @@ describe('fetchReportData', () => {
 	});
 });
 
+describe('fetchReportData: полный ответ', () => {
+	it('отдаёт примечание, время построения и признаки усечения без потерь', async () => {
+		const body = { title: 'Воронка', columns: ['Статус'], rows: [['Новая']], note: 'Источник: материализованное представление', generated_at: '2026-10-16T11:35:00Z', row_count: 1, total_rows: 9, truncated: true };
+		get.mockResolvedValue(ok(body));
+		const { fetchReportData } = await load();
+		expect(await fetchReportData('report-1')).toEqual(body);
+	});
+});
+
 describe('isRateLimited', () => {
 	it('429 или CRM-1601 — да; другая ошибка API или не ApiError — нет', async () => {
 		const { isRateLimited } = await load();

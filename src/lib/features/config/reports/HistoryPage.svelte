@@ -10,6 +10,7 @@
 	import { createPoller } from '../shared/polling.svelte';
 	import { downloadReport } from './api';
 	import { REPORT_STATUS_INFO, canDownloadReport, formatLabel, isReportBusy, isReportExpired, type ReportStatus } from './params';
+	import { jobNoteInput, reportNotes } from './notes';
 	import ReportTabs from './ReportTabs.svelte';
 
 	const pager = createPager<ReportJob>((cursor, signal) => unwrap(api.GET('/api/reports', { params: { query: { limit: 50, cursor } }, signal })));
@@ -37,6 +38,12 @@
 		}
 	}
 
+	/** пометка про усечение по «Не больше строк» (только если сервер сообщил `truncated`) */
+	const limitNote = (j: ReportJob): string | undefined => {
+		const input = jobNoteInput(j, false);
+		return input.truncated === true ? reportNotes(input).find((n) => n.kind === 'truncated')?.text : undefined;
+	};
+
 	const columns: Col<ReportJob>[] = [
 		{ key: 'name', title: 'Отчёт', width: 'minmax(200px, 1.6fr)', render: nameCell },
 		{ key: 'format', title: 'Формат', drop: 3, render: formatCell },
@@ -55,7 +62,14 @@
 		{#if isReportExpired(j)}<span class="t-desc-l text-soft">Срок хранения истёк</span>{:else}<StatusChip label={info(j.status).label} tone={info(j.status).tone} title={j.error ?? undefined} />{/if}
 	</TableCell>
 {/snippet}
-{#snippet rowsCell(j: ReportJob)}<TableCell align="right"><span class="t-body-s tabular-nums">{j.row_count ?? '—'}</span></TableCell>{/snippet}
+{#snippet rowsCell(j: ReportJob)}
+	<TableCell align="right">
+		<span class="inline-flex items-center gap-2">
+			{#if limitNote(j)}<StatusChip label="предел" tone="warning" hint={limitNote(j)} />{/if}
+			<span class="t-body-s tabular-nums">{j.row_count ?? '—'}</span>
+		</span>
+	</TableCell>
+{/snippet}
 {#snippet createdCell(j: ReportJob)}<TableCell><span class="t-body-s"><DateText value={j.created_at} time /></span></TableCell>{/snippet}
 {#snippet keepCell(j: ReportJob)}<TableCell>{#if j.expires_at}<span class="t-body-s"><DateText value={j.expires_at} /></span>{:else}<span class="text-soft">—</span>{/if}</TableCell>{/snippet}
 {#snippet dlCell(j: ReportJob)}<TableCell>{#if canDownloadReport(j)}<IconBtn icon={Download} label="Скачать" onclick={(e) => (e.stopPropagation(), void save(j))} />{/if}</TableCell>{/snippet}
@@ -67,7 +81,7 @@
 			<span class="t-desc-l flex flex-wrap items-center gap-x-2 gap-y-1 text-muted">
 				{formatLabel(j.format)} · <DateText value={j.created_at} time />
 			</span>
-			{#if isReportExpired(j)}<span class="t-desc-l text-soft">Срок хранения истёк</span>{:else}<span><StatusChip label={info(j.status).label} tone={info(j.status).tone} /></span>{/if}
+			{#if isReportExpired(j)}<span class="t-desc-l text-soft">Срок хранения истёк</span>{:else}<span class="flex flex-wrap items-center gap-2"><StatusChip label={info(j.status).label} tone={info(j.status).tone} />{#if limitNote(j)}<StatusChip label="предел строк" tone="warning" hint={limitNote(j)} />{/if}</span>{/if}
 		</div>
 		{#if canDownloadReport(j)}<IconBtn icon={Download} label="Скачать" size="l" onclick={(e) => (e.stopPropagation(), void save(j))} />{/if}
 	</div>
