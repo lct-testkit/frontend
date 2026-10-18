@@ -120,6 +120,8 @@ export interface ReportSpec {
 	tail?: ReportParamDef[];
 	/** одна строка над формой: что именно считает отчёт */
 	hint?: string;
+	/** подсказка видна только этим ролям (иначе всем) */
+	hintRoles?: readonly string[];
 	/** отчёт содержит персональные данные: предупреждение над формой */
 	personalData?: boolean;
 	/** другая подпись поля «Ответственные» */
@@ -140,7 +142,8 @@ export const REPORT_SPECS: Record<string, ReportSpec> = {
 			{ key: 'deal_type', label: 'Тип сделки', kind: 'deal_type', default: 'b2b', required: true },
 			{ key: 'workflow_id', label: 'Воронка', kind: 'workflow', hint: 'Пусто — воронка по умолчанию для типа сделки' }
 		],
-		hint: 'С фильтрами отчёт считается точнее, но дольше'
+		hint: 'Без фильтров — снимок не старше 5 минут; с фильтрами — точный расчёт',
+		hintRoles: ['ADMIN']
 	},
 	kam_summary: { scope: { period: DEAL_DATES, ...ALL_FILTERS }, extra: [], ownersLabel: 'КАМы в сводке' },
 	region_summary: { scope: { period: DEAL_DATES, ...ALL_FILTERS }, extra: [] },

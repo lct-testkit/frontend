@@ -37,9 +37,16 @@ export class DashboardData {
 	}
 	isLoading = (config: WidgetConfig): boolean => Boolean(this.loading[runKey(config)]);
 	errorOf = (config: WidgetConfig): string | null => this.errors[runKey(config)] ?? null;
-	/** самое давнее обновление среди виджетов */
+	/** на какой момент данные виджета: время построения на сервере, а если его нет — время запроса */
+	asOf(config: WidgetConfig): number | null {
+		const entry = this.entries[runKey(config)];
+		if (!entry) return null;
+		const built = entry.table.generatedAt ? Date.parse(entry.table.generatedAt) : Number.NaN;
+		return Number.isFinite(built) ? built : entry.at;
+	}
+	/** самые давние данные среди виджетов */
 	oldest(configs: readonly WidgetConfig[]): number | null {
-		const times = configs.map((c) => this.entries[runKey(c)]?.at).filter((t): t is number => typeof t === 'number');
+		const times = configs.map((c) => this.asOf(c)).filter((t): t is number => t !== null);
 		return times.length ? Math.min(...times) : null;
 	}
 

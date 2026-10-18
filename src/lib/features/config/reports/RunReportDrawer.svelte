@@ -5,6 +5,7 @@
 	import { Progress } from '@lct-testkit/rt-ui/ext';
 	import { CheckLarge } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
+	import { session } from '$lib/auth/session.svelte';
 	import { FormDrawer, Notice } from '$lib/ui';
 	import { count } from '$lib/utils/format';
 	import type { ReportTemplate } from '../types';
@@ -12,6 +13,8 @@
 	import { REPORT_SPECS, defaultFormat, describeTemplate, formatHint, formatLabel, formatsFor, normalizeParams, paramsFor, validateParams } from './params';
 	import { cleanSelection } from './columns';
 	import { columnsKey, formatKey, recall, recallStrings, remember } from './memory';
+	import { jobNoteInput, reportNotes } from './notes';
+	import ReportNotes from './ReportNotes.svelte';
 	import { useReportRun } from './run.svelte';
 
 	interface Props {
@@ -32,6 +35,7 @@
 	const hasScope = $derived(defs.some((d) => d.group === 'scope'));
 	const formats = $derived(formatsFor(template?.output_formats ?? []));
 	const busy = $derived(run.phase === 'running');
+	const notes = $derived(run.job ? reportNotes(jobNoteInput(run.job, session.isRole('ADMIN'))) : []);
 
 	$effect(() => {
 		const t = template;
@@ -85,7 +89,7 @@
 		{#if run.phase === 'form' || run.phase === 'failed'}
 			<div class="flex flex-col gap-4">
 				{#if template.description}<p class="t-body-s text-muted">{describeTemplate(template.description)}</p>{/if}
-				{#if spec?.hint}<p class="t-desc-l text-muted">{spec.hint}</p>{/if}
+				{#if spec?.hint && (!spec.hintRoles || spec.hintRoles.some((r) => session.isRole(r)))}<p class="t-desc-l text-muted">{spec.hint}</p>{/if}
 				{#if spec?.personalData}<Notice class="shrink-0" tone="warning">Отчёт содержит персональные данные. Не передавайте файл посторонним</Notice>{/if}
 				{#if formats.length > 1}
 					<div class="flex flex-col gap-1.5" role="group" aria-labelledby="report-format-label">
@@ -109,6 +113,7 @@
 				<span class="inline-flex size-12 items-center justify-center rounded-full bg-success-soft"><CheckLarge class="size-6 fill-success" /></span>
 				<p class="t-body-l-strong">Отчёт готов</p>
 				{#if run.job?.row_count != null}<p class="t-desc-l text-muted">{count(run.job.row_count, ['строка', 'строки', 'строк'])}</p>{/if}
+				<div class="flex w-full flex-col gap-2 text-left"><ReportNotes {notes} /></div>
 			</div>
 		{/if}
 	{/if}
