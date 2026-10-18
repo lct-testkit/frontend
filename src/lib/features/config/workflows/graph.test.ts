@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Condition } from './dsl';
 import {
+	autoLayout,
 	defaultLayers,
 	edgeLayer,
+	edgeSides,
+	layoutSnake,
 	insertStepAfter,
 	isOptionalStep,
 	moveStep,
@@ -558,5 +561,33 @@ describe('порядок шагов и необязательный шаг', () 
 		it('в пустой воронке — 10', () => {
 			expect(newStatus({ statuses: [], transitions: [], sla_rules: [] }).sort_order).toBe(10);
 		});
+	});
+});
+
+describe('раскладка «змейкой»', () => {
+	const draft = fromServer(funnel14());
+	const pos = layoutSnake(draft);
+	const dist = (a: string, b: string) => Math.hypot(pos[a].x - pos[b].x, pos[a].y - pos[b].y);
+
+	it('шаги рядами по 3, чётные ряды справа налево; переход на следующий шаг — всегда рядом', () => {
+		expect(pos[stepId(1)].x).toBeLessThan(pos[stepId(3)].x);
+		expect(pos[stepId(4)].x).toBeGreaterThan(pos[stepId(6)].x);
+		expect(pos[stepId(3)].x).toBe(pos[stepId(4)].x);
+		for (let n = 1; n < 14; n += 1) expect(dist(stepId(n), stepId(n + 1))).toBeLessThanOrEqual(340);
+	});
+	it('завершающие статусы — отдельный ряд под шагами, позиции не совпадают', () => {
+		const lowest = Math.max(...Array.from({ length: 14 }, (_, i) => pos[stepId(i + 1)].y));
+		for (const k of ['won', 'lost', 'parked']) expect(pos[k].y).toBeGreaterThan(lowest);
+		expect(new Set(Object.values(pos).map((p) => `${p.x}:${p.y}`)).size).toBe(17);
+	});
+	it('autoLayout: длинная воронка — змейкой, короткая — по уровням', () => {
+		expect(autoLayout(draft)).toEqual(pos);
+		const small = fromServer(SERVER);
+		expect(autoLayout(small)).toEqual(layoutByLevels(small));
+	});
+	it('сторона ребра: соседи в ряду — справа налево и слева направо, ряды — сверху вниз', () => {
+		expect(edgeSides({ x: 0, y: 0 }, { x: 300, y: 0 })).toEqual({ source: 'r', target: 'l' });
+		expect(edgeSides({ x: 300, y: 0 }, { x: 0, y: 0 })).toEqual({ source: 'l', target: 'r' });
+		expect(edgeSides({ x: 600, y: 0 }, { x: 600, y: 124 })).toEqual({ source: 'b', target: 't' });
 	});
 });

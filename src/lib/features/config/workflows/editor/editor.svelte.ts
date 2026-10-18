@@ -10,7 +10,7 @@ import {
 	defaultLayers,
 	fromServer,
 	insertStepAfter as insertStepIn,
-	layoutByLevels,
+	autoLayout as autoLayoutOf,
 	moveStep as moveStepIn,
 	setOptional as setOptionalIn,
 	newKey,
@@ -120,7 +120,7 @@ export class WorkflowEditor {
 	private apply(graph: WorkflowGraph, previous?: { draft: GraphDraft; positions: Positions; selection: Selection | null }): void {
 		this.workflow = graph.workflow;
 		const draft = fromServer(graph as ServerGraph);
-		const auto = layoutByLevels(draft);
+		const auto = autoLayoutOf(draft);
 		const stored = previous ? {} : readPositions(this.id);
 		const oldKeyByCode = new Map(previous?.draft.statuses.map((s) => [s.code, s.key]) ?? []);
 		const positions: Positions = {};
@@ -320,7 +320,7 @@ export class WorkflowEditor {
 	}
 
 	autoLayout(): void {
-		this.positions = layoutByLevels(this.draft);
+		this.positions = autoLayoutOf(this.draft);
 		this.persistPositions();
 		this.showOnCanvas(this.liveStatuses[0]?.key ?? '');
 	}

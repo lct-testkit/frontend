@@ -37,8 +37,6 @@
 
 	const { fitView } = useSvelteFlow();
 	// большой граф целиком не читается: начинаем с начала воронки в масштабе, где виден текст; «Показать всё» — на панели управления
-	// svelte-ignore state_referenced_locally
-	const many = editor.draft.statuses.length > 8;
 	const editable = $derived(interactive && !editor.readonly);
 
 	// черновик / позиции / проблемы / выбор → узлы и рёбра холста
@@ -96,9 +94,8 @@
 		{nodeTypes}
 		{edgeTypes}
 		colorMode="light"
-		fitView={!many}
-		initialViewport={{ x: 40, y: 90, zoom: 0.7 }}
-		fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
+		fitView
+		fitViewOptions={{ padding: { top: '60px', left: '56px', bottom: '12px', right: '12px' }, maxZoom: 1 }}
 		minZoom={0.2}
 		maxZoom={1.6}
 		nodesDraggable={editable}
