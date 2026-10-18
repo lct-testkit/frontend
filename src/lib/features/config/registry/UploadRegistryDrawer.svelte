@@ -75,7 +75,6 @@
 		<FileField
 			accept={{ 'text/xml': ['.xml'], 'application/xml': ['.xml'], 'application/zip': ['.zip'], 'application/x-zip-compressed': ['.zip'] }}
 			label="Перетащите файл выгрузки"
-			required
 			hint="XML или ZIP с XML, выгрузка ЕГРЮЛ ФНС"
 			disabled={saving}
 			loading={saving}
