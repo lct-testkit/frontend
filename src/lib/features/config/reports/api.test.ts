@@ -134,6 +134,31 @@ describe('reportUrl / downloadReport', () => {
 	});
 });
 
+describe('downloadReportJson', () => {
+	it('запрашивает /data один раз и отдаёт блоб application/json с исходными полями', async () => {
+		const body = { title: 'Сделки', columns: ['Вуз'], rows: [['МГТУ']], note: null, generated_at: '2026-10-16T11:35:12Z', row_count: 1 };
+		get.mockResolvedValue(ok(body));
+		const { downloadReportJson } = await load();
+		const saved: { blob: Blob; name: string }[] = [];
+		await downloadReportJson({ id: 'job-1' }, 'Сделки по вузам', (blob, name) => saved.push({ blob, name }));
+		expect(get).toHaveBeenCalledTimes(1);
+		expect(get).toHaveBeenCalledWith('/api/reports/{report_id}/data', expect.objectContaining({ params: { path: { report_id: 'job-1' } } }));
+		expect(saved).toHaveLength(1);
+		expect(saved[0].blob.type).toBe('application/json');
+		expect(saved[0].name).toMatch(/^Сделки_по_вузам_\d{4}-\d{2}-\d{2}\.json$/);
+		expect(JSON.parse(await saved[0].blob.text())).toEqual(body);
+		expect(await saved[0].blob.text()).toContain('{\n  "title"');
+	});
+
+	it('403 (отчёт только файлом) не превращается в успех и ничего не сохраняет', async () => {
+		get.mockResolvedValue(fail(403, { code: 'CRM-1102', detail: 'Только файлом' }));
+		const { downloadReportJson } = await load();
+		let saved = 0;
+		await expect(downloadReportJson({ id: 'job-1' }, 'LMS', () => saved++)).rejects.toThrow();
+		expect(saved).toBe(0);
+	});
+});
+
 describe('countUnfinished', () => {
 	it('считает только задания в очереди и в обработке', async () => {
 		get.mockResolvedValue(ok({ items: [job({ status: 'queued' }), job({ status: 'processing' }), job({ status: 'completed' }), job({ status: 'failed' })] }));

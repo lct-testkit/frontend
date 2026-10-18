@@ -7,11 +7,14 @@
 	import { api, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
 	import { goto } from '$app/navigation';
-	import { Btn, FormDrawer, Notice } from '$lib/ui';
+	import { JSON as JsonIcon } from '@lct-testkit/rt-ui/icons';
+	import { ApiError } from '$lib/api';
+	import { Btn, FormDrawer, Notice, toast } from '$lib/ui';
 	import { count } from '$lib/utils/format';
 	import type { ReportTemplate } from '../types';
 	import ParamsForm, { type WorkflowOption } from './ParamsForm.svelte';
-	import { REPORT_SPECS, defaultFormat, describeTemplate, formatHint, formatLabel, formatsFor, normalizeParams, paramsFor, validateParams } from './params';
+	import { REPORT_SPECS, canDownloadJson, defaultFormat, describeTemplate, formatHint, formatLabel, formatsFor, normalizeParams, paramsFor, validateParams } from './params';
+	import { downloadReportJson } from './api';
 	import { cleanSelection } from './columns';
 	import { columnsKey, formatKey, recall, recallStrings, remember } from './memory';
 	import { jobNoteInput, reportNotes } from './notes';
@@ -87,6 +90,16 @@
 		onClose();
 	}
 
+	async function saveJson() {
+		if (!run.job || !template) return;
+		try {
+			await downloadReportJson(run.job, template.name);
+		} catch (e) {
+			if (e instanceof ApiError && e.status === 403) toast.error(new Error('Этот отчёт содержит персональные данные и доступен только файлом'));
+			else toast.error(e);
+		}
+	}
+
 	const inForm = $derived(run.phase === 'form' || run.phase === 'failed');
 	const queued = $derived(run.jobStatus === 'queued');
 </script>
@@ -153,6 +166,7 @@
 	{/if}
 	{#snippet extra()}
 		{#if run.phase === 'background' || run.phase === 'limit'}<Btn label="Мои отчёты" variant="outline" colorScheme="neutral" onclick={() => void goto('/reports/history')} />{/if}
+		{#if run.phase === 'done' && run.job && canDownloadJson(run.job)}<Btn label="Скачать JSON" icon={JsonIcon} variant="outline" colorScheme="neutral" onclick={() => void saveJson()} />{/if}
 		{#if run.phase === 'done' && run.job?.row_count === 0}<Btn label="Изменить параметры" variant="outline" colorScheme="neutral" onclick={() => run.reset()} />{/if}
 	{/snippet}
 </FormDrawer>

@@ -404,6 +404,12 @@ export function isReportExpired(job: ReportJobLike, now: Date = new Date()): boo
 	return Number.isFinite(expires) && expires <= now.getTime();
 }
 
+/** Виды отчёта «только файлом»: содержат ПДн целиком, JSON-выдачи (`/data`) у них нет (backend/app/modules/reporting/builders.py: FILE_ONLY_REPORTS). */
+export const FILE_ONLY_TEMPLATES: ReadonlySet<string> = new Set(['lms_users_upload']);
+
+/** JSON с данными можно получить у готового отчёта любого вида, кроме «только файлом»; файл при этом не нужен (даже если срок хранения вышел). */
+export const canDownloadJson = (job: { status: string; template_code: string }): boolean => job.status === 'completed' && !FILE_ONLY_TEMPLATES.has(job.template_code);
+
 export type FileState = 'pending' | 'ready' | 'expired' | 'gone' | 'failed';
 
 /**

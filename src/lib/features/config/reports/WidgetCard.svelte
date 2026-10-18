@@ -2,6 +2,7 @@
 	// Карточка виджета: заголовок, содержимое (данные или подсказка «Обновите»), в режиме правки — влево / вправо / изменить / удалить.
 	import { DropdownMenu } from '@lct-testkit/rt-ui';
 	import { ArrowLeft, ArrowRight, Download, Edit, Trash } from '@lct-testkit/rt-ui/icons';
+	import { ApiError } from '$lib/api';
 	import { IconBtn, Notice, Skeleton, StatusChip, toast } from '$lib/ui';
 	import { GLOSSARY } from '$lib/ui/glossary';
 	import { formatTime } from '$lib/utils/format';
@@ -10,6 +11,8 @@
 	import { exportFileName, paramsSummary, renderCard, saveBlob, toPdf, toPng } from './chart-export';
 	import { reportNotes } from './notes';
 	import WidgetBody from './WidgetBody.svelte';
+	import { downloadReportJson } from './api';
+	import { FILE_ONLY_TEMPLATES } from './params';
 	import { effectiveParams, readConfig, type WidgetConfig } from './widgets';
 
 	interface Props {
@@ -52,8 +55,12 @@
 	let exporting = $state(false);
 
 	const canPicture = $derived(widget.widget_type !== 'report_table');
+	// JSON: данные считаются заново по заданию, из которого построен виджет; без задания — таблица из памяти, но только целиком (кэш хранит не все строки)
+	const jobId = $derived(config ? data.jobId(config) : null);
+	const canJson = $derived(Boolean(config && !FILE_ONLY_TEMPLATES.has(config.template_code) && (jobId || (table && table.rows.length >= table.totalRows))));
 	const menuItems = $derived([
 		...(canPicture ? [{ key: 'png', value: 'PNG' }, { key: 'pdf', value: 'PDF' }] : []),
+		...(canJson ? [{ key: 'json', value: 'JSON' }] : []),
 		{ key: 'table', value: 'Таблица (Excel, PDF)…' }
 	]);
 
@@ -83,9 +90,24 @@
 		}
 	}
 
+	async function exportJson() {
+		if (!config || !table) return;
+		try {
+			if (jobId) await downloadReportJson({ id: jobId }, title);
+			else {
+				const body = { title: table.title ?? name, columns: table.columns, rows: table.rows, note: table.note ?? null, generated_at: table.generatedAt ?? new Date().toISOString(), row_count: table.totalRows };
+				saveBlob(new Blob([JSON.stringify(body, null, 2)], { type: 'application/json' }), exportFileName(title, new Date(), 'json'));
+			}
+		} catch (e) {
+			if (e instanceof ApiError && e.status === 403) toast.error(new Error('Этот отчёт содержит персональные данные и доступен только файлом'));
+			else toast.error(e);
+		}
+	}
+
 	function onPick(key: string | number) {
 		menuOpen = false;
-		if (key === 'png' || key === 'pdf') void exportPicture(key);
+		if (key === 'json') void exportJson();
+		else if (key === 'png' || key === 'pdf') void exportPicture(key);
 		else if (config) onExportTable?.(config);
 	}
 </script>
