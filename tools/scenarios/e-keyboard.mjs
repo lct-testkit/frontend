@@ -34,7 +34,6 @@ ok(outside === 0, '18 нажатий Tab/Shift+Tab: фокус ни разу н�
 await page.keyboard.press('Escape');
 await page.waitForTimeout(900);
 if (await dialog.count()) { // форма с вводом спрашивает подтверждение
-  const confirm = page.locator('[role=dialog]').last();
   console.log('  (окно осталось: подтверждение закрытия)');
   await page.keyboard.press('Escape');
   await page.waitForTimeout(900);
