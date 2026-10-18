@@ -29,7 +29,7 @@ const RULES: { test: RegExp; explain: (text: string) => Omit<RowRemark, 'text'> 
 ];
 
 /** Замечание с подсказкой «что делать», если текст известен. */
-export function explainRowError(text: string): RowRemark {
+function explainRowError(text: string): RowRemark {
 	for (const rule of RULES) if (rule.test.test(text)) return { text, ...rule.explain(text) };
 	return { text };
 }
