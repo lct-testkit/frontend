@@ -7,6 +7,9 @@ import { readCache, writeCache, type CacheEntry } from './dashboard-cache';
 import { fromReportData, type ReportTable } from './table';
 import { effectiveParams, runKey, type WidgetConfig } from './widgets';
 
+/** Сообщение виджета, который не обновился из-за лимита отчётов (прошлые данные остаются на месте). */
+export const NOT_UPDATED = 'Не обновлено';
+
 export class DashboardData {
 	readonly dashboardId: string;
 	entries = $state.raw<Record<string, CacheEntry>>({});
@@ -92,7 +95,7 @@ export class DashboardData {
 			let message: string;
 			if (isReportLimit(e)) {
 				this.limited = true;
-				message = 'Не обновлено';
+				message = NOT_UPDATED;
 			} else if (e instanceof ReportStillRunning) message = 'Отчёт ещё формируется: обновите чуть позже';
 			else message = isTooManyRequests(e) ? 'Слишком много запросов: подождите немного' : errorMessage(e);
 			this.errors = { ...this.errors, [key]: message };

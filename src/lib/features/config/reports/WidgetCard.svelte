@@ -4,7 +4,7 @@
 	import { IconBtn, Notice, Skeleton, StatusChip } from '$lib/ui';
 	import { formatTime } from '$lib/utils/format';
 	import type { DashboardWidget } from '../types';
-	import type { DashboardData } from './dashboard-data.svelte';
+	import { NOT_UPDATED, type DashboardData } from './dashboard-data.svelte';
 	import { reportNotes } from './notes';
 	import WidgetBody from './WidgetBody.svelte';
 	import { readConfig } from './widgets';
@@ -32,6 +32,9 @@
 	const loading = $derived(config ? data.isLoading(config) : false);
 	const error = $derived(config ? data.errorOf(config) : null);
 	const asOf = $derived(config ? data.asOf(config) : null);
+	/** лимит отчётов — не сбой: у виджета остаются прошлые данные, о них сказано тихой строкой */
+	const limitOnly = $derived(error === NOT_UPDATED);
+	const stale = $derived(Boolean(error));
 	const notes = $derived(
 		table ? reportNotes({ rowCount: table.totalRows, truncated: table.truncated, totalRows: table.serverTotal, note: table.note, asOf: table.generatedAt }).filter((n) => n.kind !== 'info') : []
 	);
@@ -53,13 +56,16 @@
 		{:else if table}
 			<div class={loading ? 'opacity-50' : undefined}><WidgetBody type={widget.widget_type} {config} {table} {name} /></div>
 			<p class="t-desc-m flex flex-wrap items-center gap-x-2 gap-y-1 pt-2 text-soft">
-				{#if asOf}<span>Данные на {formatTime(asOf)}</span>{/if}
+				{#if asOf}<span>Данные на {formatTime(asOf)}{stale ? ' · не обновлено' : ''}</span>{/if}
 				{#each notes as note (note.kind)}<StatusChip label={note.kind === 'truncated' ? 'Усечено' : 'Снимок'} tone={note.tone} hint={note.text} />{/each}
 			</p>
+			{#if error && !limitOnly}<p class="t-desc-m pt-1 text-muted">{error}</p>{/if}
 		{:else if loading}
 			<Skeleton kind="lines" rows={3} />
-		{:else if error}
+		{:else if error && !limitOnly}
 			<Notice tone="error" class="shrink-0 my-3">{error}</Notice>
+		{:else if error}
+			<p class="t-body-s py-6 text-center text-soft">Нет данных — обновите позже</p>
 		{:else}
 			<p class="t-body-s py-6 text-center text-soft">Нет данных — нажмите «Обновить данные»</p>
 		{/if}
