@@ -20,6 +20,7 @@ export type Comment = S['CommentOut'];
 export type Task = S['TaskOut'];
 export type Organization = S['OrganizationOut'];
 export type Branch = S['BranchOut'];
+export type AccessRequest = S['AccessRequestOut'];
 export type Contact = S['ContactOut'];
 export type ContactChannel = S['ContactChannelOut'];
 export type LearnerProfile = S['LearnerProfileOut'];

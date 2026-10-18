@@ -1,6 +1,7 @@
 <script lang="ts">
 	// Новая организация: «ИНН или название» → выбор из реестра → форма с подставленными данными → создание.
 	// Дубли по ИНН/названию проверяются по мере ввода; создание защищено Idempotency-Key.
+	import AccessRequestModal from '../access/AccessRequestModal.svelte';
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { api, ApiError, errorMessage, idem, unwrap } from '$lib/api';
@@ -137,6 +138,9 @@
 		}
 	}
 
+	let requesting = $state<string | null>(null);
+	const canAsk = $derived(session.can('organization:read'));
+
 	const open_ = (id: string) => {
 		onClose();
 		void goto(`/organizations/${id}`);
@@ -153,6 +157,8 @@
 		}
 	}
 </script>
+
+{#if requesting}<AccessRequestModal open orgId={requesting} onClose={() => (requesting = null)} onSent={() => (requesting = null)} />{/if}
 
 <FormDrawer {open} title="Новая организация" width={560} saveLabel="Создать" saveTestId="org-create-submit" showSave={step === 'form'} canSave={!blocked} saving={busy} {dirty} formError={failure} onSave={submit} {onClose}>
 	{#key lookupKey}
@@ -176,14 +182,16 @@
 						? [{ label: 'Восстановить', onclick: () => restore(id) }]
 						: []
 					: noOpen
-						? []
+						? canAsk && id
+							? [{ label: 'Запросить доступ', onclick: () => (requesting = id) }]
+							: []
 						: [
 								{ label: 'Открыть карточку', onclick: () => open_(id) },
-								...(session.can('deal:create') ? [{ label: 'Новая сделка', onclick: () => (onClose(), goto(`/deals?new=1&org=${id}`)) }] : [])
+								...(conflict ? (canAsk ? [{ label: 'Запросить доступ', onclick: () => (requesting = id) }] : []) : session.can('deal:create') ? [{ label: 'Новая сделка', onclick: () => (onClose(), goto(`/deals?new=1&org=${id}`)) }] : [])
 							]}
 			>
 				{#if hit && !hit.accessible}
-					Организация с {sameInn ? 'таким ИНН' : 'таким названием'} уже есть в системе, но недоступна вам. Обратитесь к руководителю.
+					Организация с {sameInn ? 'таким ИНН' : 'таким названием'} уже есть в системе, но недоступна вам. {canAsk ? 'Можно запросить доступ у ответственного.' : 'Обратитесь к руководителю.'}
 				{:else if conflict?.deleted}
 					Карточка с таким ИНН была удалена. Восстановить её может администратор.
 				{:else}

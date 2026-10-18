@@ -36,7 +36,7 @@
 
 	async function remove(b: Branch, children: number) {
 		if (children) {
-			toast.error('Нельзя удалить', 'У филиала есть дочерние — сначала удалите или перенесите их.');
+			toast.warning('Нельзя удалить', 'У филиала есть дочерние — сначала удалите или перенесите их.');
 			return;
 		}
 		if (!(await confirm({ title: `Удалить «${b.name}»?`, message: 'Филиал исчезнет из списка.', confirmLabel: 'Удалить', danger: true }))) return;
