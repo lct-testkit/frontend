@@ -25,6 +25,17 @@
 	let hover = $state(false);
 	let focus = $state(false);
 	const open = $derived(hover || focus);
+	// Подсказка DS — отдельный элемент в <body>, и он остаётся там скрытым у КАЖДОГО чипа. У чипов в прокручиваемых лентах (доска сделок)
+	// такие скрытые подсказки торчали справа от экрана и растягивали страницу: на телефоне обрезало верхнюю панель.
+	// Поэтому DS-подсказка создаётся только при первом наведении или фокусе, а до этого чип рисуется без неё.
+	let armed = $state(false);
+	let over = false;
+	/** DS-подсказка только что создана: открываем её на следующем кадре (создание сразу открытой DS воспринимает как закрытие) */
+	function arm(then: () => void) {
+		if (armed) return then();
+		armed = true;
+		setTimeout(then, 30);
+	}
 </script>
 
 <!-- the wrapper takes the keyboard focus (the DS trigger inside is aria-hidden and cannot); it is named by the tip itself -->
@@ -34,7 +45,18 @@
 	tabindex="0"
 	role="note"
 	aria-label={title ? `${title}. ${text}` : text}
-	onfocusin={(e) => (focus = (e.target as HTMLElement).matches(':focus-visible'))}
+	onmouseenter={() => {
+		over = true;
+		arm(() => (hover = over));
+	}}
+	onmouseleave={() => {
+		over = false;
+		hover = false;
+	}}
+	onfocusin={(e) => {
+		const visible = (e.target as HTMLElement).matches(':focus-visible');
+		if (visible) arm(() => (focus = true));
+	}}
 	onfocusout={() => (focus = false)}
 	onclick={(e) => {
 		// a finger: the tap is for the explanation, not for the card or row that the chip sits in
@@ -50,6 +72,7 @@
 		}
 	}}
 >
+	{#if armed}
 	<Tooltip
 		{title}
 		subtitle={text}
@@ -63,4 +86,7 @@
 	>
 		{@render children()}
 	</Tooltip>
+	{:else}
+		<span class="inline-flex w-auto max-w-full min-w-0"><span class="flex max-w-full min-w-0">{@render children()}</span></span>
+	{/if}
 </span>
