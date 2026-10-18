@@ -11,7 +11,7 @@
 	import PriorityChip from '../../shared/PriorityChip.svelte';
 	import SlaIndicator from '../../shared/SlaIndicator.svelte';
 	import type { AvailableTransition, Deal, WorkflowStatus } from '../../types';
-	import { COLUMN_PAGE, applyMove, emptyColumn, mergeItems, remaining, runLimited, withTotals, type BoardColumn } from './boardColumns';
+	import { COLUMN_PAGE, applyMove, emptyColumn, isFolded, mergeItems, remaining, runLimited, withTotals, type BoardColumn } from './boardColumns';
 	import { productLine, productsTitle, type DealRow } from './dealProducts';
 	import TransitionDialog from '../card/TransitionDialog.svelte';
 	import { isTerminal, roleHint, statusName, statusTone, steps, terminals, type StatusTone } from '../statusUtils';
@@ -22,11 +22,13 @@
 	interface Props {
 		workflowId: string;
 		query: DealQuery;
+		/** пустые столбцы свернуты в узкую полосу 44 px (название вертикально, счётчик); бросок на полосу работает как на столбец */
+		collapse?: boolean;
 		/** сделка переехала в другой статус: родитель может пересчитать числа на вкладках */
 		onChange?: () => void;
 	}
 
-	let { workflowId, query, onChange }: Props = $props();
+	let { workflowId, query, collapse = false, onChange }: Props = $props();
 
 	const PARALLEL = 6;
 	let cols = $state<Record<string, BoardColumn>>({});
@@ -260,9 +262,11 @@
 			{@const col = cols[status.id] ?? emptyColumn()}
 			{@const more = remaining(col)}
 			{@const tone = statusTone(status.type)}
+			{@const folded = isFolded(collapse, col)}
 			<section
 				class={[
-					'flex w-[86vw] max-w-80 flex-none snap-center flex-col rounded-lg border border-t-[3px] border-line bg-surface-2 md:min-h-0 md:w-72',
+					'flex flex-none snap-center flex-col rounded-lg border border-t-[3px] border-line bg-surface-2 md:min-h-0',
+					folded ? 'w-11' : 'w-[86vw] max-w-80 md:w-72',
 					TOP[tone],
 					overStatus === status.id && dragId && 'ring-2 ring-accent',
 					blocked(status.id) && 'opacity-50'
@@ -286,6 +290,12 @@
 				}}
 				aria-label={statusName(status.name)}
 			>
+				{#if folded}
+					<div class="flex min-h-0 flex-1 flex-col items-center gap-2 px-1 py-2.5" title="{statusName(status.name)}: пусто">
+						<Counter size="xs" variant="ghost" colorScheme="neutral">{col.total}</Counter>
+						<h3 class="t-body-s-strong m-0 min-h-0 flex-1 overflow-hidden text-muted [text-orientation:mixed] [writing-mode:vertical-rl] [text-overflow:ellipsis] whitespace-nowrap">{statusName(status.name)}</h3>
+					</div>
+				{:else}
 				<header class="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1.5">
 					<h3 class="t-body-s-strong m-0 truncate" title={statusName(status.name)}>{statusName(status.name)}</h3>
 					{#if col.total !== null}<Counter size="xs" variant="ghost" colorScheme="neutral">{col.total}</Counter>{/if}
@@ -307,6 +317,7 @@
 						{/if}
 					{/if}
 				</div>
+				{/if}
 			</section>
 		{/each}
 	</div>

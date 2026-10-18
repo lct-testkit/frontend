@@ -2,8 +2,13 @@
 	export interface Step {
 		id: string;
 		name: string;
-		/** done = passed, current = here, stopped = the object left the pipeline from this step (lost, parked), future = ahead */
-		state: 'done' | 'current' | 'stopped' | 'future';
+		/**
+		 * done = passed, skipped = an optional step the object bypassed, current = here, stopped = the object left the pipeline from this step
+		 * (lost, parked), earlier = ahead but the object has been there already (after a return), future = ahead
+		 */
+		state: 'done' | 'skipped' | 'current' | 'earlier' | 'future' | 'stopped';
+		/** the step may be bypassed: «· необязательный» is added to its name */
+		optional?: boolean;
 		/** present when the step can be entered now */
 		onclick?: () => void;
 		/** why the step cannot be entered (shown as the tooltip of an inactive step) */
@@ -16,7 +21,8 @@
 	// is in the middle and about three steps before and three after are in view («…3 4 5 [6] 7 8 9…»); the first and the last one are out of sight
 	// until you get there. There is no such component in rt-ui (its Wizard is a row of numbered tiles that does not fit 14 steps).
 	// The scrollbar is hidden (it was the bug of the first version): the row is moved by touch, wheel, trackpad, the ‹ › buttons or a click on a step.
-	// Each step is a coloured bar with «N Name» under it: done = accent, current = accent with a ring, lost = red, ahead = grey.
+	// Each step is a coloured bar with «N Name» under it: done = accent, skipped = dashed outline, current = accent with a ring, lost = red,
+	// earlier = pale accent, ahead = grey. The full name of the current step is on the header line (the names of the funnel are long).
 	// A step that can be entered right now is a button; the rest are inert.
 	import type { Snippet } from 'svelte';
 	import { ChevronLeft, ChevronRight } from '@lct-testkit/rt-ui/icons';
@@ -43,18 +49,25 @@
 		scrolls = strip.scrollWidth > strip.clientWidth + 1;
 	}
 
-	// keep the current step in the middle of the row (instantly the first time, smoothly afterwards)
+	// keep the current step in the middle of the row (instantly the first time, smoothly afterwards); the row is moved by whole steps so that
+	// the cells at its edges are not cut in half (only the steps that do not fit are hidden)
 	let placed = false;
 	function center() {
-		const here = strip?.querySelector<HTMLElement>('[data-here]');
-		if (strip && !here && steps.length && steps.every((s) => s.state === 'done')) {
+		if (!strip) return;
+		const cells = [...strip.children] as HTMLElement[];
+		const here = strip.querySelector<HTMLElement>('[data-here]');
+		const behavior = placed ? 'smooth' : 'instant';
+		if (!here && steps.length && steps.every((s) => s.state === 'done' || s.state === 'skipped')) {
 			// closed successfully: show the end of the path
-			strip.scrollTo({ left: strip.scrollWidth, behavior: placed ? 'smooth' : 'instant' });
+			strip.scrollTo({ left: strip.scrollWidth, behavior });
 			placed = true;
 			return measure();
 		}
-		if (!strip || !here) return measure();
-		strip.scrollTo({ left: Math.max(0, here.offsetLeft - (strip.clientWidth - here.offsetWidth) / 2), behavior: placed ? 'smooth' : 'instant' });
+		if (!here || cells.length < 2) return measure();
+		const pitch = cells[1].offsetLeft - cells[0].offsetLeft;
+		const visible = Math.max(1, Math.floor((strip.clientWidth + (pitch - cells[0].offsetWidth) + 2) / pitch)); // +2 px: rounding of fractional widths
+		const first = Math.min(Math.max(0, cells.indexOf(here) - Math.floor((visible - 1) / 2)), Math.max(0, cells.length - visible));
+		strip.scrollTo({ left: cells[first].offsetLeft - cells[0].offsetLeft, behavior });
 		placed = true;
 		measure();
 	}
@@ -72,38 +85,55 @@
 	const page = (dir: 1 | -1) => strip?.scrollBy({ left: dir * strip.clientWidth * 0.43, behavior: 'smooth' });
 
 	const at = $derived(steps.findIndex((s) => s.state === 'current' || s.state === 'stopped'));
-	const passed = $derived(steps.filter((s) => s.state === 'done').length);
+	const passed = $derived(steps.filter((s) => s.state === 'done' || s.state === 'skipped').length);
+	const skippedNumbers = $derived(steps.flatMap((s, i) => (s.state === 'skipped' ? [i + 1] : [])));
 	// a successfully closed object has passed everything: «все шаги пройдены» instead of a wrong «шаг 0»
-	const caption = $derived(at >= 0 ? `Шаг ${at + 1} из ${steps.length}` : passed === steps.length ? 'Все шаги пройдены' : `Шагов: ${steps.length}`);
+	const caption = $derived.by(() => {
+		const skipped = skippedNumbers.length ? `${skippedNumbers.length === 1 ? 'пропущен' : 'пропущены'}: ${skippedNumbers.join(', ')}` : '';
+		if (at >= 0) return `Шаг ${at + 1} из ${steps.length}${skipped ? `, ${skipped}` : ''}`;
+		if (passed === steps.length) return skipped ? `Все шаги пройдены, ${skipped}` : 'Все шаги пройдены';
+		return `Шагов: ${steps.length}`;
+	});
+	const hereName = $derived(steps[at]?.name ?? '');
 
 	const FILL: Record<Step['state'], string> = {
 		done: 'bg-accent',
+		skipped: 'border-2 border-dashed border-muted/70 bg-transparent',
 		current: 'bg-accent ring-2 ring-accent/30',
 		stopped: 'bg-danger ring-2 ring-danger/30',
+		earlier: 'bg-accent/30',
 		future: 'bg-surface-3'
 	};
 	const TEXT: Record<Step['state'], string> = {
 		done: 't-desc-l text-fg',
+		skipped: 't-desc-l text-muted',
 		current: 't-desc-l-strong text-fg',
 		stopped: 't-desc-l-strong text-danger',
+		earlier: 't-desc-l text-muted',
 		future: 't-desc-l text-muted'
 	};
-	// a soft fade on the side where more steps are hidden
-	const FADE_L = '[mask-image:linear-gradient(to_right,transparent,black_2rem)]';
-	const FADE_R = '[mask-image:linear-gradient(to_left,transparent,black_2rem)]';
-	const FADE_BOTH = '[mask-image:linear-gradient(to_right,transparent,black_2rem,black_calc(100%-2rem),transparent)]';
-	const fade = $derived(atStart && atEnd ? '' : atStart ? FADE_R : atEnd ? FADE_L : FADE_BOTH);
+	// the screen-reader text of a state (the colour alone says nothing to a reader)
+	const STATE_TEXT: Record<Step['state'], string> = {
+		done: 'пройден',
+		skipped: 'пропущен',
+		current: 'текущий шаг',
+		stopped: 'остановлена здесь',
+		earlier: 'был пройден раньше',
+		future: 'впереди'
+	};
+	const nameOf = (step: Step) => (step.optional ? `${step.name} · необязательный` : step.name);
 </script>
 
 {#snippet cell(step: Step, i: number)}
 	<span class={['block h-1.5 w-full rounded-full', FILL[step.state]]}></span>
-	<span class={[TEXT[step.state], 'mt-1.5 line-clamp-2 break-words']}><span class="text-soft">{i + 1}</span> {step.name}</span>
+	<span class={[TEXT[step.state], 'mt-1.5 line-clamp-3 break-words']}><span class="text-soft">{i + 1}</span> {step.name}{#if step.optional}<span class="text-soft"> · необязательный</span>{/if}<span class="sr-only">, {STATE_TEXT[step.state]}</span></span>
 {/snippet}
 
 {#if steps.length}
 	<div class="flex min-w-0 flex-col gap-2" role="group" aria-label={label}>
 		<div class="flex min-h-9 min-w-0 items-center gap-3">
 			<span class="t-body-s-strong flex-none">{caption}</span>
+			{#if hereName}<span class="t-body-s min-w-0 flex-1 truncate text-muted max-md:hidden" title={hereName}>{hereName}</span>{/if}
 			<span class="ml-auto flex flex-none items-center gap-2">
 				{#if end}{@render end()}{/if}
 				{#if scrolls}
@@ -116,15 +146,15 @@
 		</div>
 
 		<!-- 7 steps fit the row (3 + current + 3); on a narrow screen a step is at least 8.5 rem wide and fewer are in view -->
-		<ol bind:this={strip} class={['relative m-0 flex list-none gap-3 overflow-x-auto p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', fade]} onscroll={measure}>
+		<ol bind:this={strip} class="relative m-0 flex list-none snap-x gap-3 overflow-x-auto p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" onscroll={measure}>
 			{#each steps as step, i (step.id)}
-				<li class="max-w-none min-w-0 shrink-0 grow-0 basis-[max(8.5rem,calc((100%-4.5rem)/7))]" data-here={step.state === 'current' || step.state === 'stopped' ? '' : undefined}>
+				<li class="max-w-none min-w-0 shrink-0 grow-0 basis-[max(8.5rem,calc((100%-4.5rem)/7))] snap-start" data-here={step.state === 'current' || step.state === 'stopped' ? '' : undefined}>
 					{#if step.onclick}
-						<button type="button" class="block w-full cursor-pointer rounded-md p-0 text-left transition-colors hover:bg-surface-2 relative after:absolute after:inset-x-0 after:-inset-y-3 after:content-['']" title="Перейти: {step.name}" aria-label="Перейти к шагу {i + 1}: {step.name}" onclick={step.onclick}>
+						<button type="button" class="block w-full cursor-pointer rounded-md p-0 text-left transition-colors hover:bg-surface-2 relative after:absolute after:inset-x-0 after:-inset-y-3 after:content-['']" title="Перейти: {nameOf(step)}" aria-label="Перейти к шагу {i + 1}: {nameOf(step)}, {STATE_TEXT[step.state]}" onclick={step.onclick}>
 							{@render cell(step, i)}
 						</button>
 					{:else}
-						<div class="block w-full" title={step.hint ? `${step.name}. ${step.hint}` : step.name} aria-current={step.state === 'current' ? 'step' : undefined}>{@render cell(step, i)}</div>
+						<div class="block w-full" title={`${nameOf(step)}${step.state === 'skipped' ? ' (пропущен)' : ''}${step.hint ? `. ${step.hint}` : ''}`} aria-current={step.state === 'current' ? 'step' : undefined}>{@render cell(step, i)}</div>
 					{/if}
 				</li>
 			{/each}

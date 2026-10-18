@@ -1,48 +1,37 @@
 <script lang="ts">
-	// Воронка сделки: блок StatusSteps — по сегменту на шаг, пройденные залиты, текущий выделен, над лентой имя шага и «шаг N из M».
+	// Воронка сделки: блок StatusSteps — по сегменту на шаг. Пройденные залиты, пропущенный необязательный шаг — пунктиром, текущий выделен,
+	// шаги, где сделка уже была до возврата, бледные; над лентой «шаг N из M» (и номера пропущенных) и полное название текущего шага.
 	// Шаг, в который есть доступный переход, кликабелен (открывает диалог перехода). Терминальный статус (успех / отказ / заморозка) —
-	// метка справа над лентой; на каком шаге сделка остановилась, берём из истории.
-	import { untrack } from 'svelte';
-	import { api, unwrap } from '$lib/api';
+	// метка справа над лентой; на каком шаге сделка остановилась и где бывала, берём из истории в состоянии карточки.
 	import { StatusChip, StatusSteps, type Step } from '$lib/ui';
 	import { statusTypeHint } from '../../shared/hints';
-	import type { AvailableTransition, Deal, WorkflowGraph } from '../../types';
-	import { deniedText, isTerminal, roleHint, statusName, statusTone, steps } from '../statusUtils';
+	import type { AvailableTransition } from '../../types';
+	import { deniedText, isTerminal, optionalStepIds, roleHint, statusName, statusTone, stepStates, steps } from '../statusUtils';
+	import type { DealCardState } from './dealCard.svelte';
 
 	interface Props {
-		graph: WorkflowGraph | undefined;
-		deal: Deal;
+		card: DealCardState;
 		transitions: AvailableTransition[];
 		onStep?: (transition: AvailableTransition) => void;
 	}
 
-	let { graph, deal, transitions, onStep }: Props = $props();
+	let { card, transitions, onStep }: Props = $props();
 
+	const graph = $derived(card.graph);
+	const deal = $derived(card.deal!);
 	const list = $derived(steps(graph));
+	const optional = $derived(optionalStepIds(graph));
 	const current = $derived(graph?.statuses.find((s) => s.id === deal.status_id));
 	const terminal = $derived(current && isTerminal(current) ? current : null);
-
-	let stoppedAt = $state<string | null>(null);
-	$effect(() => {
-		const t = terminal;
-		const id = deal.id;
-		untrack(() => (stoppedAt = null));
-		if (!t || t.type === 'won') return;
-		let alive = true;
-		void unwrap(api.GET('/api/deals/{deal_id}/history', { params: { path: { deal_id: id } } }))
-			.then((h) => {
-				if (alive) stoppedAt = h.statuses.filter((s) => s.to_status_id === t.id).at(-1)?.from_status_id ?? null;
-			})
-			.catch(() => {});
-		return () => (alive = false);
-	});
 
 	/** индекс текущего шага; у успешно закрытой — за последним (все пройдены) */
 	const index = $derived.by(() => {
 		if (!terminal) return list.findIndex((s) => s.id === deal.status_id);
 		if (terminal.type === 'won') return list.length;
-		return stoppedAt ? list.findIndex((s) => s.id === stoppedAt) : -1;
+		return card.stoppedAt ? list.findIndex((s) => s.id === card.stoppedAt) : -1;
 	});
+
+	const states = $derived(stepStates(list, index, card.visited, optional, !!terminal, card.migrated));
 
 	const view = $derived<Step[]>(
 		list.map((step, i) => {
@@ -54,7 +43,8 @@
 			return {
 				id: step.id,
 				name: statusName(step.name),
-				state: i < index ? 'done' : i === index ? (terminal ? 'stopped' : 'current') : 'future',
+				state: states[i],
+				optional: optional.has(step.id),
 				onclick: transition ? () => onStep?.(transition) : undefined,
 				hint: denied ? deniedText(who) : undefined
 			};

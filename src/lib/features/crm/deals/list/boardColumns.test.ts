@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COLUMN_PAGE, applyMove, emptyColumn, mergeItems, remaining, runLimited, withTotals, type BoardColumn } from './boardColumns';
+import { COLUMN_PAGE, applyMove, defaultCollapse, emptyColumn, isFolded, mergeItems, remaining, runLimited, withTotals, type BoardColumn } from './boardColumns';
 import type { DealRow } from './dealProducts';
 
 const deal = (id: string) => ({ id }) as DealRow;
@@ -53,5 +53,22 @@ describe('runLimited', () => {
 		const out = await runLimited(tasks, 6);
 		expect(peak).toBe(6);
 		expect(out).toEqual(Array.from({ length: 17 }, (_, i) => i));
+	});
+});
+
+describe('свёрнутые столбцы', () => {
+	const col = (over: Partial<BoardColumn> = {}): BoardColumn => ({ ...emptyColumn(), loading: false, total: 0, ...over });
+	it('сворачивается только пустой, загруженный без ошибки, при включённом переключателе', () => {
+		expect(isFolded(true, col())).toBe(true);
+		expect(isFolded(false, col())).toBe(false);
+		expect(isFolded(true, col({ total: 3 }))).toBe(false);
+		expect(isFolded(true, col({ loading: true }))).toBe(false);
+		expect(isFolded(true, col({ error: new Error('x') }))).toBe(false);
+		expect(isFolded(true, col({ total: null }))).toBe(false);
+	});
+	it('по умолчанию включено при более чем 8 столбцах', () => {
+		expect(defaultCollapse(8)).toBe(false);
+		expect(defaultCollapse(9)).toBe(true);
+		expect(defaultCollapse(17)).toBe(true);
 	});
 });

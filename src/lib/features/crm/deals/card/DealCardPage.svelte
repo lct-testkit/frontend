@@ -98,7 +98,7 @@
 		{/if}
 
 		<DealHeader {card} onTransition={(t) => (dialogFor = t)} onEdit={() => (editing = true)} onReassign={() => (reassigning = true)} />
-		<DealStepper graph={card.graph} {deal} transitions={session.can('deal:transition') ? card.transitions : []} onStep={(t) => (dialogFor = t)} />
+		<DealStepper {card} transitions={session.can('deal:transition') ? card.transitions : []} onStep={(t) => (dialogFor = t)} />
 		<TabsBar items={tabs} value={tab} onChange={setTab} label="Разделы сделки" />
 
 		{#if tab === 'overview'}
@@ -110,7 +110,7 @@
 		{:else if tab === 'tasks'}
 			<DealTasks dealId={deal.id} canWrite={canWrite} refreshKey={card.epoch} onCount={(n) => (taskCount = n)} />
 		{:else if tab === 'history'}
-			<DealHistory dealId={deal.id} workflowId={deal.workflow_id} refreshKey={card.epoch} />
+			<DealHistory dealId={deal.id} data={card.history} loading={card.historyLoading} error={card.historyError} onRetry={() => card.loadHistory()} />
 		{:else if tab === 'signing' && canSign}
 			<DealSignatures dealId={deal.id} />
 		{:else}

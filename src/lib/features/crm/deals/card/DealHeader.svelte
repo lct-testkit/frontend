@@ -17,7 +17,7 @@
 	import { SIGNATURE_STATUS_LABELS, SIGNATURE_STATUS_SCHEMES } from '../../shared/labels';
 	import type { AvailableTransition } from '../../types';
 	import DealStatusChip from '../DealStatusChip.svelte';
-	import { classifyTransitions, deniedText, roleHint, type ClassifiedTransition } from '../statusUtils';
+	import { classifyTransitions, deniedText, roleHint, steps, statusName, type ClassifiedTransition } from '../statusUtils';
 	import { workflows } from '../workflows.svelte';
 	import type { DealCardState } from './dealCard.svelte';
 
@@ -32,7 +32,8 @@
 
 	const bp = useBreakpoint();
 	const deal = $derived(card.deal!);
-	const buttons = $derived(classifyTransitions(card.transitions, (id) => workflows.status(id), card.status));
+	const stepList = $derived(steps(card.graph));
+	const buttons = $derived(classifyTransitions(card.transitions, (id) => workflows.status(id), card.status, { steps: stepList, stoppedAt: card.stoppedAt }));
 	const canUpdate = $derived(session.can('deal:update') && card.writable);
 	const canTransition = $derived(session.can('deal:transition') && card.writable);
 	const canReassign = $derived(session.can('deal:reassign'));
@@ -45,9 +46,14 @@
 	});
 
 	const label = (c: ClassifiedTransition): string => {
-		const target = c.target?.name;
-		if (c.kind === 'forward') return target ? `Далее: ${target}` : c.transition.name;
-		if (c.kind === 'back') return target ? `Назад: ${target}` : c.transition.name;
+		// номер шага перед названием: названия шагов длинные и обрезаются, а номер по ленте узнаётся сразу
+		const n = c.target ? stepList.findIndex((s) => s.id === c.target!.id) + 1 : 0;
+		const target = c.target ? `${n ? `${n}. ` : ''}${statusName(c.target.name)}` : '';
+		if (!target) return c.transition.name;
+		if (c.kind === 'forward') return `Далее: ${target}`;
+		if (c.kind === 'skip') return `Пропустить: ${target}`;
+		if (c.kind === 'back') return `Назад: ${target}`;
+		if (c.kind === 'resume') return `Возобновить: ${target}`;
 		return c.transition.name;
 	};
 
@@ -80,8 +86,8 @@
 <PageHeader title={deal.title} subtitle={deal.number} back="/deals">
 	{#snippet details()}
 		<!-- строка статусов, ниже — две колонки «подпись — значение»: слева кто (ответственный, организация, контакт), справа деньги и срок (сумма крупнее) -->
-		<div class="flex basis-full flex-col gap-3 text-fg">
-			<span class="inline-flex flex-wrap items-center gap-2">
+		<div class="flex min-w-0 basis-full flex-col gap-3 text-fg">
+			<span class="inline-flex min-w-0 max-w-full flex-wrap items-center gap-2">
 				<DealStatusChip statusId={deal.status_id} />
 				{#if frozen}{:else if deal.closed_at}<span class="t-desc-l text-muted">закрыта {formatDate(deal.closed_at)}</span>{:else}<SlaIndicator {deal} />{/if}
 				<PriorityChip priority={deal.priority} hideNormal />
@@ -132,7 +138,7 @@
 				</DropdownMenu>
 			{/if}
 			{#if buttons.primary && !bp.isMobile}
-				<Btn class="max-w-80" title={label(buttons.primary)} label={label(buttons.primary)} icon={ArrowRight} onclick={() => onTransition(buttons.primary!.transition)} data-testid="deal-primary-transition" />
+				<Btn class="max-w-[34rem]" title={label(buttons.primary)} label={label(buttons.primary)} icon={ArrowRight} onclick={() => onTransition(buttons.primary!.transition)} data-testid="deal-primary-transition" />
 			{/if}
 		{/if}
 	{/snippet}
