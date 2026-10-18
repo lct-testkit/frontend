@@ -1,0 +1,12 @@
+/* Только то, что утилитами Tailwind не записать: размер листа и адрес внешней ссылки после её текста. Остальное — классы в PrintPage.svelte. */
+@page {
+	size: A4;
+	margin: 18mm 15mm;
+}
+
+@media print {
+	.print-doc a[href^='http']::after {
+		content: ' (' attr(href) ')';
+		word-break: break-all;
+	}
+}

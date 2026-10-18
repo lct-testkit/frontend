@@ -30,3 +30,6 @@ vite.config.ts.timestamp-*
 
 # vitest coverage
 /coverage
+
+# PDF руководств (tools/help-pdf.mjs)
+/help-pdf
