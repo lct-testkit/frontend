@@ -3,7 +3,9 @@
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { BASE, accessToken, newBrowser, newPage } from '../lib.mjs';
+import { BASE, accessToken, auditLayout, newBrowser, newPage } from '../lib.mjs';
+// десять полей ТЗ (§4 п.1) — как `LICENSE_FIELD_LABELS` в licenses/licenseUtils.ts
+const LICENSE_FIELD_LABELS = ['Название ВУЗа', 'Вендор', 'ПО', 'Номер договора', 'Подписание лицензии', 'Срок действия (год)', 'Статус по передаче', 'ФИО менеджера', 'Ответственные от ВУЗа', 'Комментарий'];
 
 const ok = (m) => console.log(`  ✓ ${m}`);
 const fail = (m) => {
@@ -169,6 +171,10 @@ try {
 	await headPage.waitForSelector('text=Всего строк в файле', { timeout: 60000 });
 	const job = (await api('head', 'GET', `/api/imports/${new URL(headPage.url()).searchParams.get('job')}`)).json;
 	check(job.total_rows === 3 && job.error_rows === 1, `проверка: 3 строки, одна с ошибкой (всего ${job.total_rows}, ошибок ${job.error_rows})`);
+	await headPage.waitForSelector('text=Строки файла');
+	await headPage.waitForTimeout(800);
+	check((await headPage.locator('[title*="Допустимо"]').count()) > 0, 'ошибка строки с неверным статусом сопровождается пояснением «Допустимо: …»');
+	check((await headPage.getByText('E2E-IMP-3').count()) > 0, 'в колонке «Запись» договор из файла, не UUID');
 	await headPage.goto(`${BASE}/imports/new?entity=license`);
 	await headPage.waitForSelector('text=Какие колонки ждёт файл');
 	await headPage.locator('input[type=file]').setInputFiles(template);
@@ -178,6 +184,41 @@ try {
 	await headPage.waitForSelector('text=Всего строк в файле', { timeout: 60000 });
 	const tplJob = (await api('head', 'GET', `/api/imports/${new URL(headPage.url()).searchParams.get('job')}`)).json;
 	check(tplJob.total_rows === 1 && tplJob.error_rows === 1, 'шаблон проходит проверку без правок: единственная ошибка — вуз из примера не найден');
+
+	console.log('(b) поиск и фильтры в адресе');
+	await page.goto(`${BASE}/licenses`);
+	await page.waitForSelector('text=Найдено:');
+	const search = page.getByPlaceholder('Вуз, вендор, ПО, договор');
+	await search.fill('Астра');
+	await search.press('Enter');
+	await page.waitForFunction(() => location.search.includes('q='));
+	const apiTotal = (await api('kam', 'GET', `/api/organization-licenses?q=${encodeURIComponent('Астра')}&with_total=true&limit=1`)).json.total;
+	await page.waitForSelector(`text=Найдено: ${apiTotal}`);
+	ok(`поиск «Астра»: в адресе q=, «Найдено: ${apiTotal}» равно total ответа`);
+	await page.reload();
+	await page.waitForSelector(`text=Найдено: ${apiTotal}`);
+	check(new URL(page.url()).searchParams.get('q') === 'Астра', 'после перезагрузки поиск сохранился');
+	await page.goto(`${BASE}/licenses?status=declined`);
+	const declined = (await api('kam', 'GET', '/api/organization-licenses?transfer_status=declined&with_total=true&limit=1')).json.total;
+	await page.waitForSelector(`text=Найдено: ${declined}`);
+	ok(`?status=declined открывается отфильтрованной (${declined})`);
+
+	console.log('(i) телефон 390×844: карточки с десятью полями');
+	const phone = await newPage(browser, { who: 'kam', width: 390, height: 844 });
+	await phone.goto(`${BASE}/licenses`);
+	await phone.waitForSelector('text=Найдено', { state: 'attached' }).catch(() => {});
+	await phone.waitForSelector('text=Номер договора');
+	const card = await phone.locator('main, body').first().innerText();
+	const missing = LICENSE_FIELD_LABELS.filter((label) => !card.includes(label) && label !== 'Название ВУЗа' && label !== 'Вендор' && label !== 'ПО' && label !== 'Статус по передаче');
+	check(missing.length === 0, `карточка содержит поля ТЗ (нет: ${missing.join(', ') || '—'})`);
+	const layout = await auditLayout(phone);
+	check(!layout.hscroll && layout.offenders.length === 0 && !layout.tableScroll, `нет горизонтальной прокрутки и вылезающих элементов (${JSON.stringify(layout).slice(0, 160)})`);
+
+	console.log('(j) аудитор');
+	const auditor = await newPage(browser, { who: 'auditor', width: 1440, height: 900 });
+	await auditor.goto(`${BASE}/licenses`);
+	await auditor.waitForSelector('text=Этот раздел недоступен вашей роли');
+	check((await auditor.locator('[data-nav="licenses"]').count()) === 0, 'аудитор: пункта «Лицензии» в меню нет, прямая ссылка — «недоступен вашей роли»');
 } finally {
 	await cleanup();
 	await browser.close();

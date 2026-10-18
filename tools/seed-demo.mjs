@@ -372,6 +372,88 @@ async function ensureOrganizations(regionsByName, ownerOf) {
 	return byShort;
 }
 
+// ---------------------------------------------------------------- лицензии вуз–вендор–ПО (F2)
+// Вендоры — организации-компании, ПО — продукты вида «ПО»; лицензии на вузы из ORGS. Идемпотентно: вендор/ПО — по названию и коду, лицензия — по номеру договора.
+const LICENSE_VENDORS = ['ООО «Астра Линукс»', 'АО «Лаборатория Касперского»', 'ООО «РЕД СОФТ»', 'Фирма «1С»', 'ООО «Новые облачные технологии»', 'ООО «Базальт СПО»'];
+const LICENSE_SOFTWARE = [
+	['AST-SE', 'Astra Linux Special Edition', 0],
+	['KES-ENT', 'Kaspersky Endpoint Security для бизнеса', 1],
+	['RED-OS', 'РЕД ОС Муром', 2],
+	['1C-EDU', '1С:Предприятие 8. Версия для обучения', 3],
+	['MYOFFICE-EDU', 'МойОфис Образование', 4],
+	['ALT-EDU', 'Альт Образование', 5]
+];
+// [фрагмент названия вуза, вендор, ПО, договор, дата подписания|null, подписана да/нет/null, действует до|null, срок в годах|null, бессрочно, статус передачи, менеджер, ответственные, комментарий]
+// Часть лицензий уже истекла, часть истекает в 2026, есть бессрочная и «срок в годах» без даты, одна не подписана.
+const LICENSES = [
+	['Красноярский', 0, 0, 'ЛД-2024/011', '2024-02-12', true, '2025-02-11', null, false, 'transferred', 'Орлов Игорь Павлович', 'Белова Т. С., проректор по ИТ', 'Лицензия закончилась, продление обсуждается'],
+	['Красноярский', 1, 1, 'ЛД-2025/044', '2025-09-03', true, '2027-09-02', null, false, 'transferred', 'Орлов Игорь Павлович', 'Белова Т. С., проректор по ИТ', null],
+	['Московский открытый', 0, 0, 'ЛД-2023/102', '2023-10-20', true, '2025-10-19', null, false, 'transferred', 'Смирнова Алла Викторовна', 'Громов Д. А., начальник ЦИТ', 'Нужно продление до начала семестра'],
+	['Московский открытый', 2, 2, 'ЛД-2026/007', '2026-03-14', true, '2026-12-31', null, false, 'in_progress', 'Смирнова Алла Викторовна', 'Громов Д. А., начальник ЦИТ', 'Заканчивается в декабре, ждём заявку на продление'],
+	['Санкт-Петербургский', 3, 3, 'ЛД-2025/019', '2025-05-22', true, '2028-05-21', null, false, 'transferred', 'Кузнецов Роман Андреевич', 'Тихонова Е. В., зав. кафедрой информатики', null],
+	['Санкт-Петербургский', 4, 4, 'ЛД-2026/021', null, false, null, 3, false, 'not_started', 'Кузнецов Роман Андреевич', 'Тихонова Е. В., зав. кафедрой информатики', 'Договор на согласовании у юристов вуза'],
+	['Воронежский', 5, 5, 'ЛД-2024/067', '2024-11-05', true, '2026-03-31', null, false, 'transferred', 'Фёдорова Мария Олеговна', 'Рябов К. Н., заместитель директора', 'Срок вышел весной, вуз не продлил'],
+	['Челябинский', 1, 1, 'ЛД-2026/030', '2026-06-18', true, '2029-06-17', null, false, 'in_progress', 'Орлов Игорь Павлович', 'Мельников А. В., проректор', null],
+	['Уфимский', 0, 0, 'ЛД-2022/005', '2022-04-01', true, null, null, true, 'transferred', 'Смирнова Алла Викторовна', 'Хабибуллин Р. Р., начальник управления ИТ', 'Бессрочная лицензия по рамочному договору'],
+	['Ростовский', 2, 2, 'ЛД-2026/012', '2026-02-09', true, '2026-11-30', null, false, 'transferred', 'Фёдорова Мария Олеговна', 'Сидоренко Л. П., директор колледжа', 'Истекает в ноябре'],
+	['Кубанский', 3, 3, 'ЛД-2025/088', '2025-12-02', true, '2027-12-01', null, false, 'declined', 'Кузнецов Роман Андреевич', 'Прохоров С. И., проректор по развитию', 'Вуз отказался от передачи, выбрал другое решение'],
+	['Уральский', 4, 4, 'ЛД-2025/053', '2025-07-15', true, '2027-07-14', null, false, 'transferred', 'Орлов Игорь Павлович', 'Дьяконов В. М., зав. лабораторией', null],
+	['Новосибирский', 5, 5, 'ЛД-2026/033', '2026-09-01', true, '2031-08-31', null, false, 'in_progress', 'Фёдорова Мария Олеговна', 'Иванова О. Н., директор ЦИТ', 'Пятилетний договор, идёт передача дистрибутивов'],
+	['Пермский', 1, 1, 'ЛД-2024/090', '2024-09-10', true, '2025-09-09', null, false, 'transferred', 'Смирнова Алла Викторовна', 'Никифоров Е. Г., проректор', 'Истекла в прошлом году'],
+	['Самарский', 0, 0, 'ЛД-2026/041', null, null, null, 2, false, 'not_started', 'Кузнецов Роман Андреевич', 'Лебедева Н. А., начальник отдела ИТ', null],
+	['Казанский', 2, 2, 'ЛД-2025/071', '2025-10-27', true, '2026-10-26', null, false, 'transferred', 'Орлов Игорь Павлович', 'Шакиров Т. Ф., проректор по цифровизации', 'Закончится через неделю'],
+	['Казанский', 3, 3, 'ЛД-2026/002', '2026-01-20', true, '2028-01-19', null, false, 'transferred', 'Орлов Игорь Павлович', 'Шакиров Т. Ф., проректор по цифровизации', null]
+];
+
+async function ensureLicenses(orgsByShort) {
+	const vendorIds = [];
+	for (const name of LICENSE_VENDORS) {
+		const found = await get('admin', `/api/organizations?org_type=company&q=${encodeURIComponent(name.replace(/[«»]/g, '').slice(0, 14))}&limit=20`);
+		let org = found.items.find((o) => o.name === name);
+		if (!org) org = await post('admin', '/api/organizations', { name, org_type: 'company', source: 'demo' }, idem());
+		vendorIds.push(org.id);
+	}
+	const productIds = [];
+	for (const [code, name, vendor] of LICENSE_SOFTWARE) {
+		const found = await get('admin', `/api/products?kind=software&code=${code}&limit=5`);
+		let product = found.items[0];
+		if (!product) product = await post('admin', '/api/products', { code, name, kind: 'software', vendor_id: vendorIds[vendor], currency: 'RUB' }, idem());
+		productIds.push(product.id);
+	}
+	const orgs = Object.values(orgsByShort);
+	let created = 0;
+	for (const [frag, vendor, product, contract, signedAt, signed, until, term, perpetual, status, manager, responsible, comment] of LICENSES) {
+		const org = orgs.find((o) => o.name.includes(frag));
+		if (!org) continue;
+		const exists = await get('admin', `/api/organization-licenses?q=${encodeURIComponent(contract)}&limit=5`);
+		if (exists.items.some((l) => l.contract_number === contract)) continue;
+		await post(
+			'admin',
+			'/api/organization-licenses',
+			{
+				organization_id: org.id,
+				vendor: LICENSE_VENDORS[vendor],
+				vendor_id: vendorIds[vendor],
+				product_name: LICENSE_SOFTWARE[product][1],
+				product_id: productIds[product],
+				contract_number: contract,
+				license_signed_at: signedAt,
+				is_signed: signed,
+				license_valid_until: until,
+				license_term_years: term,
+				is_perpetual: perpetual,
+				transfer_status: status,
+				manager_full_name: manager,
+				responsible_contacts: responsible,
+				comment
+			},
+			idem()
+		);
+		created += 1;
+	}
+	return created;
+}
+
 async function ensureContacts(orgsByShort, ownerByShort) {
 	const byKey = {};
 	for (const [short, last, first, middle, position, dm] of CONTACTS) {
@@ -517,6 +599,9 @@ async function main() {
 	console.log('Контакты…');
 	const contacts = await ensureContacts(orgsByShort, ownerByShort);
 	console.log(`  контактов: ${Object.keys(contacts).length} (новых ${summary.contacts})`);
+
+	console.log('Лицензии…');
+	console.log(`  лицензий: ${LICENSES.length} (новых ${await ensureLicenses(orgsByShort)})`);
 
 	console.log('Сделки…');
 	const created = [];
