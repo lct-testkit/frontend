@@ -1,5 +1,6 @@
 // Data of the home screen: everything comes from list endpoints (the backend already scopes them by role).
 // Aggregates are computed over the newest 100 visible deals; `partial` tells the UI to show «100+».
+import { myRequests } from '$lib/features/signing/api';
 import { api, unwrap, type components } from '$lib/api';
 import { session } from '$lib/auth/session.svelte';
 
@@ -80,7 +81,7 @@ export class HomeData {
 				canDeals ? unwrap(api.GET('/api/deals', { params: { query: { sla_state: 'breached', limit: 10 } }, signal })) : null,
 				canDeals ? unwrap(api.GET('/api/deals', { params: { query: { sla_state: 'warning', limit: 10 } }, signal })) : null,
 				canDeals && me ? unwrap(api.GET('/api/tasks', { params: { query: { assignee_id: me, limit: 50 } }, signal })) : null,
-				canSign ? unwrap(api.GET('/api/me/signature-requests', { signal })) : null,
+				canSign ? myRequests() : null,
 				session.can('workflow:read') ? unwrap(api.GET('/api/workflows', { params: { query: { limit: 20 } }, signal })) : null
 			]);
 			if (signal.aborted) return;

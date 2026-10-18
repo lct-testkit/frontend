@@ -1,6 +1,7 @@
 // Состояние карточки сделки: сама сделка, продукты, доступные переходы, граф воронки. Все мутации (правка, переназначение, переход)
 // возвращают свежую сделку — её версия идёт в следующий `If-Match`, а конфликт версий (CRM-1002) поднимает баннер «Обновить».
 import { api, ifMatch, unwrap } from '$lib/api';
+import { coalesce } from '$lib/api/coalesce';
 import { session } from '$lib/auth/session.svelte';
 import { isWatcherOnly } from './access';
 import type { AvailableTransition, Deal, DealHistory, DealProduct } from '../../types';
@@ -100,7 +101,7 @@ export class DealCardState {
 	/** Роль пользователя в сделке: наблюдатель только читает. Не удалось узнать — считаем, что права полные (решает сервер). */
 	async loadAccess(): Promise<void> {
 		try {
-			const { items } = await unwrap(api.GET('/api/deals/{deal_id}/participants', { params: { path: { deal_id: this.id } } }));
+			const { items } = await coalesce(`participants:${this.id}`, () => unwrap(api.GET('/api/deals/{deal_id}/participants', { params: { path: { deal_id: this.id } } })));
 			this.watcherOnly = isWatcherOnly(items, this.deal?.owner_id, session.me ? { id: session.me.id, role: session.role } : null);
 		} catch {
 			this.watcherOnly = false;
