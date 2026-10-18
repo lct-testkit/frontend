@@ -28,7 +28,8 @@ export const CHART_PRESETS: Readonly<Record<string, ChartPreset>> = {
 	loss_reasons: { kind: 'donut', x: 'Причина', series: ['Сделок'], sumColumns: ['Сделок'] },
 	sla_compliance: { kind: 'donut', x: 'Состояние', series: ['Сделок'], sumColumns: ['Сделок'] },
 	monthly_dynamics: { kind: 'line', x: 'Месяц', series: ['Создано', 'Выиграно', 'Проиграно'], sumColumns: ['Создано', 'Выиграно', 'Проиграно', 'Сумма выигранных'], moneyColumns: ['Сумма выигранных'] },
-	product_demand: { kind: 'bar', x: ['Продукт', 'Направление'], series: ['Заявок', 'Обучающихся', 'Потоков'], horizontal: true, sumColumns: ['Заявок', 'Выиграно', 'Обучающихся', 'Потоков'] }
+	product_demand: { kind: 'bar', x: ['Продукт', 'Направление'], series: ['Заявок', 'Обучающихся', 'Потоков'], horizontal: true, sumColumns: ['Заявок', 'Выиграно', 'Обучающихся', 'Потоков'] },
+	signing_periods: { kind: 'bar', x: 'Месяц', series: ['Документов', 'Подписано', 'Истекло', 'Отклонено'], sumColumns: ['Документов', 'Подписано', 'Истекло', 'Отклонено'] }
 };
 
 export const canChart = (templateCode: string): boolean => templateCode in CHART_PRESETS;

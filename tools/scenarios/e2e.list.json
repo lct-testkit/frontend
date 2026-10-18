@@ -146,6 +146,10 @@
 			"tier": "full"
 		},
 		{
+			"file": "e-signing-report.mjs",
+			"tier": "full"
+		},
+		{
 			"file": "e-states.mjs",
 			"tier": "full"
 		},

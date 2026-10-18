@@ -15,7 +15,8 @@ const SEED_TEMPLATE_CODES = [
 	'learning_progress',
 	'lms_users_upload',
 	'product_demand',
-	'license_register'
+	'license_register',
+	'signing_periods'
 ];
 const keysOf = (code: string) => paramsFor(code).map((d) => d.key);
 const SCOPE_KEYS = ['date_from', 'date_to', 'organization_ids', 'direction_ids', 'product_ids', 'owner_ids'];
@@ -27,7 +28,7 @@ describe('реестр шаблонов', () => {
 	});
 
 	it('десять видов с общим блоком из пяти граней', () => {
-		const withScope = SEED_TEMPLATE_CODES.filter((c) => !['lms_users_upload', 'license_register'].includes(c));
+		const withScope = SEED_TEMPLATE_CODES.filter((c) => !['lms_users_upload', 'license_register', 'signing_periods'].includes(c));
 		for (const code of withScope) expect(keysOf(code), code).toEqual(expect.arrayContaining(SCOPE_KEYS));
 	});
 
@@ -39,6 +40,8 @@ describe('реестр шаблонов', () => {
 		expect(keysOf('product_demand')).toEqual(['level', 'sort_by', 'top', 'date_field', ...SCOPE_KEYS]);
 		expect(keysOf('license_register')).toEqual(['date_field', 'date_from', 'date_to', 'organization_ids', 'vendors', 'transfer_statuses', 'valid_year', 'expired', 'limit']);
 		expect(keysOf('lms_users_upload')).toEqual(['product_id', 'stream_number', 'date_from', 'date_to']);
+		// «Подписание по периодам»: месяцы или период, тип документа; ни вуза, ни направления, ни date_field (сервер их не принимает)
+		expect(keysOf('signing_periods')).toEqual(['months', 'doc_type', 'date_from', 'date_to']);
 		expect(paramsFor('нет такого')).toEqual([]);
 	});
 
@@ -49,6 +52,26 @@ describe('реестр шаблонов', () => {
 		const field = paramsFor('deal_register', {}, { dateFields: ['created_at', 'closed_at'], defaultDateField: 'closed_at' }).find((d) => d.key === 'date_field');
 		expect(field?.options?.map((o) => o.key)).toEqual(['created_at', 'closed_at']);
 		expect(field?.default).toBe('closed_at');
+	});
+});
+
+describe('Подписание по периодам', () => {
+	const defs = paramsFor('signing_periods', { months: 12 });
+	it('число месяцев и период взаимоисключают друг друга; тип документа необязателен', () => {
+		expect(normalizeParams(defs, {})).toEqual({ months: 12 });
+		expect(normalizeParams(defs, { date_from: '2026-01-01' })).toEqual({ date_from: '2026-01-01' });
+		expect(normalizeParams(defs, { doc_type: 'act', months: 6 })).toEqual({ months: 6, doc_type: 'act' });
+		expect(defs.find((d) => d.key === 'doc_type')?.required).toBeFalsy();
+	});
+	it('месяцев от 1 до 36', () => {
+		expect(validateParams(defs, { months: 0 }).months).toBeTruthy();
+		expect(validateParams(defs, { months: 37 }).months).toBeTruthy();
+		expect(validateParams(defs, { months: 36 })).toEqual({});
+	});
+	it('типы документа — коды сервера, у каждого русская подпись', () => {
+		const options = defs.find((d) => d.key === 'doc_type')?.options ?? [];
+		expect(options.map((o) => o.key).sort()).toEqual(['act', 'consent', 'custom', 'erasure_act', 'kp', 'offer']);
+		for (const o of options) expect(o.value).toMatch(/[А-Яа-я]/);
 	});
 });
 
@@ -153,6 +176,7 @@ describe('описание шаблона', () => {
 	it('служебный перечень параметров из описания убирается, остальное остаётся', () => {
 		expect(describeTemplate('Реестр сделок. Параметры: date_from/date_to, limit. Только xlsx; содержит ПДн.')).toBe('Реестр сделок. Только xlsx; содержит ПДн.');
 		expect(describeTemplate('Реестр сделок. Параметры: date_from, columns, limit.')).toBe('Реестр сделок.');
+		expect(describeTemplate('Документы на подпись (signature_documents) помесячно: число документов. Параметры: months, doc_type.')).toBe('Документы на подпись помесячно: число документов.');
 		expect(describeTemplate('Конверсия и среднее время.')).toBe('Конверсия и среднее время.');
 	});
 	it('технические ключи прав и источников заменяются русскими словами', () => {

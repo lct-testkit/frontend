@@ -209,6 +209,27 @@ export const REPORT_SPECS: Record<string, ReportSpec> = {
 		personalData: true,
 		hint: 'Фамилии менеджеров и ответственных без права просмотра контактов скрыты'
 	},
+	signing_periods: {
+		// месяц считается по дате создания документа внутри отчёта: выбора даты периода нет (как у «Динамики по месяцам»)
+		scope: { period: [], organizations: false, directions: false, products: false, owners: false },
+		extra: [
+			{ key: 'months', label: 'Месяцев', kind: 'int', min: 1, max: 36, default: 12, required: true, disabledBy: ['date_from', 'date_to'], disabledHint: 'Задан период — число месяцев не используется' },
+			{
+				key: 'doc_type',
+				label: 'Тип документа',
+				kind: 'enum',
+				hint: 'Пусто — все типы',
+				options: [
+					{ key: 'kp', value: 'Коммерческое предложение' },
+					{ key: 'act', value: 'Акт' },
+					{ key: 'offer', value: 'Оферта' },
+					{ key: 'consent', value: 'Согласие на обработку ПДн' },
+					{ key: 'erasure_act', value: 'Акт об уничтожении ПДн' },
+					{ key: 'custom', value: 'Прочие документы' }
+				]
+			}
+		]
+	},
 	lms_users_upload: {
 		scope: { period: null, organizations: false, directions: false, products: false, owners: false },
 		extra: [
@@ -228,6 +249,7 @@ export function describeTemplate(description: string): string {
 		.replace(/\s*Параметры:[^.]*\.?/u, ' ')
 		.replace(/без права\s+`?contact:reveal`?/giu, 'без права просмотра персональных данных')
 		.replace(/источник\s+lms/giu, 'источник LMS')
+		.replace(/\s*\(signature_documents\)/giu, '')
 		.replace(/\s{2,}/g, ' ')
 		.trim();
 }

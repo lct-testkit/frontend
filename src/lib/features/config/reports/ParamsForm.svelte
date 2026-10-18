@@ -117,7 +117,19 @@
 	{:else if def.kind === 'date'}
 		<DateField label={def.label} required={def.required} hint={def.hint} value={(values[def.key] as string | undefined) ?? null} error={errors[def.key]} onChange={(v) => set(def.key, v ?? undefined)} />
 	{:else if def.kind === 'enum' || def.kind === 'date_field'}
-		<Pick label={def.label} required={def.required} value={String(values[def.key] ?? def.default ?? '')} items={def.options ?? []} hint={def.hint} error={errors[def.key]} onChange={(v) => v && set(def.key, v)} />
+		<!-- значение по умолчанию и «обязательное» — выбор всегда задан; иначе список можно очистить («Любой») -->
+		{@const optional = def.kind === 'enum' && !def.required && def.default === undefined}
+		<Pick
+			label={def.label}
+			required={def.required}
+			value={optional ? ((values[def.key] as string | undefined) ?? null) : String(values[def.key] ?? def.default ?? '')}
+			items={def.options ?? []}
+			hint={def.hint}
+			error={errors[def.key]}
+			clearable={optional}
+			placeholder={optional ? 'Любой' : undefined}
+			onChange={(v) => (v ? set(def.key, v) : optional && set(def.key, undefined))}
+		/>
 	{:else if def.kind === 'enum_multi'}
 		<MultiPick label={def.label} hint={def.hint} search={false} value={toList(values[def.key])} items={def.options ?? []} error={errors[def.key]} onChange={(v) => set(def.key, v)} />
 	{:else if def.kind === 'text_list'}
