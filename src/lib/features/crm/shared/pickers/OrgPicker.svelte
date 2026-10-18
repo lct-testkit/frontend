@@ -1,8 +1,8 @@
 <script lang="ts">
 	// Организация из тех, что видны пользователю (поиск по названию и ИНН на сервере).
-	import { api, unwrap } from '$lib/api';
 	import { orgCache, orgTitle } from '../entityCache.svelte';
 	import RemotePick, { type RemoteItem } from '$lib/ui/fields/RemotePick.svelte';
+	import { searchOrganizations } from './orgSearch';
 
 	interface Props {
 		value?: string | null;
@@ -25,11 +25,6 @@
 		return org ? { key: org.id, value: orgTitle(org), hint: org.inn ?? undefined } : null;
 	});
 
-	async function search(q: string): Promise<RemoteItem[]> {
-		const page = await unwrap(api.GET('/api/organizations', { params: { query: { q: q.trim() || undefined, limit: 20 } } }));
-		for (const org of page.items) orgCache.put(org);
-		return page.items.map((o) => ({ key: o.id, value: orgTitle(o), hint: o.inn ?? undefined }));
-	}
 </script>
 
-<RemotePick {value} {selected} {search} {label} {error} {hint} {disabled} {required} placeholder="Название или ИНН" emptyText="Организаций не найдено" onChange={(id) => onChange(id)} />
+<RemotePick {value} {selected} search={searchOrganizations} {label} {error} {hint} {disabled} {required} placeholder="Название или ИНН" emptyText="Организаций не найдено" onChange={(id) => onChange(id)} />
