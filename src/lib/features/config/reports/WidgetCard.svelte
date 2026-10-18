@@ -29,9 +29,11 @@
 		onDelete: () => void;
 		/** «Таблица (Excel, PDF)…»: открыть панель запуска отчёта с параметрами виджета */
 		onExportTable?: (config: WidgetConfig) => void;
+		/** время данных, общее для дашборда (строка под сеткой): в карточке своё время показывается, только если оно другое */
+		commonAsOf?: number | null;
 	}
 
-	let { widget, data, templateName, editing, canEdit = false, first, last, onMove, onEdit, onDelete, onExportTable }: Props = $props();
+	let { widget, data, templateName, editing, canEdit = false, first, last, onMove, onEdit, onDelete, onExportTable, commonAsOf = null }: Props = $props();
 
 	const config = $derived(readConfig(widget.config));
 	const name = $derived(config ? templateName(config.template_code) : 'Виджет');
@@ -43,6 +45,7 @@
 	/** лимит отчётов — не сбой: у виджета остаются прошлые данные, о них сказано тихой строкой */
 	const limitOnly = $derived(error === NOT_UPDATED);
 	const stale = $derived(Boolean(error));
+	const ownAsOf = $derived(asOf && (stale || !commonAsOf || formatTime(asOf) !== formatTime(commonAsOf)));
 	const notes = $derived(
 		table ? reportNotes({ rowCount: table.totalRows, truncated: table.truncated, totalRows: table.serverTotal, note: table.note, asOf: table.generatedAt }).filter((n) => n.kind !== 'info') : []
 	);
@@ -133,7 +136,7 @@
 		{:else if table}
 			<div bind:this={bodyEl} class={loading ? 'opacity-50' : undefined}><WidgetBody type={widget.widget_type} {config} {table} {name} /></div>
 			<p class="t-desc-m flex flex-wrap items-center gap-x-2 gap-y-1 pt-2 text-soft">
-				{#if asOf}<span>Данные на {formatTime(asOf)}{stale ? ' · не обновлено' : ''}</span>{/if}
+				{#if ownAsOf && asOf}<span>Данные на {formatTime(asOf)}{stale ? ' · не обновлено' : ''}</span>{/if}
 				{#each notes as note (note.kind)}<StatusChip label={note.kind === 'truncated' ? 'Усечено' : 'Снимок'} tone={note.tone} hint={note.text} />{/each}
 			</p>
 			{#if error && !limitOnly}<p class="t-desc-m pt-1 text-muted">{error}</p>{/if}

@@ -28,6 +28,9 @@
 		values: Record<string, unknown>;
 		errors?: Record<string, string>;
 		workflows?: readonly WorkflowOption[];
+		/** список воронок не загрузился: под полем «Воронка» — «Повторить» */
+		workflowsFailed?: boolean;
+		onRetryWorkflows?: () => void;
 		/** виджет дашборда: быстрый период хранится пресетом */
 		widget?: boolean;
 		period?: PeriodPreset;
@@ -35,7 +38,7 @@
 		maxColumns?: number;
 	}
 
-	let { defs, values = $bindable({}), errors = {}, workflows = [], widget = false, period = $bindable(), maxColumns }: Props = $props();
+	let { defs, values = $bindable({}), errors = {}, workflows = [], workflowsFailed = false, onRetryWorkflows, widget = false, period = $bindable(), maxColumns }: Props = $props();
 
 	// поля общего блока рисует один компонент — на месте первого из них
 	const scopeDefs = $derived(defs.filter((d) => d.group === 'scope'));
@@ -88,6 +91,12 @@
 			error={errors[def.key]}
 			onChange={(v) => set(def.key, v ?? undefined)}
 		/>
+		{#if workflowsFailed}
+			<div class="flex items-center gap-2">
+				<span class="t-desc-l text-danger">Не удалось загрузить воронки</span>
+				<button type="button" class="t-body-s-strong rounded-md py-1 text-accent hover:text-accent-hover pointer-coarse:min-h-11" onclick={() => onRetryWorkflows?.()}>Повторить</button>
+			</div>
+		{/if}
 	{:else if def.kind === 'product'}
 		<RemotePick
 			label={def.label}

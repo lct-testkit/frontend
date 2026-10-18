@@ -9,7 +9,8 @@
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import TextField from '$lib/ui/fields/TextField.svelte';
 	import { toFormFailure } from '../shared/form-errors';
-	import ParamsForm, { type WorkflowOption } from './ParamsForm.svelte';
+	import ParamsForm from './ParamsForm.svelte';
+	import { WorkflowList } from './workflows.svelte';
 	import { FILE_ONLY_TEMPLATES, WIDGET_TYPES, WIDGET_TYPE_LABELS, WIDGET_WIDTHS, normalizeParams, normalizePosition, paramsFor, type WidgetType } from './params';
 	import type { PeriodPreset } from './period';
 	import { canChart, readConfig, sumColumnsOf } from './widgets';
@@ -19,7 +20,7 @@
 		dashboardId: string;
 		widget: DashboardWidget | null;
 		templates: readonly ReportTemplate[];
-		workflows: readonly WorkflowOption[];
+		workflows: WorkflowList;
 		/** порядковый номер для нового виджета (`position.y`) */
 		nextIndex: number;
 		onClose: () => void;
@@ -120,7 +121,7 @@
 	</div>
 	<Pick label="Отчёт" required search bind:value={code} items={available.map((t) => ({ key: t.code, value: t.name }))} error={errors.template_code} hint={type === 'report_chart' ? 'График доступен для отчётов с числовыми колонками' : undefined} />
 	{#if code}
-		<ParamsForm {defs} bind:values {workflows} widget bind:period maxColumns={5} />
+		<ParamsForm {defs} bind:values workflows={workflows.items} workflowsFailed={workflows.failed} onRetryWorkflows={() => void workflows.load()} widget bind:period maxColumns={5} />
 		{#if type === 'stat_tile'}<Pick label="Показатель" bind:value={metric} items={metricItems} />{/if}
 	{/if}
 	<TextField label="Заголовок" bind:value={title} maxlength={120} />
