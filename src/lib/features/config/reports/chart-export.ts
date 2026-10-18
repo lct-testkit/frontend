@@ -1,7 +1,7 @@
 // Выгрузка диаграммы виджета в PNG и PDF на клиенте, без зависимостей: SVG графика rt-ui с встроенными стилями → картинка → canvas → PNG;
 // PDF собирается из того же растра (pdf-writer.ts). Картинка совпадает с тем, что человек видел на экране, — это условие «объективности диаграмм».
 // Цвета графика заданы CSS-переменными и `color-mix`, поэтому у «голого» SVG пропали бы заливки: стили копируются из вычисленных и переводятся в sRGB через canvas.
-import { legendText, readableOn, ringGeometry, textWidth } from './chart-geometry';
+import { legendText, pathVertices, pickPointLabels, readableOn, type PointLabel, ringGeometry, textWidth } from './chart-geometry';
 import { buildPdf, pageSizeFor, type PdfImage } from './pdf-writer';
 import { isoDate } from './period';
 
@@ -209,6 +209,50 @@ function addValueLabels(svg: SVGSVGElement, clone: SVGSVGElement, color: string)
 }
 
 /**
+ * Линейный график: значения в точках (из скрытой таблицы данных rt-ui, положение точек — по вершинам линий). Нули не подписываются (есть ось),
+ * при слипании подписей остаётся та, что у большего значения.
+ */
+function addLineLabels(svg: SVGSVGElement, clone: SVGSVGElement, color: string): Extent {
+	const extent = emptyExtent();
+	const plot = clone.querySelector(':scope > g');
+	const lines = [...svg.querySelectorAll<SVGPathElement>('path.rt-chart__line')];
+	const table = svg.parentElement?.querySelector('.rt-chart__sr table');
+	if (!plot || !lines.length || !table) return extent;
+	const rows = [...table.querySelectorAll('tbody tr')].map((tr) => [...tr.querySelectorAll('td')].map((td) => (td.textContent ?? '').trim()));
+	const tick = svg.querySelector<SVGTextElement>('text.rt-chart__tick--y');
+	const fs = Math.max(10, Math.min(16, parseFloat(tick ? getComputedStyle(tick).fontSize : '') || 11));
+	const [dx, dy] = translateOf(plot);
+	const points: PointLabel[] = [];
+	lines.forEach((line, si) => {
+		const column = rows.map((r) => r[si]).filter((v): v is string => v !== undefined);
+		const defined = column.filter((v) => v !== '—');
+		const vertices = pathVertices(line.getAttribute('d') ?? '');
+		// без пропусков в данных вершины идут по порядку точек; иначе соответствие неоднозначно — такую серию не подписываем
+		if (vertices.length !== defined.length) return;
+		defined.forEach((text, i) => {
+			const value = Number(text.replace(/s/g, '').replace(',', '.'));
+			if (Number.isFinite(value)) points.push({ x: vertices[i][0], y: vertices[i][1], value, text });
+		});
+	});
+	for (const p of pickPointLabels(points, 14, (text) => textWidth(text, fs))) {
+		const t = document.createElementNS(SVG_NS, 'text');
+		t.textContent = p.text;
+		t.setAttribute('x', String(p.x));
+		t.setAttribute('y', String(p.y - fs / 2 - 4));
+		t.setAttribute('text-anchor', 'middle');
+		t.setAttribute('dominant-baseline', 'middle');
+		t.setAttribute('style', `font-size:${fs}px;font-weight:500;fill:${color}`);
+		plot.appendChild(t);
+		const w = textWidth(p.text, fs);
+		extent.minX = Math.min(extent.minX, dx + p.x - w / 2);
+		extent.maxX = Math.max(extent.maxX, dx + p.x + w / 2);
+		extent.minY = Math.min(extent.minY, dy + p.y - fs - 4);
+		extent.maxY = Math.max(extent.maxY, dy + p.y);
+	}
+	return extent;
+}
+
+/**
  * Кольцевая диаграмма: значение и доля на каждом сегменте и итог в центре — на экране это показывают легенда и HTML-блок посередине, которых в SVG нет.
  * Узкий сегмент (подпись не помещается в кольцо) подписывается снаружи.
  */
@@ -296,14 +340,15 @@ export function inlineSvg(
 	const color = opts.color ?? '#111';
 	const bars = addValueLabels(svg, clone, color);
 	const ring = addDonutLabels(svg, clone, opts.legend, color, opts.pxPerUnit ?? 1);
+	const dots = addLineLabels(svg, clone, color);
 	if (box && box.width > 0) {
 		// подпись не должна обрезаться краем картинки: поле расширяется ровно настолько, насколько она вылезла
 		const lo = (a: number, b: number, own: number) => Math.min(own, Number.isFinite(a) ? Math.floor(a - 2) : own, Number.isFinite(b) ? Math.floor(b - 2) : own);
 		const hi = (a: number, b: number, own: number) => Math.max(own, Number.isFinite(a) ? Math.ceil(a + 2) : own, Number.isFinite(b) ? Math.ceil(b + 2) : own);
-		const x0 = lo(bars.minX, ring.minX, box.x);
-		const y0 = lo(bars.minY, ring.minY, box.y);
-		const x1 = hi(bars.maxX, ring.maxX, box.x + box.width);
-		const y1 = hi(bars.maxY, ring.maxY, box.y + box.height);
+		const x0 = lo(Math.min(bars.minX, dots.minX), ring.minX, box.x);
+		const y0 = lo(Math.min(bars.minY, dots.minY), ring.minY, box.y);
+		const x1 = hi(Math.max(bars.maxX, dots.maxX), ring.maxX, box.x + box.width);
+		const y1 = hi(Math.max(bars.maxY, dots.maxY), ring.maxY, box.y + box.height);
 		clone.setAttribute('viewBox', `${x0} ${y0} ${x1 - x0} ${y1 - y0}`);
 		width = x1 - x0;
 		height = y1 - y0;

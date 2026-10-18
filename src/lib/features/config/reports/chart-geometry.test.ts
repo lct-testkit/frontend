@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { legendText, readableOn, ringGeometry, textWidth } from './chart-geometry';
+import { legendText, pathVertices, pickPointLabels, readableOn, ringGeometry, textWidth } from './chart-geometry';
 
 /** Контур сегмента так же, как его строит rt-ui (`arcPath`): внешняя дуга по часовой, отрезок к внутренней, внутренняя дуга обратно. */
 const polar = (cx: number, cy: number, r: number, a: number) => [cx + r * Math.sin(a), cy - r * Math.cos(a)] as const;
@@ -75,5 +75,25 @@ describe('textWidth', () => {
 	it('растёт с длиной строки и кеглем', () => {
 		expect(textWidth('10', 12)).toBeLessThan(textWidth('1000', 12));
 		expect(textWidth('10', 12)).toBeLessThan(textWidth('10', 24));
+	});
+});
+
+describe('pathVertices и pickPointLabels: подписи точек линий', () => {
+	it('вершины — конечные точки команд M, L и C', () => {
+		expect(pathVertices('M0,10L20,5L40,8')).toEqual([[0, 10], [20, 5], [40, 8]]);
+		expect(pathVertices('M0,10C5,10 15,5 20,5C25,5 35,8 40,8')).toEqual([[0, 10], [20, 5], [40, 8]]);
+		expect(pathVertices('')).toEqual([]);
+	});
+
+	it('нули не подписываются, слипшиеся подписи — в пользу большего значения', () => {
+		const w = (t: string) => t.length * 7;
+		const pts = [
+			{ x: 100, y: 50, value: 47, text: '47' },
+			{ x: 100, y: 58, value: 12, text: '12' },
+			{ x: 100, y: 120, value: 3, text: '3' },
+			{ x: 100, y: 200, value: 0, text: '0' },
+			{ x: 300, y: 58, value: 9, text: '9' }
+		];
+		expect(pickPointLabels(pts, 14, w).map((p) => p.text).sort()).toEqual(['3', '47', '9']);
 	});
 });
