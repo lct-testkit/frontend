@@ -17,9 +17,12 @@ export const SIZES = {
 	'tablet-p': [768, 1024],
 	phone: [390, 844],
 	'phone-s': [360, 640],
-	'phone-l': [844, 390]
+	'phone-l': [844, 390],
+	// WCAG 1.4.10 (перекомпоновка без горизонтальной прокрутки на 320 px = 400 % на 1280) и 1.4.4 (200 % на 1280×900)
+	'phone-xs': [320, 568],
+	'zoom-200': [640, 450]
 };
-export const ALL_SIZES = ['desktop', 'tablet-l', 'tablet-p', 'phone', 'phone-s', 'phone-l'];
+export const ALL_SIZES = ['desktop', 'tablet-l', 'tablet-p', 'phone', 'phone-s', 'phone-l', 'phone-xs', 'zoom-200'];
 
 export async function newBrowser() {
 	return chromium.launch({ channel: process.env.PW_CHANNEL || 'chrome', headless: true });
