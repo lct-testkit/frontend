@@ -13,7 +13,7 @@ export interface InviteAdapter {
 	setPassword(token: string, password: string, repeat: string): Promise<{ login_url: string }>;
 }
 
-export const inviteApi: InviteAdapter = {
+const inviteApi: InviteAdapter = {
 	check: (token) => unwrap(api.GET('/api/auth/invite/{token}', { params: { path: { token } } })),
 	setPassword: (token, password, repeat) =>
 		unwrap(api.POST('/api/auth/invite/{token}/password', { params: { path: { token } }, body: { new_password: password, new_password_repeat: repeat } }))

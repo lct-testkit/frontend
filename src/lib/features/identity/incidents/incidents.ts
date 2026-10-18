@@ -39,7 +39,7 @@ export const SEVERITIES = [
 const SEVERITY_TONE: Record<string, StatusMeta['tone']> = { info: 'neutral', warning: 'warning', critical: 'error' };
 export const severityMeta = (s: string): StatusMeta => ({ label: SEVERITIES.find((x) => x.key === s)?.value ?? s, tone: SEVERITY_TONE[s] ?? 'neutral' });
 
-export const SOURCE_LABELS: Record<string, string> = { event: 'По событию безопасности', manual: 'Заведён вручную' };
+const SOURCE_LABELS: Record<string, string> = { event: 'По событию безопасности', manual: 'Заведён вручную' };
 export const sourceLabel = (s: string): string => SOURCE_LABELS[s] ?? s;
 
 /** Категории данных для уведомления: значения идут в текст как есть, поэтому ключ и подпись совпадают. */
@@ -126,7 +126,7 @@ export function incidentActions(status: string, manage: boolean): IncidentAction
 // --- Уведомление РКН --------------------------------------------------------------------
 
 /** Поля формы портала РКН: подписи; остальные ключи ответа сервера (технические) не показываются. */
-export const NOTICE_FIELDS: { key: string; label: string }[] = [
+const NOTICE_FIELDS: { key: string; label: string }[] = [
 	{ key: 'operator_name', label: 'Оператор' },
 	{ key: 'number', label: 'Номер инцидента' },
 	{ key: 'detected_at', label: 'Выявлено' },
@@ -173,6 +173,6 @@ export function combineDateTime(date: string | null | undefined, time: string | 
 	return new Date(Number(d[1]), Number(d[2]) - 1, Number(d[3]), Number(t[1]), Number(t[2]));
 }
 
-export const pad2 = (n: number): string => String(n).padStart(2, '0');
+const pad2 = (n: number): string => String(n).padStart(2, '0');
 export const dateValue = (d: Date): string => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 export const timeValue = (d: Date): string => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;

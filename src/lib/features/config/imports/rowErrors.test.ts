@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { explainRowError, explainRowErrors } from './rowErrors';
+import { explainRowErrors } from './rowErrors';
+
+const explainRowError = (text: string) => explainRowErrors([text])[0];
 
 describe('explainRowError', () => {
 	it('вуз не найден: пояснение и ссылка на организации', () => {
