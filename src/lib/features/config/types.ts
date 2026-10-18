@@ -21,6 +21,8 @@ export type ImportProfile = S['ImportProfileResponse'];
 
 export type ReportTemplate = S['ReportTemplateOut'];
 export type ReportJob = S['ReportJobOut'];
+export type ReportDataOut = S['ReportDataOut'];
+export type ReportColumn = S['ReportColumnOut'];
 export type Dashboard = S['DashboardOut'];
 export type DashboardWidget = S['DashboardWidgetOut'];
 

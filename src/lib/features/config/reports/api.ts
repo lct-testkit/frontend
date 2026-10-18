@@ -1,6 +1,6 @@
 // Отчёты: запуск, ожидание готовности, JSON-данные для дашбордов, ссылка и скачивание файла.
 import { api, unwrap, idem, ApiError } from '$lib/api';
-import type { ReportJob } from '../types';
+import type { ReportDataOut, ReportJob } from '../types';
 import type { ReportFormat } from './params';
 import { isReportBusy } from './params';
 
@@ -36,7 +36,7 @@ export async function waitForReport(job: ReportJob, opts: { interval?: number; t
 
 /** Данные готового задания в JSON — то же, что рендерится в файл, без похода в S3 и без разбора xlsx в браузере (backend-issues #19).
  * Пересчитывается на каждый вызов по параметрам задания: свежие данные, но и не бесплатно — не звать чаще, чем «Обновить данные». */
-export const fetchReportData = (id: string, signal?: AbortSignal): Promise<{ columns: string[]; rows: unknown[][] }> =>
+export const fetchReportData = (id: string, signal?: AbortSignal): Promise<ReportDataOut> =>
 	unwrap(api.GET('/api/reports/{report_id}/data', { params: { path: { report_id: id } }, signal }));
 
 /** Ссылка на файл (действует недолго). 422 у бэкенда — «файл ещё не готов» и «срок хранения истёк» (backend-issues #17). */

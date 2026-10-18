@@ -10,6 +10,7 @@
 	import { formatTime } from '$lib/utils/format';
 	import type { Dashboard, DashboardWidget, ReportTemplate } from '../types';
 	import { createResource } from '../shared/resource.svelte';
+	import { clearDashboardCache } from './dashboard-cache';
 	import DashboardDrawer from './DashboardDrawer.svelte';
 	import { DashboardData } from './dashboard-data.svelte';
 	import type { WorkflowOption } from './ParamsForm.svelte';
@@ -99,6 +100,7 @@
 		if (!d || !(await confirm({ title: `Удалить дашборд «${d.name}»?`, message: 'Виджеты будут удалены вместе с ним.', confirmLabel: 'Удалить', danger: true }))) return;
 		try {
 			await unwrap(api.DELETE('/api/dashboards/{dashboard_id}', { params: { path: { dashboard_id: id } } }));
+			clearDashboardCache(id);
 			toast.success('Дашборд удалён');
 			void goto('/reports/dashboards');
 		} catch (e) {

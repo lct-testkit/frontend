@@ -2,13 +2,13 @@
 	// Содержимое виджета по его типу и таблице отчёта: показатель, график (столбцы / линии / кольцо) или мини-таблица.
 	import { BarChart, DonutChart, LineChart } from '@lct-testkit/rt-ui/charts';
 	import { formatMoneyShort, formatNumber } from '$lib/utils/format';
-	import type { XlsxTable } from './xlsx';
+	import type { ReportTable } from './table';
 	import { CHART_PRESETS, chartRows, metricLabel, previewRows, tileValue, type WidgetConfig } from './widgets';
 
 	interface Props {
 		type: string;
 		config: WidgetConfig;
-		table: XlsxTable;
+		table: ReportTable;
 		name: string;
 	}
 
@@ -57,6 +57,6 @@
 				</tbody>
 			</table>
 		</div>
-		{#if table.rows.length > preview.rows.length}<p class="t-desc-m pt-1.5 text-soft">Показано {preview.rows.length} из {table.rows.length}</p>{/if}
+		{#if table.totalRows > preview.rows.length}<p class="t-desc-m pt-1.5 text-soft">Показано {preview.rows.length} из {table.totalRows}</p>{/if}
 	{/if}
 {/if}
