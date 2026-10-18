@@ -11,12 +11,14 @@
 
 	interface Props {
 		onPick?: (entry: OrgLookupEntry) => void;
+		/** подсказка — вуз, уже заведённый у нас: вместо создания дубля ведём в его карточку (если доступа нет, там можно запросить его) */
+		onOpenExisting?: (organizationId: string) => void;
 		lookup?: OrgLookupState;
 		autofocus?: boolean;
 		label?: string;
 	}
 
-	let { onPick, lookup: external, autofocus = false, label = 'ИНН или название' }: Props = $props();
+	let { onPick, onOpenExisting, lookup: external, autofocus = false, label = 'ИНН или название' }: Props = $props();
 
 	// svelte-ignore state_referenced_locally
 	const lookup = external ?? new OrgLookupState();
@@ -24,6 +26,10 @@
 	let picking = $state<string | null>(null);
 
 	async function choose(hit: LookupHit) {
+		if (hit.organizationId && onOpenExisting) {
+			onOpenExisting(hit.organizationId);
+			return;
+		}
 		picking = hit.inn;
 		try {
 			const entry = await lookup.pick(hit);
@@ -78,7 +84,7 @@
 							{#if hit.status !== 'active'}
 								<span class={hit.liquidated ? 'text-danger' : 'text-warning'}>{REGISTRY_STATUS_LABELS[hit.status] ?? hit.status}</span>
 							{/if}
-							{#if hit.provider === 'internal_cache'}<span>уже в системе</span>{/if}
+							{#if hit.organizationId}<span class="text-fg">уже в системе · открыть карточку</span>{:else if hit.provider === 'internal_cache'}<span>уже в системе</span>{/if}
 						</span>
 					</button>
 				</li>

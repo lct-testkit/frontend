@@ -185,7 +185,7 @@
 			</Notice>
 		{/if}
 		{#if org.requisites_drift && !hideDrift}
-			<DriftBanner {org} canApply={canWrite} onApplied={(o) => adopt(o, true)} onConflict={() => load(true)} onHide={() => (hideDrift = true)} />
+			<DriftBanner {org} canApply={canWrite} canDismiss={!risk} onApplied={(o) => adopt(o, true)} onConflict={() => load(true)} onHide={() => (hideDrift = true)} />
 		{/if}
 
 		<TabsBar items={ORG_TABS} value={tab} onChange={setTab} label="Разделы организации" />

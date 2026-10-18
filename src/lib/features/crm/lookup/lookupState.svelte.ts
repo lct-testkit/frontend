@@ -12,6 +12,8 @@ export interface LookupHit {
 	status: string;
 	liquidated: boolean;
 	provider: string;
+	/** вуз уже заведён у нас: id карточки (подсказка из наших организаций) */
+	organizationId: string | null;
 }
 
 /** Что отдаём формам после выбора. `details` — полная карточка реестра (если ИНН найден в нём). */
@@ -118,9 +120,9 @@ export class OrgLookupState {
 }
 
 function fromSuggestion(s: OrgSuggestion): LookupHit {
-	return { inn: s.inn, name: s.name, region: s.region ?? null, status: s.status, liquidated: s.is_liquidated, provider: s.provider };
+	return { inn: s.inn, name: s.name, region: s.region ?? null, status: s.status, liquidated: s.is_liquidated, provider: s.provider, organizationId: s.organization_id ?? null };
 }
 
 function fromDetails(d: OrgDetails): LookupHit {
-	return { inn: d.inn, name: d.full_name, region: null, status: d.status, liquidated: d.status === 'liquidated', provider: d.provider };
+	return { inn: d.inn, name: d.full_name, region: null, status: d.status, liquidated: d.status === 'liquidated', provider: d.provider, organizationId: null };
 }
