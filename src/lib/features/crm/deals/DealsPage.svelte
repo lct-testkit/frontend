@@ -182,7 +182,18 @@
 {/snippet}
 
 <!-- «Обновить» и «Недавние» стоят в конце ряда фильтров: рядом с вкладками, которые теперь несут числа, им уже не хватает места -->
+{#snippet viewSwitch()}
+	<SegmentedControl value={f.view} size="m" onChange={(v) => setQuery({ view: v === 'board' ? 'board' : null })} aria-label="Вид списка">
+		<Segment index="table" label={bp.isMobile ? undefined : 'Таблица'} icon={tableIcon} aria-label="Таблица" />
+		<Segment index="board" label={bp.isMobile ? undefined : 'Доска'} icon={boardIcon} aria-label="Доска" />
+	</SegmentedControl>
+{/snippet}
+
 {#snippet trailing()}
+	<!-- a phone: the header row belongs to the tabs (all five must be seen), so the view is one button in the filter row: it shows what a tap switches to -->
+	{#if bp.isMobile && canRead}
+		<IconBtn icon={f.view === 'board' ? Table : GridColumns3} label={f.view === 'board' ? 'Показать таблицей' : 'Показать доской'} variant="secondary" onclick={() => setQuery({ view: f.view === 'board' ? null : 'board' })} data-testid="view-toggle" />
+	{/if}
 	{#if f.view === 'board' && f.workflow}
 		<IconBtn icon={collapse ? Unfold : Fold} label={collapse ? 'Показать пустые столбцы' : 'Свернуть пустые столбцы'} variant={collapse ? 'secondary' : 'ghost'} aria-pressed={collapse} onclick={() => (collapseChoice = !collapse)} data-testid="board-collapse" />
 	{/if}
@@ -228,11 +239,8 @@
 			{#if canRead}<TabsBar items={quickTabs} value={f.quick} onChange={(key) => set({ quick: key === 'all' ? null : key })} label="Какие сделки показывать" {underline} />{/if}
 		{/snippet}
 		{#snippet actions()}
-			{#if canRead}
-				<SegmentedControl value={f.view} size="m" onChange={(v) => setQuery({ view: v === 'board' ? 'board' : null })} aria-label="Вид списка">
-					<Segment index="table" label={bp.isMobile ? undefined : 'Таблица'} icon={tableIcon} aria-label="Таблица" />
-					<Segment index="board" label={bp.isMobile ? undefined : 'Доска'} icon={boardIcon} aria-label="Доска" />
-				</SegmentedControl>
+			{#if canRead && !bp.isMobile}
+				{@render viewSwitch()}
 			{/if}
 		{/snippet}
 	</PageHeader>
