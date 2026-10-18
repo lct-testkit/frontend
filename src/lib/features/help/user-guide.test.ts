@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ATTACHMENT_CATEGORY_LABELS, FILE_STATUS_LABELS, TRANSFER_STATUS_LABELS } from '$lib/features/crm/shared/labels';
+import { ATTACHMENT_CATEGORY_LABELS, TRANSFER_STATUS_LABELS } from '$lib/features/crm/shared/labels';
 import { LICENSE_FIELD_LABELS } from '$lib/features/crm/licenses/licenseUtils';
 import { REPORT_STATUS_INFO } from '$lib/features/config/reports/params';
 
@@ -34,7 +34,8 @@ describe('руководство пользователя совпадает с 
 
 	it('«Файлы в сделке»: все статусы файла и категории вложений', () => {
 		const text = read('17-files.md');
-		for (const label of Object.values(FILE_STATUS_LABELS)) expect(text, label).toContain(label);
+		// интерфейс статусы файла не показывает (в main метки убраны как мёртвый код): сверяем с перечислением API (pending, ready, infected, quarantined, deleted)
+		for (const label of ['Загружается', 'Готов', 'Не прошёл проверку', 'В карантине', 'Удалён']) expect(text, label).toContain(label);
 		for (const label of Object.values(ATTACHMENT_CATEGORY_LABELS)) expect(text, label).toContain(label);
 	});
 

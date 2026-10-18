@@ -9,7 +9,7 @@ export function needsRevBump(changedFiles) {
 
 /** Значение `HELP_REV` из исходника `help-attention.svelte.ts`. */
 export function revOf(source) {
-	const m = /export const HELP_REV = '([^']+)'/.exec(source);
+	const m = /const HELP_REV = '([^']+)'/.exec(source);
 	if (!m) throw new Error('В help-attention.svelte.ts не найдена константа HELP_REV');
 	return m[1];
 }

@@ -32,9 +32,9 @@ function codeBlocks(text: string): string[] {
 }
 
 describe('руководство администратора', () => {
-	it('15 глав, нумерация подряд, все в admin/ и видны только по settings:write', () => {
+	it('15 глав, нумерация подряд, все в admin/', () => {
 		expect(admin.map((c) => c.file)).toEqual(Array.from({ length: 15 }, (_, i) => expect.stringMatching(new RegExp(`^admin/${String(i + 1).padStart(2, '0')}-`))));
-		for (const c of admin) expect(c.needs).toEqual(['settings:write']);
+		for (const c of admin) expect(c.file.startsWith('admin/')).toBe(true);
 	});
 
 	it('в каждой главе есть «Что понадобится», «Шаги», «Как проверить», «Если не получилось» и строка «Сверено»', () => {

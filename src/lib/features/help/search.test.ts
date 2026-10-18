@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Chapter } from './chapters';
-import { makeSnippet, queryWords, searchChapters, sectionsOf, stem } from './search';
+import { searchChapters } from './search';
 
 const chapter = (slug: string, title: string): Chapter => ({ slug, file: `${slug}.md`, title, group: 'user' });
 const CHAPTERS = [chapter('security', 'Безопасность'), chapter('errors', 'Коды ошибок'), chapter('profile', 'Профиль и пароль')];
@@ -9,34 +9,6 @@ const TEXTS = {
 	errors: '# Коды ошибок\n\n## Вход\n\n### CRM-1101 Сессия истекла {#crm-1101}\n\nВойдите снова.\n\n### CRM-1201 Условия перехода {#crm-1201}\n\nЗаполните поля <b>и</b> повторите.',
 	profile: '# Профиль и пароль\n\nДанные учётной записи.'
 };
-
-describe('queryWords', () => {
-	it('1201, crm 1201 и CRM-1201 дают один код', () => {
-		expect(queryWords('1201')).toEqual(['1201']);
-		expect(queryWords('crm 1201')).toEqual(['crm-1201']);
-		expect(queryWords('CRM-1201')).toEqual(['crm-1201']);
-	});
-	it('ё и е равны, знаки отбрасываются', () => {
-		expect(queryWords('Ёлка, пароль!')).toEqual(['елка', 'пароль']);
-	});
-});
-
-describe('stem', () => {
-	it('основа слова: пароль → пароля, сделка → сделки; коды не трогает', () => {
-		expect(stem('пароль')).toBe('парол');
-		expect(stem('сделка')).toBe('сделк');
-		expect(stem('организации')).toBe('организац');
-		expect(stem('файл')).toBe('файл');
-		expect(stem('crm-1201')).toBe('crm-1201');
-	});
-});
-
-describe('sectionsOf', () => {
-	it('якоря разделов — те же, что у рендера, включая явные', () => {
-		const { sections } = sectionsOf(TEXTS.errors);
-		expect(sections.map((s) => s.anchor)).toEqual(['h-vkhod', 'h-crm-1101', 'h-crm-1201']);
-	});
-});
 
 describe('searchChapters', () => {
 	it('нужны все слова запроса (И)', () => {
@@ -77,15 +49,23 @@ describe('searchChapters', () => {
 	it('пустой запрос ничего не находит', () => {
 		expect(searchChapters(CHAPTERS, TEXTS, '  ')).toEqual([]);
 	});
-});
 
-describe('makeSnippet', () => {
-	it('режет фрагмент вокруг слова и ставит многоточия', () => {
-		const text = `${'а'.repeat(200)} нужное слово ${'б'.repeat(200)}`;
-		const s = makeSnippet(text, ['нужное']);
-		expect(s.startsWith('…')).toBe(true);
-		expect(s.endsWith('…')).toBe(true);
-		expect(s).toContain('<mark>нужное</mark>');
-		expect(s.length).toBeLessThan(260);
+	it('ё и е равны, знаки в запросе отбрасываются', () => {
+		expect(searchChapters(CHAPTERS, TEXTS, 'Ёлка, растёт!').map((r) => r.slug)).toEqual(['security']);
+	});
+
+	it('якоря разделов совпадают с рендером, включая явные', () => {
+		expect(searchChapters(CHAPTERS, TEXTS, 'войдите')[0].anchor).toBe('h-crm-1101');
+	});
+
+	it('сниппет режется вокруг слова и ставит многоточия', () => {
+		const text = `# Длинная
+
+${'а'.repeat(200)} нужное слово ${'б'.repeat(200)}`;
+		const [first] = searchChapters([chapter('long', 'Длинная')], { long: text }, 'нужное');
+		expect(first.snippet.startsWith('…')).toBe(true);
+		expect(first.snippet.endsWith('…')).toBe(true);
+		expect(first.snippet).toContain('<mark>нужное</mark>');
+		expect(first.snippet.length).toBeLessThan(260);
 	});
 });

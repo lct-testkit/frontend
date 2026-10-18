@@ -1,6 +1,6 @@
 <script lang="ts">
 	// Встроенная справка. Индекс глав — `features/help/chapters.ts`, тексты — `content/help/**/*.md`, каждый отдельным чанком.
-	// Адреса: `/help?s=<глава>#h-<раздел>` и `/help?q=<запрос>`. Главу, которой у человека нет по правам, показываем пояснением, а не подменяем другой.
+	// Адреса: `/help?s=<глава>#h-<раздел>` и `/help?q=<запрос>`. Все главы видны любой роли; неизвестную показываем пояснением, а не подменяем другой.
 	import { onMount, tick, type Component } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -11,7 +11,7 @@
 	import HelpNav from '$lib/features/help/HelpNav.svelte';
 	import HelpResults from '$lib/features/help/HelpResults.svelte';
 	import HelpToc from '$lib/features/help/HelpToc.svelte';
-	import { CHAPTERS, GROUPS, isChapterVisible, visibleChapters } from '$lib/features/help/chapters';
+	import { CHAPTERS, GROUPS } from '$lib/features/help/chapters';
 	import { loadAll, loadChapter } from '$lib/features/help/loader';
 	import { searchChapters, type SearchResult } from '$lib/features/help/search';
 	import { extractToc, hasToc, splitTitle } from '$lib/features/help/toc';
@@ -23,15 +23,13 @@
 	// живой компонент под текстом главы: глава о дизайн-системе показывает настоящие компоненты rt-ui
 	const EXTRAS: Record<string, Component> = { 'design-system': DesignSystemShowcase };
 
-	const viewer = $derived({ can: (p: string) => session.can(p), role: session.role });
-	const visible = $derived(visibleChapters(CHAPTERS, viewer));
+	const visible = CHAPTERS;
 	const wanted = $derived(page.url.searchParams.get('s'));
 	const query = $derived((page.url.searchParams.get('q') ?? '').trim());
 
-	// что открыто: глава из адреса; без адреса — первая видимая; неизвестная и закрытая по правам — своё пояснение
-	const requested = $derived(wanted ? CHAPTERS.find((c) => c.slug === wanted) : (visible[0] ?? undefined));
-	const forbidden = $derived(requested && !isChapterVisible(requested, viewer) ? requested : null);
-	const current = $derived(requested && !forbidden ? requested : undefined);
+	// что открыто: глава из адреса; без адреса — первая; неизвестная — своё пояснение
+	const requested = $derived(wanted ? CHAPTERS.find((c) => c.slug === wanted) : visible[0]);
+	const current = $derived(requested);
 	const extra = $derived(current ? EXTRAS[current.slug] : undefined);
 
 	// --- текст главы
@@ -149,7 +147,6 @@
 		})
 	);
 	const sideToc = $derived(showToc && !bp.isMobile && bp.width >= 1280 && !current?.wide);
-	const forbiddenHint = $derived(forbidden?.group === 'admin' ? 'Эта глава для администратора' : 'Эта глава вам недоступна');
 </script>
 
 <svelte:head><title>Справка · RTK School</title></svelte:head>
@@ -188,8 +185,6 @@
 				<Card title="Результаты поиска">
 					<HelpResults {query} {results} loading={!texts} />
 				</Card>
-			{:else if forbidden}
-				<Card><EmptyState title={forbiddenHint} hint="Главы показываются тем, у кого есть доступ к соответствующему разделу. Если глава нужна, обратитесь к администратору." /></Card>
 			{:else if !requested}
 				<Card>
 					<EmptyState title="Такой главы нет" hint="Возможно, ссылка устарела. Выберите главу в меню или найдите нужное поиском.">
