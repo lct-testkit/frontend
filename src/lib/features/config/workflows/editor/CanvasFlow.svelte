@@ -7,7 +7,7 @@
 	import { Chip } from '@lct-testkit/rt-ui';
 	import { AddLarge, Magic } from '@lct-testkit/rt-ui/icons';
 	import { IconBtn } from '$lib/ui';
-	import { LAYERS_DENSE_ABOVE, toFlow, type StatusNode, type TransitionEdge } from '../graph';
+	import { LARGE_GRAPH, toFlow, type StatusNode, type TransitionEdge } from '../graph';
 	import { statusColor } from '../palette';
 	import type { WorkflowEditor } from './editor.svelte';
 	import StatusNodeView from './StatusNode.svelte';
@@ -47,7 +47,7 @@
 		const pinned = new Set<string>(marked);
 		if (sel?.kind === 'transition') pinned.add(sel.key);
 		if (sel?.kind === 'status') for (const t of editor.draft.transitions) if (t.from === sel.key || t.to === sel.key) pinned.add(t.key);
-		const flow = toFlow(editor.draft, editor.positions, editor.issues, { readonly: !editable, compactLabels: editor.draft.transitions.length > LAYERS_DENSE_ABOVE, layers: editor.layers, pinned });
+		const flow = toFlow(editor.draft, editor.positions, editor.issues, { readonly: !editable, compactLabels: editor.draft.transitions.length > LARGE_GRAPH.transitions, layers: editor.layers, pinned });
 		total = flow.total;
 		nodes = flow.nodes.map((n) => ({ ...n, selected: (sel?.kind === 'status' && sel.key === n.id) || marked.has(n.id) }));
 		// выбран статус или переход — остальные рёбра приглушаем, иначе в плотной воронке ничего не разобрать
@@ -128,7 +128,7 @@
 				nodeStrokeWidth={4}
 			/>
 		{/if}
-		{#if interactive && editor.draft.transitions.length > LAYERS_DENSE_ABOVE}
+		{#if interactive && editor.draft.transitions.length > LARGE_GRAPH.transitions}
 			<!-- плотная воронка (десктоп; на телефоне холст — просмотр, там списки): слои рёбер; «Показано N из M» — чтобы не искать пропавшие «Отказ» и «Заморозку» -->
 			<Panel position="top-right" class="m-2! flex flex-wrap items-center justify-end gap-1.5 max-md:m-1!">
 				<span class="t-desc-l rounded-full bg-surface px-2 py-0.5 text-muted shadow-s" aria-live="polite" data-testid="layers-count">Показано {edges.length} из {total}</span>

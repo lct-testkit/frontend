@@ -7,6 +7,7 @@
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { AttentionMark, CheckStatistics, MenuKebab } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
+	import { session } from '$lib/auth/session.svelte';
 	import { Btn, ErrorState, IconBtn, Notice, Page, PageHeader, Skeleton, StatusChip, confirm, toast } from '$lib/ui';
 	import { useLeaveGuard } from '$lib/ui/leave-guard.svelte';
 	import AppDrawer from '$lib/ui/AppDrawer.svelte';
@@ -18,6 +19,7 @@
 	import IssuesList from './IssuesList.svelte';
 	import MobileLists from './MobileLists.svelte';
 	import MigrationWizard from './MigrationWizard.svelte';
+	import PublicationsDrawer from './PublicationsDrawer.svelte';
 	import PublishDialog from './PublishDialog.svelte';
 	import StepOrderDrawer from './StepOrderDrawer.svelte';
 	import SidePanel from './SidePanel.svelte';
@@ -38,6 +40,7 @@
 	let settingsOpen = $state(false);
 	let orderOpen = $state(false);
 	let migrateOpen = $state(false);
+	let historyOpen = $state(false);
 
 	onMount(() => {
 		// ссылка из карточки сделки («Переименовать» у шага): `?status=<id шага>` — шаг выбран, панель открыта (ключ сохранённого статуса равен его id)
@@ -121,6 +124,7 @@
 		...(!editor.readonly ? [{ key: 'order', value: 'Порядок шагов' }] : []),
 		...(!editor.readonly && w?.state === 'published' ? [{ key: 'migrate', value: 'Перенести сделки со старых шагов' }] : []),
 		...(!editor.readonly ? [{ key: 'settings', value: 'Название и по умолчанию' }] : []),
+		...(session.can('audit:read') && w?.state !== 'draft' ? [{ key: 'history', value: 'История публикаций' }] : []),
 		{ key: 'reload', value: 'Загрузить с сервера' },
 		{ key: 'json', value: 'Копировать JSON графа' },
 		...(!editor.readonly && w?.state === 'draft' ? [{ key: 'delete', value: 'Удалить черновик' }] : [])
@@ -131,6 +135,7 @@
 		else if (item.key === 'layout') editor.autoLayout();
 		else if (item.key === 'order') orderOpen = true;
 		else if (item.key === 'migrate') migrateOpen = true;
+		else if (item.key === 'history') historyOpen = true;
 		else if (item.key === 'settings') settingsOpen = true;
 		else if (item.key === 'reload') void reload();
 		else if (item.key === 'json') void copyJson();
@@ -264,6 +269,7 @@
 	</AppDrawer>
 {/if}
 
+<PublicationsDrawer open={historyOpen} workflowId={id} onClose={() => (historyOpen = false)} />
 <MigrationWizard {editor} open={migrateOpen} onClose={() => (migrateOpen = false)} />
 <StepOrderDrawer open={orderOpen} {editor} onClose={() => (orderOpen = false)} />
 <WorkflowSettingsDrawer open={settingsOpen} workflow={editor.workflow} onClose={() => (settingsOpen = false)} onSaved={(saved) => (editor.workflow = saved)} />
