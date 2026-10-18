@@ -18,6 +18,8 @@ const INPUT = /<(TextField|AreaField|Pick|MultiPick|CheckField|RadioField|Toggle
 // окна, в которых вводить нечего или потерять нечего: причина — в значении
 const NO_LOSS: Record<string, string> = {
 	'lib/ui/FilterBar.svelte': 'панель фильтров на телефоне: значения сразу уходят в адрес',
+	'lib/features/config/integrations/DeliveriesDrawer.svelte': 'фильтр статуса доставок: вводить нечего, значение сразу применяется',
+	'lib/features/config/integrations/SecretModal.svelte': 'поле только для копирования секрета',
 	'lib/features/signing/SignLinkModal.svelte': 'поле только для копирования ссылки',
 	'lib/features/identity/users/InviteLinkModal.svelte': 'поле только для копирования ссылки',
 	'lib/features/identity/ProfilePanel.svelte': 'в окне только текст политики; поля страницы — см. PAGES_PENDING'

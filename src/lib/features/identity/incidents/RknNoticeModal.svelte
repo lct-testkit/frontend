@@ -58,7 +58,7 @@
 	}
 </script>
 
-<AppModal open={notice !== null} title={notice?.stage === '72h' ? 'Уведомление РКН · 72 часа' : 'Уведомление РКН · 24 часа'} size="l" {onClose}>
+<AppModal open={notice !== null} dirty={contact.trim().length > 0} title={notice?.stage === '72h' ? 'Уведомление РКН · 72 часа' : 'Уведомление РКН · 24 часа'} size="l" {onClose}>
 	{#if notice}
 		<Notice class="shrink-0" tone="warning">Шаблон текста — проект: его должен утвердить юрист оператора. Уведомление подаёт человек на портале Роскомнадзора; здесь вы потом отмечаете, что оно подано.</Notice>
 		{#if missing}
