@@ -30,7 +30,7 @@ try {
 	await input.waitFor({ state: 'attached', timeout: 15000 });
 
 	step('exe отклоняется на клиенте');
-	await input.setInputFiles(fixture('virus.exe'));
+	await input.setInputFiles(fixture('not-allowed.exe'));
 	await page.getByText('Тип «.exe» не поддерживается').first().waitFor({ timeout: 5000 });
 	expect(calls.intent === 0, 'запроса upload-intent не было');
 	if (shotsDir) await page.screenshot({ path: join(shotsDir, 'exe-rejected.png') });
