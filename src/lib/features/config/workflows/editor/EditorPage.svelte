@@ -18,6 +18,7 @@
 	import IssuesList from './IssuesList.svelte';
 	import MobileLists from './MobileLists.svelte';
 	import PublishDialog from './PublishDialog.svelte';
+	import StepOrderDrawer from './StepOrderDrawer.svelte';
 	import SidePanel from './SidePanel.svelte';
 	import WorkflowSettingsDrawer from './WorkflowSettingsDrawer.svelte';
 	import { dealTypeHint, workflowStateHint } from '../../hints';
@@ -34,6 +35,7 @@
 	let issuesOpen = $state(false);
 	let menuOpen = $state(false);
 	let settingsOpen = $state(false);
+	let orderOpen = $state(false);
 
 	onMount(() => {
 		// ссылка из карточки сделки («Переименовать» у шага): `?status=<id шага>` — шаг выбран, панель открыта (ключ сохранённого статуса равен его id)
@@ -114,6 +116,7 @@
 	const menuItems = $derived([
 		...(!editor.readonly && bp.isMobile ? [{ key: 'check', value: 'Проверить воронку' }] : []),
 		...(!editor.readonly && bp.isDesktop ? [{ key: 'layout', value: 'Расставить статусы автоматически' }] : []),
+		...(!editor.readonly ? [{ key: 'order', value: 'Порядок шагов' }] : []),
 		...(!editor.readonly ? [{ key: 'settings', value: 'Название и по умолчанию' }] : []),
 		{ key: 'reload', value: 'Загрузить с сервера' },
 		{ key: 'json', value: 'Копировать JSON графа' },
@@ -123,6 +126,7 @@
 		menuOpen = false;
 		if (item.key === 'check') void check();
 		else if (item.key === 'layout') editor.autoLayout();
+		else if (item.key === 'order') orderOpen = true;
 		else if (item.key === 'settings') settingsOpen = true;
 		else if (item.key === 'reload') void reload();
 		else if (item.key === 'json') void copyJson();
@@ -242,7 +246,7 @@
 		{:else}
 			{@render starter()}
 			<div class="h-72 flex-none overflow-hidden rounded-lg border border-line bg-surface max-md:h-64"><Canvas {editor} interactive={false} /></div>
-			<MobileLists {editor} />
+			<MobileLists {editor} onOrder={() => (orderOpen = true)} />
 		{/if}
 	{/if}
 </Page>
@@ -256,6 +260,7 @@
 	</AppDrawer>
 {/if}
 
+<StepOrderDrawer open={orderOpen} {editor} onClose={() => (orderOpen = false)} />
 <WorkflowSettingsDrawer open={settingsOpen} workflow={editor.workflow} onClose={() => (settingsOpen = false)} onSaved={(saved) => (editor.workflow = saved)} />
 <ArchiveWizard {editor} status={archiving} onClose={() => (archiving = null)} />
 <PublishDialog

@@ -9,7 +9,10 @@ import { fieldCatalogue, type FieldDef } from '../dsl';
 import {
 	defaultLayers,
 	fromServer,
+	insertStepAfter as insertStepIn,
 	layoutByLevels,
+	moveStep as moveStepIn,
+	setOptional as setOptionalIn,
 	newKey,
 	newStatus,
 	newTransition,
@@ -162,6 +165,45 @@ export class WorkflowEditor {
 		if (this.marked.size) this.marked = new Set();
 	}
 
+	/**
+	 * Сервер отказал убрать переход, которым уже пользовались (CRM-1209): возвращаем в черновик переходы, что есть на сервере и пропали у нас
+	 * (переключатель «Необязательный шаг» снова включён); остальные правки остаются.
+	 */
+	private async restoreRemovedTransitions(): Promise<void> {
+		try {
+			const graph = await unwrap(api.GET('/api/workflows/{workflow_id}', { params: { path: { workflow_id: this.id } } }));
+			const have = new Set(this.draft.transitions.map((t) => t.id).filter(Boolean));
+			const back = fromServer(graph as ServerGraph).transitions.filter((t) => !have.has(t.id));
+			if (back.length) this.commit({ ...this.draft, transitions: [...this.draft.transitions, ...back] });
+		} catch {
+			// без ответа сервера черновик остаётся как есть: «Загрузить с сервера» в меню вернёт всё
+		}
+	}
+
+	/** Сдвинуть шаг выше (−1) или ниже (+1): порядок перенумеровывается 10, 20, 30… */
+	moveStep(key: string, delta: -1 | 1): void {
+		const next = moveStepIn(this.draft, key, delta);
+		if (next !== this.draft) this.commit(next);
+	}
+
+	/** Новый шаг после указанного (с переходами вперёд и назад); холст ставит его рядом с предыдущим. */
+	insertStepAfter(afterKey: string, init: { name?: string; required?: boolean } = {}): string | null {
+		const at = this.positions[afterKey] ?? { x: 0, y: 0 };
+		const { draft, key } = insertStepIn(this.draft, afterKey, init);
+		if (!key) return null;
+		this.commit(draft);
+		this.positions = { ...this.positions, [key]: { x: at.x + 60, y: at.y + 90 } };
+		this.persistPositions();
+		this.selection = { kind: 'status', key };
+		return key;
+	}
+
+	/** Необязательный шаг: переход «Пропустить: …» с предыдущего шага на следующий (включить / выключить). */
+	setOptional(key: string, optional: boolean): void {
+		const next = setOptionalIn(this.draft, key, optional);
+		if (next !== this.draft) this.commit(next);
+	}
+
 	/** Включить / выключить слои рёбер вместе («Отказ и заморозка» = отказ + возобновление). */
 	toggleLayers(group: readonly EdgeLayer[]): void {
 		this.#layersTouched = true;
@@ -305,7 +347,11 @@ export class WorkflowEditor {
 			this.apply(graph, previous);
 			return true;
 		} catch (e) {
-			if (e instanceof ApiError && e.isConflict) this.conflict = true;
+			if (e instanceof ApiError && e.code === 'CRM-1209') {
+				toast.warning('Переход нельзя убрать', 'Этот переход уже встречается в истории сделок');
+				await this.restoreRemovedTransitions();
+			}
+			else if (e instanceof ApiError && e.isConflict) this.conflict = true;
 			else toast.error(e, 'Не удалось сохранить черновик');
 			return false;
 		} finally {
