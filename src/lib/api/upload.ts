@@ -13,6 +13,10 @@ export interface UploadOptions {
 	category?: AttachmentCategory;
 	onProgress?: (fraction: number) => void;
 	signal?: AbortSignal;
+	/** объект уже лежит в хранилище (прошёл upload-intent и PUT): повторить только commit */
+	resumeFileId?: string;
+	/** вызывается, когда объект уложен в хранилище, до commit: чтобы при сбое commit не грузить заново */
+	onStored?: (fileId: string) => void;
 }
 
 export interface UploadedFile {
@@ -55,25 +59,31 @@ function put(url: string, file: Blob, headers: Record<string, string>, onProgres
 }
 
 export async function uploadFile(file: File, options: UploadOptions = {}): Promise<UploadedFile> {
-	const key = crypto.randomUUID();
-	const intent = await unwrap(
-		api.POST('/api/files/upload-intent', {
-			body: {
-				filename: file.name,
-				size_bytes: file.size,
-				mime_type: file.type || 'application/octet-stream',
-				purpose: options.purpose ?? null,
-				category: options.category ?? null
-			},
-			headers: idem(key)
-		})
-	);
-	await put(intent.upload_url, file, intent.upload_headers ?? {}, options.onProgress, options.signal);
+	let fileId = options.resumeFileId;
+	if (!fileId) {
+		const key = crypto.randomUUID();
+		const intent = await unwrap(
+			api.POST('/api/files/upload-intent', {
+				body: {
+					filename: file.name,
+					size_bytes: file.size,
+					mime_type: file.type || 'application/octet-stream',
+					purpose: options.purpose ?? null,
+					category: options.category ?? null
+				},
+				headers: idem(key)
+			})
+		);
+		await put(intent.upload_url, file, intent.upload_headers ?? {}, options.onProgress, options.signal);
+		fileId = intent.file_id;
+		options.onStored?.(fileId);
+	}
 	options.onProgress?.(1);
+	options.signal?.throwIfAborted();
 	const sha256 = await sha256Hex(file);
 	return (await unwrap(
 		api.POST('/api/files/{file_id}/commit', {
-			params: { path: { file_id: intent.file_id } },
+			params: { path: { file_id: fileId } },
 			body: { sha256: sha256 ?? null }
 		})
 	)) as UploadedFile;

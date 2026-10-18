@@ -1,19 +1,21 @@
 <script lang="ts">
-	// Вложения сущности (сделка, организация, контакт): список по категориям, загрузка в три шага
-	// (upload-intent → PUT в хранилище → commit → привязка), скачивание, отвязка (только тому, у кого право `file:delete`).
+	// Вложения сущности (сделка, организация, контакт): список по категориям, загрузка через общую очередь UploadQueue
+	// (upload-intent → PUT в хранилище → commit → привязка; форматы и размер — files/policy.ts), скачивание, отвязка (право `file:delete`).
 	// Имя, размер и тип файла бэкенд отдаёт в `attachment.file`; у старых вложений без него — имя из `description`, заданное при привязке.
 	import { onMount } from 'svelte';
-	import { Download, Trash, Upload } from '@lct-testkit/rt-ui/icons';
-	import { Progress } from '@lct-testkit/rt-ui/ext';
-	import { api, errorMessage, unwrap } from '$lib/api';
+	import { Download, Trash } from '@lct-testkit/rt-ui/icons';
+	import { api, unwrap } from '$lib/api';
 	import { people } from '$lib/api/people.svelte';
-	import { uploadFile, type AttachmentCategory } from '$lib/api/upload';
+	import type { AttachmentCategory } from '$lib/api/upload';
+	import { UploadQueue } from '$lib/api/upload-queue.svelte';
 	import { session } from '$lib/auth/session.svelte';
-	import { Btn, DateText, EmptyState, ErrorState, IconBtn, Skeleton, confirm, toast } from '$lib/ui';
+	import { DateText, EmptyState, ErrorState, IconBtn, Skeleton, confirm, toast } from '$lib/ui';
 	import { formatBytes } from '$lib/utils/format';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import { ATTACHMENT_CATEGORY_LABELS } from '../shared/labels';
 	import { fileKind } from './file-kind';
+	import FileDrop from './FileDrop.svelte';
+	import { linkAttachment } from './link';
 	import type { Attachment } from '../types';
 
 	interface Props {
@@ -28,26 +30,41 @@
 
 	let { entityType, entityId, canEdit = false, onChange, about = 'по этой карточке' }: Props = $props();
 
-	const ALLOWED = ['png', 'jpeg', 'jpg', 'pdf', 'zip', 'gz', 'gzip', 'rar', 'doc', 'docx', 'xls', 'xlsx', 'xml', 'csv'];
-	const MAX_BYTES = 50 * 1024 * 1024;
-	const hint = $derived(`Документы ${about}: договор, акт, отчёт и другое. Форматы: PDF, изображения, Word, Excel, XML, CSV, архивы.`);
+	const hint = $derived(`Документы ${about}: договор, акт, отчёт и другое.`);
 
 	let items = $state<Attachment[]>([]);
 	let loading = $state(true);
 	let error = $state<unknown>(null);
 
-	interface Pending {
-		id: number;
-		file: File;
-		progress: number;
-		state: 'ready' | 'uploading' | 'error';
-		message?: string;
-	}
-	let pending = $state<Pending[]>([]);
 	let category = $state<string>('other');
-	let dragging = $state(false);
-	let input = $state<HTMLInputElement>();
-	let seq = 0;
+
+	let batchDone = 0;
+
+	// сирота: файл уложен и прошёл commit, а привязать не вышло и строку убрали — удаляем, если есть право (backend-issues A-23)
+	const queue = new UploadQueue<AttachmentCategory>({
+		optionsFor: (row) => ({ category: row.meta }),
+		onUploaded: async (row, uploaded) => {
+			const linked = await linkAttachment({ fileId: uploaded.id, entityType, entityId, category: row.meta ?? 'other', description: row.file.name });
+			items = [linked, ...items];
+			onChange?.(items.length);
+		},
+		onDone: (row) => {
+			batchDone += 1;
+			queue.remove(row.id);
+			if (!queue.rows.some((r) => r.state === 'queued' || r.state === 'uploading')) {
+				toast.success(batchDone > 1 ? 'Файлы загружены' : 'Файл загружен');
+				batchDone = 0;
+			}
+		},
+		onDiscard: (row) => {
+			if (row.fileId && canRemove) void api.DELETE('/api/files/{file_id}', { params: { path: { file_id: row.fileId } } });
+		}
+	});
+
+	function onPick(files: File[]) {
+		queue.add(files, category as AttachmentCategory);
+		void queue.start();
+	}
 
 	const categoryItems = Object.entries(ATTACHMENT_CATEGORY_LABELS).map(([key, value]) => ({ key, value }));
 	const canDownload = $derived(session.can('file:download'));
@@ -76,50 +93,6 @@
 	onMount(() => void load());
 
 	const nameOf = (a: Attachment) => a.file?.original_filename || a.description || 'Файл';
-	const extOf = (name: string) => name.split('.').pop()?.toLowerCase() ?? '';
-
-	function pick(files: FileList | File[] | null) {
-		if (!files) return;
-		const next: Pending[] = [];
-		for (const file of Array.from(files)) {
-			const problem = !ALLOWED.includes(extOf(file.name))
-				? `Тип «.${extOf(file.name) || '?'}» не поддерживается`
-				: file.size > MAX_BYTES
-					? 'Файл больше 50 МБ'
-					: file.size === 0
-						? 'Файл пустой'
-						: undefined;
-			next.push({ id: (seq += 1), file, progress: 0, state: problem ? 'error' : 'ready', message: problem });
-		}
-		pending = [...pending, ...next];
-	}
-
-	async function send(row: Pending) {
-		row.state = 'uploading';
-		row.message = undefined;
-		row.progress = 0;
-		let fileId: string | null = null;
-		try {
-			const uploaded = await uploadFile(row.file, { category: category as AttachmentCategory, onProgress: (f) => (row.progress = f) });
-			fileId = uploaded.id;
-			const linked = await unwrap(
-				api.POST('/api/attachments', { body: { file_id: uploaded.id, entity_type: entityType, entity_id: entityId, category: category as AttachmentCategory, description: row.file.name } })
-			);
-			items = [linked, ...items];
-			pending = pending.filter((p) => p.id !== row.id);
-			onChange?.(items.length);
-		} catch (e) {
-			row.state = 'error';
-			row.message = errorMessage(e);
-			// файл загружен, а привязать не вышло: убираем сироту (право есть только у HEAD/ADMIN — backend-issues A-23)
-			if (fileId && canRemove) void api.DELETE('/api/files/{file_id}', { params: { path: { file_id: fileId } } });
-		}
-	}
-
-	async function sendAll() {
-		for (const row of pending.filter((p) => p.state === 'ready' || (p.state === 'error' && p.message && ALLOWED.includes(extOf(p.file.name)) && p.file.size <= MAX_BYTES))) await send(row);
-		if (!pending.length) toast.success('Файлы загружены');
-	}
 
 	async function download(a: Attachment) {
 		try {
@@ -146,57 +119,15 @@
 			.map((key) => ({ key, rows: items.filter((a) => a.category === key) }))
 			.filter((g) => g.rows.length)
 	);
-	const busy = $derived(pending.some((p) => p.state === 'uploading'));
 </script>
 
 <div class="flex min-w-0 flex-col gap-3">
 	{#if canEdit}
-		<!-- своя зона перетаскивания: rt-ui FileUpload заменяет список при каждой загрузке и сам хранит файлы, а нам нужны очередь, категория и прогресс; кнопки внутри rt-ui File без aria-label -->
-		<div
-			role="group"
-			aria-label="Загрузка файлов"
-			class={['flex flex-col items-center gap-2 rounded-lg border-2 border-dashed p-4 text-center transition', dragging ? 'border-accent bg-accent-soft' : 'border-line-strong bg-surface']}
-			ondragover={(e) => {
-				e.preventDefault();
-				dragging = true;
-			}}
-			ondragleave={() => (dragging = false)}
-			ondrop={(e) => {
-				e.preventDefault();
-				dragging = false;
-				pick(e.dataTransfer?.files ?? null);
-			}}
-		>
-			<input bind:this={input} type="file" multiple class="hidden" accept={ALLOWED.map((e) => `.${e}`).join(',')} onchange={(e) => ((pick(e.currentTarget.files), (e.currentTarget.value = '')))} />
-			<Btn label="Загрузить файлы" icon={Upload} variant="outline" colorScheme="neutral" onclick={() => input?.click()} data-testid="attach-pick" />
-			<span class="t-desc-l text-muted max-md:hidden">или перетащите сюда · до 50 МБ</span>
+		<div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
+			<Pick label="Категория" items={categoryItems} value={category} onChange={(v) => v && (category = v)} />
 		</div>
-
+		<FileDrop {queue} {onPick} label="Загрузить файлы" testid="attach" />
 		<p class="t-body-s m-0 text-muted">{hint}</p>
-
-		{#if pending.length}
-			<div class="flex flex-col gap-2 rounded-lg border border-line bg-surface p-3">
-				<Pick label="Категория" items={categoryItems} value={category} onChange={(v) => v && (category = v)} />
-				<ul class="m-0 flex list-none flex-col gap-2 p-0">
-					{#each pending as row (row.id)}
-						<li class="flex flex-col gap-1">
-							<div class="flex items-center gap-2">
-								<span class="t-body-m min-w-0 flex-1 truncate">{row.file.name}</span>
-								<span class="t-desc-l flex-none text-muted">{formatBytes(row.file.size)}</span>
-								<IconBtn icon={Trash} label="Убрать из очереди" size="s" disabled={row.state === 'uploading'} onclick={() => (pending = pending.filter((p) => p.id !== row.id))} />
-							</div>
-							{#if row.state === 'uploading'}<Progress value={Math.round(row.progress * 100)} size="s" />{/if}
-							<!-- ошибка строки очереди: короткая подпись под именем файла, плашка Notice для неё слишком тяжёлая -->
-							{#if row.message}<span class="t-desc-l text-danger" role="alert">{row.message}</span>{/if}
-						</li>
-					{/each}
-				</ul>
-				<div class="flex justify-end gap-2">
-					<Btn label="Очистить" variant="ghost" colorScheme="neutral" size="s" disabled={busy} onclick={() => (pending = [])} />
-					<Btn label="Загрузить" size="s" loading={busy} disabled={!pending.some((p) => p.state !== 'uploading')} onclick={sendAll} data-testid="attach-upload" />
-				</div>
-			</div>
-		{/if}
 	{/if}
 
 	{#if !canEdit}<p class="t-body-s m-0 text-muted">{hint}</p>{/if}
