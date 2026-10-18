@@ -9,18 +9,18 @@
 	import { Btn, ErrorState, Notice, Page, PageHeader, Skeleton, toast } from '$lib/ui';
 	import Card from '$lib/ui/Card.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
-	import { NOTIFICATION_CHANNEL_LABELS } from '../shared/labels';
+	import { CHANNELS, canToggle, channelState, type Capabilities, type Channel } from './channels';
 	import type { NotificationPref } from '../types';
 	import { EVENT_GROUP_LABELS, eventCodeInfo, type EventCodeInfo, type EventGroup } from './eventCodes';
 
-	type Channel = 'in_app' | 'email' | 'telegram';
 	interface Row {
 		code: string;
 		enabled: boolean;
 		channels: Channel[];
 	}
 
-	const CHANNELS: Channel[] = ['in_app', 'email', 'telegram'];
+	/** Возможности сервера (SMTP, Telegram) пока не отдаются ручкой: про Telegram известно и так, про почту ничего не утверждаем. */
+	const caps: Capabilities | null = null;
 	const DEFAULT: Omit<Row, 'code'> = { enabled: true, channels: ['in_app'] };
 
 	let rows = $state<Row[]>([]);
@@ -102,7 +102,7 @@
 	{:else if error}
 		<ErrorState {error} onRetry={load} />
 	{:else}
-		<Notice class="shrink-0" tone="info">Событие — то, что происходит в системе, например смена статуса сделки. Переключатель «Получать» включает или выключает все уведомления об этом событии, флажки выбирают каналы доставки.</Notice>
+		<Notice class="shrink-0" tone="info">Событие — то, что происходит в системе, например смена статуса сделки. Переключатель «Получать» включает или выключает все уведомления об этом событии, флажки выбирают каналы доставки. Telegram в этой сборке не подключён: сообщения в него не отправляются. Почта работает, если администратор настроил почтовый сервер.</Notice>
 
 		<Card title="Тихие часы">
 			<div class="grid max-w-xl grid-cols-2 gap-3 max-md:grid-cols-1">
@@ -119,13 +119,17 @@
 							<span class="t-body-m min-w-0 flex-1 basis-56 max-md:order-1">{info.label}</span>
 							<span class="flex flex-wrap items-center gap-x-4 gap-y-1 max-md:order-3 max-md:basis-full">
 								{#each CHANNELS as channel (channel)}
-									<Checkbox
-										variant="primary"
-										label={NOTIFICATION_CHANNEL_LABELS[channel]}
-										checked={row.channels.includes(channel)}
-										disabled={!row.enabled}
-										onChange={(v: boolean) => toggleChannel(row, channel, v)}
-									/>
+									{@const state = channelState(channel, caps)}
+									{@const checked = row.channels.includes(channel)}
+									<span title={state.note ?? undefined}>
+										<Checkbox
+											variant="primary"
+											label={state.label}
+											{checked}
+											disabled={!row.enabled || !canToggle(channel, checked, caps)}
+											onChange={(v: boolean) => toggleChannel(row, channel, v)}
+										/>
+									</span>
 								{/each}
 							</span>
 							<span class="max-md:order-2" title={info.locked ? 'Уведомление о безопасности нельзя отключить' : undefined}>

@@ -158,11 +158,11 @@
 	{#if isNew}
 		<Pick label="Событие" required search bind:value={eventKey} items={eventItems} error={errors.code} />
 		{#if eventKey === CUSTOM}<TextField label="Код события" required bind:value={customCode} placeholder="DEAL_CUSTOM_EVENT" hint="Заглавные латинские буквы и «_»: код должен совпадать с кодом в действии перехода" />{/if}
-		<Pick label="Канал" bind:value={channel} items={NOTIFICATION_CHANNELS.map((c) => ({ key: c.key, value: c.value }))} />
+		<Pick label="Канал" bind:value={channel} items={NOTIFICATION_CHANNELS.map((c) => ({ key: c.key, value: c.key === 'telegram' ? `${c.value} (не подключён)` : c.value, disabled: c.key === 'telegram', hint: c.key === 'telegram' ? 'Сообщения в Telegram пока не отправляются' : undefined }))} />
 	{:else}
 		<div class="t-desc-l flex flex-wrap items-center gap-x-3 gap-y-1 text-muted">
 			<span class="font-mono">{item?.code}</span>
-			<span>{labelOf(NOTIFICATION_CHANNELS, item?.channel)}</span>
+			<span>{labelOf(NOTIFICATION_CHANNELS, item?.channel)}{item?.channel === 'telegram' ? ' (не подключён)' : ''}</span>
 		</div>
 	{/if}
 	{#if channel === 'email'}<TextField label="Тема письма" bind:value={subject} error={errors.subject_template} />{/if}
