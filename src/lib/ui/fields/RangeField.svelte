@@ -26,9 +26,8 @@
 		d && !Number.isNaN(d.getTime()) ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : '';
 </script>
 
-<!-- the DS puts ' - ' between the two dates as a flex item, so the spaces are trimmed: «01.10.2026-18.10.2026»; the padding gives the dash room back -->
 <InputDate
-	class={`w-full [&_input[name=df]+span]:px-1 ${className}`}
+	class={`w-full ${className}`}
 	size={bp.isMobile ? 'l' : 'm'}
 	label={bare ? undefined : label}
 	isRange
