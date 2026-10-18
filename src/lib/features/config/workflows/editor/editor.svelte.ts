@@ -176,7 +176,7 @@ export class WorkflowEditor {
 			const back = fromServer(graph as ServerGraph).transitions.filter((t) => !have.has(t.id));
 			if (back.length) this.commit({ ...this.draft, transitions: [...this.draft.transitions, ...back] });
 		} catch {
-			// без ответа сервера черновик остаётся как есть: «Загрузить с сервера» в меню вернёт всё
+			// без ответа сервера черновик остаётся как есть: «Вернуть сохранённую версию» в меню вернёт всё
 		}
 	}
 

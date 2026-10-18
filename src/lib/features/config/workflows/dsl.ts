@@ -303,7 +303,7 @@ export type NotifyChannel = (typeof NOTIFY_CHANNELS)[number];
 export const NOTIFY_CHANNEL_LABELS: Record<NotifyChannel, string> = {
 	in_app: 'В системе',
 	email: 'Электронная почта',
-	telegram: 'Telegram'
+	telegram: 'Telegram (не подключён)'
 };
 
 export const NOTIFY_RECIPIENTS = ['owner', 'manager', 'participants', 'team_head', 'initiator', 'contact'] as const;
