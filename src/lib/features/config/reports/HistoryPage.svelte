@@ -90,7 +90,10 @@
 	{:else if st === 'gone'}
 		<StatusChip label="Файл недоступен" tone="neutral" hint="Файла нет в хранилище: запись без файла или файл удалён. Запустите отчёт заново" />
 	{:else}
-		<StatusChip label={info(j.status).label} tone={info(j.status).tone} title={j.error ?? undefined} />
+		<span class="inline-flex flex-wrap items-center gap-2">
+			<StatusChip label={info(j.status).label} tone={info(j.status).tone} title={j.error ?? undefined} />
+			{#if st === 'ready' && j.row_count === 0}<StatusChip label="Пустой" tone="warning" hint="В отчёте нет ни одной строки: по выбранным условиям данных не нашлось. Измените период или фильтры" />{/if}
+		</span>
 	{/if}
 {/snippet}
 {#snippet statusCell(j: ReportJob)}<TableCell>{@render statusChip(j)}</TableCell>{/snippet}
