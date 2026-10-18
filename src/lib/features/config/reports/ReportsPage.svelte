@@ -12,7 +12,7 @@
 	import { takeRerun, type RerunRequest } from './rerun';
 	import ReportTabs from './ReportTabs.svelte';
 	import RunReportDrawer from './RunReportDrawer.svelte';
-	import { formatLabel, formatsFor } from './params';
+	import { describeTemplate, formatLabel, formatsFor } from './params';
 
 	const list = createResource((signal) => unwrap(api.GET('/api/report-templates', { signal })).then((r) => r.items.filter((t) => t.is_active)));
 	onMount(() => void list.reload());
@@ -62,7 +62,7 @@
 							<!-- the arrow sits on the middle of the FIRST line of the title (a box one title line high), not on the top of a two-line title -->
 							<span class="t-body-l-strong flex h-[1lh] flex-none items-center"><ArrowRight class="size-5 fill-soft transition-transform group-hover:translate-x-0.5" /></span>
 						</span>
-						{#if t.description}<span class="t-body-s line-clamp-3 text-muted">{t.description}</span>{/if}
+						{#if t.description}<span class="t-body-s line-clamp-3 text-muted">{describeTemplate(t.description)}</span>{/if}
 						<span class="mt-auto flex flex-wrap gap-1.5 pt-1">
 							{#each formatsFor(t.output_formats) as f (f)}<Badge size="2xs" variant="secondary" colorScheme="neutral" label={formatLabel(f)} />{/each}
 						</span>

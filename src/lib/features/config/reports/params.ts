@@ -164,8 +164,7 @@ export const REPORT_SPECS: Record<string, ReportSpec> = {
 		extra: [],
 		tail: [limitDef(1000)],
 		columns: true,
-		personalData: true,
-		hint: 'Прогресс учащихся по данным LMS'
+		personalData: true
 	},
 	product_demand: {
 		scope: { period: DEAL_DATES, ...ALL_FILTERS },
@@ -228,6 +227,8 @@ export const REPORT_SPECS: Record<string, ReportSpec> = {
 export function describeTemplate(description: string): string {
 	return description
 		.replace(/\s*Параметры:[^.]*\.?/u, ' ')
+		.replace(/без права\s+`?contact:reveal`?/giu, 'без права просмотра персональных данных')
+		.replace(/источник\s+lms/giu, 'источник LMS')
 		.replace(/\s{2,}/g, ' ')
 		.trim();
 }
