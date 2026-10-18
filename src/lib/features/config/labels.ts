@@ -17,9 +17,9 @@ export const PRODUCT_FORMATS: readonly Option[] = [
 ];
 
 /** Вид продукта (B3-7): курс обучения или ИТ-продукт — программное обеспечение вендора, на которое оформляются лицензии. */
-export const PRODUCT_KINDS: readonly (Option & { hint: string })[] = [
-	{ key: 'course', value: 'Курс', hint: 'Курс, программа или трек обучения' },
-	{ key: 'software', value: 'ИТ-продукт (ПО)', hint: 'Программное обеспечение вендора: на него оформляются лицензии' }
+export const PRODUCT_KINDS: readonly (Option & { hint: string; short: string })[] = [
+	{ key: 'course', value: 'Курс', short: 'Курсы', hint: 'Курс, программа или трек обучения' },
+	{ key: 'software', value: 'ИТ-продукт (ПО)', short: 'ПО', hint: 'Программное обеспечение вендора: на него оформляются лицензии' }
 ];
 
 export const LOSS_REASON_CATEGORIES: readonly Option[] = [

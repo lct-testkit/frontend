@@ -1,11 +1,61 @@
 import { describe, expect, it } from 'vitest';
-import { canDownloadReport, isReportExpired, normalizeParams, normalizePosition, paramsFor, validateParams } from './params';
+import { REPORT_SPECS, canDownloadReport, hasSpec, isReportExpired, normalizeParams, normalizePosition, paramsFor, toList, validateParams } from './params';
+import { runKey } from './widgets';
+
+/** Виды отчётов бэкенда (backend/app/modules/reporting/seed.py): у каждого обязана быть форма параметров. */
+const SEED_TEMPLATE_CODES = [
+	'deal_funnel',
+	'kam_summary',
+	'region_summary',
+	'loss_reasons',
+	'sla_compliance',
+	'monthly_dynamics',
+	'stuck_deals',
+	'deal_register',
+	'learning_progress',
+	'lms_users_upload',
+	'product_demand',
+	'license_register'
+];
+const keysOf = (code: string) => paramsFor(code).map((d) => d.key);
+const SCOPE_KEYS = ['date_from', 'date_to', 'organization_ids', 'direction_ids', 'product_ids', 'owner_ids'];
+
+describe('реестр шаблонов', () => {
+	it('у каждого вида отчёта бэкенда есть описание; лишних описаний нет', () => {
+		for (const code of SEED_TEMPLATE_CODES) expect(hasSpec(code), code).toBe(true);
+		expect(Object.keys(REPORT_SPECS).sort()).toEqual([...SEED_TEMPLATE_CODES].sort());
+	});
+
+	it('десять видов с общим блоком из пяти граней', () => {
+		const withScope = SEED_TEMPLATE_CODES.filter((c) => !['lms_users_upload', 'license_register'].includes(c));
+		for (const code of withScope) expect(keysOf(code), code).toEqual(expect.arrayContaining(SCOPE_KEYS));
+	});
+
+	it('ключи форм совпадают с тем, что читает бэкенд', () => {
+		expect(keysOf('deal_funnel')).toEqual(['deal_type', 'workflow_id', 'date_field', ...SCOPE_KEYS]);
+		expect(keysOf('loss_reasons')).toEqual(SCOPE_KEYS); // дата одна — выбора нет
+		expect(keysOf('monthly_dynamics')).toEqual(['months', ...SCOPE_KEYS]); // date_field сервер запрещает
+		expect(keysOf('stuck_deals')).toEqual(['date_field', ...SCOPE_KEYS, 'limit']);
+		expect(keysOf('product_demand')).toEqual(['level', 'sort_by', 'top', 'date_field', ...SCOPE_KEYS]);
+		expect(keysOf('license_register')).toEqual(['date_field', 'date_from', 'date_to', 'organization_ids', 'vendors', 'transfer_statuses', 'valid_year', 'expired', 'limit']);
+		expect(keysOf('lms_users_upload')).toEqual(['product_id', 'stream_number', 'date_from', 'date_to']);
+		expect(paramsFor('нет такого')).toEqual([]);
+	});
+
+	it('даты периода берутся с сервера, иначе из описания', () => {
+		const label = (code: string, info?: Parameters<typeof paramsFor>[2]) => paramsFor(code, {}, info).find((d) => d.key === 'date_from')?.label;
+		expect(label('loss_reasons')).toBe('Сделка закрыта с');
+		expect(label('deal_register')).toBe('Период с');
+		const field = paramsFor('deal_register', {}, { dateFields: ['created_at', 'closed_at'], defaultDateField: 'closed_at' }).find((d) => d.key === 'date_field');
+		expect(field?.options?.map((o) => o.key)).toEqual(['created_at', 'closed_at']);
+		expect(field?.default).toBe('closed_at');
+	});
+});
 
 describe('параметры отчётов', () => {
 	it('paramsFor подставляет default_params шаблона', () => {
 		const defs = paramsFor('monthly_dynamics', { months: 6 });
 		expect(defs[0]).toMatchObject({ key: 'months', default: 6, min: 1, max: 36 });
-		expect(paramsFor('kam_summary')).toEqual([]);
 	});
 
 	it('normalizeParams зажимает числа в границы и убирает пустое', () => {
@@ -22,6 +72,55 @@ describe('параметры отчётов', () => {
 		expect(validateParams(defs, { months: 40 })).toEqual({ months: 'От 1 до 36' });
 		expect(validateParams(defs, {})).toEqual({});
 		expect(validateParams(paramsFor('deal_funnel'), { deal_type: '' })).toEqual({});
+	});
+
+	it('списки: повторы и пустые убираются, строка из старого виджета разбирается по запятой', () => {
+		const defs = paramsFor('deal_register');
+		expect(normalizeParams(defs, { organization_ids: ['a', 'a', 'b'], direction_ids: [] })).toEqual({ organization_ids: ['a', 'b'], limit: 1000 });
+		expect(normalizeParams(defs, { organization_ids: 'a, b' }).organization_ids).toEqual(['a', 'b']);
+		expect(normalizeParams(defs, { date_from: '' })).toEqual({ limit: 1000 });
+		expect(toList('x,,y, x')).toEqual(['x', 'y']);
+	});
+
+	it('дата периода по умолчанию в тело не идёт, другая — идёт', () => {
+		const defs = paramsFor('deal_register');
+		expect(normalizeParams(defs, { date_field: 'created_at' })).not.toHaveProperty('date_field');
+		expect(normalizeParams(defs, { date_field: 'closed_at' })).toMatchObject({ date_field: 'closed_at' });
+	});
+
+	it('«Месяцев» при заданном периоде блокируется: не валидируется и не уходит в тело', () => {
+		const defs = paramsFor('monthly_dynamics');
+		expect(normalizeParams(defs, { months: 6, date_from: '2026-01-01' })).toEqual({ date_from: '2026-01-01' });
+		expect(validateParams(defs, { months: 40, date_from: '2026-01-01' })).toEqual({});
+		expect(normalizeParams(defs, { months: 6 })).toEqual({ months: 6 });
+	});
+
+	it('дата «по» раньше «с» — ошибка на «по»', () => {
+		const defs = paramsFor('deal_register');
+		expect(validateParams(defs, { date_from: '2026-09-30', date_to: '2026-09-01' })).toEqual({ date_to: 'Дата «по» раньше даты «с»' });
+		expect(validateParams(defs, { date_from: '2026-09-01', date_to: '2026-09-01' })).toEqual({});
+	});
+
+	it('воронка другого типа — ошибка, подходящая — нет', () => {
+		const defs = paramsFor('deal_funnel');
+		const ctx = { workflowTypes: { w1: 'b2c', w2: 'b2b' } };
+		expect(validateParams(defs, { deal_type: 'b2b', workflow_id: 'w1' }, ctx)).toEqual({ workflow_id: 'Воронка относится к другому типу сделки' });
+		expect(validateParams(defs, { deal_type: 'b2b', workflow_id: 'w2' }, ctx)).toEqual({});
+		expect(validateParams(defs, { workflow_id: 'w1' }, ctx).workflow_id).toBeTruthy(); // тип по умолчанию b2b
+	});
+
+	it('новые виды полей: «Показать первые», год окончания, флаг, статусы, вендоры', () => {
+		expect(validateParams(paramsFor('product_demand'), { top: 0 }).top).toBe('От 1 до 100');
+		const lic = paramsFor('license_register');
+		expect(validateParams(lic, { valid_year: 1999 }).valid_year).toBe('От 2000 до 2100');
+		expect(normalizeParams(lic, { expired: false, transfer_statuses: ['', 'in_progress'], vendors: '1С, Контур' })).toEqual({ vendors: ['1С', 'Контур'], transfer_statuses: ['in_progress'], limit: 1000 });
+		expect(normalizeParams(lic, { expired: true })).toMatchObject({ expired: true });
+	});
+
+	it('runKey: порядок id не меняет ключ, строка «a,b» из старого виджета равна массиву', () => {
+		expect(runKey({ template_code: 'x', params: { organization_ids: ['b', 'a'] } })).toBe(runKey({ template_code: 'x', params: { organization_ids: ['a', 'b'] } }));
+		expect(runKey({ template_code: 'x', params: { organization_ids: 'b,a' } })).toBe(runKey({ template_code: 'x', params: { organization_ids: ['a', 'b'] } }));
+		expect(runKey({ template_code: 'x', params: { months: 3 } })).not.toBe(runKey({ template_code: 'x', params: { months: 4 } }));
 	});
 });
 
@@ -46,8 +145,9 @@ describe('normalizePosition', () => {
 describe('выгрузка учащихся в LMS (lms_users_upload)', () => {
 	const defs = paramsFor('lms_users_upload');
 
-	it('курс, поток и период — необязательные параметры', () => {
+	it('курс, поток и период — необязательные параметры, общего блока нет', () => {
 		expect(defs.map((d) => d.key)).toEqual(['product_id', 'stream_number', 'date_from', 'date_to']);
+		expect(defs.some((d) => d.group === 'scope')).toBe(false);
 		expect(defs.every((d) => !d.required)).toBe(true);
 		expect(validateParams(defs, {})).toEqual({});
 	});

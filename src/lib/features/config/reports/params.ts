@@ -1,4 +1,6 @@
-// Отчёты и дашборды: параметры шаблонов (backend/app/modules/reporting/builders.py), подписи, срок хранения.
+// Отчёты и дашборды: параметры шаблонов (backend/app/modules/reporting/spec.py), подписи, срок хранения.
+import { GLOSSARY } from '$lib/ui/glossary';
+import { TRANSFER_STATUS_LABELS } from '../../crm/shared/labels';
 
 export const REPORT_FORMATS = ['xlsx', 'pdf', 'png'] as const;
 export type ReportFormat = (typeof REPORT_FORMATS)[number];
@@ -14,7 +16,26 @@ export const REPORT_STATUS_INFO: Record<ReportStatus, { label: string; tone: 'ne
 };
 export const isReportBusy = (status: string): boolean => status === 'queued' || status === 'processing';
 
-export type ReportParamKind = 'deal_type' | 'workflow' | 'int' | 'product' | 'date' | 'organization_multi' | 'direction_multi' | 'product_multi' | 'owner_multi';
+export type ReportParamKind =
+	| 'deal_type'
+	| 'workflow'
+	| 'int'
+	| 'product'
+	| 'date'
+	| 'date_field'
+	| 'organization_multi'
+	| 'direction_multi'
+	| 'product_multi'
+	| 'owner_multi'
+	| 'text_list'
+	| 'enum'
+	| 'enum_multi'
+	| 'bool';
+
+export interface ReportParamOption {
+	key: string;
+	value: string;
+}
 
 export interface ReportParamDef {
 	key: string;
@@ -25,50 +46,229 @@ export interface ReportParamDef {
 	max?: number;
 	default?: unknown;
 	required?: boolean;
+	/** варианты для `enum`, `enum_multi`, `date_field` */
+	options?: readonly ReportParamOption[];
+	/** поле блокируется (и не уходит в тело), если заполнен любой из этих ключей */
+	disabledBy?: readonly string[];
+	disabledHint?: string;
+	/** поле общего блока «период + вуз + направление + продукт + ответственный» */
+	group?: 'scope';
 }
 
-/** Параметры, которые реально читают билдеры отчётов (остальные шаблоны параметров не имеют). */
-export const REPORT_PARAMS: Record<string, ReportParamDef[]> = {
-	deal_funnel: [
-		{ key: 'deal_type', label: 'Тип сделки', kind: 'deal_type', default: 'b2b', required: true },
-		{ key: 'workflow_id', label: 'Воронка', kind: 'workflow', hint: 'Пусто — воронка по умолчанию для типа сделки' }
-	],
-	monthly_dynamics: [{ key: 'months', label: 'Месяцев', kind: 'int', min: 1, max: 36, default: 12, required: true }],
-	stuck_deals: [{ key: 'limit', label: 'Не больше строк', kind: 'int', min: 1, max: 5000, default: 500, required: true }],
-	// Реестр сделок: единственный отчёт со всеми пятью гранями раздела 4 разом (вуз, направление,
-	// продукт, статус — уже колонка вывода, ответственный) — вуз/направление/продукт/ответственный тут
-	// фильтры, период — по дате создания сделки.
-	deal_register: [
-		{ key: 'date_from', label: 'Создана с', kind: 'date' },
-		{ key: 'date_to', label: 'Создана по', kind: 'date' },
-		{ key: 'organization_ids', label: 'Вузы', kind: 'organization_multi', hint: 'Пусто — все' },
-		{ key: 'direction_ids', label: 'Направления', kind: 'direction_multi', hint: 'Пусто — все' },
-		{ key: 'product_ids', label: 'Продукты', kind: 'product_multi', hint: 'Пусто — все' },
-		{ key: 'owner_ids', label: 'Ответственные', kind: 'owner_multi', hint: 'Пусто — все' },
-		{ key: 'limit', label: 'Не больше строк', kind: 'int', min: 1, max: 5000, default: 1000, required: true }
-	],
-	// Выгрузка учащихся в LMS: курс и поток, период по дате создания сделки; статусы сделок сервер берёт по умолчанию
-	lms_users_upload: [
-		{ key: 'product_id', label: 'Курс', kind: 'product', hint: 'Пусто — все курсы' },
-		{ key: 'stream_number', label: 'Номер потока', kind: 'int', min: 1, max: 1000, hint: 'Пусто — все потоки' },
-		{ key: 'date_from', label: 'Сделки с', kind: 'date' },
-		{ key: 'date_to', label: 'Сделки по', kind: 'date' }
-	]
+// --- Подписи периода --------------------------------------------------------------------------
+
+/** По какой дате считается период: ключи — `date_fields` шаблона (`GET /api/report-templates`). */
+export const DATE_FIELD_LABELS: Record<string, string> = {
+	created_at: 'Сделка создана',
+	closed_at: 'Сделка закрыта',
+	updated_at: 'Сделка изменена',
+	last_activity_at: 'Последняя активность учащегося',
+	enrolled_at: 'Учащийся зачислен',
+	completed_at: 'Учащийся завершил обучение',
+	license_signed_at: 'Лицензия подписана'
+};
+export const dateFieldLabel = (key: string): string => DATE_FIELD_LABELS[key] ?? key;
+
+const DEAL_DATES = ['created_at', 'closed_at', 'updated_at'] as const;
+
+// --- Описание шаблонов ------------------------------------------------------------------------
+
+export interface ReportScope {
+	/** `null` — периода нет; массив — допустимые `date_field` (пустой — выбор даты запрещён сервером) */
+	period: readonly string[] | null;
+	organizations: boolean;
+	directions: boolean;
+	products: boolean;
+	owners: boolean;
+}
+
+export interface ReportSpec {
+	/** какие общие фильтры читает builder и по каким датам считается период */
+	scope: ReportScope;
+	/** поля отчёта ПЕРЕД общим блоком (тип сделки, число месяцев) */
+	extra: ReportParamDef[];
+	/** поля отчёта ПОСЛЕ общего блока (лимит строк) */
+	tail?: ReportParamDef[];
+	/** одна строка над формой: что именно считает отчёт */
+	hint?: string;
+	/** отчёт содержит персональные данные: предупреждение над формой */
+	personalData?: boolean;
+	/** другая подпись поля «Ответственные» */
+	ownersLabel?: string;
+	/** у шаблона есть выбор колонок (если сервер отдал `columns`) */
+	columns?: boolean;
+}
+
+const ALL_FILTERS = { organizations: true, directions: true, products: true, owners: true } as const;
+const limitDef = (def: number): ReportParamDef => ({ key: 'limit', label: 'Не больше строк', kind: 'int', min: 1, max: 5000, default: def, required: true });
+
+export const REPORT_SPECS: Record<string, ReportSpec> = {
+	deal_funnel: {
+		scope: { period: DEAL_DATES, ...ALL_FILTERS },
+		extra: [
+			{ key: 'deal_type', label: 'Тип сделки', kind: 'deal_type', default: 'b2b', required: true },
+			{ key: 'workflow_id', label: 'Воронка', kind: 'workflow', hint: 'Пусто — воронка по умолчанию для типа сделки' }
+		],
+		hint: 'С фильтрами отчёт считается точнее, но дольше'
+	},
+	kam_summary: { scope: { period: DEAL_DATES, ...ALL_FILTERS }, extra: [], ownersLabel: 'КАМы в сводке' },
+	region_summary: { scope: { period: DEAL_DATES, ...ALL_FILTERS }, extra: [] },
+	loss_reasons: { scope: { period: ['closed_at'], ...ALL_FILTERS }, extra: [], hint: 'Период считается по дате закрытия: в отчёте только проигранные сделки' },
+	sla_compliance: {
+		scope: { period: DEAL_DATES, ...ALL_FILTERS },
+		extra: [],
+		hint: 'Состояние SLA берётся на текущий момент среди сделок за период'
+	},
+	monthly_dynamics: {
+		scope: { period: [], ...ALL_FILTERS },
+		extra: [{ key: 'months', label: 'Месяцев', kind: 'int', min: 1, max: 36, default: 12, required: true, disabledBy: ['date_from', 'date_to'], disabledHint: 'Задан период — число месяцев не используется' }]
+	},
+	stuck_deals: { scope: { period: DEAL_DATES, ...ALL_FILTERS }, extra: [], tail: [limitDef(500)], hint: 'Только сделки с нарушенным SLA. Лишние строки по лимиту отсекаются' },
+	deal_register: { scope: { period: DEAL_DATES, ...ALL_FILTERS }, extra: [], tail: [limitDef(1000)], columns: true, hint: 'Строка на пару «сделка — продукт»' },
+	learning_progress: {
+		scope: { period: ['last_activity_at', 'enrolled_at', 'completed_at'], ...ALL_FILTERS },
+		extra: [],
+		tail: [limitDef(1000)],
+		columns: true,
+		personalData: true,
+		hint: 'Прогресс учащихся по данным LMS'
+	},
+	product_demand: {
+		scope: { period: DEAL_DATES, ...ALL_FILTERS },
+		extra: [
+			{
+				key: 'level',
+				label: 'Группировать по',
+				kind: 'enum',
+				default: 'product',
+				options: [
+					{ key: 'product', value: GLOSSARY.product.plural },
+					{ key: 'direction', value: GLOSSARY.direction.plural }
+				]
+			},
+			{
+				key: 'sort_by',
+				label: 'Упорядочить по',
+				kind: 'enum',
+				default: 'index',
+				options: [
+					{ key: 'index', value: 'Индексу востребованности' },
+					{ key: 'applications', value: 'Числу заявок' },
+					{ key: 'learners', value: 'Числу обучающихся' },
+					{ key: 'streams', value: 'Числу потоков' }
+				]
+			},
+			{ key: 'top', label: 'Показать первые', kind: 'int', min: 1, max: 100, default: 20, required: true }
+		],
+		hint: 'Индекс — среднее долей заявок, обучающихся и потоков в выборке'
+	},
+	license_register: {
+		scope: { period: ['license_signed_at', 'created_at'], organizations: true, directions: false, products: false, owners: false },
+		extra: [],
+		tail: [
+			{ key: 'vendors', label: GLOSSARY.vendor.plural, kind: 'text_list', hint: 'Названия через запятую. Пусто — все' },
+			{ key: 'transfer_statuses', label: 'Статус по передаче', kind: 'enum_multi', hint: 'Пусто — любой', options: Object.entries(TRANSFER_STATUS_LABELS).map(([key, value]) => ({ key, value })) },
+			{ key: 'valid_year', label: 'Год окончания', kind: 'int', min: 2000, max: 2100, hint: 'Пусто — любой' },
+			{ key: 'expired', label: 'Только с истёкшим сроком', kind: 'bool' },
+			limitDef(1000)
+		],
+		columns: true,
+		personalData: true,
+		hint: 'Фамилии менеджеров и ответственных без права просмотра контактов скрыты'
+	},
+	lms_users_upload: {
+		scope: { period: null, organizations: false, directions: false, products: false, owners: false },
+		extra: [
+			{ key: 'product_id', label: 'Курс', kind: 'product', hint: 'Продукт из справочника. Пусто — все курсы' },
+			{ key: 'stream_number', label: 'Номер потока', kind: 'int', min: 1, max: 1000, hint: 'Пусто — все потоки' },
+			{ key: 'date_from', label: 'Сделки с', kind: 'date' },
+			{ key: 'date_to', label: 'Сделки по', kind: 'date' }
+		],
+		personalData: true,
+		hint: 'Статусы сделок берутся автоматически: оплата и зачисление в LMS'
+	}
 };
 
-/** Определения параметров шаблона с учётом `default_params` сервера. */
-export function paramsFor(templateCode: string, defaults: Record<string, unknown> = {}): ReportParamDef[] {
-	return (REPORT_PARAMS[templateCode] ?? []).map((def) => (def.key in defaults ? { ...def, default: defaults[def.key] } : def));
+export const hasSpec = (templateCode: string): boolean => templateCode in REPORT_SPECS;
+
+/** Что известно о шаблоне от сервера: допустимые даты периода переопределяют встроенный список. */
+export interface TemplateInfo {
+	dateFields?: readonly string[];
+	defaultDateField?: string | null;
 }
 
-/** Приводит значения формы к телу `POST /reports`: числа зажимаются в границы, пустые убираются. */
-const isBlank = (v: unknown): boolean => v == null || v === '';
+/** Подпись поля периода: «Период» или «Сделка закрыта», если дата одна и зафиксирована. */
+export function periodLabel(dateFields: readonly string[]): string {
+	return dateFields.length === 1 ? dateFieldLabel(dateFields[0]) : 'Период';
+}
+
+/** Допустимые даты периода шаблона (сервер, иначе встроенный список). */
+export function dateFieldsFor(templateCode: string, info?: TemplateInfo): readonly string[] {
+	const fromServer = info?.dateFields;
+	if (fromServer) return fromServer;
+	return REPORT_SPECS[templateCode]?.scope.period ?? [];
+}
+
+/** Поля общего блока по `scope` шаблона — их же рисует `ReportScopeFields`. */
+export function scopeDefs(spec: ReportSpec, dateFields: readonly string[], defaultDateField?: string | null): ReportParamDef[] {
+	const { scope } = spec;
+	const defs: ReportParamDef[] = [];
+	if (scope.period) {
+		if (dateFields.length > 1) {
+			defs.push({
+				key: 'date_field',
+				label: 'Период считать по',
+				kind: 'date_field',
+				default: defaultDateField ?? dateFields[0],
+				options: dateFields.map((key) => ({ key, value: dateFieldLabel(key) })),
+				group: 'scope'
+			});
+		}
+		defs.push({ key: 'date_from', label: `${periodLabel(dateFields)} с`, kind: 'date', group: 'scope' }, { key: 'date_to', label: `${periodLabel(dateFields)} по`, kind: 'date', group: 'scope' });
+	}
+	if (scope.organizations) defs.push({ key: 'organization_ids', label: GLOSSARY.org.plural, kind: 'organization_multi', hint: 'Пусто — все', group: 'scope' });
+	if (scope.directions) defs.push({ key: 'direction_ids', label: GLOSSARY.direction.plural, kind: 'direction_multi', hint: GLOSSARY.direction.hint, group: 'scope' });
+	if (scope.products) defs.push({ key: 'product_ids', label: GLOSSARY.product.plural, kind: 'product_multi', hint: GLOSSARY.product.hint, group: 'scope' });
+	if (scope.owners) defs.push({ key: 'owner_ids', label: spec.ownersLabel ?? GLOSSARY.deal_owner.plural, kind: 'owner_multi', hint: GLOSSARY.deal_owner.hint, group: 'scope' });
+	return defs;
+}
+
+/**
+ * Определения параметров шаблона с учётом `default_params` сервера.
+ * Порядок: поля отчёта, общий блок, хвост (лимит). Для кода без описания — пустой список.
+ */
+export function paramsFor(templateCode: string, defaults: Record<string, unknown> = {}, info?: TemplateInfo): ReportParamDef[] {
+	const spec = REPORT_SPECS[templateCode];
+	if (!spec) return [];
+	const dateFields = dateFieldsFor(templateCode, info);
+	const all = [...spec.extra, ...scopeDefs(spec, dateFields, info?.defaultDateField), ...(spec.tail ?? [])];
+	return all.map((def) => (def.key in defaults ? { ...def, default: defaults[def.key] } : def));
+}
+
+// --- Значения формы → тело POST /reports ------------------------------------------------------
+
+const MULTI_KINDS: ReadonlySet<ReportParamKind> = new Set(['organization_multi', 'direction_multi', 'product_multi', 'owner_multi', 'text_list', 'enum_multi']);
+const isBlank = (v: unknown): boolean => v == null || v === '' || (Array.isArray(v) && v.length === 0);
+
+/** Список значений: массив, либо строка через запятую из старых виджетов; без пустых и повторов. */
+export function toList(raw: unknown): string[] {
+	const parts = Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split(',') : raw == null ? [] : [raw];
+	return [...new Set(parts.map((p) => String(p).trim()).filter(Boolean))];
+}
+
+/** Поле заблокировано другим заполненным полем (`disabledBy`). */
+export function isDisabled(def: ReportParamDef, values: Record<string, unknown>): boolean {
+	return Boolean(def.disabledBy?.some((key) => !isBlank(values[key])));
+}
+
 /** Значение формы или значение по умолчанию, если поле пустое. */
 const effective = (def: ReportParamDef, values: Record<string, unknown>): unknown => (isBlank(values[def.key]) ? def.default : values[def.key]);
 
+/** Приводит значения формы к телу `POST /reports`: числа зажимаются в границы, пустые убираются, списки — массивы без повторов. */
 export function normalizeParams(defs: readonly ReportParamDef[], values: Record<string, unknown>): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
 	for (const def of defs) {
+		if (isDisabled(def, values)) continue;
 		const raw = effective(def, values);
 		if (isBlank(raw)) continue;
 		if (def.kind === 'int') {
@@ -77,6 +277,14 @@ export function normalizeParams(defs: readonly ReportParamDef[], values: Record<
 			const min = def.min ?? Number.NEGATIVE_INFINITY;
 			const max = def.max ?? Number.POSITIVE_INFINITY;
 			out[def.key] = Math.min(max, Math.max(min, n));
+		} else if (MULTI_KINDS.has(def.kind)) {
+			const list = toList(raw);
+			if (list.length) out[def.key] = list;
+		} else if (def.kind === 'bool') {
+			if (raw === true) out[def.key] = true;
+		} else if (def.kind === 'date_field') {
+			// дату по умолчанию сервер подставит сам: ключ лишний, а запуски разных виджетов должны совпадать
+			if (String(raw) !== String(def.default)) out[def.key] = String(raw);
 		} else {
 			out[def.key] = String(raw);
 		}
@@ -84,10 +292,16 @@ export function normalizeParams(defs: readonly ReportParamDef[], values: Record<
 	return out;
 }
 
+export interface ValidateContext {
+	/** воронка → тип сделки: воронка должна подходить выбранному типу */
+	workflowTypes?: Record<string, string>;
+}
+
 /** Ошибки формы параметров (ключ → текст). */
-export function validateParams(defs: readonly ReportParamDef[], values: Record<string, unknown>): Record<string, string> {
+export function validateParams(defs: readonly ReportParamDef[], values: Record<string, unknown>, ctx: ValidateContext = {}): Record<string, string> {
 	const errors: Record<string, string> = {};
 	for (const def of defs) {
+		if (isDisabled(def, values)) continue;
 		const raw = effective(def, values);
 		if (isBlank(raw)) {
 			if (def.required) errors[def.key] = 'Обязательное поле';
@@ -99,8 +313,18 @@ export function validateParams(defs: readonly ReportParamDef[], values: Record<s
 			else if ((def.min != null && n < def.min) || (def.max != null && n > def.max)) errors[def.key] = `От ${def.min ?? '…'} до ${def.max ?? '…'}`;
 		}
 	}
+	const from = values.date_from;
+	const to = values.date_to;
+	if (typeof from === 'string' && typeof to === 'string' && from && to && from > to && defs.some((d) => d.key === 'date_to')) errors.date_to = 'Дата «по» раньше даты «с»';
+	const workflow = values.workflow_id;
+	const dealType = values.deal_type ?? defs.find((d) => d.key === 'deal_type')?.default;
+	if (typeof workflow === 'string' && workflow && ctx.workflowTypes && typeof dealType === 'string') {
+		const type = ctx.workflowTypes[workflow];
+		if (type && type !== dealType) errors.workflow_id = 'Воронка относится к другому типу сделки';
+	}
 	return errors;
 }
+
 
 export interface ReportJobLike {
 	status: string;
@@ -126,9 +350,6 @@ export const WIDGET_TYPE_LABELS: Record<WidgetType, string> = {
 	report_chart: 'График',
 	report_table: 'Таблица'
 };
-
-/** Шаблоны, у которых есть `png` — только их можно показать графиком, пока нет JSON-выдачи (см. backend-issues #19). */
-export const CHARTABLE_TEMPLATES: ReadonlySet<string> = new Set(['deal_funnel', 'monthly_dynamics']);
 
 export interface WidgetPosition {
 	x: number;

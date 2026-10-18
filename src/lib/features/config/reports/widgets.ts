@@ -1,5 +1,6 @@
 // Виджеты дашборда: как таблица отчёта (JSON `GET /api/reports/{id}/data`, колонки — договорённость с `reporting/builders.py` бэкенда)
 // превращается в график, показатель или мини-таблицу.
+import { toList } from './params';
 import { toNumber, type Cell, type ReportTable } from './table';
 
 export { toNumber };
@@ -104,6 +105,13 @@ export function previewRows(table: ReportTable, limit = 8): { columns: string[];
 	return { columns: table.columns, rows: table.rows.slice(0, limit) };
 }
 
-/** Одинаковые отчёты разных виджетов запускаются один раз. */
+/** Значение параметра в канонической форме: списки (в том числе «a,b» из старых виджетов) — отсортированные массивы. */
+const canonical = (key: string, value: unknown): unknown => (Array.isArray(value) || key.endsWith('_ids') || key === 'vendors' || key === 'transfer_statuses' ? toList(value).sort() : value);
+
+/** Одинаковые отчёты разных виджетов запускаются один раз; порядок вузов в списке на ключ не влияет. */
 export const runKey = (config: Pick<WidgetConfig, 'template_code' | 'params'>): string =>
-	`${config.template_code}|${JSON.stringify(Object.entries(config.params ?? {}).sort(([a], [b]) => a.localeCompare(b)))}`;
+	`${config.template_code}|${JSON.stringify(
+		Object.entries(config.params ?? {})
+			.sort(([a], [b]) => a.localeCompare(b))
+			.map(([k, v]) => [k, canonical(k, v)])
+	)}`;
