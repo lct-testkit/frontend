@@ -254,7 +254,8 @@
 			</div>
 		{:else}
 			{@render starter()}
-			<div class="h-72 flex-none overflow-hidden rounded-lg border border-line bg-surface max-md:h-64"><Canvas {editor} interactive={false} /></div>
+			<!-- the graph of 14+ steps shrinks to a 4 px thumbnail on a phone (scale 0.26) and promises something it cannot give: the steps are the lists below, the scheme is for a screen from 1024 px -->
+			<p class="t-body-s m-0 text-muted">Схема переходов — на экране шире 1024 px. Здесь шаги и переходы списками: нажмите шаг, чтобы открыть его свойства.</p>
 			<MobileLists {editor} onOrder={() => (orderOpen = true)} />
 		{/if}
 	{/if}
