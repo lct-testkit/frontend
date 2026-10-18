@@ -4,9 +4,11 @@
 	import '@xyflow/svelte/dist/style.css';
 	import { untrack } from 'svelte';
 	import { Background, BackgroundVariant, Controls, MarkerType, MiniMap, Panel, SvelteFlow, useSvelteFlow, type Connection } from '@xyflow/svelte';
+	import { Chip } from '@lct-testkit/rt-ui';
 	import { AddLarge, Magic } from '@lct-testkit/rt-ui/icons';
 	import { IconBtn } from '$lib/ui';
-	import { toFlow, type StatusNode, type TransitionEdge } from '../graph';
+	import { LAYERS_DENSE_ABOVE, toFlow, type StatusNode, type TransitionEdge } from '../graph';
+	import { statusColor } from '../palette';
 	import type { WorkflowEditor } from './editor.svelte';
 	import StatusNodeView from './StatusNode.svelte';
 	import TransitionEdgeView from './TransitionEdge.svelte';
@@ -31,6 +33,7 @@
 
 	let nodes = $state.raw<StatusNode[]>([]);
 	let edges = $state.raw<TransitionEdge[]>([]);
+	let total = $state(0);
 
 	const { fitView } = useSvelteFlow();
 	// большой граф целиком не читается: начинаем с начала воронки в масштабе, где виден текст; «Показать всё» — на панели управления
@@ -40,9 +43,14 @@
 
 	// черновик / позиции / проблемы / выбор → узлы и рёбра холста
 	$effect(() => {
-		const flow = toFlow(editor.draft, editor.positions, editor.issues, { readonly: !editable, compactLabels: editor.draft.transitions.length > 16 });
 		const sel = editor.selection;
 		const marked = editor.marked;
+		// выбран статус — видны все рёбра, что к нему подходят; выбран переход или отмечено замечанием — они сами, какой бы слой ни был скрыт
+		const pinned = new Set<string>(marked);
+		if (sel?.kind === 'transition') pinned.add(sel.key);
+		if (sel?.kind === 'status') for (const t of editor.draft.transitions) if (t.from === sel.key || t.to === sel.key) pinned.add(t.key);
+		const flow = toFlow(editor.draft, editor.positions, editor.issues, { readonly: !editable, compactLabels: editor.draft.transitions.length > LAYERS_DENSE_ABOVE, layers: editor.layers, pinned });
+		total = flow.total;
 		nodes = flow.nodes.map((n) => ({ ...n, selected: (sel?.kind === 'status' && sel.key === n.id) || marked.has(n.id) }));
 		// выбран статус или переход — остальные рёбра приглушаем, иначе в плотной воронке ничего не разобрать
 		const related = (e: TransitionEdge) => (sel?.kind === 'status' ? e.source === sel.key || e.target === sel.key : sel?.kind === 'transition' ? e.id === sel.key : true);
@@ -111,7 +119,27 @@
 	>
 		<Background variant={BackgroundVariant.Dots} gap={20} size={1.5} />
 		<Controls showLock={false} position="bottom-left" />
-		{#if minimap}<MiniMap pannable zoomable position="bottom-right" class="rounded-md! border border-line" />{/if}
+		{#if minimap}
+			<!-- цвет узла — цвет статуса, узлы с ошибками обведены красным -->
+			<MiniMap
+				pannable
+				zoomable
+				position="bottom-right"
+				class="rounded-md! border border-line"
+				nodeColor={(n) => statusColor((n as StatusNode).data.status)}
+				nodeStrokeColor={(n) => ((n as StatusNode).data.issues.some((i) => i.severity === 'error') ? 'var(--atmr-error-default)' : 'transparent')}
+				nodeStrokeWidth={4}
+			/>
+		{/if}
+		{#if interactive && editor.draft.transitions.length > LAYERS_DENSE_ABOVE}
+			<!-- плотная воронка (десктоп; на телефоне холст — просмотр, там списки): слои рёбер; «Показано N из M» — чтобы не искать пропавшие «Отказ» и «Заморозку» -->
+			<Panel position="top-right" class="m-2! flex flex-wrap items-center justify-end gap-1.5 max-md:m-1!">
+				<span class="t-desc-l rounded-full bg-surface px-2 py-0.5 text-muted shadow-s" aria-live="polite" data-testid="layers-count">Показано {edges.length} из {total}</span>
+				<Chip size="s" variant="secondary" selected={editor.layers.has('back')} label="Возвраты" onclick={() => editor.toggleLayers(['back'])} data-testid="layer-back" />
+				<Chip size="s" variant="secondary" selected={editor.layers.has('exit') && editor.layers.has('resume')} label="Отказ и заморозка" onclick={() => editor.toggleLayers(['exit', 'resume'])} data-testid="layer-exit" />
+				<Chip size="s" variant="secondary" selected={editor.layers.size === 5} label="Все" onclick={() => editor.toggleAllLayers()} data-testid="layer-all" />
+			</Panel>
+		{/if}
 		{#if editable}
 			<Panel position="top-left" class="flex gap-1.5">
 				<IconBtn icon={AddLarge} label="Добавить статус" variant="secondary" onclick={() => editor.addStatus()} />

@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Condition } from './dsl';
 import {
+	defaultLayers,
+	edgeLayer,
 	fromServer,
+	layerCounts,
 	layoutByLevels,
 	makeCode,
 	newStatus,
@@ -357,5 +360,93 @@ describe('mergeIssues', () => {
 	it('замечание без привязки не считается повтором', () => {
 		const merged = mergeIssues([mk('server', [], [], 'client')], [mk('server', [], [], 'server')]);
 		expect(merged).toHaveLength(2);
+	});
+});
+
+describe('слои рёбер (воронка из 14 шагов)', () => {
+	const plain = fromServer(funnel14({ optionalStep5: false }));
+	const optional = fromServer(funnel14());
+
+	it('без перехода через шаг: 14, 0, 13, 28, 14 рёбер по слоям, всего 69', () => {
+		expect(layerCounts(plain)).toEqual({ main: 14, skip: 0, back: 13, exit: 28, resume: 14 });
+		expect(plain.transitions).toHaveLength(69);
+	});
+
+	it('с переходом 4 → 6: слой skip = 1', () => {
+		const counts = layerCounts(optional);
+		expect(counts.skip).toBe(1);
+		expect(counts.main).toBe(14);
+		expect(counts.back).toBe(14);
+	});
+
+	it('слой одного ребра: вперёд, через шаг, назад, в отказ, из заморозки, в успех', () => {
+		const find = (from: string, to: string) => optional.transitions.find((t) => t.from === from && t.to === to)!;
+		expect(edgeLayer(optional, find(stepId(1), stepId(2)))).toBe('main');
+		expect(edgeLayer(optional, find(stepId(4), stepId(6)))).toBe('skip');
+		expect(edgeLayer(optional, find(stepId(5), stepId(4)))).toBe('back');
+		expect(edgeLayer(optional, find(stepId(3), 'lost'))).toBe('exit');
+		expect(edgeLayer(optional, find(stepId(3), 'parked'))).toBe('exit');
+		expect(edgeLayer(optional, find('parked', stepId(3)))).toBe('resume');
+		expect(edgeLayer(optional, find(stepId(14), 'won'))).toBe('main');
+	});
+
+	it('toFlow с основным путём и пропусками отдаёт 14 (с шагом через — 15) рёбер; все 69 — при всех слоях', () => {
+		const main = new Set(['main', 'skip'] as const);
+		expect(toFlow(plain, {}, [], { layers: main }).edges).toHaveLength(14);
+		expect(toFlow(optional, {}, [], { layers: main }).edges).toHaveLength(15);
+		const all = toFlow(plain, {}, [], { layers: new Set(['main', 'skip', 'back', 'exit', 'resume'] as const) });
+		expect(all.edges).toHaveLength(69);
+		expect(all.total).toBe(69);
+		expect(toFlow(plain, {}, [], { layers: main }).total).toBe(69);
+	});
+
+	it('без параметра layers рисуются все рёбра, как раньше', () => {
+		expect(toFlow(plain, {}).edges).toHaveLength(69);
+	});
+
+	it('ребро скрытого слоя с ошибкой проверки остаётся', () => {
+		const exit = plain.transitions.find((t) => t.name === 'Отказ' && t.from === stepId(7))!;
+		const issue = { severity: 'error' as const, code: 'condition', message: 'x', statusKeys: [], transitionKeys: [exit.key], source: 'client' as const };
+		const flow = toFlow(plain, {}, [issue], { layers: new Set(['main'] as const) });
+		expect(flow.edges.map((e) => e.id)).toContain(exit.key);
+		expect(flow.edges).toHaveLength(15);
+		// предупреждение скрытый слой не возвращает
+		expect(toFlow(plain, {}, [{ ...issue, severity: 'warning' }], { layers: new Set(['main'] as const) }).edges).toHaveLength(14);
+	});
+
+	it('закреплённые рёбра (переходы выбранного статуса) и несохранённые показываются при скрытом слое', () => {
+		const pinned = plain.transitions.filter((t) => t.from === stepId(3) || t.to === stepId(3)).map((t) => t.key);
+		const flow = toFlow(plain, {}, [], { layers: new Set(['main'] as const), pinned: new Set(pinned) });
+		expect(flow.edges).toHaveLength(14 + pinned.filter((k) => edgeLayer(plain, plain.transitions.find((t) => t.key === k)!) !== 'main').length);
+		const added = { ...plain, transitions: [...plain.transitions, newTransition(plain, stepId(2), stepId(9))] };
+		expect(toFlow(added, {}, [], { layers: new Set(['main'] as const) }).edges).toHaveLength(15);
+	});
+
+	it('узлы: значки «Отказ» и «Заморозка», у «Отказ» и «Заморозка» — счётчик входов', () => {
+		const nodes = toFlow(plain, {}).nodes;
+		const step = nodes.find((n) => n.id === stepId(5))!;
+		expect(step.data.exits).toEqual({ lost: true, parked: true });
+		expect(nodes.find((n) => n.id === 'lost')!.data.entries).toBe(14);
+		expect(nodes.find((n) => n.id === 'parked')!.data.entries).toBe(14);
+		expect(nodes.find((n) => n.id === 'won')!.data.entries).toBe(0);
+	});
+
+	it('воронка из 4 статусов показывает всё; по умолчанию слои — все только до 16 переходов', () => {
+		const small = draftOf([status('a', 'initial'), status('b'), status('won', 'won'), status('lost', 'lost')], [transition('a', 'b'), transition('b', 'won'), transition('b', 'lost'), transition('b', 'a')]);
+		expect(toFlow(small, {}, [], { layers: defaultLayers(small.transitions.length) }).edges).toHaveLength(4);
+		expect(defaultLayers(16).size).toBe(5);
+		expect([...defaultLayers(17)]).toEqual(['main', 'skip']);
+	});
+
+	it('архивные статусы не ломают классификацию: шаги считаются без них, переход в архивный — main', () => {
+		const withArchived: GraphDraft = {
+			...plain,
+			statuses: plain.statuses.map((s) => (s.key === stepId(5) ? { ...s, is_archived: true } : s))
+		};
+		const counts = layerCounts(withArchived);
+		// шаг 5 вне цепочки: 4 → 6 теперь соседние (main), переходов в / из архивного статуса в подсчёте нет
+		expect(counts.skip).toBe(0);
+		const into = plain.transitions.find((t) => t.from === stepId(4) && t.to === stepId(5))!;
+		expect(edgeLayer(withArchived, into)).toBe('main');
 	});
 });

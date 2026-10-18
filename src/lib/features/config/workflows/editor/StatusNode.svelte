@@ -38,6 +38,10 @@
 			{#if data.sla && data.sla.is_active}
 				<span class="inline-flex items-center gap-0.5"><Stopwatch class="size-3.5 fill-soft" />{formatHours(data.sla.max_duration_hours)}</span>
 			{/if}
+			<!-- переходы в отказ и заморозку по умолчанию скрыты — значки напоминают, что они есть; клик по узлу показывает их рёбра -->
+			{#if data.exits.lost}<span class="text-danger" title="Есть переход в отказ">Отказ</span>{/if}
+			{#if data.exits.parked}<span class="text-warning" title="Есть переход в заморозку">Заморозка</span>{/if}
+			{#if data.entries > 0}<span title="Переходов в этот статус">Входов: {data.entries}</span>{/if}
 		</div>
 	</div>
 	<Handle type="target" position={Position.Left} class={HANDLE} isConnectable={!data.readonly && !status.is_archived} />

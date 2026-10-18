@@ -7,6 +7,7 @@ import { workflows } from '../../../crm/deals/workflows.svelte';
 import type { CustomFieldDef, Workflow, WorkflowGraph } from '../../types';
 import { fieldCatalogue, type FieldDef } from '../dsl';
 import {
+	defaultLayers,
 	fromServer,
 	layoutByLevels,
 	newKey,
@@ -19,6 +20,7 @@ import {
 	type Point,
 	type Positions,
 	type ServerGraph,
+	type EdgeLayer,
 	type SlaDraft,
 	type StatusDraft,
 	type TransitionDraft
@@ -60,6 +62,9 @@ export class WorkflowEditor {
 	/** запрос «показать узел / ребро на холсте» (клик по проблеме); `n` меняется на каждый запрос */
 	focus = $state<{ keys: string[]; n: number } | null>(null);
 	#focusN = 0;
+	/** какие слои рёбер показаны на холсте (по умолчанию — по числу переходов, см. `defaultLayers`); рёбра с ошибкой и новые видны всегда */
+	layers = $state.raw<ReadonlySet<EdgeLayer>>(new Set());
+	#layersTouched = false;
 	/** узлы и рёбра, отмеченные замечанием, которое касается нескольких сразу (клик в списке проблем): подсвечены все */
 	marked = $state.raw<ReadonlySet<string>>(new Set());
 	#posTimer: ReturnType<typeof setTimeout> | undefined;
@@ -137,6 +142,7 @@ export class WorkflowEditor {
 			}
 		}
 		this.draft = draft;
+		if (!this.#layersTouched) this.layers = defaultLayers(draft.transitions.length);
 		this.positions = positions;
 		this.#baseline = payloadKey(draft);
 		this.serverIssues = [];
@@ -154,6 +160,25 @@ export class WorkflowEditor {
 	select(selection: Selection | null): void {
 		this.selection = selection;
 		if (this.marked.size) this.marked = new Set();
+	}
+
+	/** Включить / выключить слои рёбер вместе («Отказ и заморозка» = отказ + возобновление). */
+	toggleLayers(group: readonly EdgeLayer[]): void {
+		this.#layersTouched = true;
+		const next = new Set(this.layers);
+		const allOn = group.every((l) => next.has(l));
+		for (const l of group) {
+			if (allOn) next.delete(l);
+			else next.add(l);
+		}
+		this.layers = next;
+	}
+
+	/** Показать все слои, а если все уже показаны — вернуть слои по умолчанию. */
+	toggleAllLayers(): void {
+		this.#layersTouched = true;
+		const all: readonly EdgeLayer[] = ['main', 'skip', 'back', 'exit', 'resume'];
+		this.layers = all.every((l) => this.layers.has(l)) ? defaultLayers(this.draft.transitions.length) : new Set(all);
 	}
 
 	showOnCanvas(key: string): void {

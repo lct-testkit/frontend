@@ -373,6 +373,10 @@ export type StatusNodeData = {
 	sla: SlaDraft | null;
 	issues: GraphIssue[];
 	readonly: boolean;
+	/** есть переходы в отказ / в заморозку: значки на узле (сами рёбра этих слоёв по умолчанию скрыты) */
+	exits: { lost: boolean; parked: boolean };
+	/** у статуса «Отказ» / «Заморозка» — сколько переходов в него ведёт (счётчик «Входов: N»); у остальных 0 */
+	entries: number;
 };
 export type StatusNode = Node<StatusNodeData, typeof STATUS_NODE_TYPE>;
 
@@ -396,7 +400,53 @@ export interface Point {
 }
 export type Positions = Record<string, Point>;
 
+/**
+ * Слой ребра на холсте. `main` — в следующий шаг по `sort_order` или в успех; `skip` — вперёд, но не в соседний шаг (необязательный шаг);
+ * `back` — назад; `exit` — в отказ или заморозку; `resume` — из заморозки обратно в шаг. Переход, который правила не узнали, — `main`.
+ */
+export const EDGE_LAYERS = ['main', 'skip', 'back', 'exit', 'resume'] as const;
+export type EdgeLayer = (typeof EDGE_LAYERS)[number];
+
+/** Слой перехода по графу; архивные и неизвестные статусы не ломают классификацию (такой переход — `main`). */
+export function edgeLayerOf(draft: GraphDraft): (t: Pick<TransitionDraft, 'from' | 'to'>) => EdgeLayer {
+	const steps = draft.statuses.filter((s) => !s.is_archived && (s.type === 'initial' || s.type === 'intermediate')).sort((a, b) => a.sort_order - b.sort_order);
+	const index = new Map(steps.map((s, i) => [s.key, i] as const));
+	const type = new Map(draft.statuses.filter((s) => !s.is_archived).map((s) => [s.key, s.type] as const));
+	return (t) => {
+		const from = type.get(t.from);
+		const to = type.get(t.to);
+		if (!from || !to || to === 'won') return 'main';
+		if (to === 'lost' || to === 'parked') return 'exit';
+		if (from === 'parked') return 'resume';
+		const a = index.get(t.from);
+		const b = index.get(t.to);
+		if (a === undefined || b === undefined) return 'main';
+		return b === a + 1 ? 'main' : b > a ? 'skip' : 'back';
+	};
+}
+
+export const edgeLayer = (draft: GraphDraft, transition: Pick<TransitionDraft, 'from' | 'to'>): EdgeLayer => edgeLayerOf(draft)(transition);
+
+/** Сколько рёбер в каждом слое (живые статусы). */
+export function layerCounts(draft: GraphDraft): Record<EdgeLayer, number> {
+	const layer = edgeLayerOf(draft);
+	const live = new Set(draft.statuses.filter((s) => !s.is_archived).map((s) => s.key));
+	const counts: Record<EdgeLayer, number> = { main: 0, skip: 0, back: 0, exit: 0, resume: 0 };
+	for (const t of draft.transitions) if (live.has(t.from) && live.has(t.to)) counts[layer(t)] += 1;
+	return counts;
+}
+
+/** Рёбер больше этого числа — по умолчанию показан основной путь и пропуски, остальные слои включаются переключателями. */
+export const LAYERS_DENSE_ABOVE = 16;
+
+/** Слои по умолчанию: небольшая воронка — все, плотная — основной путь и «через шаг». */
+export const defaultLayers = (transitionCount: number): ReadonlySet<EdgeLayer> => new Set<EdgeLayer>(transitionCount > LAYERS_DENSE_ABOVE ? ['main', 'skip'] : EDGE_LAYERS);
+
 export interface ToFlowOptions {
+	/** показанные слои; без параметра — все рёбра. Скрыты рёбра остальных слоёв, кроме рёбер с ошибкой проверки, несохранённых и закреплённых. */
+	layers?: ReadonlySet<EdgeLayer>;
+	/** рёбра, которые показываются всегда: переходы выбранного статуса, выбранный переход, отмеченные замечанием */
+	pinned?: ReadonlySet<string>;
 	readonly?: boolean;
 	/** Показывать ли архивные статусы (по умолчанию да — как история, полупрозрачно). */
 	includeArchived?: boolean;
@@ -405,7 +455,7 @@ export interface ToFlowOptions {
 
 const isEmptyObject = (v: unknown): boolean => v == null || (typeof v === 'object' && !Array.isArray(v) && Object.keys(v as object).length === 0);
 
-export function toFlow(draft: GraphDraft, positions: Positions, issues: GraphIssue[] = [], options: ToFlowOptions = {}): { nodes: StatusNode[]; edges: TransitionEdge[] } {
+export function toFlow(draft: GraphDraft, positions: Positions, issues: GraphIssue[] = [], options: ToFlowOptions = {}): { nodes: StatusNode[]; edges: TransitionEdge[]; total: number } {
 	const includeArchived = options.includeArchived ?? true;
 	const readonly = options.readonly ?? false;
 	const statuses = draft.statuses.filter((s) => includeArchived || !s.is_archived);
@@ -416,6 +466,17 @@ export function toFlow(draft: GraphDraft, positions: Positions, issues: GraphIss
 		for (const k of issue.statusKeys) byStatus.set(k, [...(byStatus.get(k) ?? []), issue]);
 		for (const k of issue.transitionKeys) byTransition.set(k, [...(byTransition.get(k) ?? []), issue]);
 	}
+	const typeOf = new Map(statuses.map((s) => [s.key, s.type] as const));
+	const exits = new Map<string, { lost: boolean; parked: boolean }>();
+	const entries = new Map<string, number>();
+	for (const t of draft.transitions) {
+		if (!visible.has(t.from) || !visible.has(t.to)) continue;
+		const to = typeOf.get(t.to);
+		if (to === 'lost' || to === 'parked') {
+			exits.set(t.from, { lost: false, parked: false, ...exits.get(t.from), [to]: true });
+			entries.set(t.to, (entries.get(t.to) ?? 0) + 1);
+		}
+	}
 	const nodes: StatusNode[] = statuses.map((status) => ({
 		id: status.key,
 		type: STATUS_NODE_TYPE,
@@ -423,10 +484,16 @@ export function toFlow(draft: GraphDraft, positions: Positions, issues: GraphIss
 		draggable: !readonly && !status.is_archived,
 		connectable: !readonly && !status.is_archived,
 		deletable: false,
-		data: { status, sla: slaOf(draft, status.key), issues: byStatus.get(status.key) ?? [], readonly }
+		data: { status, sla: slaOf(draft, status.key), issues: byStatus.get(status.key) ?? [], readonly, exits: exits.get(status.key) ?? { lost: false, parked: false }, entries: status.type === 'lost' || status.type === 'parked' ? (entries.get(status.key) ?? 0) : 0 }
 	}));
-	const edges: TransitionEdge[] = draft.transitions
-		.filter((t) => visible.has(t.from) && visible.has(t.to))
+	const layerOf = edgeLayerOf(draft);
+	const onScreen = draft.transitions.filter((t) => visible.has(t.from) && visible.has(t.to));
+	const shown = onScreen.filter((t) => {
+		if (!options.layers || options.layers.has(layerOf(t))) return true;
+		// скрытый слой не прячет ошибку; новое, ещё не сохранённое ребро появляется сразу
+		return t.id === null || options.pinned?.has(t.key) || (byTransition.get(t.key) ?? []).some((i) => i.severity === 'error');
+	});
+	const edges: TransitionEdge[] = shown
 		.map((transition) => ({
 			id: transition.key,
 			type: TRANSITION_EDGE_TYPE,
@@ -443,7 +510,7 @@ export function toFlow(draft: GraphDraft, positions: Positions, issues: GraphIss
 				compact: options.compactLabels ?? false
 			}
 		}));
-	return { nodes, edges };
+	return { nodes, edges, total: onScreen.length };
 }
 
 export function positionsFromNodes(nodes: readonly Pick<Node, 'id' | 'position'>[]): Positions {
