@@ -22,7 +22,7 @@ export function mergeItems(existing: readonly DealRow[], incoming: readonly Deal
 }
 
 /** Столбцов больше этого числа — пустые сворачиваются по умолчанию. */
-export const FOLD_ABOVE = 8;
+const FOLD_ABOVE = 8;
 
 /** Свёрнут ли столбец: переключатель включён, данные пришли без ошибки и сделок нет. */
 export const isFolded = (collapse: boolean, col: Pick<BoardColumn, 'total' | 'loading' | 'error'>): boolean => collapse && !col.loading && !col.error && col.total === 0;

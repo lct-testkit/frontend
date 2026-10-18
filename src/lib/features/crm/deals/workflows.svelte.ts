@@ -6,7 +6,7 @@ import { Lazy } from '../shared/lazy.svelte';
 import type { Workflow, WorkflowGraph, WorkflowStatus } from '../types';
 
 /** Через сколько кэш графа считается устаревшим. */
-export const GRAPH_TTL_MS = 5 * 60_000;
+const GRAPH_TTL_MS = 5 * 60_000;
 
 class WorkflowStore {
 	published = new Lazy<Workflow[]>(async () => (await unwrap(api.GET('/api/workflows', { params: { query: { state: 'published', limit: 100 } } }))).items);

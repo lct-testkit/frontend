@@ -64,8 +64,3 @@ export function checkCustomValues(defs: readonly CustomFieldDef[], values: Recor
 	}
 	return errors;
 }
-
-/** Пустые значения не отправляем: сервер сливает `custom_fields` и удалить ключ можно только записью null. */
-export function cleanValues(values: Record<string, unknown>): Record<string, unknown> {
-	return Object.fromEntries(Object.entries(values).filter(([, v]) => v !== undefined));
-}

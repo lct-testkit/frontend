@@ -15,7 +15,7 @@ import {
 
 export type Path = number[];
 
-export const groupOf = (kind: 'all' | 'any', branches: ConditionNode[]): ConditionGroup => (kind === 'all' ? { all: branches } : { any: branches });
+const groupOf = (kind: 'all' | 'any', branches: ConditionNode[]): ConditionGroup => (kind === 'all' ? { all: branches } : { any: branches });
 
 /** Корень редактора всегда группа: пустое условие → пустая «все», одиночное условие → «все» из одного. */
 export function normalizeRoot(value: Condition | undefined): ConditionGroup {
@@ -26,16 +26,6 @@ export function normalizeRoot(value: Condition | undefined): ConditionGroup {
 /** Пустая корневая группа хранится как `{}` (так «без условий» понимает бэкенд). */
 export function toCondition(root: ConditionGroup): Condition {
 	return groupBranches(root).branches.length === 0 ? {} : root;
-}
-
-export function getAt(root: ConditionGroup, path: Path): ConditionNode | undefined {
-	let node: ConditionNode = root;
-	for (const i of path) {
-		if (!isGroup(node)) return undefined;
-		node = groupBranches(node).branches[i];
-		if (node === undefined) return undefined;
-	}
-	return node;
 }
 
 function mapAt(node: ConditionNode, path: Path, fn: (n: ConditionNode) => ConditionNode | null): ConditionNode | null {

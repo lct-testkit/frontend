@@ -6,7 +6,7 @@ import type { OrgDetails, Organization } from '../types';
 type S = components['schemas'];
 
 /** Поля, которые заполняются из реестра и помечаются в названии «(из ЕГРЮЛ)» / «(изменено вручную)». */
-export const REGISTRY_FIELDS = ['name', 'short_name', 'kpp', 'ogrn', 'legal_address'] as const;
+const REGISTRY_FIELDS = ['name', 'short_name', 'kpp', 'ogrn', 'legal_address'] as const;
 
 /** Пометка поля из реестра: значение пришло из ЕГРЮЛ или его исправили руками. У карточки без сверки с реестром и у прочих полей пометки нет. */
 export function registryMark(org: Pick<Organization, 'verified_source' | 'manual_overrides'> | null | undefined, key: string): string | undefined {

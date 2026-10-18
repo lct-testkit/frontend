@@ -32,7 +32,7 @@ export function shortVendor(name: string): string {
 }
 
 /** Год меньше этого — не год окончания, а срок в годах («3» из файла). */
-export const MIN_REAL_YEAR = 1900;
+const MIN_REAL_YEAR = 1900;
 
 export interface TermInfo {
 	text: string;

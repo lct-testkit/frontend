@@ -311,7 +311,7 @@ export function makeCode(name: string, taken: Iterable<string> = [], fallback = 
 	return code;
 }
 
-export function statusByKey(draft: GraphDraft, key: string): StatusDraft | undefined {
+function statusByKey(draft: GraphDraft, key: string): StatusDraft | undefined {
 	return draft.statuses.find((s) => s.key === key);
 }
 
@@ -325,7 +325,7 @@ export function stepsOf(draft: GraphDraft): StatusDraft[] {
 }
 
 /** Порядок завершающих статусов начинается с этого числа: шаги всегда левее (шагов не больше 99). */
-export const TERMINAL_ORDER_FROM = 1000;
+const TERMINAL_ORDER_FROM = 1000;
 
 export function newStatus(draft: GraphDraft, init: Partial<Pick<StatusDraft, 'name' | 'type' | 'color'>> = {}): StatusDraft {
 	const name = init.name?.trim() || 'Новый статус';
@@ -452,8 +452,8 @@ export function slaOf(draft: GraphDraft, statusKey: string): SlaDraft | null {
 
 // --- xyflow ----------------------------------------------------------------------------
 
-export const STATUS_NODE_TYPE = 'status';
-export const TRANSITION_EDGE_TYPE = 'transition';
+const STATUS_NODE_TYPE = 'status';
+const TRANSITION_EDGE_TYPE = 'transition';
 
 export type StatusNodeData = {
 	status: StatusDraft;
@@ -493,11 +493,11 @@ export type Positions = Record<string, Point>;
  * Слой ребра на холсте. `main` — в следующий шаг по `sort_order` или в успех; `skip` — вперёд, но не в соседний шаг (необязательный шаг);
  * `back` — назад; `exit` — в отказ или заморозку; `resume` — из заморозки обратно в шаг. Переход, который правила не узнали, — `main`.
  */
-export const EDGE_LAYERS = ['main', 'skip', 'back', 'exit', 'resume'] as const;
+const EDGE_LAYERS = ['main', 'skip', 'back', 'exit', 'resume'] as const;
 export type EdgeLayer = (typeof EDGE_LAYERS)[number];
 
 /** Слой перехода по графу; архивные и неизвестные статусы не ломают классификацию (такой переход — `main`). */
-export function edgeLayerOf(draft: GraphDraft): (t: Pick<TransitionDraft, 'from' | 'to'>) => EdgeLayer {
+function edgeLayerOf(draft: GraphDraft): (t: Pick<TransitionDraft, 'from' | 'to'>) => EdgeLayer {
 	const steps = draft.statuses.filter((s) => !s.is_archived && (s.type === 'initial' || s.type === 'intermediate')).sort((a, b) => a.sort_order - b.sort_order);
 	const index = new Map(steps.map((s, i) => [s.key, i] as const));
 	const type = new Map(draft.statuses.filter((s) => !s.is_archived).map((s) => [s.key, s.type] as const));
@@ -616,7 +616,7 @@ export function toFlow(draft: GraphDraft, positions: Positions, issues: GraphIss
 }
 
 /** Размер узла на холсте (ширина `w-58`); по нему считается раскладка. */
-export const NODE_WIDTH = 232;
+const NODE_WIDTH = 232;
 
 /** Сторона узла, с которой выходит / в которую входит ребро: по взаимному положению узлов (соседи в ряду — справа налево, ряды — сверху вниз). */
 export function edgeSides(from: Point, to: Point): { source: 'r' | 'l' | 'b' | 't'; target: 'r' | 'l' | 'b' | 't' } {
@@ -666,10 +666,6 @@ export function layoutSnake(draft: GraphDraft, options: SnakeOptions = {}): Posi
 /** Автораскладка: длинная воронка (больше 8 шагов) — «змейкой» по порядку шагов, короткая — по уровням обхода. */
 export function autoLayout(draft: GraphDraft): Positions {
 	return stepsOf(draft).length > LARGE_GRAPH.steps ? layoutSnake(draft) : layoutByLevels(draft);
-}
-
-export function positionsFromNodes(nodes: readonly Pick<Node, 'id' | 'position'>[]): Positions {
-	return Object.fromEntries(nodes.map((n) => [n.id, { x: Math.round(n.position.x), y: Math.round(n.position.y) }]));
 }
 
 export interface LayoutOptions {

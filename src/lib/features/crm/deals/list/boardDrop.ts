@@ -10,7 +10,7 @@ export function dropVerdict(transitions: readonly Pick<AvailableTransition, 'to_
 	return toTarget.some((t) => t.role_allowed) ? 'ok' : 'role';
 }
 
-export const TRANSITIONS_TTL_MS = 30_000;
+const TRANSITIONS_TTL_MS = 30_000;
 
 export interface TransitionsCache {
 	get(dealId: string): AvailableTransition[] | undefined;

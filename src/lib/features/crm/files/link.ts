@@ -6,7 +6,7 @@ import type { AttachmentCategory } from '$lib/api/upload';
 import type { Attachment } from '../types';
 
 export const LINK_ATTEMPTS = 6;
-export const LINK_PAUSE_MS = 2000;
+const LINK_PAUSE_MS = 2000;
 
 export const isStillScanning = (e: unknown) => e instanceof ApiError && e.status === 422 && /не прошёл проверку/i.test(e.detail);
 

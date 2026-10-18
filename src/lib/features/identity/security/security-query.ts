@@ -16,7 +16,7 @@ export const SECURITY_FILTER_KEYS = ['type', 'severity', 'user', 'ip', 'from', '
 export const emptySecurityFilters = (): SecurityFilters => ({ type: '', severity: '', user: '', ip: '', from: '', to: '' });
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-export const SEVERITIES = ['info', 'warning', 'critical'] as const;
+const SEVERITIES = ['info', 'warning', 'critical'] as const;
 
 export const splitTypes = (raw: string): string[] => [...new Set(raw.split(',').map((t) => t.trim()).filter(Boolean))];
 export const joinTypes = (types: readonly string[]): string => types.join(',');

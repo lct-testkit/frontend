@@ -9,10 +9,6 @@ export function readQuery(name: string): string {
 	return page.url.searchParams.get(name) ?? '';
 }
 
-export function readQueryList(name: string): string[] {
-	return page.url.searchParams.getAll(name).flatMap((v) => v.split(',')).filter(Boolean);
-}
-
 /**
  * Merge params into the current URL without a new history entry (replaceState) and without scrolling.
  * `null | undefined | '' | false | []` remove the param. Returns the promise of the navigation.

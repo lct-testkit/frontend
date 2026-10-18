@@ -3,7 +3,7 @@
 // Шаг 5 («корректировка документов») необязателен: при `optionalStep5` есть переход «через шаг» 4 → 6.
 import type { WorkflowGraph, WorkflowStatus, WorkflowTransition } from '$lib/features/crm/types';
 
-export const STEP_NAMES = [
+const STEP_NAMES = [
 	'Поиск контактов ответственного в вузе',
 	'Коммуникация с ним и уточнение актуальности программ по ИТ-направлениям',
 	'Организация встречи с представителями вуза',

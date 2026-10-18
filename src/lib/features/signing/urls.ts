@@ -14,7 +14,7 @@ export function extractSignToken(urlOrToken: string): string | null {
 	return /^[A-Za-z0-9_-]{16,}$/.test(raw) ? raw : null;
 }
 
-export const spaSignUrl = (origin: string, token: string): string => `${origin.replace(/\/$/, '')}/sign/${token}`;
+const spaSignUrl = (origin: string, token: string): string => `${origin.replace(/\/$/, '')}/sign/${token}`;
 
 export const spaVerifyUrl = (origin: string, signatureId: string): string =>
 	`${origin.replace(/\/$/, '')}/verify/${signatureId}`;

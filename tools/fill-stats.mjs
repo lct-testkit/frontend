@@ -48,7 +48,7 @@ function walk(dir, pick, out = []) {
 export const countScreens = () => walk(join(root, 'src/routes'), (n) => n === '+page.svelte').length;
 export const countComponents = () => walk(join(root, 'src/lib/ui'), (n) => n.endsWith('.svelte')).length;
 export const countThemes = () => {
-	const m = readFileSync(join(root, 'src/lib/stores/theme.svelte.ts'), 'utf8').match(/export const THEMES = \[([^\]]*)\]/);
+	const m = readFileSync(join(root, 'src/lib/stores/theme.svelte.ts'), 'utf8').match(/(?:export )?const THEMES = \[([^\]]*)\]/);
 	if (!m) throw new Error('THEMES не найден в theme.svelte.ts');
 	return (m[1].match(/'[^']+'/g) ?? []).length;
 };

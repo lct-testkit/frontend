@@ -1,7 +1,7 @@
 // Системные настройки (admin/router.py): значение — JSONB, секреты приходят маркером.
 import { sha256Hex } from '../signing/hash';
 
-export const SECRET_PLACEHOLDER = '********';
+const SECRET_PLACEHOLDER = '********';
 export const PDN_POLICY_KEY = 'pdn_policy';
 
 export const isSecretPlaceholder = (value: unknown): boolean => value === SECRET_PLACEHOLDER;

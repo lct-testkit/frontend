@@ -55,6 +55,9 @@ jobs:
       - name: svelte-check
         run: pnpm check
 
+      - name: Экспорты без вызывающего кода не растут (tools/unused-exports.mjs)
+        run: node tools/unused-exports.mjs --max 102
+
       - name: Unit-тесты + покрытие (пороги в vite.config.ts)
         run: pnpm test:coverage
 

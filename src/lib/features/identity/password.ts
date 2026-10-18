@@ -1,7 +1,7 @@
 // Клиентское зеркало политики пароля (new_spec §4.4 + PasswordChangeRequest): подсказки до отправки.
 // Сервер остаётся истиной (историю паролей и словарь проверяет Keycloak).
 
-export const PASSWORD_MIN_LENGTH = 12;
+const PASSWORD_MIN_LENGTH = 12;
 
 export interface PasswordCheck {
 	code: 'length' | 'differs' | 'repeat' | 'no_email' | 'no_spaces';

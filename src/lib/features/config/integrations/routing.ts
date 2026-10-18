@@ -16,8 +16,6 @@ export const OWNER_POLICIES = [
 ] as const;
 
 export const MAX_RULES = 10;
-/** Метка пункта «воронка по умолчанию» (пустое значение маршрута). */
-export const DEFAULT_WORKFLOW = '';
 
 export interface StatusLike {
 	code: string;

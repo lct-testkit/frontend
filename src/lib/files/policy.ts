@@ -13,7 +13,7 @@ export interface FilePolicy {
 	maxBytes: number;
 }
 
-export const MAX_FILENAME_LENGTH = 255;
+const MAX_FILENAME_LENGTH = 255;
 
 export const DEFAULT_POLICY: FilePolicy = {
 	extensions: new Set(['png', 'jpeg', 'jpg', 'pdf', 'zip', 'gz', 'gzip', 'rar', 'doc', 'docx', 'xls', 'xlsx', 'xml', 'csv', 'json']),

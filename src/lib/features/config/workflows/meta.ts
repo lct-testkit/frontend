@@ -1,7 +1,7 @@
 // Подписи и тона чипов воронок (список и шапка редактора).
 import { DEAL_TYPE_LABELS, WORKFLOW_STATE_LABELS, type DealType, type WorkflowState } from './graph';
 
-export const STATE_TONE: Record<WorkflowState, 'warning' | 'success' | 'neutral'> = { draft: 'warning', published: 'success', archived: 'neutral' };
+const STATE_TONE: Record<WorkflowState, 'warning' | 'success' | 'neutral'> = { draft: 'warning', published: 'success', archived: 'neutral' };
 export const stateLabel = (state: string): string => WORKFLOW_STATE_LABELS[state as WorkflowState] ?? state;
 export const stateTone = (state: string) => STATE_TONE[state as WorkflowState] ?? 'neutral';
 /** «B2B» / «B2C» — короткая подпись типа сделки для чипов. */

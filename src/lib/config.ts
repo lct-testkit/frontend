@@ -51,5 +51,3 @@ export async function loadConfig(fetchFn: typeof fetch = fetch): Promise<AppConf
 	}
 	return current;
 }
-
-export const isDemo = () => current.mode === 'demo';

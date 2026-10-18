@@ -58,7 +58,7 @@ let colorContext: CanvasRenderingContext2D | null = null;
 const colorCache = new Map<string, string>();
 
 /** Любой CSS-цвет (в том числе `oklab()` из `color-mix`) → sRGB-строка `rgb()` / `rgba()`. `none` и `url(#…)` остаются как есть. */
-export function toRgb(css: string): string {
+function toRgb(css: string): string {
 	const value = css.trim();
 	if (!value || value === 'none' || value === 'transparent' || value.startsWith('url(')) return value;
 	const cached = colorCache.get(value);
@@ -87,7 +87,7 @@ export function withAlpha(rgb: string, alpha: number): string {
 let fontCss: Promise<string> | null = null;
 
 /** @font-face шрифта интерфейса (Rostelecom Basis) со встроенными данными: картинка с SVG не видит шрифтов страницы. Нет шрифта — пустая строка, останется запасной. */
-export function fontFaceCss(): Promise<string> {
+function fontFaceCss(): Promise<string> {
 	fontCss ??= (async () => {
 		try {
 			const faces = await Promise.all(
@@ -317,7 +317,7 @@ function addDonutLabels(svg: SVGSVGElement, clone: SVGSVGElement, legend: HTMLEl
 }
 
 /** Копия SVG с явными размерами и встроенными стилями: открывается как отдельная картинка и выглядит так же, как на экране. */
-export function inlineSvg(
+function inlineSvg(
 	svg: SVGSVGElement,
 	opts: { css?: string; color?: string; legend?: HTMLElement | null; pxPerUnit?: number } = {}
 ): { markup: string; width: number; height: number } {
@@ -382,7 +382,7 @@ interface LegendItem {
 }
 
 /** Пункты легенды rt-ui; выключенные кликом по легенде (`aria-pressed="false"`) в файл не попадают. */
-export function readLegend(legend: HTMLElement | null | undefined): LegendItem[] {
+function readLegend(legend: HTMLElement | null | undefined): LegendItem[] {
 	if (!legend) return [];
 	const items: LegendItem[] = [];
 	legend.querySelectorAll<HTMLElement>('.rt-chart__legend-item').forEach((item) => {

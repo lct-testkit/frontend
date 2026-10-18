@@ -1,8 +1,8 @@
 // Ответственный за вуз: права, проверка причины, массовая смена (по 100 вузов за вызов) и разбор истории смен из журнала аудита.
 import { errorMessage } from '$lib/api/errors';
 
-export const REASON_MIN = 3;
-export const REASON_MAX = 500;
+const REASON_MIN = 3;
+const REASON_MAX = 500;
 /** Сколько вузов принимает один вызов `POST /api/organizations/bulk/owner`. */
 export const BULK_CHUNK = 100;
 

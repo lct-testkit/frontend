@@ -2,7 +2,7 @@
 
 export const ZOOM_MIN = 0.5;
 export const ZOOM_MAX = 3;
-export const ZOOM_STEP = 0.25;
+const ZOOM_STEP = 0.25;
 
 /** Масштаб, при котором страница шириной `pageWidthPt` (в единицах PDF, 1 pt) занимает `containerPx`. */
 export function fitScale(pageWidthPt: number, containerPx: number, padding = 0): number {
