@@ -3,7 +3,9 @@
 	import type { Component } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { CheckLarge, CloseLarge, TimeStroke, StopStroke } from '@lct-testkit/rt-ui/icons';
+	import { Download } from '@lct-testkit/rt-ui/icons';
 	import Btn from '$lib/ui/Btn.svelte';
+	import { toast } from '$lib/ui/toast.svelte';
 	import { formatDateTime } from '$lib/utils/format';
 	import type { Outcome } from './sign-session.svelte';
 	import type { SignatureOut } from './types';
@@ -13,11 +15,30 @@
 		title?: string | null;
 		note?: string | null;
 		signature?: SignatureOut | null;
+		/** что уже есть для скачивания: подписанный файл (после того как подписали все) и протокол */
+		files?: { signed: boolean; protocol: boolean };
+		/** скачать подписанный документ (`auto`) или протокол */
+		onDownload?: (variant: 'auto' | 'protocol') => Promise<void>;
 		/** куда вернуться сотруднику; у гостя кнопки нет */
 		backHref?: string;
 	}
 
-	let { outcome, title = null, note = null, signature = null, backHref }: Props = $props();
+	let { outcome, title = null, note = null, signature = null, files, onDownload, backHref }: Props = $props();
+
+	let downloading = $state<'auto' | 'protocol' | null>(null);
+	const hasFiles = $derived((outcome === 'signed' || outcome === 'signed_before') && !!onDownload && !!files && (files.signed || files.protocol));
+
+	async function download(variant: 'auto' | 'protocol') {
+		if (downloading || !onDownload) return;
+		downloading = variant;
+		try {
+			await onDownload(variant);
+		} catch (e) {
+			toast.error(e, variant === 'protocol' ? 'Не удалось скачать протокол' : 'Не удалось скачать документ');
+		} finally {
+			downloading = null;
+		}
+	}
 
 	type Tone = 'success' | 'danger' | 'warning' | 'neutral';
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,12 +79,22 @@
 			<p class="t-desc-l m-0 text-muted">{signature.signer_display} · {formatDateTime(signature.signed_at)}</p>
 		{/if}
 	</div>
-	<div class="flex flex-wrap justify-center gap-2 max-md:w-full max-md:flex-col">
-		{#if outcome === 'signed' && signature}
-			<Btn label="Проверить подпись" size="l" onclick={() => goto(`/verify/${signature.id}`)} />
+	<div class="flex flex-col items-center gap-2 max-md:w-full">
+		{#if (outcome === 'signed' && signature) || backHref}
+			<div class="flex flex-wrap justify-center gap-2 max-md:w-full max-md:flex-col">
+				{#if outcome === 'signed' && signature}
+					<Btn label="Проверить подпись" size="l" onclick={() => goto(`/verify/${signature.id}`)} />
+				{/if}
+				{#if backHref}
+					<Btn label="К списку" variant={outcome === 'signed' ? 'secondary' : 'primary'} colorScheme={outcome === 'signed' ? 'neutral' : 'accent'} size="l" onclick={() => goto(backHref)} />
+				{/if}
+			</div>
 		{/if}
-		{#if backHref}
-			<Btn label="К списку" variant={outcome === 'signed' ? 'secondary' : 'primary'} colorScheme={outcome === 'signed' ? 'neutral' : 'accent'} size="l" onclick={() => goto(backHref)} />
+		{#if hasFiles && files}
+			<div class="flex flex-wrap justify-center gap-2 max-md:w-full max-md:flex-col">
+				{#if files.signed}<Btn label="Скачать подписанный документ" icon={Download} variant="secondary" colorScheme="neutral" size="l" loading={downloading === 'auto'} disabled={!!downloading} onclick={() => download('auto')} data-testid="download-signed" />{/if}
+				{#if files.protocol}<Btn label="Протокол подписания" icon={Download} variant="secondary" colorScheme="neutral" size="l" loading={downloading === 'protocol'} disabled={!!downloading} onclick={() => download('protocol')} data-testid="download-protocol" />{/if}
+			</div>
 		{/if}
 	</div>
 </section>

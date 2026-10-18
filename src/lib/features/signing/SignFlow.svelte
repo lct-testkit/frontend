@@ -28,6 +28,8 @@
 
 	onMount(() => void session.load());
 
+	const loadPdf = () => session.loadPdf();
+
 	const page = $derived(session.page);
 	const progress = $derived(page ? signerProgress(page.signers) : null);
 	const deadlineSoon = $derived(!!page?.document.deadline_at && new Date(page.document.deadline_at).getTime() - Date.now() < 48 * 3_600_000);
@@ -62,7 +64,15 @@
 {:else if session.phase === 'failed'}
 	<ErrorState error={session.loadError} onRetry={() => session.load()} />
 {:else if (session.phase === 'done' || session.phase === 'closed') && session.outcome}
-	<SignOutcome outcome={session.outcome} title={page?.document.title} note={session.note} signature={session.signature} {backHref} />
+	<SignOutcome
+		outcome={session.outcome}
+		title={page?.document.title}
+		note={session.note}
+		signature={session.signature}
+		files={{ signed: !!page?.document.is_signed, protocol: !!page?.document.has_protocol }}
+		onDownload={(variant) => session.download(variant)}
+		{backHref}
+	/>
 {:else if page}
 	<div class="flex flex-col gap-4 max-md:gap-3" data-testid="sign-flow">
 		<header class="flex flex-col gap-1 rounded-lg border border-line bg-surface p-4 max-md:p-3">
@@ -76,7 +86,7 @@
 			{/if}
 		</header>
 
-		<PdfViewer url={page.document.preview_url} />
+		<PdfViewer load={loadPdf} />
 
 		<section class="flex flex-col rounded-lg border border-line bg-surface px-4 py-2 max-md:px-3" aria-label="Подписанты">
 			<div class="flex items-baseline gap-2 py-1">

@@ -55,7 +55,7 @@
 | `POST /api/organizations/{id}/restore` | Кнопка «Восстановить» для администратора — сейчас `OrgCreateDrawer` при дубле по ИНН только сообщает, что восстановить может админ, самой кнопки нигде нет |
 | `POST /api/signature-requests/{id}/reissue-link` | «Переиздать ссылку» в карточке запроса на подпись (`docs/backend-issues.md` C-7) |
 
-Не пробел, а слепая зона `tools/coverage.mjs` (2): `GET /api/signature-requests/{id}/file` и `GET /public/sign/{token}/file` попадают в «непокрыто», потому что скрипт ищет только типизированные вызовы `api.GET(...)`; в реальности обе ручки используются — `file_url` из ответа переписывается на текущий origin (`previewUrlForFetch` в `src/lib/features/signing/urls.ts`) и просто фетчится напрямую, без обёртки клиента.
+Предпросмотр PDF подписи идёт через `file_url` (F3-7): `SignAdapter.loadPdf` (`src/lib/features/signing/api.ts`) вызывает `GET /public/sign/{token}/file` и `GET /api/signature-requests/{id}/file` через типизированный клиент `api` (`parseAs: 'arrayBuffer'`), поэтому обе ручки теперь считаются покрытыми `tools/coverage.mjs`; байты PDF кэширует `SignSession` (лимит ссылки 10 запросов в минуту общий). Запасной путь для бэкенда без `file_url` — `preview_url` обычным `fetch` (`pdf-source.ts`). Подмена origin presigned-ссылки (`previewUrlForFetch`) удалена.
 
 ## Как проверять
 

@@ -11,6 +11,7 @@ import { OTP_DEFAULT_MAX_ATTEMPTS, OTP_MAX_SENDS } from './otp';
 function adapter(overrides: Partial<SignAdapter> = {}): SignAdapter {
 	return {
 		load: vi.fn(),
+		loadPdf: vi.fn(),
 		challenge: vi.fn(),
 		sign: vi.fn(),
 		reject: vi.fn(),
@@ -270,5 +271,92 @@ describe('SignSession — производные геттеры', () => {
 		expect(s.debugCode).toBeNull();
 		await s.requestCode();
 		expect(s.debugCode).toBe('000000');
+	});
+});
+
+describe('SignSession.loadPdf — один запрос на страницу (лимит ссылки 10 в минуту)', () => {
+	const withDoc = (file_url: string | null) => ({ agreement_text: 'текст', document: { title: 'КП', file_url, preview_url: 'http://s3/x.pdf' }, my_request_id: 'r', my_status: 'viewed', signers: [] }) as never;
+	const bytes = (n: number) => new Uint8Array(n).buffer;
+
+	it('file_url есть — идёт адаптер (auto); повторные вызовы, возврат с шага кода и повторный start() запроса не повторяют', async () => {
+		const loadPdf = vi.fn().mockResolvedValue(bytes(3));
+		const s = new SignSession(adapter({ load: vi.fn().mockResolvedValue(withDoc('/public/sign/t/file')), loadPdf, challenge: vi.fn().mockResolvedValue({ debug_code: '123456' }) }));
+		await s.load();
+
+		const first = await s.loadPdf();
+		await s.loadPdf();
+		await s.start();
+		s.back();
+		await s.start();
+		await s.loadPdf();
+
+		expect(first.byteLength).toBe(3);
+		expect(loadPdf).toHaveBeenCalledTimes(1);
+		expect(loadPdf).toHaveBeenCalledWith('auto');
+	});
+
+	it('одновременные вызовы делят один запрос', async () => {
+		let resolve!: (v: ArrayBuffer) => void;
+		const loadPdf = vi.fn().mockReturnValue(new Promise<ArrayBuffer>((r) => (resolve = r)));
+		const s = new SignSession(adapter({ load: vi.fn().mockResolvedValue(withDoc('/f')), loadPdf }));
+		await s.load();
+
+		const a = s.loadPdf();
+		const b = s.loadPdf();
+		resolve(bytes(1));
+		await Promise.all([a, b]);
+
+		expect(loadPdf).toHaveBeenCalledTimes(1);
+	});
+
+	it('ошибка не кэшируется: «Повторить» делает новый запрос', async () => {
+		const loadPdf = vi.fn().mockRejectedValueOnce(new ApiError({ status: 429, code: 'CRM-8429', retryAfter: 30 })).mockResolvedValueOnce(bytes(2));
+		const s = new SignSession(adapter({ load: vi.fn().mockResolvedValue(withDoc('/f')), loadPdf }));
+		await s.load();
+
+		await expect(s.loadPdf()).rejects.toBeInstanceOf(ApiError);
+		await Promise.resolve();
+		expect((await s.loadPdf()).byteLength).toBe(2);
+		expect(loadPdf).toHaveBeenCalledTimes(2);
+	});
+
+	it('без file_url адаптер не трогается — запасной путь по preview_url обычным fetch', async () => {
+		const loadPdf = vi.fn();
+		const fetchMock = vi.fn().mockResolvedValue(new Response(bytes(4), { status: 200 }));
+		vi.stubGlobal('fetch', fetchMock);
+		try {
+			const s = new SignSession(adapter({ load: vi.fn().mockResolvedValue(withDoc(null)), loadPdf }));
+			await s.load();
+			expect((await s.loadPdf()).byteLength).toBe(4);
+			expect(loadPdf).not.toHaveBeenCalled();
+			expect(fetchMock.mock.calls[0][0]).toBe('http://s3/x.pdf');
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+});
+
+describe('SignSession после подписи', () => {
+	it('перечитывает сведения о документе (is_signed, has_protocol) без смены экрана', async () => {
+		const before = { agreement_text: 't', document: { title: 'КП', is_signed: false, has_protocol: false }, my_request_id: 'r', my_status: 'viewed', signers: [] } as never;
+		const after = { agreement_text: 't', document: { title: 'КП', is_signed: true, has_protocol: true }, my_request_id: 'r', my_status: 'signed', signers: [] } as never;
+		const load = vi.fn().mockResolvedValueOnce(before).mockResolvedValueOnce(after);
+		const s = new SignSession(adapter({ load, challenge: vi.fn().mockResolvedValue({}), sign: vi.fn().mockResolvedValue({ id: 'sig' }) }));
+		await s.load();
+		await s.start();
+		s.setOtp('123456');
+		await s.submit();
+		await vi.waitFor(() => expect(s.page?.document.is_signed).toBe(true));
+
+		expect(s.phase).toBe('done');
+		expect(s.outcome).toBe('signed');
+		expect(s.page?.document.has_protocol).toBe(true);
+	});
+
+	it('download: auto → подписанный файл, protocol → протокол; ошибка адаптера пробрасывается для toast', async () => {
+		const loadPdf = vi.fn().mockRejectedValue(new ApiError({ status: 429, code: 'CRM-8429' }));
+		const s = new SignSession(adapter({ loadPdf }));
+		await expect(s.download('protocol')).rejects.toBeInstanceOf(ApiError);
+		expect(loadPdf).toHaveBeenCalledWith('protocol');
 	});
 });

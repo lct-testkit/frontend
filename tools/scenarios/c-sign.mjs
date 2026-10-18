@@ -7,7 +7,12 @@ import { BASE, accessToken, newBrowser, newPage, auditLayout } from '../lib.mjs'
 const args = process.argv.slice(2);
 const opt = (n, d) => (args.includes(`--${n}`) ? args[args.indexOf(`--${n}`) + 1] : d);
 const [w, h] = opt('size', '390x844').split('x').map(Number);
-const flow = opt('flow', 'sign');
+const flow = opt('flow', 'sign'); // sign | reject | wrong | internal | ratelimit
+let failures = 0;
+const check = (ok, text) => {
+	console.log(`  ${ok ? '✓' : '✗'} ${text}`);
+	if (!ok) failures += 1;
+};
 const theme = opt('theme', 'rtk_default_light');
 const out = opt('out', '.shots/c');
 await mkdir(out, { recursive: true });
@@ -41,6 +46,18 @@ console.log(`document ${doc.id}, request ${request.id}${token ? `, token ${token
 
 const browser = await newBrowser();
 const page = await newPage(browser, { who: flow === 'internal' ? 'head' : null, width: w, height: h, theme });
+// F3-7: какие запросы за PDF уходят со страницы (адрес, статус, тип)
+const pdfRequests = [];
+const storageRequests = [];
+page.on('response', (r) => {
+	const u = new URL(r.url());
+	if (/\/file$/.test(u.pathname)) pdfRequests.push({ path: u.pathname + u.search, status: r.status(), type: r.headers()['content-type'] ?? '' });
+	if (u.port === '8333') storageRequests.push(r.url());
+});
+if (flow === 'ratelimit') {
+	// оставляем ссылке один запрос из десяти в минуту: страница откроется, а `/file` ответит 429
+	for (let i = 0; i < 9; i += 1) await fetch(`${BASE}/public/sign/${token}/file`);
+}
 const shot = async (name) => {
 	await page.waitForTimeout(500);
 	await page.screenshot({ path: `${out}/sign-${flow}-${name}-${w}x${h}.png` });
@@ -52,6 +69,40 @@ await page.goto(BASE + (flow === 'internal' ? `/signing/requests/${request.id}` 
 await page.waitForSelector('[data-testid=sign-flow]', { timeout: 20000 });
 await page.waitForTimeout(1500);
 await shot('1-ready');
+
+if (flow === 'ratelimit') {
+	const text1 = await page.getByTestId('pdf-error').innerText();
+	check(/Слишком много обращений к ссылке\. Подождите \d+ с/.test(text1), `429: «${text1}»`);
+	check(await page.getByRole('button', { name: 'Повторить' }).isDisabled(), '429: «Повторить» заблокирована на время отсчёта');
+	await page.waitForTimeout(2200);
+	const text2 = await page.getByTestId('pdf-error').innerText();
+	check(text2 !== text1, `429: отсчёт идёт («${text1}» → «${text2}»)`);
+	await shot('1b-ratelimit');
+	if (args.includes('--wait')) {
+		// дождаться снятия лимита: «Повторить» оживает, повтор показывает документ
+		await page.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => /Повторить/.test(b.textContent ?? '') && !b.disabled), null, { timeout: 70000 });
+		await page.getByRole('button', { name: 'Повторить' }).click();
+		await page.waitForFunction(() => document.querySelector('[role=region] canvas'), null, { timeout: 15000 }).then(
+			() => check(true, '429: после паузы «Повторить» показывает документ'),
+			() => check(false, '429: после паузы документ не показался')
+		);
+		await shot('1c-after-retry');
+	}
+	await browser.close();
+	process.exit(failures ? 1 : 0);
+}
+
+{
+	const fileUrl = flow === 'internal' ? `/api/signature-requests/${request.id}/file` : `/public/sign/${token}/file`;
+	const mine = pdfRequests.filter((r) => r.path.startsWith(fileUrl));
+	check(mine.length === 1, `PDF запрошен один раз с ${fileUrl} (запросов: ${mine.length})`);
+	check(mine[0]?.status === 200 && mine[0].type.includes('application/pdf'), `ответ 200 application/pdf (${mine[0]?.status} ${mine[0]?.type})`);
+	check(storageRequests.length === 0, `запросов к хосту хранилища (:8333): ${storageRequests.length}`);
+	await page.waitForFunction(() => document.querySelector('[role=region] canvas'), null, { timeout: 15000 }).then(
+		() => check(true, 'PDF нарисован (canvas есть)'),
+		() => check(false, 'PDF не нарисован')
+	);
+}
 
 if (flow === 'reject') {
 	await page.getByRole('button', { name: 'Отклонить' }).first().click();
@@ -78,9 +129,28 @@ if (flow === 'reject') {
 	} else {
 		await page.getByRole('button', { name: 'Подставить' }).click();
 		await page.waitForSelector('[data-outcome=signed]', { timeout: 15000 });
+		await page.waitForTimeout(800);
 		await shot('3-signed');
+		const fileRequestsBeforeBack = pdfRequests.length;
+		for (const [testid, kind] of [['download-signed', 'подписанный'], ['download-protocol', 'протокол']]) {
+			const button = page.getByTestId(testid);
+			if (!(await button.count())) {
+				check(false, `кнопка «${kind}» на экране «Документ подписан» есть`);
+				continue;
+			}
+			const [download] = await Promise.all([page.waitForEvent('download', { timeout: 15000 }), button.click()]);
+			const stream = await download.createReadStream();
+			const chunks = [];
+			for await (const c of stream) chunks.push(c);
+			const body = Buffer.concat(chunks);
+			check(body.subarray(0, 4).toString() === '%PDF' && body.length > 1000, `«${kind}»: файл ${download.suggestedFilename()}, ${body.length} байт, начинается с %PDF`);
+			await page.waitForTimeout(300);
+		}
+		check(pdfRequests.length === fileRequestsBeforeBack + 2, 'скачивание — по одному запросу на файл');
+		await shot('4-after-downloads');
 	}
 }
 const p = page.__problems;
 if (p.pageerrors.length || p.console.length || p.failed.length) console.log('problems:', JSON.stringify(p));
 await browser.close();
+if (failures) process.exit(1);

@@ -12,9 +12,14 @@ import type {
 	VerifyResult
 } from './types';
 
+/** Какой файл отдать: `auto` — после подписи файл со штампом, до неё исходник; `original` — всегда исходник; `protocol` — протокол подписания (только у подписанного). */
+export type PdfVariant = 'auto' | 'original' | 'protocol';
+
 export interface SignAdapter {
 	/** открытие страницы = ознакомление (сервер ставит `viewed`) */
 	load(): Promise<SigningPage>;
+	/** PDF с origin приложения (`file_url` страницы): без ссылки на хранилище, без CORS; для внутреннего адаптера — с Bearer через клиент `api` */
+	loadPdf(variant: PdfVariant, signal?: AbortSignal): Promise<ArrayBuffer>;
 	challenge(): Promise<ChallengeInfo>;
 	sign(otp: string): Promise<SignatureOut>;
 	reject(reason: string): Promise<void>;
@@ -25,6 +30,8 @@ export function publicAdapter(token: string): SignAdapter {
 	const params = { path: { token } };
 	return {
 		load: () => unwrap(api.GET('/public/sign/{token}', { params })),
+		loadPdf: (variant, signal) =>
+			unwrap(api.GET('/public/sign/{token}/file', { params: { path: { token }, query: { variant } }, parseAs: 'arrayBuffer', signal })) as Promise<ArrayBuffer>,
 		challenge: () => unwrap(api.POST('/public/sign/{token}/challenge', { params })),
 		sign: (otp) => unwrap(api.POST('/public/sign/{token}/sign', { params, body: { otp } })),
 		reject: async (reason) => {
@@ -38,6 +45,8 @@ export function internalAdapter(requestId: string): SignAdapter {
 	const params = { path: { request_id: requestId } };
 	return {
 		load: () => unwrap(api.POST('/api/signature-requests/{request_id}/view', { params })),
+		loadPdf: (variant, signal) =>
+			unwrap(api.GET('/api/signature-requests/{request_id}/file', { params: { path: { request_id: requestId }, query: { variant } }, parseAs: 'arrayBuffer', signal })) as Promise<ArrayBuffer>,
 		challenge: () => unwrap(api.POST('/api/signature-requests/{request_id}/challenge', { params })),
 		sign: (otp) => unwrap(api.POST('/api/signature-requests/{request_id}/sign', { params, body: { otp } })),
 		reject: async (reason) => {

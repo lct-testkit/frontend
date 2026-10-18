@@ -25,25 +25,6 @@ export function normalizeSignUrl(signUrl: string, origin: string): string {
 	return token ? spaSignUrl(origin, token) : signUrl;
 }
 
-export const isPresignedS3 = (url: string): boolean => /[?&]X-Amz-Signature=/i.test(url);
-
-/**
- * Presigned-ссылка на PDF указывает на S3-хост (`localhost:8333`), у которого нет CORS, а CSP страницы
- * подписи разрешает только `self`. Если бакеты проксируются на текущий origin (Vite/Caddy), достаточно
- * заменить origin, сохранив путь и подпись (SigV4 подписывает путь, а не хост через прокси с changeOrigin).
- */
-export function previewUrlForFetch(previewUrl: string, currentOrigin: string, s3Origins: readonly string[]): string {
-	let parsed: URL;
-	try {
-		parsed = new URL(previewUrl);
-	} catch {
-		return previewUrl;
-	}
-	const same = parsed.origin === currentOrigin;
-	if (same || !s3Origins.includes(parsed.origin)) return previewUrl;
-	return `${currentOrigin}${parsed.pathname}${parsed.search}`;
-}
-
 /** «ab12cd34…ef56» — короткая форма хэша для карточек; полный — по копированию. */
 export function shortHash(hash: string, head = 8, tail = 4): string {
 	const h = hash.trim();

@@ -1,7 +1,8 @@
 // Состояние экрана подписи: загрузка документа → запрос кода → ввод OTP → подпись / отказ.
 // Одна и та же машина состояний обслуживает публичную страницу и внутренний экран (разница — в `SignAdapter`).
 import { ApiError } from '$lib/api';
-import type { SignAdapter } from './api';
+import type { PdfVariant, SignAdapter } from './api';
+import { saveBytes } from './download';
 import { signErrorMessage } from './errors';
 import {
 	OTP_DEFAULT_MAX_ATTEMPTS,
@@ -12,6 +13,8 @@ import {
 	normalizeOtp,
 	resendState
 } from './otp';
+import { pickPdfSource } from './pdf-source';
+import { fetchPdfBytes } from './pdf';
 import type { ChallengeInfo, SignatureOut, SigningPage } from './types';
 
 /** loading → (failed | ready | closed) ; ready → otp → (done | closed) */
@@ -60,6 +63,8 @@ export class SignSession {
 	now = $state(Date.now());
 
 	#adapter: SignAdapter;
+	/** Байты PDF для просмотра: один запрос на страницу — лимит ссылки 10 в минуту общий для страницы, `/file`, кода и подписи */
+	#pdf: Promise<ArrayBuffer> | null = null;
 
 	constructor(adapter: SignAdapter) {
 		this.#adapter = adapter;
@@ -84,9 +89,42 @@ export class SignSession {
 		this.note = note;
 	}
 
+	/** PDF страницы подписи: по `file_url` (тот же origin), без него — по `preview_url`. Повторные вызовы (возврат с шага кода) запроса не повторяют. */
+	loadPdf(): Promise<ArrayBuffer> {
+		if (!this.#pdf) {
+			const doc = this.page?.document;
+			if (!doc) return Promise.reject(new Error('Страница подписи ещё не загружена'));
+			const source = pickPdfSource(doc);
+			const request = source.kind === 'file_url' ? this.#adapter.loadPdf('auto') : fetchPdfBytes(source.url);
+			this.#pdf = request;
+			// неудача не кэшируется: «Повторить» должна сделать новый запрос
+			request.catch(() => {
+				if (this.#pdf === request) this.#pdf = null;
+			});
+		}
+		return this.#pdf;
+	}
+
+	/** Скачать подписанный документ (`auto` — со штампом) или протокол подписания: файл с origin приложения, сохраняется как есть. */
+	async download(variant: Exclude<PdfVariant, 'original'>): Promise<void> {
+		const bytes = await this.#adapter.loadPdf(variant);
+		const title = (this.page?.document.title ?? 'Документ').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'Документ';
+		saveBytes(bytes, `${title} — ${variant === 'protocol' ? 'протокол подписания' : 'подписанный'}.pdf`);
+	}
+
+	/** Перечитать сведения о документе без смены экрана (после подписи: стали известны `is_signed` и `has_protocol`). Ошибка не важна. */
+	async refreshDocument(): Promise<void> {
+		try {
+			this.page = await this.#adapter.load();
+		} catch {
+			// остаётся то, что было
+		}
+	}
+
 	async load(): Promise<void> {
 		this.phase = 'loading';
 		this.loadError = null;
+		this.#pdf = null;
 		try {
 			const page = await this.#adapter.load();
 			this.page = page;
@@ -146,6 +184,7 @@ export class SignSession {
 		try {
 			this.signature = await this.#adapter.sign(this.otp);
 			this.#close('signed');
+			void this.refreshDocument();
 		} catch (e) {
 			this.#onError(e, 'sign');
 		} finally {
