@@ -11,9 +11,10 @@
 
 	let { job, done = false }: Props = $props();
 
+	// после применения строки с предупреждениями тоже загружены: «Загружено» — все применённые, предупреждения — их часть
 	const tiles = $derived([
-		{ key: 'ok', value: job.ok_rows, label: done ? 'Загружено' : 'Без замечаний', tone: 'bg-success-soft' },
-		{ key: 'warn', value: job.warn_rows, label: 'С предупреждениями', tone: 'bg-warning-soft' },
+		{ key: 'ok', value: done ? job.ok_rows + job.warn_rows : job.ok_rows, label: done ? 'Загружено' : 'Без замечаний', tone: 'bg-success-soft' },
+		{ key: 'warn', value: job.warn_rows, label: done ? 'Из них с предупреждениями' : 'С предупреждениями', tone: 'bg-warning-soft' },
 		{ key: 'error', value: job.error_rows, label: done ? 'Пропущено' : 'С ошибками', tone: 'bg-danger-soft' }
 	]);
 </script>

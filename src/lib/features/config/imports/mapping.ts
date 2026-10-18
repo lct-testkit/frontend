@@ -16,8 +16,13 @@ export const IMPORT_ENTITY_INFO: Record<string, { label: string; plural: string;
 	license: { label: 'Лицензии', plural: 'лицензий', hint: 'Договоры вуз — вендор — программное обеспечение; ключ — вуз, вендор, ПО и номер договора' },
 	vendor_contact: { label: 'Вендоры', plural: 'вендоров', hint: 'Компания, продукты и ответственные — файл «Вендоры»' },
 	payment: { label: 'Оплаты', plural: 'оплат', hint: 'Оплаченные заказы физлиц: заявка, курс, поток — «Данные оплат»' },
-	learner: { label: 'Учащиеся LMS', plural: 'учащихся', hint: 'Шаблон LMS «Загрузка пользователей» с паспортом и дипломом' }
+	learner: { label: 'Учащиеся LMS', plural: 'учащихся', hint: 'Шаблон LMS «Загрузка пользователей» с паспортом и дипломом' },
+	direction: { label: 'Направления', plural: 'направлений', hint: 'ИТ-направления каталога; только администратор' },
+	responsible: { label: 'Ответственные за вуз', plural: 'вузов', hint: 'Кто из менеджеров ведёт вуз (КАМ или руководитель); только администратор' }
 };
+
+/** Тип, который может загрузить только администратор (`admin_only` в ответе сервера): остальным он виден, но недоступен. */
+export const importTypeAvailable = (type: { admin_only?: boolean }, role: string | null | undefined): boolean => !type.admin_only || role === 'ADMIN';
 
 export const entityInfo = (type: Pick<ImportEntityType, 'code' | 'label'>): { label: string; hint: string } => {
 	const known = IMPORT_ENTITY_INFO[type.code];
@@ -176,5 +181,56 @@ export function entityFromQuery(raw: string | null | undefined, types: readonly 
 export const ENTITY_KEYS: Record<string, string> = {
 	organization: 'Организация — по ИНН.',
 	product: 'Продукт — по коду.',
-	license: 'Лицензия — по сочетанию: вуз (по точному названию), вендор, ПО и номер договора. Строки с одинаковым сочетанием — одна лицензия; один договор на несколько ПО — разные лицензии.'
+	license: 'Лицензия — по сочетанию: вуз (по точному названию), вендор, ПО и номер договора. Строки с одинаковым сочетанием — одна лицензия; один договор на несколько ПО — разные лицензии.',
+	direction: 'Направление — по коду; если кода нет, он строится из названия. Родитель указывается кодом или названием.',
+	responsible: 'Вуз ищется по ИНН или названию, менеджер — по почте или ФИО. Строка меняет только того, кто ведёт вуз; новые вузы не создаются.'
 };
+
+// --- Параметры чтения файла (`options` в PUT /mapping) -------------------------------------
+
+export type ImportOptions = components['schemas']['ImportOptions'];
+
+/** Поля формы «Параметры чтения»: лист и строка заголовка книги, заполнение пустых ячеек сверху, создание отсутствующих справочников (лицензии). */
+export interface ImportOptionsForm {
+	sheet: string | null;
+	/** все листы книги разом (`sheets: ['*']`) */
+	allSheets: boolean;
+	headerRow: number | null;
+	fillDown: string[];
+	createVendors: boolean;
+	createSoftware: boolean;
+	createOrganizations: boolean;
+}
+
+export const defaultOptionsForm = (): ImportOptionsForm => ({ sheet: null, allSheets: false, headerRow: null, fillDown: [], createVendors: true, createSoftware: true, createOrganizations: false });
+
+/** Тело `options`: лист, строка заголовка и `fill_down` — только если заданы (колонки `fill_down` — только существующие в файле). */
+export function optionsPayload(form: ImportOptionsForm, headers: readonly string[], entity: string): ImportOptions {
+	// «создавать отсутствующие» — три флага с умолчаниями сервера; для не-лицензий они остаются умолчаниями
+	const license = entity === 'license';
+	const options: ImportOptions = { create_missing_vendors: license ? form.createVendors : true, create_missing_software: license ? form.createSoftware : true, create_missing_organizations: license ? form.createOrganizations : false };
+	if (form.allSheets) options.sheets = ['*'];
+	else if (form.sheet) options.sheet = form.sheet;
+	if (form.headerRow !== null && form.headerRow >= 1) options.header_row = Math.floor(form.headerRow);
+	const fill = form.fillDown.filter((h) => headers.includes(h));
+	if (fill.length) options.fill_down = fill;
+	return options;
+}
+
+/** Накладывает `options` пресета на форму (лист, строка заголовка, заполнение сверху, создание справочников); чего в пресете нет — не трогает. */
+export function applyPresetOptions(form: ImportOptionsForm, options: ImportOptions | Record<string, unknown> | null | undefined): ImportOptionsForm {
+	if (!options) return form;
+	const o = options as ImportOptions;
+	const next = { ...form };
+	if (o.sheets?.includes('*')) next.allSheets = true;
+	else if (typeof o.sheet === 'string') {
+		next.sheet = o.sheet;
+		next.allSheets = false;
+	}
+	if (typeof o.header_row === 'number') next.headerRow = o.header_row;
+	if (Array.isArray(o.fill_down)) next.fillDown = [...o.fill_down];
+	if (typeof o.create_missing_vendors === 'boolean') next.createVendors = o.create_missing_vendors;
+	if (typeof o.create_missing_software === 'boolean') next.createSoftware = o.create_missing_software;
+	if (typeof o.create_missing_organizations === 'boolean') next.createOrganizations = o.create_missing_organizations;
+	return next;
+}

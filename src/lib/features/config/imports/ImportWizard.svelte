@@ -24,7 +24,7 @@
 			void flow.loadTypes().then(() => {
 				// `?entity=license`: мастер сразу открывается на нужном типе
 				const entity = entityFromQuery(page.url.searchParams.get('entity'), flow.entityTypes);
-				if (entity) flow.entity = entity;
+				if (entity && flow.typeAvailable(entity, session.role)) flow.entity = entity;
 			});
 	});
 	onDestroy(() => flow.stop());
