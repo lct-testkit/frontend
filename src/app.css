@@ -220,35 +220,6 @@
 	}
 }
 
-/* Line spacing: 130 % of the font size EVERYWHERE (the DS default is 24 px on 16 px = 150 % for body text, 26 on 18, 20 on 14: it looked airy,
-   worst on a phone). The DS fonts are `font` shorthand tokens: family, weight and size stay, only the line height becomes 1.3.
-   Unlayered on purpose and more specific than the theme class, so it wins over the theme stylesheets in every theme and in portals (Modal, Drawer). */
-body[class*='Theme_root_'] {
-	--atmr-font-display-l-strong: 700 48px/1.3 'Rostelecom Basis';
-	--atmr-font-display-l: 500 48px/1.3 'Rostelecom Basis';
-	--atmr-font-display-m-strong: 700 42px/1.3 'Rostelecom Basis';
-	--atmr-font-display-m: 500 42px/1.3 'Rostelecom Basis';
-	--atmr-font-display-s-strong: 700 32px/1.3 'Rostelecom Basis';
-	--atmr-font-display-s: 500 32px/1.3 'Rostelecom Basis';
-	--atmr-font-heading-h1: 700 28px/1.3 'Rostelecom Basis';
-	--atmr-font-heading-h2: 700 22px/1.3 'Rostelecom Basis';
-	--atmr-font-heading-h3: 700 18px/1.3 'Rostelecom Basis';
-	--atmr-font-heading-h4: 700 16px/1.3 'Rostelecom Basis';
-	--atmr-font-heading-h5: 700 14px/1.3 'Rostelecom Basis';
-	--atmr-font-body-l-strong: 500 18px/1.3 'Rostelecom Basis';
-	--atmr-font-body-l: 400 18px/1.3 'Rostelecom Basis';
-	--atmr-font-body-m-strong: 500 16px/1.3 'Rostelecom Basis';
-	--atmr-font-body-m: 400 16px/1.3 'Rostelecom Basis';
-	--atmr-font-body-s-strong: 500 14px/1.3 'Rostelecom Basis';
-	--atmr-font-body-s: 400 14px/1.3 'Rostelecom Basis';
-	--atmr-font-description-l-strong: 500 12px/1.3 'Rostelecom Basis';
-	--atmr-font-description-l: 400 12px/1.3 'Rostelecom Basis';
-	--atmr-font-description-m-strong: 500 11.008px/1.3 'Rostelecom Basis';
-	--atmr-font-description-m: 400 11.008px/1.3 'Rostelecom Basis';
-	--atmr-font-description-s-strong: 500 10px/1.3 'Rostelecom Basis';
-	--atmr-font-description-s: 400 10px/1.3 'Rostelecom Basis';
-}
-
 /* overrides of rt-ui behaviour that Tailwind classes cannot reach (they live on elements the library renders itself) */
 @layer components {
 	/* two corner steps, no more: 8 px for controls and blocks inside surfaces (buttons, fields, banners, list items),
@@ -321,15 +292,15 @@ body[class*='Theme_root_'] {
 		padding-top: calc((24px - 1lh) / 2);
 	}
 	/* the tabs of a page stand in ONE row with its buttons (36 px on a desktop, 48 px on a phone: the height of the phone controls): the DS item is 61 px high, 20 px above and below the
-	   label. The label is 20.8 px (16 px on a 130 % line), so 7.6 px above and below make exactly 36 px, 13.6 px make 48 */
+	   label. The label line is 24 px (the DS body line), so 6 px above and below make exactly 36 px, 12 px make 48 */
 	.atmr-tabs-group {
-		--atmr-tabitem-m-padding-top: 7.6px;
-		--atmr-tabitem-m-padding-bottom: 7.6px;
+		--atmr-tabitem-m-padding-top: 6px;
+		--atmr-tabitem-m-padding-bottom: 6px;
 	}
 	@media (max-width: 767px) {
 		.atmr-tabs-group {
-			--atmr-tabitem-m-padding-top: 13.6px;
-			--atmr-tabitem-m-padding-bottom: 13.6px;
+			--atmr-tabitem-m-padding-top: 12px;
+			--atmr-tabitem-m-padding-bottom: 12px;
 		}
 	}
 	/* status chips in a page header stand in a row with 36 px buttons: the same height (the DS Badge is 24 px high) */

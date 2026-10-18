@@ -42,7 +42,8 @@
 					>
 						<span class="flex items-start justify-between gap-2">
 							<span class="t-body-l-strong min-w-0 wrap-anywhere">{t.name}</span>
-							<ArrowRight class="size-5 flex-none fill-soft transition-transform group-hover:translate-x-0.5" />
+							<!-- the arrow sits on the middle of the FIRST line of the title (a box one title line high), not on the top of a two-line title -->
+							<span class="t-body-l-strong flex h-[1lh] flex-none items-center"><ArrowRight class="size-5 fill-soft transition-transform group-hover:translate-x-0.5" /></span>
 						</span>
 						{#if t.description}<span class="t-body-s line-clamp-3 text-muted">{t.description}</span>{/if}
 						<span class="mt-auto flex flex-wrap gap-1.5 pt-1">
