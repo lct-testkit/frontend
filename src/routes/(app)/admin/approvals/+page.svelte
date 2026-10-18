@@ -6,12 +6,13 @@
 	import { CheckLarge, CloseLarge, Refresh } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap, type components } from '$lib/api';
 	import { createPager } from '$lib/api/pager.svelte';
+	import { people } from '$lib/api/people.svelte';
 	import { session } from '$lib/auth/session.svelte';
-	import { approvalActions, approvalExecuteHref, describeApproval } from '$lib/features/identity/approvals';
+	import { approvalActions, approvalExecuteHref, describeApproval, rejectLabel, timeLeft } from '$lib/features/identity/approvals';
 	import { approvalOperationLabel, approvalStatusMeta } from '$lib/features/identity/labels';
 	import { APPROVAL_STATUS_HINTS } from '$lib/features/identity/hints';
 	import ReasonModal from '$lib/features/identity/ReasonModal.svelte';
-	import { Btn, DateText, IconBtn, Page, PageHeader, DataTable, StatusChip, TabsBar, UserName, toast, confirm, type Col, TableCell } from '$lib/ui';
+	import { Btn, DateText, IconBtn, Notice, Page, PageHeader, DataTable, StatusChip, TabsBar, UserName, toast, confirm, type Col, TableCell } from '$lib/ui';
 
 	type Approval = components['schemas']['ApprovalOut'];
 
@@ -32,6 +33,20 @@
 		void pager.reload();
 	});
 	onMount(() => () => pager.abort());
+	// имена в описании («Назначение администратора: …») берутся из справочника сотрудников
+	$effect(() => {
+		people.ensure(pager.items.map((a) => (typeof a.payload?.user_id === 'string' ? a.payload.user_id : null)));
+	});
+
+	// в системе с одним администратором подтверждать заявки некому
+	let activeAdmins = $state<number | null>(null);
+	onMount(async () => {
+		try {
+			activeAdmins = (await unwrap(api.GET('/api/admin/users', { params: { query: { role: 'ADMIN', status: 'active', limit: 2 } } }))).items.length;
+		} catch {
+			activeAdmins = null;
+		}
+	});
 
 	let rejecting = $state<Approval | null>(null);
 	let busy = $state<string | null>(null);
@@ -56,10 +71,11 @@
 
 	async function reject(reason: string) {
 		if (!rejecting) return;
+		const withdraw = rejecting.requested_by === meId;
 		const next = await unwrap(api.POST('/api/admin/approvals/{approval_id}/reject', { params: { path: { approval_id: rejecting.id } }, body: { reason } }));
 		replace(next);
 		rejecting = null;
-		toast.success('Заявка отклонена');
+		toast.success(withdraw ? 'Заявка отозвана' : 'Заявка отклонена');
 	}
 
 	const columns: Col<Approval>[] = [
@@ -84,7 +100,11 @@
 {#snippet statusCell(a: Approval)}
 	<TableCell>
 		{@const meta = approvalStatusMeta(approvalActions(a, meId).isExpired ? 'expired' : a.status)}
-		<span class="block py-2"><StatusChip label={meta.label} tone={meta.tone} hint={APPROVAL_STATUS_HINTS[(approvalActions(a, meId).isExpired ? 'expired' : a.status) as keyof typeof APPROVAL_STATUS_HINTS]} /></span>
+		{@const left = a.status === 'pending' || a.status === 'approved' ? timeLeft(a.expires_at) : null}
+		<span class="flex flex-col items-start gap-0.5 py-2">
+			<StatusChip label={meta.label} tone={meta.tone} hint={APPROVAL_STATUS_HINTS[(approvalActions(a, meId).isExpired ? 'expired' : a.status) as keyof typeof APPROVAL_STATUS_HINTS]} />
+			{#if left}<span class="t-desc-m text-soft">действует {left}</span>{/if}
+		</span>
 	</TableCell>
 {/snippet}
 {#snippet buttons(a: Approval)}
@@ -93,7 +113,7 @@
 		{#if act.canApprove}<Btn label="Подтвердить" size="s" icon={CheckLarge} loading={busy === a.id} onclick={() => approve(a)} />{/if}
 		{#if act.canExecute}<Btn label="Выполнить" size="s" onclick={() => goto(approvalExecuteHref(a) ?? '/admin/users')} />{/if}
 		{#if act.waitingForOther}<span class="t-desc-m truncate text-muted" title="Заявку должен подтвердить другой администратор">Нужен другой админ</span>{/if}
-		{#if act.canReject}<IconBtn icon={CloseLarge} label="Отклонить" danger size="s" onclick={() => (rejecting = a)} />{/if}
+		{#if act.canReject}<IconBtn icon={CloseLarge} label={rejectLabel(a.requested_by, meId)} danger size="s" onclick={() => (rejecting = a)} />{/if}
 	</span>
 {/snippet}
 {#snippet actionCell(a: Approval)}<TableCell align="right">{@render buttons(a)}</TableCell>{/snippet}
@@ -120,6 +140,11 @@
 		{#snippet actions()}<IconBtn icon={Refresh} label="Обновить" onclick={() => pager.reload()} />{/snippet}
 	</PageHeader>
 
+	<Notice class="shrink-0" tone="info">Требуют подтверждения вторым администратором: создание и назначение администратора, удаление и обезличивание персональных данных. Заявка действует 24 часа. Свою заявку можно только отозвать.</Notice>
+	{#if activeAdmins === 1}
+		<Notice class="shrink-0" tone="warning">В системе один администратор: подтвердить заявки некому. Добавьте второго в Keycloak (роль ADMIN).</Notice>
+	{/if}
+
 	<DataTable
 		rows={pager.items}
 		{columns}
@@ -137,8 +162,8 @@
 
 <ReasonModal
 	open={rejecting !== null}
-	title="Отклонить заявку"
-	confirmLabel="Отклонить"
+	title={rejecting?.requested_by === meId ? 'Отозвать заявку' : 'Отклонить заявку'}
+	confirmLabel={rejecting?.requested_by === meId ? 'Отозвать' : 'Отклонить'}
 	danger
 	required={false}
 	label="Причина"

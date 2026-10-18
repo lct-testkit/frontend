@@ -1,4 +1,5 @@
 // Принцип «четырёх глаз» (CRM-1902, admin_service.ApprovalService): что может сделать текущий админ с заявкой.
+import { people } from '$lib/api/people.svelte';
 import { ERASURE_MODE_LABEL, approvalOperationLabel } from './labels';
 import type { ApprovalLike, ErasureMode } from './types';
 
@@ -35,6 +36,10 @@ export function describeApproval(a: Pick<ApprovalLike, 'operation' | 'payload'>)
 			const who = [str(p.full_name), str(p.email) && `(${str(p.email)})`].filter(Boolean).join(' ');
 			return `Создание администратора ${who}`.trim();
 		}
+		case 'user.promote_admin': {
+			const who = str(p.user_id) ? people.name(str(p.user_id), '') : '';
+			return `Назначение администратора${who ? `: ${who}` : ''}`;
+		}
 		case 'user.erasure':
 		case 'contact.erasure':
 		case 'organization.erasure': {
@@ -57,6 +62,9 @@ export function approvalExecuteHref(a: Pick<ApprovalLike, 'id' | 'operation' | '
 			if (str(p.full_name)) q.set('full_name', str(p.full_name));
 			q.set('role', 'ADMIN');
 			return `/admin/users?${q}`;
+		case 'user.promote_admin':
+			q.set('role', 'ADMIN');
+			return `/admin/users/${str(p.user_id)}?${q}`;
 		case 'user.erasure':
 			q.set('subject_type', 'user');
 			q.set('subject_id', str(p.user_id));
@@ -82,3 +90,15 @@ export function approvalIdFromError(extra: Record<string, unknown> | null | unde
 	const id = extra?.approval_id;
 	return typeof id === 'string' && id.length > 0 ? id : null;
 }
+
+/** Сколько ещё действует заявка: «ещё 5 ч», «меньше часа»; `null`, если срок вышел или даты нет. */
+export function timeLeft(expiresAt: string | null | undefined, now: number = Date.now()): string | null {
+	const ms = expiresAt ? new Date(expiresAt).getTime() - now : NaN;
+	if (!Number.isFinite(ms) || ms <= 0) return null;
+	const hours = Math.floor(ms / 3_600_000);
+	if (hours < 1) return 'меньше часа';
+	return `ещё ${hours} ч`;
+}
+
+/** Своя заявка отзывается, чужая отклоняется: бэкенд различает их по инициатору (`withdrawn`). */
+export const rejectLabel = (requestedBy: string, meId: string): 'Отозвать' | 'Отклонить' => (requestedBy === meId ? 'Отозвать' : 'Отклонить');

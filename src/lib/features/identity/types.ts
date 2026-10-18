@@ -19,7 +19,7 @@ export type ErasureStatus = 'pending' | 'blocked' | 'approved' | 'rejected' | 'c
 export type ErasureMode = 'anonymize' | 'hard_delete';
 export type ErasureSubjectType = 'user' | 'contact' | 'organization';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'expired' | 'consumed';
-export type ApprovalOperation = 'user.create_admin' | 'user.erasure' | 'contact.erasure' | 'organization.erasure';
+export type ApprovalOperation = 'user.create_admin' | 'user.promote_admin' | 'user.erasure' | 'contact.erasure' | 'organization.erasure';
 export type AuditResult = 'success' | 'denied' | 'error';
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'error';
 

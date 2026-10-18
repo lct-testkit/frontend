@@ -47,6 +47,7 @@ const APPROVAL_STATUS: Record<ApprovalStatus, StatusMeta> = {
 
 const APPROVAL_OPERATION: Record<ApprovalOperation, string> = {
 	'user.create_admin': 'Создание администратора',
+	'user.promote_admin': 'Назначение администратора',
 	'user.erasure': 'Удаление/обезличивание сотрудника',
 	'contact.erasure': 'Удаление/обезличивание контакта',
 	'organization.erasure': 'Удаление/обезличивание ИП'

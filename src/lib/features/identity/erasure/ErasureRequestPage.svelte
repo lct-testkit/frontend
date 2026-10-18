@@ -161,6 +161,7 @@
 									<DateText value={request.deadline_at} />
 								{:else if value === 'grace'}
 									<DateText value={request.grace_until} time />
+									<span class="t-desc-l block text-muted">Исполнение автоматическое, после этой даты; раньше исполнить нельзя.</span>
 								{:else if value === 'executed'}
 									<DateText value={request.executed_at} time />
 								{:else}
