@@ -27,7 +27,7 @@ try {
 			const out = new Map();
 			for (const el of document.querySelectorAll(SEL)) {
 				const r = el.getBoundingClientRect();
-				if (r.width === 0 || r.height === 0) continue;
+				if (r.width === 0 || r.height === 0 || el.classList.contains('sr-only')) continue;
 				const cs = getComputedStyle(el);
 				if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) === 0) continue;
 				// a native input hidden behind a DS box (checkbox / radio / switch): the label or the box is the target
