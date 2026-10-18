@@ -19,6 +19,7 @@ export type Participant = S['ParticipantOut'];
 export type Comment = S['CommentOut'];
 export type Task = S['TaskOut'];
 export type Organization = S['OrganizationOut'];
+export type Branch = S['BranchOut'];
 export type Contact = S['ContactOut'];
 export type ContactChannel = S['ContactChannelOut'];
 export type LearnerProfile = S['LearnerProfileOut'];

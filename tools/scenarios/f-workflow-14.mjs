@@ -62,7 +62,7 @@ try {
 	await card.waitForSelector('[aria-label="Этапы воронки"]');
 	await card.waitForTimeout(800);
 	const caption = await card.locator('[aria-label="Этапы воронки"]').innerText();
-	check(/пропущен: 5/.test(caption), 'в ленте «Шаг 6 из 14, пропущен: 5»', `подпись ленты: ${caption.split('\n')[0]}`);
+	check(/пропущен шаг 5/.test(caption), 'в ленте «Шаг 6 из 14, пропущен шаг 5»', `подпись ленты: ${caption.split('\n')[0]}`);
 	const skippedStep = await card.locator('[aria-label="Этапы воронки"] li', { hasText: skipStep.name.slice(0, 20) }).first().innerHTML();
 	check(/пропущен/.test(skippedStep), 'у шага 5 в разметке «пропущен» (title и текст для читалки)', 'у шага 5 нет «пропущен»');
 	await card.screenshot({ path: '.shots/f/workflow-14-deal-skip.png' });

@@ -91,7 +91,7 @@
 	const skippedNumbers = $derived(steps.flatMap((s, i) => (s.state === 'skipped' ? [i + 1] : [])));
 	// a successfully closed object has passed everything: «все шаги пройдены» instead of a wrong «шаг 0»
 	const caption = $derived.by(() => {
-		const skipped = skippedNumbers.length ? `${skippedNumbers.length === 1 ? 'пропущен' : 'пропущены'}: ${skippedNumbers.join(', ')}` : '';
+		const skipped = skippedNumbers.length ? `${skippedNumbers.length === 1 ? 'пропущен шаг' : 'пропущены шаги'} ${skippedNumbers.join(', ')}` : '';
 		if (at >= 0) return `Шаг ${at + 1} из ${steps.length}${skipped ? `, ${skipped}` : ''}`;
 		if (passed === steps.length) return skipped ? `Все шаги пройдены, ${skipped}` : 'Все шаги пройдены';
 		return `Шагов: ${steps.length}`;
