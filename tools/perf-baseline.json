@@ -1,0 +1,15 @@
+{
+	"_comment": "Первый замер, vite preview (без сжатия — firstLoadJsKb в байтах по сети без gzip), медиана из 3, CPU x4, машина разработчика. Переснять на раннере lct: node tools/perf.mjs --update. CI сравнивает LCP и JS первой загрузки с допуском +20 %.",
+	"measuredAt": "2026-10-18",
+	"runs": 3,
+	"cpuThrottle": 4,
+	"lcpMs": 2088,
+	"firstLoadJsKb": 377,
+	"firstRowMs": 3103,
+	"loadAllMs": 34875,
+	"pagesLoaded": 9,
+	"rowsLoaded": 450,
+	"longTasksOnLoad": 9,
+	"longTasksOnScroll": 21,
+	"longestTaskMs": 4655
+}
