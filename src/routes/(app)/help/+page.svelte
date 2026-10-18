@@ -164,7 +164,7 @@
 <Page class="items-stretch">
 	<PageHeader title="Справка" />
 
-	<div class={['grid items-start gap-4 max-md:gap-3', bp.isDesktop ? 'grid-cols-[18rem_minmax(0,1fr)]' : 'grid-cols-1']}>
+	<div class={['grid items-start gap-4 max-md:gap-3', bp.isDesktop ? 'grid-cols-[19rem_minmax(0,1fr)]' : 'grid-cols-1']}>
 		<div class="flex min-w-0 flex-col gap-3 md:gap-4 lg:sticky lg:top-6" onfocusin={ensureTexts}>
 			{@render search()}
 			{#if !bp.isDesktop && !query}

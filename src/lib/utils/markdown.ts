@@ -52,7 +52,8 @@ export function renderMarkdown(source: string, options: RenderOptions = {}): str
 			}
 		});
 	}
-	const html = md.parse(source ?? '', { async: false }) as string;
+	// широкая таблица прокручивается сама, а не выталкивает страницу по горизонтали (на телефоне — в первую очередь)
+	const html = (md.parse(source ?? '', { async: false }) as string).replaceAll('<table>', '<div class="overflow-x-auto"><table>').replaceAll('</table>', '</table></div>');
 	return DOMPurify.sanitize(html, {
 		USE_PROFILES: { html: true },
 		FORBID_TAGS: ['style', 'script', 'iframe', 'form', 'input', ...(options.allowImages ? [] : ['img'])],
