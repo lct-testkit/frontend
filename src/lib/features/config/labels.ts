@@ -129,22 +129,32 @@ export interface WebhookPassport {
 	path: string;
 	headers: string[];
 	body: string;
+	/** настоящее тело запроса для примера в терминале (валидный JSON) */
+	example: string;
+	/** переменная окружения терминала, в которой лежит секрет, — по умолчанию из «ссылки на секрет» */
+	secretVar: string;
 }
 export const WEBHOOK_PASSPORTS: Record<string, WebhookPassport> = {
 	cms: {
 		path: '/api/v1/integrations/cms/leads',
-		headers: ['Content-Type: application/json', 'X-Signature: sha256=<HMAC-SHA256 тела секретом>', 'Idempotency-Key: <уникальный id доставки>'],
-		body: '{ "lead_id": "…", "name": "…", "phone": "…", "email": "…", "course": "…" }'
+		headers: ['Content-Type: application/json', 'X-Signature: sha256=<HMAC-SHA256 тела секретом>', 'X-Timestamp: <unix-секунды, необязательно>', 'Idempotency-Key: <уникальный id доставки>'],
+		body: '{ "lead_id": "…", "name": "…", "phone": "…", "email": "…", "course": "…" }',
+		example: '{"lead_id":"demo-1","name":"Иван Петров","phone":"+79990234365","email":"petrov@example.com","course":"Python"}',
+		secretVar: 'CMS_WEBHOOK_SECRET'
 	},
 	lms: {
 		path: '/api/v1/integrations/lms/progress',
-		headers: ['Content-Type: application/json', 'X-Signature: sha256=<HMAC-SHA256 тела секретом>'],
-		body: '{ "external_id": "<id доставки>", "items": [ { "deal_id": "…", "external_course_id": "…", "progress_pct": 40 } ] }'
+		headers: ['Content-Type: application/json', 'X-Signature: sha256=<HMAC-SHA256 тела секретом>', 'X-Timestamp: <unix-секунды, необязательно>'],
+		body: '{ "external_id": "<id доставки>", "items": [ { "deal_id": "…", "external_course_id": "…", "progress_pct": 40 } ] }',
+		example: '{"external_id":"demo-1","items":[{"deal_id":"<id сделки>","external_course_id":"py-base","progress_pct":40}]}',
+		secretVar: 'LMS_WEBHOOK_SECRET'
 	},
 	bitrix24: {
 		path: '/api/v1/integrations/bitrix/webhook',
-		headers: ['Content-Type: application/json', 'X-Signature: sha256=<HMAC-SHA256 тела секретом>'],
-		body: '{ "external_id": "<id события>", "bitrix_id": "42", "version": 2, "fields": { "title": "…" } }'
+		headers: ['Content-Type: application/json', 'X-Signature: sha256=<HMAC-SHA256 тела секретом>', 'X-Timestamp: <unix-секунды, необязательно>'],
+		body: '{ "external_id": "<id события>", "bitrix_id": "42", "version": 2, "fields": { "title": "…" } }',
+		example: '{"external_id":"demo-1","bitrix_id":"42","version":2,"fields":{"title":"Сделка"}}',
+		secretVar: 'BITRIX_WEBHOOK_SECRET'
 	}
 };
 
