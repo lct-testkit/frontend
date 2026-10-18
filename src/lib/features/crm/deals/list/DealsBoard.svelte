@@ -1,14 +1,17 @@
 <script lang="ts">
-	// Доска сделок по статусам воронки. Данные: страницы GET /deals?workflow_id=… (до 500 сделок), группировка на клиенте
-	// (группировка и счётчики на клиенте: `total` и фильтр по статусам бэкенд отдаёт с 25.09, backend-issues A-11, но доска их пока не использует). Перетаскивание карточки в другую колонку
-	// открывает тот же диалог перехода, что и в карточке сделки; телефон — горизонтальная лента колонок со «снапом».
+	// Доска сделок по статусам воронки. У каждого столбца свой запрос `GET /deals?workflow_id=…&status_id=<столбец>&limit=25`
+	// (не больше 6 одновременно): число в шапке — `total` ответа, а не число загруженных карточек; под списком «Ещё N» подгружает
+	// следующие 25 по курсору этого столбца. Перетаскивание карточки в другую колонку открывает тот же диалог перехода, что и в карточке
+	// сделки; после успешного перехода счётчики обоих столбцов сразу меняются на 1 и затем перечитываются с сервера.
+	// Телефон — горизонтальная лента колонок со «снапом».
 	import { Counter } from '@lct-testkit/rt-ui';
 	import { people } from '$lib/api/people.svelte';
 	import { api, unwrap } from '$lib/api';
-	import { Avatar, EmptyState, ErrorState, Money, Skeleton, toast } from '$lib/ui';
+	import { Avatar, Btn, EmptyState, ErrorState, Money, Skeleton, toast } from '$lib/ui';
 	import PriorityChip from '../../shared/PriorityChip.svelte';
 	import SlaIndicator from '../../shared/SlaIndicator.svelte';
 	import type { AvailableTransition, Deal, WorkflowStatus } from '../../types';
+	import { COLUMN_PAGE, applyMove, emptyColumn, mergeItems, remaining, runLimited, withTotals, type BoardColumn } from './boardColumns';
 	import { productLine, productsTitle, type DealRow } from './dealProducts';
 	import TransitionDialog from '../card/TransitionDialog.svelte';
 	import { isTerminal, statusName, statusTone, steps, terminals, type StatusTone } from '../statusUtils';
@@ -18,28 +21,28 @@
 	interface Props {
 		workflowId: string;
 		query: DealQuery;
+		/** сделка переехала в другой статус: родитель может пересчитать числа на вкладках */
+		onChange?: () => void;
 	}
 
-	let { workflowId, query }: Props = $props();
+	let { workflowId, query, onChange }: Props = $props();
 
-	const MAX_PAGES = 5;
-	let deals = $state<DealRow[]>([]);
+	const PARALLEL = 6;
+	let cols = $state<Record<string, BoardColumn>>({});
 	let loading = $state(true);
 	let error = $state<unknown>(null);
-	let truncated = $state(false);
 	let seq = 0;
 
 	const graph = $derived(workflows.graph(workflowId));
 	const columns = $derived([...steps(graph), ...terminals(graph)]);
-	const byStatus = $derived.by(() => {
-		const map = new Map<string, DealRow[]>();
-		for (const deal of deals) {
-			const list = map.get(deal.status_id);
-			if (list) list.push(deal);
-			else map.set(deal.status_id, [deal]);
-		}
-		return map;
-	});
+	const allDeals = $derived(Object.values(cols).flatMap((c) => c.items));
+
+	// статусы доска не фильтрует (у каждого столбца свой), остальные фильтры — общие
+	const base = (statusId: string) => ({ ...query, status_id: [statusId], workflow_id: workflowId });
+
+	async function fetchColumn(statusId: string, cursor?: string, limit = COLUMN_PAGE) {
+		return unwrap(api.GET('/api/deals', { params: { query: { ...base(statusId), limit, cursor } } }));
+	}
 
 	export async function reload(): Promise<void> {
 		const mine = ++seq;
@@ -47,23 +50,54 @@
 		error = null;
 		try {
 			await workflows.ensure(workflowId);
-			const all: DealRow[] = [];
-			let cursor: string | undefined;
-			let more = false;
-			for (let i = 0; i < MAX_PAGES; i += 1) {
-				const page = await unwrap(api.GET('/api/deals', { params: { query: { ...query, status_id: undefined, workflow_id: workflowId, limit: 100, cursor } } }));
-				all.push(...page.items);
-				more = !!page.next_cursor;
-				if (!page.next_cursor) break;
-				cursor = page.next_cursor;
-			}
+			const g = workflows.graph(workflowId);
+			const list = [...steps(g), ...terminals(g)];
 			if (mine !== seq) return;
-			deals = all;
-			truncated = more;
+			cols = Object.fromEntries(list.map((st) => [st.id, emptyColumn()]));
+			loading = false;
+			await runLimited(
+				list.map((st) => async () => {
+					try {
+						const page = await fetchColumn(st.id);
+						if (mine === seq) cols[st.id] = { ...emptyColumn(), loading: false, items: page.items, total: page.total ?? page.items.length, cursor: page.next_cursor ?? null };
+					} catch (e) {
+						if (mine === seq) cols[st.id] = { ...emptyColumn(), loading: false, error: e };
+					}
+				}),
+				PARALLEL
+			);
 		} catch (e) {
-			if (mine === seq) error = e;
-		} finally {
-			if (mine === seq) loading = false;
+			if (mine === seq) {
+				error = e;
+				loading = false;
+			}
+		}
+	}
+
+	async function reloadColumn(statusId: string) {
+		const mine = seq;
+		cols[statusId] = { ...emptyColumn(), items: cols[statusId]?.items ?? [], total: cols[statusId]?.total ?? null };
+		try {
+			const page = await fetchColumn(statusId);
+			if (mine === seq) cols[statusId] = { ...emptyColumn(), loading: false, items: page.items, total: page.total ?? page.items.length, cursor: page.next_cursor ?? null };
+		} catch (e) {
+			if (mine === seq) cols[statusId] = { ...emptyColumn(), loading: false, error: e };
+		}
+	}
+
+	async function loadMore(statusId: string) {
+		const col = cols[statusId];
+		if (!col?.cursor || col.loadingMore) return;
+		const mine = seq;
+		col.loadingMore = true;
+		try {
+			const page = await fetchColumn(statusId, col.cursor);
+			if (mine !== seq) return;
+			const items = mergeItems(col.items, page.items);
+			cols[statusId] = { ...col, items, total: page.total ?? col.total, cursor: page.next_cursor ?? null, loadingMore: false };
+		} catch (e) {
+			col.loadingMore = false;
+			toast.error(e, 'Не удалось подгрузить сделки');
 		}
 	}
 
@@ -74,7 +108,7 @@
 	});
 
 	$effect(() => {
-		people.ensure(deals.map((d) => d.owner_id));
+		people.ensure(allDeals.map((d) => d.owner_id));
 	});
 
 	const TOP: Record<StatusTone, string> = {
@@ -96,7 +130,7 @@
 	let dialog = $state<{ deal: DealRow; transition: AvailableTransition } | null>(null);
 
 	async function drop(target: WorkflowStatus) {
-		const deal = deals.find((d) => d.id === dragId);
+		const deal = allDeals.find((d) => d.id === dragId);
 		dragId = null;
 		overStatus = null;
 		if (!deal || deal.status_id === target.id) return;
@@ -110,9 +144,26 @@
 		}
 	}
 
-	function moved(updated: Deal) {
-		deals = deals.map((d) => (d.id === updated.id ? { ...d, ...updated } : d));
+	// Переход прошёл: счётчики обоих столбцов сразу меняются на 1 (карточка встаёт первой в целевом), затем числа перечитываются с сервера.
+	// Диалог перехода открывается до отправки, поэтому при отказе сервера ничего менять не приходится — карточка остаётся в своём столбце.
+	async function moved(updated: Deal) {
+		const old = allDeals.find((d) => d.id === updated.id);
 		dialog = null;
+		if (!old) return;
+		const from = old.status_id;
+		const to = updated.status_id;
+		cols = applyMove(cols, { ...old, ...updated }, from, to);
+		onChange?.();
+		const fresh = await Promise.all(
+			[from, to].map(async (id) => {
+				try {
+					return [id, (await fetchColumn(id, undefined, 1)).total] as const;
+				} catch {
+					return [id, undefined] as const;
+				}
+			})
+		);
+		cols = withTotals(cols, Object.fromEntries(fresh));
 	}
 </script>
 
@@ -153,7 +204,7 @@
 
 {#if error}
 	<ErrorState {error} onRetry={reload} />
-{:else if loading && deals.length === 0}
+{:else if loading}
 	<div class="flex gap-3 overflow-hidden">
 		<div class="w-72 flex-none"><Skeleton kind="tile" rows={4} height={88} /></div>
 		<div class="w-72 flex-none max-md:hidden"><Skeleton kind="tile" rows={3} height={88} /></div>
@@ -161,10 +212,10 @@
 {:else if !graph}
 	<EmptyState title="Воронка не найдена" compact />
 {:else}
-	{#if truncated}<p class="t-desc-l m-0 text-muted">Показаны первые {deals.length} сделок — уточните фильтры</p>{/if}
-	<div class="-mx-3 flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-3 pb-3 md:mx-0 md:min-h-0 md:flex-1 md:snap-none md:items-stretch md:px-0" aria-busy={loading || undefined}>
+	<div class="-mx-3 flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-3 pb-3 md:mx-0 md:min-h-0 md:flex-1 md:snap-none md:items-stretch md:px-0" aria-busy={Object.values(cols).some((c) => c.loading) || undefined}>
 		{#each columns as status (status.id)}
-			{@const list = byStatus.get(status.id) ?? []}
+			{@const col = cols[status.id] ?? emptyColumn()}
+			{@const more = remaining(col)}
 			{@const tone = statusTone(status.type)}
 			<section
 				class={[
@@ -188,12 +239,24 @@
 			>
 				<header class="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1.5">
 					<h3 class="t-body-s-strong m-0 truncate" title={statusName(status.name)}>{statusName(status.name)}</h3>
-					<Counter size="xs" variant="ghost" colorScheme="neutral">{list.length}</Counter>
+					{#if col.total !== null}<Counter size="xs" variant="ghost" colorScheme="neutral">{col.total}</Counter>{/if}
 				</header>
 				<div class={['flex min-h-16 flex-col gap-2 overflow-y-auto p-2 pt-1 max-md:max-h-[62dvh] md:min-h-0 md:flex-1', isTerminal(status) && 'opacity-90']}>
-					{#each list as deal (deal.id)}{@render dealCard(deal)}{:else}
-						<p class="t-desc-l m-0 py-3 text-center text-soft">Пусто</p>
-					{/each}
+					{#if col.loading && !col.items.length}
+						<Skeleton kind="tile" rows={2} height={88} />
+					{:else if col.error && !col.items.length}
+						<div class="flex flex-col items-center gap-2 py-3 text-center">
+							<p class="t-desc-l m-0 text-soft">Не удалось загрузить</p>
+							<Btn label="Повторить" size="s" variant="outline" colorScheme="neutral" onclick={() => reloadColumn(status.id)} />
+						</div>
+					{:else}
+						{#each col.items as deal (deal.id)}{@render dealCard(deal)}{:else}
+							<p class="t-desc-l m-0 py-3 text-center text-soft">Пусто</p>
+						{/each}
+						{#if more > 0}
+							<Btn label={`Ещё ${more}`} size="s" variant="outline" colorScheme="neutral" block loading={col.loadingMore} onclick={() => loadMore(status.id)} data-testid="board-more" />
+						{/if}
+					{/if}
 				</div>
 			</section>
 		{/each}
@@ -201,5 +264,5 @@
 {/if}
 
 {#if dialog}
-	<TransitionDialog open deal={dialog.deal} transition={dialog.transition} {graph} onClose={() => (dialog = null)} onDone={(updated) => moved(updated)} />
+	<TransitionDialog open deal={dialog.deal} transition={dialog.transition} {graph} onClose={() => (dialog = null)} onDone={(updated) => void moved(updated)} />
 {/if}
