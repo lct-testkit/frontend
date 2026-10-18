@@ -7,7 +7,7 @@
 	import TextField from '$lib/ui/fields/TextField.svelte';
 	import Toggle from '$lib/ui/fields/Toggle.svelte';
 	import type { ImportFlow } from './flow.svelte';
-	import { sampleValues } from './mapping';
+	import { ENTITY_KEYS, sampleValues } from './mapping';
 
 	let { flow }: { flow: ImportFlow } = $props();
 
@@ -78,6 +78,8 @@
 				/>
 			{/if}
 		</div>
+
+		{#if ENTITY_KEYS[flow.entity]}<Notice class="shrink-0" tone="info" title="Как система узнаёт запись">{ENTITY_KEYS[flow.entity]}</Notice>{/if}
 
 		{#each flow.check.errors as e (e)}
 			<Notice class="shrink-0" tone="error">{e}</Notice>

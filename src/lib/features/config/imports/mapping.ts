@@ -174,3 +174,10 @@ export function entityFromQuery(raw: string | null | undefined, types: readonly 
 	const code = (raw ?? '').trim();
 	return code && types.some((t) => t.code === code) ? (code as ImportEntity) : null;
 }
+
+/** Как система узнаёт запись при загрузке (ключ): по нему строка файла создаёт новую запись или обновляет существующую. Только текст-пояснение. */
+export const ENTITY_KEYS: Record<string, string> = {
+	organization: 'Организация — по ИНН.',
+	product: 'Продукт — по коду.',
+	license: 'Лицензия — по сочетанию: вуз (по точному названию), вендор, ПО и номер договора. Строки с одинаковым сочетанием — одна лицензия; один договор на несколько ПО — разные лицензии.'
+};

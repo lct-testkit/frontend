@@ -8,7 +8,9 @@
 	import { importRowHint } from './hints';
 	import TabsBar from '$lib/ui/TabsBar.svelte';
 	import type { components } from '$lib/api';
+	import { rowSummary } from './job';
 	import { rowStatus } from './mapping';
+	import { explainRowErrors } from './rowErrors';
 
 	type Row = components['schemas']['ImportRowOut'];
 
@@ -42,18 +44,10 @@
 		void pager.reload();
 	}
 
-	// Что за запись в строке: сначала поля, по которым её узнают (номер заявки, название, ФИО), потом остальные.
-	const IDENTIFYING = ['order_number', 'vendor_name', 'name', 'full_name', 'last_name', 'first_name', 'middle_name', 'code', 'inn'];
-	const summary = (row: Row): string => {
-		const data = row.row_data ?? {};
-		const keys = [...IDENTIFYING.filter((k) => k in data), ...Object.keys(data).filter((k) => !IDENTIFYING.includes(k))];
-		return keys
-			.map((k) => data[k])
-			.filter((v) => v !== null && v !== '' && v !== undefined && typeof v !== 'object')
-			.slice(0, 3)
-			.join(' · ');
-	};
-	const remarks = (row: Row): string => (row.errors?.length ? row.errors.join('; ') : '—');
+	const summary = (row: Row): string => rowSummary(row.row_data);
+	const remarkList = (row: Row) => explainRowErrors(row.errors);
+	// в таблице — первое замечание и «+N»; все замечания с подсказками — в `title`
+	const allRemarks = (row: Row): string => remarkList(row).map((r) => (r.fix ? `${r.text}\n→ ${r.fix}` : r.text)).join('\n\n');
 
 	const columns: Col<Row>[] = [
 		{ key: 'n', title: 'Строка', width: 84, render: numberCell },
@@ -66,7 +60,13 @@
 {#snippet numberCell(r: Row)}<TableCell><span class="t-body-s tabular-nums">{r.row_number}</span></TableCell>{/snippet}
 {#snippet statusCell(r: Row)}<TableCell><StatusChip label={rowStatus(r.status).label} tone={rowStatus(r.status).tone} hint={importRowHint(r.status)} /></TableCell>{/snippet}
 {#snippet whoCell(r: Row)}<TableCell><span class="t-body-s truncate" title={summary(r)}>{summary(r) || '—'}</span></TableCell>{/snippet}
-{#snippet remarksCell(r: Row)}<TableCell><span class="t-body-s truncate" title={remarks(r)}>{remarks(r)}</span></TableCell>{/snippet}
+{#snippet remarksCell(r: Row)}
+	{@const list = remarkList(r)}
+	<TableCell>
+		<span class="t-body-s truncate" title={allRemarks(r)}>{list[0]?.text ?? '—'}</span>
+		{#if list.length > 1}<span class="t-body-s flex-none text-muted" title={allRemarks(r)}>+{list.length - 1}</span>{/if}
+	</TableCell>
+{/snippet}
 
 {#snippet card(r: Row)}
 	<div class="flex min-w-0 flex-col gap-1.5">
@@ -75,7 +75,13 @@
 			<StatusChip label={rowStatus(r.status).label} tone={rowStatus(r.status).tone} hint={importRowHint(r.status)} />
 		</div>
 		{#if summary(r)}<span class="t-desc-l wrap-anywhere text-muted">{summary(r)}</span>{/if}
-		{#each r.errors ?? [] as e (e)}<span class="t-desc-l wrap-anywhere">{e}</span>{/each}
+		{#each remarkList(r) as remark (remark.text)}
+			<div class="flex min-w-0 flex-col gap-0.5">
+				<span class="t-desc-l wrap-anywhere">{remark.text}</span>
+				{#if remark.fix}<span class="t-desc-l wrap-anywhere text-muted">{remark.fix}</span>{/if}
+				{#if remark.link}<a href={remark.link.href} class="t-desc-l text-accent">{remark.link.label}</a>{/if}
+			</div>
+		{/each}
 	</div>
 {/snippet}
 

@@ -5,6 +5,21 @@ import { IMPORT_ENTITY_INFO, IMPORT_JOB_STATUS_INFO, IMPORT_MODE_LABELS, type Im
 
 export const jobStatus = (status: string) => IMPORT_JOB_STATUS_INFO[status as ImportJobStatus] ?? { label: status, tone: 'neutral' as const, step: 0 };
 export const entityLabel = (entity: string): string => IMPORT_ENTITY_INFO[entity]?.label ?? entity;
+// Что за запись в строке файла: сначала поля, по которым её узнают (номер заявки, название, ФИО, договор, вендор, ПО), потом остальные.
+// Ссылки на справочники (`…_id`, UUID) человеку ничего не говорят — в описание строки не попадают.
+const IDENTIFYING = ['order_number', 'vendor_name', 'name', 'full_name', 'last_name', 'first_name', 'middle_name', 'code', 'inn', 'contract_number', 'vendor', 'product_name'];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function rowSummary(data: Record<string, unknown> | null | undefined, limit = 3): string {
+	const row = data ?? {};
+	const keys = [...IDENTIFYING.filter((k) => k in row), ...Object.keys(row).filter((k) => !IDENTIFYING.includes(k) && !k.endsWith('_id'))];
+	return keys
+		.map((k) => row[k])
+		.filter((v) => v !== null && v !== '' && v !== undefined && typeof v !== 'object' && !(typeof v === 'string' && UUID.test(v)))
+		.slice(0, limit)
+		.join(' · ');
+}
+
 export const modeLabel = (mode: string): string => IMPORT_MODE_LABELS[mode as ImportMode]?.label ?? mode;
 
 /** Незавершённое задание: пользователь может продолжить мастер. */

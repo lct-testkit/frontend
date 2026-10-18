@@ -4,6 +4,7 @@ import {
 	canApplyImport,
 	canRollbackImport,
 	checkMapping,
+	ENTITY_KEYS,
 	entityFromQuery,
 	entityInfo,
 	importStep,
@@ -158,5 +159,12 @@ describe('entityFromQuery', () => {
 		expect(entityFromQuery('foo', types)).toBeNull();
 		expect(entityFromQuery('', types)).toBeNull();
 		expect(entityFromQuery(null, types)).toBeNull();
+	});
+});
+
+describe('ENTITY_KEYS', () => {
+	it('для лицензий ключ — вуз, вендор, ПО и номер договора', () => {
+		expect(ENTITY_KEYS.license).toContain('номер договора');
+		expect(ENTITY_KEYS.license).toContain('вендор');
 	});
 });
