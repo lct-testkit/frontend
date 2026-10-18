@@ -16,9 +16,11 @@
 	import { DashboardData } from './dashboard-data.svelte';
 	import type { WorkflowOption } from './ParamsForm.svelte';
 	import { normalizePosition } from './params';
+	import RunReportDrawer from './RunReportDrawer.svelte';
+	import type { RerunRequest } from './rerun';
 	import WidgetCard from './WidgetCard.svelte';
 	import WidgetDrawer from './WidgetDrawer.svelte';
-	import { readConfig, type WidgetConfig } from './widgets';
+	import { effectiveParams, readConfig, type WidgetConfig } from './widgets';
 
 	let { id }: { id: string } = $props();
 	const bp = useBreakpoint();
@@ -46,6 +48,16 @@
 	const configs = $derived(widgets.map((w) => readConfig(w.config)).filter((c): c is WidgetConfig => c !== null));
 	const templateName = (code: string) => templatesRes.data?.find((t) => t.code === code)?.name ?? code;
 	const oldest = $derived(data.oldest(configs));
+
+	// «Таблица (Excel, PDF)…» у виджета: панель запуска отчёта с параметрами виджета
+	let exportTemplate = $state<ReportTemplate | null>(null);
+	let exportInitial = $state<RerunRequest | null>(null);
+	function exportTable(config: WidgetConfig) {
+		const template = templatesRes.data?.find((t) => t.code === config.template_code);
+		if (!template) return toast.warning('Отчёт недоступен', 'Шаблон отчёта не найден или недоступен вашей роли');
+		exportInitial = { code: template.code, params: effectiveParams(config), format: 'xlsx' };
+		exportTemplate = template;
+	}
 
 	let editing = $state(false);
 	let widgetOpen = $state(false);
@@ -177,6 +189,7 @@
 						onMove={(dir) => move(i, dir)}
 						onEdit={() => openWidget(w)}
 						onDelete={() => removeWidget(w)}
+						onExportTable={exportTable}
 					/>
 				</div>
 			{/each}
@@ -195,4 +208,5 @@
 	onClose={() => (widgetOpen = false)}
 	onSaved={reloadWidgets}
 />
+<RunReportDrawer template={exportTemplate} initial={exportInitial} onClose={() => ((exportTemplate = null), (exportInitial = null))} />
 <DashboardDrawer open={dashboardOpen} item={d} onClose={() => (dashboardOpen = false)} onSaved={(saved) => dashboard.set(saved)} />
