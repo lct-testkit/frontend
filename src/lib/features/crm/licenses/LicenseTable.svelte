@@ -1,12 +1,12 @@
 <script lang="ts">
 	// Таблица лицензий вуз–вендор–ПО: десять колонок ТЗ (§4 п.1) в порядке ТЗ; на телефоне — карточки со всеми десятью полями.
 	// Данные и догрузка — у родителя (Pager): сюда приходят строки и состояния. Что не помещается, отпадает по порядку `drop`
-	// (сначала «ФИО менеджера», потом «Ответственные от ВУЗа», «Комментарий», «Подписание»; заголовки ТЗ длинные, и ровно десять колонок не помещаются даже на 1440: полный набор — в карточке на телефоне и в панели по клику на строку), а не режется и не прокручивается вбок.
+	// (сначала «Комментарий», потом «Ответственные», «Менеджер», «Подписание»). Заголовки укорочены (полное название поля ТЗ — в подсказке), всё равно десять колонок не помещаются на 1440 при открытом меню: полный набор — на широком экране (≥1800), в панели по клику на строку и в карточке на телефоне, а не режется и не прокручивается вбок.
 	import type { Snippet } from 'svelte';
 	import { DataTable, StatusChip, TableCell, type Col } from '$lib/ui';
 	import { TRANSFER_STATUS_SCHEMES } from '../shared/labels';
 	import type { OrganizationLicense } from '../types';
-	import { LICENSE_FIELD_LABELS, licenseOrgTitle, licenseSignedText, licenseTermInfo, transferStatusLabel } from './licenseUtils';
+	import { LICENSE_COLUMN_TITLES, LICENSE_FIELD_LABELS, licenseOrgTitle, shortVendor, licenseSignedText, licenseTermInfo, transferStatusLabel } from './licenseUtils';
 
 	interface Props {
 		rows: OrganizationLicense[];
@@ -30,20 +30,21 @@
 	let { rows, loading = false, error = null, onRetry, hasMore = false, loadingMore = false, onLoadMore, total, onRowClick, showOrganization = true, embedded = false, fill = false, empty, id = 'licenses' }: Props = $props();
 
 	const L = LICENSE_FIELD_LABELS;
+	const T = LICENSE_COLUMN_TITLES;
 	const now = new Date();
 	const dash = '—';
 
 	const columns: Col<OrganizationLicense>[] = $derived([
-		...(showOrganization ? [{ key: 'organization_name', title: L[0], width: 'minmax(110px, 1fr)', render: orgCell }] : []),
-		{ key: 'vendor', title: L[1], width: 'minmax(80px, 1.4fr)', render: vendorCell },
-		{ key: 'product_name', title: L[2], width: 'minmax(90px, 2fr)', render: productCell },
-		{ key: 'contract_number', title: L[3], width: 'minmax(90px, 1fr)', render: contractCell },
-		{ key: 'signed', title: L[4], render: signedCell, drop: 4 },
-		{ key: 'term', title: L[5], render: termCell },
-		{ key: 'transfer_status', title: L[6], render: statusCell },
-		{ key: 'manager_full_name', title: L[7], width: 'minmax(90px, 1fr)', render: managerCell, drop: 1 },
-		{ key: 'responsible_contacts', title: L[8], width: 'minmax(90px, 1.2fr)', render: respCell, drop: 2 },
-		{ key: 'comment', title: L[9], width: 'minmax(90px, 1.4fr)', render: commentCell, drop: 3 }
+		...(showOrganization ? [{ key: 'organization_name', title: T[0], hint: L[0], width: 'minmax(110px, 1fr)', render: orgCell }] : []),
+		{ key: 'vendor', title: T[1], width: 'minmax(105px, 1.4fr)', render: vendorCell },
+		{ key: 'product_name', title: T[2], width: 'minmax(110px, 2fr)', render: productCell },
+		{ key: 'contract_number', title: T[3], hint: L[3], width: 'minmax(140px, 1fr)', render: contractCell },
+		{ key: 'signed', title: T[4], hint: L[4], render: signedCell, drop: 4 },
+		{ key: 'term', title: T[5], hint: L[5], render: termCell },
+		{ key: 'transfer_status', title: T[6], hint: L[6], render: statusCell },
+		{ key: 'manager_full_name', title: T[7], hint: L[7], width: 'minmax(110px, 1fr)', render: managerCell, drop: 3 },
+		{ key: 'responsible_contacts', title: T[8], hint: L[8], width: 'minmax(110px, 1.2fr)', render: respCell, drop: 2 },
+		{ key: 'comment', title: T[9], hint: L[9], width: 'minmax(110px, 1.4fr)', render: commentCell, drop: 1 }
 	]);
 
 	function link(e: MouseEvent) {
@@ -56,7 +57,7 @@
 {#snippet orgCell(row: OrganizationLicense)}
 	<TableCell><a href="/organizations/{row.organization_id}?tab=licenses" class="truncate font-medium text-fg" title={row.organization_name ?? undefined} onclick={link}>{licenseOrgTitle(row)}</a></TableCell>
 {/snippet}
-{#snippet vendorCell(row: OrganizationLicense)}<TableCell><span class="truncate" title={row.vendor}>{row.vendor}</span></TableCell>{/snippet}
+{#snippet vendorCell(row: OrganizationLicense)}<TableCell><span class="truncate" title={row.vendor}>{shortVendor(row.vendor)}</span></TableCell>{/snippet}
 {#snippet productCell(row: OrganizationLicense)}<TableCell><span class="truncate" title={row.product_name}>{row.product_name}</span></TableCell>{/snippet}
 {#snippet contractCell(row: OrganizationLicense)}<TableCell><span class="truncate whitespace-nowrap" title={row.contract_number ?? undefined}>{row.contract_number || dash}</span></TableCell>{/snippet}
 {#snippet signedCell(row: OrganizationLicense)}<TableCell><span class="whitespace-nowrap">{licenseSignedText(row)}</span></TableCell>{/snippet}

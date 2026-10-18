@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LICENSE_FIELD_LABELS, licenseOrgTitle, licenseSignedText, licenseTermInfo, transferStatusLabel, type TermInfo } from './licenseUtils';
+import { LICENSE_FIELD_LABELS, shortVendor, licenseOrgTitle, licenseSignedText, licenseTermInfo, transferStatusLabel, type TermInfo } from './licenseUtils';
 
 // `count()` (src/lib/utils/format.ts) joins the number and the word with a non-breaking space, not a plain one.
 const NBSP = ' ';
@@ -99,5 +99,17 @@ describe('licenseOrgTitle', () => {
 describe('LICENSE_FIELD_LABELS', () => {
 	it('десять полей ТЗ', () => {
 		expect(LICENSE_FIELD_LABELS).toHaveLength(10);
+	});
+});
+
+describe('shortVendor', () => {
+	it.each([
+		['ООО «Астра Линукс»', 'Астра Линукс'],
+		['АО «Лаборатория Касперского»', 'Лаборатория Касперского'],
+		['Фирма «1С»', '1С'],
+		['Базальт СПО', 'Базальт СПО'],
+		['ООО', 'ООО']
+	])('%s -> %s', (full, short) => {
+		expect(shortVendor(full)).toBe(short);
 	});
 });
