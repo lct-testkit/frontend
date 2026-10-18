@@ -60,6 +60,7 @@
 <AppDrawer {open} {title} {width} onClose={close} {header}>
 	<form
 		id={formId}
+		novalidate
 		use:watchDirty={{ open, onChange: (d) => (autoDirty = d) }}
 		class="flex flex-col gap-4"
 		onsubmit={(e) => {
