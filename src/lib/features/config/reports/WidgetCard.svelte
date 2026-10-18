@@ -45,6 +45,8 @@
 	/** лимит отчётов — не сбой: у виджета остаются прошлые данные, о них сказано тихой строкой */
 	const limitOnly = $derived(error === NOT_UPDATED);
 	const stale = $derived(Boolean(error));
+	// высота тела карточки резервируется заранее, чтобы скелетон и «Нет данных» не прыгали при появлении графика (CLS)
+	const bodyMin = $derived(widget.widget_type === 'stat_tile' ? 'min-h-24' : widget.widget_type === 'report_chart' ? 'min-h-72' : 'min-h-56');
 	const ownAsOf = $derived(asOf && (stale || !commonAsOf || formatTime(asOf) !== formatTime(commonAsOf)));
 	const notes = $derived(
 		table ? reportNotes({ rowCount: table.totalRows, truncated: table.truncated, totalRows: table.serverTotal, note: table.note, asOf: table.generatedAt }).filter((n) => n.kind !== 'info') : []
@@ -130,12 +132,12 @@
 			<IconBtn icon={Trash} label="Удалить виджет" size="s" danger onclick={onDelete} />
 		{/if}
 	</header>
-	<div class="min-h-0 flex-1 px-4 pt-1 pb-4 max-md:px-3">
+	<div class={['min-h-0 flex-1 px-4 pt-1 pb-4 max-md:px-3', bodyMin]}>
 		{#if !config}
 			<p class="t-body-s py-6 text-center text-danger">{canEdit ? 'Виджет настроен неверно — измените или удалите его' : 'Виджет настроен неверно. Сообщите владельцу дашборда'}</p>
 		{:else if table}
 			<div bind:this={bodyEl} class={loading ? 'opacity-50' : undefined}><WidgetBody type={widget.widget_type} {config} {table} {name} /></div>
-			<p class="t-desc-m flex flex-wrap items-center gap-x-2 gap-y-1 pt-2 text-soft">
+			<p class="t-desc-m flex min-h-6 flex-wrap items-center gap-x-2 gap-y-1 pt-2 text-soft">
 				{#if ownAsOf && asOf}<span>Данные на {formatTime(asOf)}{stale ? ' · не обновлено' : ''}</span>{/if}
 				{#each notes as note (note.kind)}<StatusChip label={note.kind === 'truncated' ? 'Усечено' : 'Снимок'} tone={note.tone} hint={note.text} />{/each}
 			</p>
