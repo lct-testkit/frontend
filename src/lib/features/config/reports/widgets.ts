@@ -1,6 +1,8 @@
-// Виджеты дашборда: как таблица xlsx (см. builders.py бэкенда) превращается в график, показатель или мини-таблицу.
-// Бэкенд отдаёт отчёты только файлами, поэтому колонки — это договорённость с `reporting/builders.py`.
-import type { Cell, XlsxTable } from './xlsx';
+// Виджеты дашборда: как таблица отчёта (JSON `GET /api/reports/{id}/data`, колонки — договорённость с `reporting/builders.py` бэкенда)
+// превращается в график, показатель или мини-таблицу.
+import { toNumber, type Cell, type ReportTable } from './table';
+
+export { toNumber };
 
 export type ChartKind = 'bar' | 'line' | 'donut';
 
@@ -48,21 +50,15 @@ export function readConfig(raw: unknown): WidgetConfig | null {
 	};
 }
 
-/** Число из ячейки: xlsx отдаёт числа, но CSV-подобные значения бывают строками («12,5»). */
-export function toNumber(cell: Cell | undefined): number | null {
-	if (typeof cell === 'number') return Number.isFinite(cell) ? cell : null;
-	if (typeof cell === 'string') {
-		const n = Number(cell.replace(/\s/g, '').replace(',', '.'));
-		return cell.trim() !== '' && Number.isFinite(n) ? n : null;
-	}
-	return null;
-}
+const indexOfColumn = (table: ReportTable, name: string): number => table.columns.findIndex((c) => c.trim().toLowerCase() === name.trim().toLowerCase());
 
-const indexOfColumn = (table: XlsxTable, name: string): number => table.columns.findIndex((c) => c.trim().toLowerCase() === name.trim().toLowerCase());
-
-export function columnSum(table: XlsxTable, column: string): number | null {
+export function columnSum(table: ReportTable, column: string): number | null {
 	const at = indexOfColumn(table, column);
 	if (at < 0) return null;
+	// суммы посчитаны по всем строкам ответа ещё до того, как кэш отрезал хвост
+	const wanted = column.trim().toLowerCase();
+	const known = Object.entries(table.sums ?? {}).find(([name]) => name.trim().toLowerCase() === wanted);
+	if (known) return known[1];
 	let sum = 0;
 	let any = false;
 	for (const row of table.rows) {
@@ -76,8 +72,8 @@ export function columnSum(table: XlsxTable, column: string): number | null {
 }
 
 /** Значение плитки: число строк или сумма по колонке. */
-export function tileValue(table: XlsxTable, metric: string | undefined): number | null {
-	if (!metric || metric === 'rows') return table.rows.length;
+export function tileValue(table: ReportTable, metric: string | undefined): number | null {
+	if (!metric || metric === 'rows') return table.totalRows ?? table.rows.length;
 	if (metric.startsWith('sum:')) return columnSum(table, metric.slice(4));
 	return null;
 }
@@ -90,7 +86,7 @@ export interface ChartRow {
 }
 
 /** Строки таблицы → объекты `{ name, <серия>: число }` для графиков rt-ui. Строки без категории пропускаются. */
-export function chartRows(table: XlsxTable, preset: ChartPreset): ChartRow[] {
+export function chartRows(table: ReportTable, preset: ChartPreset): ChartRow[] {
 	const x = indexOfColumn(table, preset.x);
 	if (x < 0) return [];
 	const cols = preset.series.map((s) => ({ name: s, at: indexOfColumn(table, s) })).filter((c) => c.at >= 0);
@@ -104,7 +100,7 @@ export function chartRows(table: XlsxTable, preset: ChartPreset): ChartRow[] {
 }
 
 /** Первые строки для мини-таблицы виджета. */
-export function previewRows(table: XlsxTable, limit = 8): { columns: string[]; rows: Cell[][] } {
+export function previewRows(table: ReportTable, limit = 8): { columns: string[]; rows: Cell[][] } {
 	return { columns: table.columns, rows: table.rows.slice(0, limit) };
 }
 

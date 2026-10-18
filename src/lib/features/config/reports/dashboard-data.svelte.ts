@@ -1,43 +1,15 @@
 // Данные виджетов дашборда. Каждый запуск отчёта = файл в хранилище + запись аудита, поэтому при открытии дашборда ничего не запускается:
-// показывается кэш (sessionStorage, 5 минут), а «Обновить данные» запускает отчёты пакетно (одинаковые — один раз, не больше двух одновременно).
+// показывается кэш (sessionStorage, 5 минут, см. dashboard-cache.ts), а «Обновить данные» запускает отчёты пакетно (одинаковые — один раз, не больше двух одновременно).
 import { errorMessage } from '$lib/api';
 import { ReportFailed, fetchReportData, isRateLimited, startReport, waitForReport } from './api';
 import { isReportBusy, normalizeParams, paramsFor } from './params';
-import { fromReportData, type XlsxTable } from './xlsx';
+import { readCache, writeCache, type CacheEntry } from './dashboard-cache';
+import { fromReportData, type ReportTable } from './table';
 import { runKey, type WidgetConfig } from './widgets';
-
-const TTL_MS = 5 * 60_000;
-const CACHE_ROWS = 300;
-
-interface Entry {
-	at: number;
-	table: XlsxTable;
-}
-
-const cacheKey = (dashboardId: string, key: string) => `rtk.dash.${dashboardId}.${key}`;
-
-function readCache(dashboardId: string, key: string): Entry | null {
-	try {
-		const raw = sessionStorage.getItem(cacheKey(dashboardId, key));
-		if (!raw) return null;
-		const entry = JSON.parse(raw) as Entry;
-		return Date.now() - entry.at < TTL_MS ? entry : null;
-	} catch {
-		return null;
-	}
-}
-
-function writeCache(dashboardId: string, key: string, entry: Entry): void {
-	try {
-		sessionStorage.setItem(cacheKey(dashboardId, key), JSON.stringify({ at: entry.at, table: { ...entry.table, rows: entry.table.rows.slice(0, CACHE_ROWS) } }));
-	} catch {
-		// кэш — удобство, а не необходимость
-	}
-}
 
 export class DashboardData {
 	readonly dashboardId: string;
-	entries = $state.raw<Record<string, Entry>>({});
+	entries = $state.raw<Record<string, CacheEntry>>({});
 	loading = $state.raw<Record<string, boolean>>({});
 	errors = $state.raw<Record<string, string>>({});
 	refreshing = $state(false);
@@ -60,7 +32,7 @@ export class DashboardData {
 		this.entries = next;
 	}
 
-	table(config: WidgetConfig): XlsxTable | null {
+	table(config: WidgetConfig): ReportTable | null {
 		return this.entries[runKey(config)]?.table ?? null;
 	}
 	isLoading = (config: WidgetConfig): boolean => Boolean(this.loading[runKey(config)]);
@@ -98,7 +70,7 @@ export class DashboardData {
 			if (isReportBusy(job.status)) job = await waitForReport(job, { signal });
 			if (job.status === 'failed') throw new ReportFailed(job.error || 'Не удалось сформировать отчёт.');
 			const table = fromReportData(await fetchReportData(job.id, signal));
-			const entry = { at: Date.now(), table };
+			const entry: CacheEntry = { at: Date.now(), table, jobId: job.id };
 			this.entries = { ...this.entries, [key]: entry };
 			writeCache(this.dashboardId, key, entry);
 		} catch (e) {

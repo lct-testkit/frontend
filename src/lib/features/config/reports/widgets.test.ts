@@ -1,17 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { CHART_PRESETS, canChart, chartRows, columnSum, readConfig, runKey, tileValue, toNumber } from './widgets';
-import type { XlsxTable } from './xlsx';
+import { fromReportData, type ReportTable } from './table';
 
-const funnel: XlsxTable = {
+const funnel: ReportTable = fromReportData({
 	columns: ['Статус', 'Сейчас в статусе', 'Всего прошло', 'Конверсия шага, %', 'Среднее время, дн.'],
 	rows: [
 		['Новая', 5, 12, 100, 1.5],
 		['В работе', 3, 8, 66.7, null],
 		['', 1, 1, null, null]
-	],
-	sheetName: 'Воронка',
-	truncated: false
-};
+	]
+});
 
 describe('виджеты дашборда', () => {
 	it('читает конфиг и отбрасывает мусор', () => {
@@ -34,6 +32,13 @@ describe('виджеты дашборда', () => {
 		expect(tileValue(funnel, 'rows')).toBe(3);
 		expect(tileValue(funnel, 'sum:Всего прошло')).toBe(21);
 		expect(tileValue(funnel, 'что-то')).toBeNull();
+	});
+
+	it('показатель и сумма читают totalRows и sums, а не усечённые rows', () => {
+		const cut: ReportTable = { columns: ['Вуз', 'Сумма'], rows: [['а', 1]], totalRows: 842, sums: { Сумма: 5000 } };
+		expect(tileValue(cut, 'rows')).toBe(842);
+		expect(tileValue(cut, 'sum:сумма')).toBe(5000);
+		expect(columnSum({ columns: ['Вуз'], rows: [['а']], totalRows: 1, sums: {} }, 'Вуз')).toBe(0);
 	});
 
 	it('строки графика: категории без названия пропускаются', () => {
