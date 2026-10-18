@@ -72,4 +72,31 @@ await shot('security', {
 	before: (p) => p.getByText('Безопасность', { exact: true }).first().click()
 });
 
+// Отчёты: панель запуска, «Мои отчёты» и дашборд с меню «Скачать». Дашборд «Обзор воронки» создаёт tools/scenarios/b-reports.mjs — запускать его первым.
+await shot('reports-run', {
+	who: 'admin',
+	url: '/reports',
+	clip: { x: 864, y: 0, width: 560, height: 900 },
+	before: async (p) => {
+		await p.getByRole('button', { name: /Сделки по вузам/ }).click();
+		await wait(700);
+	}
+});
+await shot('reports-history', { who: 'admin', url: '/reports/history', clip: { x: 270, y: 70, width: 1140, height: 560 } });
+const dashboards = items(await api('/api/dashboards?limit=100'));
+const overview = dashboards.find((d) => d.name === 'Обзор воронки');
+if (overview) {
+	await shot('dashboard', {
+		who: 'admin',
+		url: `/reports/dashboards/${overview.id}`,
+		clip: { x: 270, y: 70, width: 1140, height: 640 },
+		before: async (p) => {
+			await p.getByRole('button', { name: 'Обновить данные' }).click();
+			await p.waitForFunction(() => ![...document.querySelectorAll('button')].some((b) => b.textContent?.includes('Обновить данные') && b.disabled), null, { timeout: 150000 }).catch(() => {});
+			await wait(1500);
+			await p.getByLabel('Скачать').nth(2).click();
+		}
+	});
+}
+
 await browser.close();

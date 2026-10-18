@@ -31,7 +31,7 @@ try {
 	console.log('Галерея и запуск');
 	await page.goto(`${BASE}/reports`);
 	await page.waitForSelector('text=Воронка по статусам');
-	check((await page.locator('ul li button').count()) >= 7, 'галерея: карточки шаблонов (ADMIN видит все)');
+	check((await page.locator('ul li button').count()) >= 10, 'галерея: не меньше 10 карточек шаблонов (ADMIN видит все)');
 	await page.getByRole('button', { name: /Воронка по статусам/ }).click();
 	const drawer = page.locator('.atmr-drawer');
 	await drawer.getByRole('button', { name: 'Запустить' }).click();
@@ -96,6 +96,7 @@ try {
 	}
 	await page.getByRole('button', { name: 'Обновить данные' }).click();
 	await page.waitForFunction(() => document.querySelectorAll('article svg').length >= 2, null, { timeout: 120000 }).catch(() => {});
+	await page.waitForFunction(() => ![...document.querySelectorAll('button')].some((b) => b.textContent?.includes('Обновить данные') && b.disabled), null, { timeout: 150000 }).catch(() => {});
 	await page.waitForTimeout(1500);
 	const svgs = await page.locator('article svg').count();
 	check(svgs >= 2, `графики нарисованы из файлов отчётов (svg: ${svgs})`);
@@ -115,7 +116,7 @@ try {
 
 	const p = page.__problems;
 	console.log(p.pageerrors.length ? `  ✗ page errors: ${p.pageerrors.join(' | ')}` : '  ✓ нет исключений на странице');
-	const real = p.console.filter((c) => !/status of (409|422|429)/.test(c));
+	const real = p.console.filter((c) => !/status of (404|409|422|429)/.test(c)); // 404 — задачи оболочки на удалённые сделки, к отчётам не относятся
 	console.log(real.length ? `  ✗ console: ${real.join(' | ')}` : '  ✓ нет ошибок консоли');
 	if (p.failed.length) console.log(`  · неудачные запросы: ${[...new Set(p.failed)].join(' | ')}`);
 } finally {
