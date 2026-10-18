@@ -285,8 +285,8 @@
 	.dt-embedded .atmr-tablegrid__footer__container {
 		border-bottom: 0;
 	}
-	/* a notice (icon on the left, coloured outline): the FIRST line of its text is centred on the 24 px icon. The DS gives only the title 2 px from the top (a 18.2 px line on a 24 px icon
-	   needs 2.9) and the text of a notice without a title nothing, so the text sat 1 px (title) to 3 px (text only) above the icon. `1lh` is the height of that line */
+	/* a notice (icon on the left, coloured outline): the FIRST line of its text is centred on the 24 px icon. The DS gives only the title 2 px from the top (a 20 px line on a 24 px icon
+	   needs 2) and the text of a notice without a title nothing, so the text-only notice sat 2 px above the icon. `1lh` is the height of that line */
 	.atmr-inline-notification .atmr-inline-notification__inner > :is(.atmr-inline-notification__title, .atmr-inline-notification__subtitle):first-child {
 		padding-top: 3px;
 		padding-top: calc((24px - 1lh) / 2);
