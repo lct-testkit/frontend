@@ -39,8 +39,8 @@ describe('licenseTermInfo', () => {
 	});
 
 	it('срок в годах без даты окончания', () => {
-		expect(term({ license_term_years: 3 })).toMatchObject({ text: `3${NBSP}года`, tone: 'neutral' });
-		expect(term({ license_term_years: 5 }).text).toBe(`5${NBSP}лет`);
+		expect(term({ license_term_years: 3 })).toMatchObject({ text: `на 3${NBSP}года`, tone: 'neutral' });
+		expect(term({ license_term_years: 5 }).text).toBe(`на 5${NBSP}лет`);
 	});
 
 	it('старое значение из файла: год окончания', () => {
@@ -52,6 +52,8 @@ describe('licenseTermInfo', () => {
 	it('старое значение из файла: «3» — предупреждение, что это срок в годах', () => {
 		const r = term({ license_valid_year: 3 });
 		expect(r.tone).toBe('warning');
+		expect(r.text).toBe(`на 3${NBSP}года`);
+		expect(r.badge).toBe('Проверьте');
 		expect(r.hint).toContain('срок в годах');
 	});
 
@@ -67,7 +69,7 @@ describe('licenseSignedText', () => {
 	it('без даты: да, нет, не указано', () => {
 		expect(licenseSignedText({ is_signed: true, license_signed_at: null })).toBe('Подписана');
 		expect(licenseSignedText({ is_signed: false, license_signed_at: null })).toBe('Не подписана');
-		expect(licenseSignedText({ is_signed: null, license_signed_at: null })).toBe('—');
+		expect(licenseSignedText({ is_signed: null, license_signed_at: null })).toBe('Не указано');
 	});
 });
 
