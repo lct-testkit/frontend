@@ -23,7 +23,7 @@
 	{#if !compact}
 		<span class={['flex min-w-0 flex-col', logoOnNarrow && 'max-[380px]:hidden']}>
 			<Typography as="span" variant={size === 'l' ? 'heading-h4' : 'body-s'} strong class={['whitespace-nowrap', onDark && 'text-white!']}>RTK School</Typography>
-			{#if !short}<Typography as="span" variant="description-l" class={['whitespace-nowrap', onDark ? 'text-white/80!' : 'text-muted']}>CRM по работе с вузами</Typography>{/if}
+			{#if !short}<Typography as="span" variant="description-l" class={['whitespace-nowrap', onDark ? 'text-white!' : 'text-muted']}>CRM по работе с вузами</Typography>{/if}
 		</span>
 	{/if}
 </span>
