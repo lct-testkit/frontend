@@ -3,7 +3,7 @@
 	// подсказки для остального (файлы, подпись, задачи) и комментарий. Бэкенд остаётся арбитром: его отказы (CRM-1201…1206, 1002)
 	// показываются понятными фразами, введённое не теряется.
 	import { untrack } from 'svelte';
-	import { ArrowRight, CheckSmall, CloseSmall } from '@lct-testkit/rt-ui/icons';
+	import { CheckSmall, CloseSmall } from '@lct-testkit/rt-ui/icons';
 	import { ApiError, api, errorMessage, ifMatch, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
 	import { CheckField, FormModal, Notice, StatusChip, toast } from '$lib/ui';
@@ -18,7 +18,7 @@
 	import { formatDate } from '$lib/utils/format';
 	import { ATTACHMENT_CATEGORY_LABELS } from '../../shared/labels';
 	import type { Attachment, AvailableTransition, Deal, WorkflowGraph } from '../../types';
-	import { currentText, describeCondition, fieldLabel, type ConditionLike } from '../conditions';
+	import { currentText, describeCondition, type ConditionLike } from '../conditions';
 	import { statusName, statusTone, transitionKind } from '../statusUtils';
 	import { buildTransitionForm, fileLeaf, fileRequirements, isOtherReason, missingFileFields, serializeTransitionFields, unmetAlternatives, type TransitionFormField } from '../transitionForm';
 	import TransitionFileZone from './TransitionFileZone.svelte';
@@ -324,7 +324,7 @@
 			<div class="flex items-start gap-2">
 				<Ico icon={mine.length ? CheckSmall : CloseSmall} tone={mine.length ? 'success' : 'warning'} size={20} class="mt-px" />
 				<span class="t-body-m min-w-0 flex-1 break-words">
-					{fieldLabel(leaf.field, defs)}<span class="text-muted"> · {mine.length ? 'приложен в этом окне' : 'не приложен'}</span>
+					<span class="font-medium">{ATTACHMENT_CATEGORY_LABELS[req.category] ?? req.category}</span>{#if req.stepScoped}<span class="text-muted">&nbsp;на этом шаге</span>{/if}&nbsp;— <span class={mine.length ? 'text-success' : 'text-warning'}>{mine.length ? 'приложен' : 'не приложен'}</span>
 				</span>
 			</div>
 			<TransitionFileZone dealId={deal.id} category={req.category} files={mine} onAdd={addFile} onRemove={removeFile} testid="tr-files-{req.category}" />
@@ -342,10 +342,16 @@
 {/snippet}
 
 <FormModal {open} size="m" {title} saveLabel={actionLabel} {danger} saveTestId="transition-submit" saving={busy} canSave={!form.blocked && missingFiles.length === 0} dirty={open && inputDirty} {formError} conflict={!!banner?.conflict} conflictText={banner?.text} reloadLabel="Обновить" onReload={refresh} onSave={submit} onClose={close}>
-	<div class="flex flex-wrap items-center gap-2">
-		{#if current}<StatusChip label={statusName(current.name)} color={current.color} tone={statusTone(current.type)} />{/if}
-		<Ico icon={ArrowRight} tone="soft" size={20} />
-		{#if target}<StatusChip label={statusName(target.name)} color={target.color} tone={statusTone(target.type)} />{/if}
+	<!-- откуда и куда — двумя строками: названия шагов длинные, рядом они переносились и один чип оказывался на новой строке -->
+	<div class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5" data-testid="transition-route">
+		{#if current}
+			<span class="t-desc-l text-muted">Из</span>
+			<span class="flex min-w-0"><StatusChip label={statusName(current.name)} color={current.color} tone={statusTone(current.type)} title={statusName(current.name)} /></span>
+		{/if}
+		{#if target}
+			<span class="t-desc-l text-muted">В</span>
+			<span class="flex min-w-0"><StatusChip label={statusName(target.name)} color={target.color} tone={statusTone(target.type)} title={statusName(target.name)} /></span>
+		{/if}
 	</div>
 
 	{#if groups.length}
