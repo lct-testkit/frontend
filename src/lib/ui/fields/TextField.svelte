@@ -4,6 +4,7 @@
 	// `bind:value` or `value` + `onInput`. Enter → `onEnter`.
 	import { Input } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
+	import { fieldA11y } from './field-a11y';
 	import type { Snippet } from 'svelte';
 	import type { FullAutoFill } from 'svelte/elements';
 
@@ -65,6 +66,7 @@
 	const bp = useBreakpoint();
 </script>
 
+<div class="contents" use:fieldA11y={error}>
 <Input
 	class={['w-full', className]}
 	size={size ?? (bp.isMobile ? 'l' : 'm')}
@@ -102,3 +104,4 @@
 		}
 	}}
 />
+</div>

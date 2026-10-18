@@ -12,6 +12,7 @@
 	import { theme } from '$lib/stores/theme.svelte';
 	import ConfirmHost from '$lib/ui/ConfirmHost.svelte';
 	import ToastHost from '$lib/ui/ToastHost.svelte';
+	import AnnouncerHost from '$lib/ui/AnnouncerHost.svelte';
 
 	let { children }: { children?: Snippet } = $props();
 
@@ -25,6 +26,7 @@
 <ExtMotionProvider mode="svelte" type="spring">
 	<ToastNotificationsProvider position="topRight" maxCount={3}>
 		<ToastHost />
+		<AnnouncerHost />
 		{@render children?.()}
 		<ConfirmHost />
 	</ToastNotificationsProvider>
