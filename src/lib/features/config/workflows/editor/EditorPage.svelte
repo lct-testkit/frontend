@@ -92,14 +92,14 @@
 	}
 
 	async function reload() {
-		if (editor.dirty && !(await confirm({ title: 'Загрузить с сервера?', message: 'Несохранённые правки будут потеряны.', confirmLabel: 'Загрузить', danger: true }))) return;
+		if (editor.dirty && !(await confirm({ title: 'Вернуть сохранённую версию?', message: 'Несохранённые правки будут потеряны.', confirmLabel: 'Вернуть', danger: true }))) return;
 		await editor.load(true);
 	}
 
 	async function copyJson() {
 		try {
 			await navigator.clipboard.writeText(JSON.stringify(toServer(editor.draft), null, 2));
-			toast.success('JSON графа скопирован');
+			toast.success('Схема воронки скопирована');
 		} catch {
 			toast.error('Не удалось скопировать');
 		}
@@ -125,8 +125,8 @@
 		...(!editor.readonly && w?.state === 'published' ? [{ key: 'migrate', value: 'Перенести сделки со старых шагов' }] : []),
 		...(!editor.readonly ? [{ key: 'settings', value: 'Название и по умолчанию' }] : []),
 		...(session.can('audit:read') && w?.state !== 'draft' ? [{ key: 'history', value: 'История публикаций' }] : []),
-		{ key: 'reload', value: 'Загрузить с сервера' },
-		{ key: 'json', value: 'Копировать JSON графа' },
+		{ key: 'reload', value: 'Вернуть сохранённую версию', hint: 'Несохранённые правки пропадут' },
+		{ key: 'json', value: 'Копировать схему воронки', hint: 'Текстом (JSON), чтобы передать или сохранить' },
 		...(!editor.readonly && w?.state === 'draft' ? [{ key: 'delete', value: 'Удалить черновик' }] : [])
 	]);
 	function onMenu(item: { key: string | number }) {
