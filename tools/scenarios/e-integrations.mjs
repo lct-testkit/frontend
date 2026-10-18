@@ -18,6 +18,15 @@ async function api(method, path, body) {
 	return { status: res.status, json: text ? JSON.parse(text) : null };
 }
 
+
+const field = (scope, label) => scope.locator('.atmr-input', { has: scope.page().locator(`.atmr-input__label :text-is("${label}")`) });
+const fillIn = async (scope, label, text, nth = 0) => field(scope, label).nth(nth).locator('input, textarea').first().fill(text);
+const pickIn = async (page, scope, label, text, nth = 0) => {
+	await field(scope, label).nth(nth).click();
+	await page.locator('[data-testid="ddm"][data-show="true"] [data-testid="ddm__item"]', { hasText: text }).first().click();
+	await page.waitForTimeout(150);
+};
+
 const before = (await api('GET', '/api/admin/integrations/sources')).json.find((s) => s.code === 'cms');
 const browser = await newBrowser();
 try {
@@ -50,6 +59,52 @@ try {
 		check(seen.includes('page2'), 'вторая страница запрошена с cursor из заголовка');
 		check((await page.getByRole('button', { name: /Показать ещё/ }).count()) === 0, 'после последней страницы кнопки нет');
 		await page.unroute('**/api/admin/integrations/inbound-messages**');
+	}
+
+	console.log('(e) «Поля заявки»: правила, предпросмотр сервера, сохранение, возврат встроенного');
+	{
+		await api('DELETE', '/api/admin/integrations/sources/cms/mapping');
+		await page.goto(`${BASE}/admin/integrations`);
+		await card.waitFor();
+		await card.getByRole('button', { name: 'Изменить' }).click();
+		const dr = page.locator('.atmr-drawer');
+		await dr.getByText('Поля заявки').first().waitFor();
+		await dr.getByText('Вставьте пример запроса').waitFor({ timeout: 5000 });
+		ok('пустой пример: «Вставьте пример запроса, чтобы увидеть результат»');
+		await fillIn(dr, 'Тело запроса (JSON)', '{ "lead_id": ');
+		check(await dr.getByText('Это не JSON').isVisible(), 'невалидный JSON: ошибка под полем');
+		await dr.getByRole('button', { name: 'Вставить типовой' }).click();
+		await dr.getByText('Как примет сервер').waitFor({ timeout: 8000 });
+		check(await dr.getByText('Не использованы').count() === 0, 'без правил показывается результат встроенных названий');
+		const rows = [
+			['Email', 'email'],
+			['Телефон', 'phone'],
+			['Внешний id заявки', 'lead_id'],
+			['Курс/продукт', 'product_interest']
+		];
+		for (let i = 0; i < rows.length; i++) {
+			await dr.getByRole('button', { name: 'Добавить правило' }).click();
+			const rule = dr.locator(`li[aria-label="Правило ${i + 1}"]`);
+			await pickIn(page, rule, 'Поле CRM', rows[i][0]);
+			await fillIn(rule, 'Ключ в запросе', rows[i][1]);
+		}
+		await dr.getByText('Как примет сервер').waitFor({ timeout: 8000 });
+		await page.waitForTimeout(1200);
+		const pv = await dr.locator('section, div').filter({ hasText: 'Что получится' }).last().innerText();
+		check(/Внешний id заявки[\s\S]*lead-1001/.test(pv), 'предпросмотр: внешний id = lead-1001');
+		check(/Не использованы: .*name/.test(pv), 'лишние ключи перечислены (name, source_campaign, submitted_at)');
+		await page.screenshot({ path: process.env.SHOT_DIR ? `${process.env.SHOT_DIR}/mapping-desktop.png` : undefined });
+		await dr.getByText('Что получится').scrollIntoViewIfNeeded();
+		await page.screenshot({ path: process.env.SHOT_DIR ? `${process.env.SHOT_DIR}/mapping-preview-desktop.png` : undefined });
+		await dr.getByRole('button', { name: 'Сохранить' }).click();
+		await page.waitForSelector('text=Поля заявки сохранены');
+		const saved = (await api('GET', '/api/admin/integrations/sources/cms/mapping')).json.mapping;
+		check(saved && saved.rules.length === 4 && saved.version >= 1, `сохранено 4 правила, версия ${saved?.version}`);
+		await card.getByRole('button', { name: 'Изменить' }).click();
+		await page.locator('li[aria-label="Правило 4"]').waitFor();
+		ok('после повторного открытия правила на месте');
+		await page.keyboard.press('Escape');
+		await api('DELETE', '/api/admin/integrations/sources/cms/mapping');
 	}
 
 	if (!MOCK) {
