@@ -7,15 +7,19 @@
 	import { HEALTH_DEPENDENCY_LABELS, HEALTH_STATUSES, labelOf } from '../labels';
 	import type { HealthReport } from '../types';
 	import { createPoller } from '../shared/polling.svelte';
+	import { api, unwrap } from '$lib/api';
 	import { fetchHealth, healthTone } from './health';
+	import { sourcesSummary, type SourcesSummary } from './sourceState';
 
 	let report = $state<HealthReport | null>(null);
 	let loading = $state(true);
+	let sources = $state<SourcesSummary | null>(null);
 
 	async function load() {
 		loading = true;
 		try {
 			report = await fetchHealth();
+			sources = await unwrap(api.GET('/api/admin/integrations/sources')).then(sourcesSummary).catch(() => null);
 		} finally {
 			loading = false;
 		}
@@ -31,6 +35,7 @@
 <section class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-line bg-surface px-4 py-3 max-md:px-3" aria-label="Состояние системы">
 	{#if report}
 		<StatusChip label={labelOf(HEALTH_STATUSES, report.status)} tone={healthTone(report.status)} />
+		{#if sources}<StatusChip label={sources.text} tone={sources.tone} />{/if}
 		<ul class="m-0 flex min-w-0 flex-1 list-none flex-wrap gap-1.5 p-0 max-md:order-last max-md:basis-full">
 			{#each report.dependencies as d (d.name)}
 				<li class="max-w-full min-w-0">
