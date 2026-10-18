@@ -1,6 +1,6 @@
 # Контраст токенов тем rt-ui (WCAG 2.x)
 
-Состояние «до»: токены rt-ui как есть, без переопределений приложения (F7-2 отложена до решения владельца). Не проходят 65 обязательных пар (Rostelecom light 34, Purple light 25, Rostelecom dark 3, Purple dark 3).
+Состояние «до»: токены rt-ui как есть, без переопределений приложения (до F7-2, 2026-10-18). Не проходят 65 обязательных пар (Rostelecom light 34, Purple light 25, Rostelecom dark 3, Purple dark 3).
 
 Порог: текст 4,5:1 (AA), значки, границы и фокус 3:1. Справочные пары не роняют проверку, но входят в таблицу. Команда: `node tools/check-contrast.mjs --md`. Сверка с DevTools/getComputedStyle в браузере 2026-10-18: fg-muted на белом 3,97, accent-default на белом 3,29, text-success 3,01 (расчёт 3,97 / 3,29 / 3,01).
 
