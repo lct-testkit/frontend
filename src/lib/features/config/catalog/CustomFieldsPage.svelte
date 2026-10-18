@@ -82,9 +82,12 @@
 
 <CatalogPage active="custom-fields" createLabel="Новое поле" onCreate={() => open(null)}>
 	{#snippet toolbar()}
-		<SegmentedControl class="max-w-full self-start" size="m" value={entity} onChange={(v: string) => setQuery({ entity: v === 'deal' ? null : v })}>
-			{#each CUSTOM_FIELD_ENTITIES as e (e.key)}<Segment index={e.key} label={e.value} />{/each}
-		</SegmentedControl>
+		<!-- four labels are wider than a 320 px screen: the control scrolls inside its own strip, the page does not -->
+		<div class="max-w-full min-w-0 self-start overflow-x-auto">
+			<SegmentedControl size="m" value={entity} onChange={(v: string) => setQuery({ entity: v === 'deal' ? null : v })}>
+				{#each CUSTOM_FIELD_ENTITIES as e (e.key)}<Segment index={e.key} label={e.value} />{/each}
+			</SegmentedControl>
+		</div>
 	{/snippet}
 
 	<CatalogList
