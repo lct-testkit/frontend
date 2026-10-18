@@ -36,6 +36,6 @@ export const toast = {
 	error(e: unknown, title?: string) {
 		const message = errorMessage(e);
 		const rid = e instanceof ApiError && e.status >= 500 && e.requestId ? `Код обращения: ${e.requestId}` : undefined;
-		push(title ? { title, subtitle: message, colorScheme: 'error', timeout: 9000 } : { title: message, subtitle: rid, colorScheme: 'error', timeout: 9000 });
+		push(title ? { title, subtitle: message, colorScheme: 'error', timeout: 15000 } : { title: message, subtitle: rid, colorScheme: 'error', timeout: 15000 });
 	}
 };

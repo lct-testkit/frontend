@@ -10,6 +10,12 @@ function decorate(field: Element) {
 	const error = field.classList.contains('atmr-input--error');
 	const clear = field.querySelector('[data-testid="input__suffix__clear"]');
 	if (clear && clear.getAttribute('aria-label') !== 'Очистить') clear.setAttribute('aria-label', 'Очистить');
+	// the DS names the button at the end of the box «Input-right-icon»: for the eye of a password field say what it does
+	const suffix = field.querySelector('button.atmr-input__suffix');
+	if (suffix && input instanceof HTMLInputElement && /password/i.test(input.name)) {
+		const label = input.type === 'password' ? 'Показать пароль' : 'Скрыть пароль';
+		if (suffix.getAttribute('aria-label') !== label) suffix.setAttribute('aria-label', label);
+	}
 	if (error) {
 		if (input.getAttribute('aria-invalid') !== 'true') input.setAttribute('aria-invalid', 'true');
 	} else if (input.hasAttribute('aria-invalid')) input.removeAttribute('aria-invalid');
