@@ -25,7 +25,7 @@
 	class={[
 		'group/node relative w-58 overflow-hidden rounded-md border bg-surface shadow-s',
 		selected ? 'border-accent ring-2 ring-accent-soft' : errors ? 'border-danger' : 'border-line',
-		status.is_archived && 'opacity-55'
+		status.is_archived && 'border-dashed'
 	]}
 >
 	<span class="absolute inset-y-0 left-0 w-1.5" style:background={statusColor(status)}></span>

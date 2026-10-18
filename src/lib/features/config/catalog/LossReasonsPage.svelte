@@ -110,9 +110,9 @@
 										<IconBtn icon={ArrowDown} label="Ниже" size="s" disabled={busy || i === group.rows.length - 1} onclick={() => move(group.rows, i, 1)} />
 									</span>
 								{/if}
-								<div class={['flex min-w-0 flex-1 flex-col', !row.is_active && 'opacity-60']}>
-									<span class="t-body-m-strong wrap-anywhere">{row.name}</span>
-									<span class="t-desc-m font-mono text-soft">{row.code}</span>
+								<div class="flex min-w-0 flex-1 flex-col">
+									<span class={['t-body-m-strong wrap-anywhere', !row.is_active && 'text-muted']}>{row.name}</span>
+									<span class="t-desc-m font-mono text-soft">{row.code}{#if !row.is_active} · неактивна{/if}</span>
 								</div>
 								<SwitchCell checked={row.is_active} label={row.is_active ? 'Отключить причину' : 'Включить причину'} disabled={!canWrite} onToggle={(next) => toggleActive(row, next)} />
 								{#if canWrite}

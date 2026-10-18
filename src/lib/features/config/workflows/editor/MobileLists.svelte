@@ -31,7 +31,7 @@
 		{@const sla = slaOf(editor.draft, s.key)}
 		{@const lv = level(s.key)}
 		<!-- карточка-кнопка целиком: в rt-ui нет кликабельной карточки -->
-		<button type="button" class={[CARD, s.is_archived && 'opacity-60']} onclick={() => editor.select({ kind: 'status', key: s.key })}>
+		<button type="button" class={[CARD, s.is_archived && 'border-dashed']} onclick={() => editor.select({ kind: 'status', key: s.key })}>
 			{#if number !== undefined}<span class="t-body-m-strong w-6 flex-none text-right text-muted">{number}</span>{/if}
 			<span class="h-9 w-1.5 flex-none rounded-full" style:background={statusColor(s)}></span>
 			<span class="flex min-w-0 flex-1 flex-col">

@@ -5,6 +5,7 @@
 	import '@lct-testkit/rt-ui/themes/rtk_purple_dark.min.css';
 	import '$lib/styles/fonts.css';
 	import '../app.css';
+	import '$lib/styles/a11y-tokens.css';
 	import { onMount, type Snippet } from 'svelte';
 	import { ToastNotificationsProvider } from '@lct-testkit/rt-ui';
 	import { ExtMotionProvider } from '@lct-testkit/rt-ui/ext';
