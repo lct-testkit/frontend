@@ -1,5 +1,6 @@
 // Which backend operations does the UI call? Compares docs/openapi.json with `api.<METHOD>('<path>'` calls (and raw fetches) in src/.
 //   node tools/coverage.mjs            → summary + the list of operations nothing calls
+//   node tools/coverage.mjs --json     → {operations, called, notCalled, percent, missing[]} (used by tools/fill-stats.mjs)
 import { readFile, readdir } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,6 +50,11 @@ for (const op of ops) {
 	else missing.push(op);
 }
 
+if (process.argv.includes('--json')) {
+	const percent = Math.round((covered.length / ops.length) * 100);
+	console.log(JSON.stringify({ operations: ops.length, called: covered.length, notCalled: missing.length, percent, missing: missing.map(({ method, path, tag }) => ({ method, path, tag })) }));
+	process.exit(0);
+}
 console.log(`operations in OpenAPI: ${ops.length} · called from the UI: ${covered.length} (${Math.round((covered.length / ops.length) * 100)}%) · not called: ${missing.length}\n`);
 const byTag = new Map();
 for (const op of missing) byTag.set(op.tag, [...(byTag.get(op.tag) ?? []), op]);

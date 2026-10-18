@@ -58,6 +58,9 @@ jobs:
       - name: Unit-тесты + покрытие (пороги в vite.config.ts)
         run: pnpm test:coverage
 
+      - name: Числа в README совпадают с кодом (блок STATS)
+        run: node tools/fill-stats.mjs --check
+
       - name: Production build
         run: pnpm build
 
