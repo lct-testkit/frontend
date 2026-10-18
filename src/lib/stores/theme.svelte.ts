@@ -45,6 +45,16 @@ class ThemeStore {
 		}
 	}
 
+	/** Как `set`, но без записи в хранилище: лист печати светлый, а выбранная тема после печати возвращается (`restore`). */
+	preview(theme: Theme) {
+		apply(theme);
+	}
+
+	/** Вернуть класс темы на <body> тот, что выбран человеком (после `preview`). */
+	restore() {
+		apply(this.current);
+	}
+
 	get mode(): 'light' | 'dark' {
 		return this.current.endsWith('_dark') ? 'dark' : 'light';
 	}

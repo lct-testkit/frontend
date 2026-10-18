@@ -95,23 +95,23 @@
 	</a>
 {/snippet}
 
-<div class="fixed inset-0 flex overflow-hidden bg-page text-fg">
+<div class="fixed inset-0 flex overflow-hidden bg-page text-fg print:static print:block print:overflow-visible print:bg-white">
 	<!-- WCAG 2.4.1: the first Tab stop skips the menu and the top bar -->
 	<a
 		href="#content"
-		class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-(--atmr-z-index-modal) focus:rounded-md focus:bg-surface focus:px-4 focus:py-2 focus:shadow-m"
+		class="sr-only print:hidden focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-(--atmr-z-index-modal) focus:rounded-md focus:bg-surface focus:px-4 focus:py-2 focus:shadow-m"
 		onclick={(e) => {
 			e.preventDefault();
 			document.getElementById('content')?.focus();
 		}}>Перейти к содержимому</a
 	>
 	{#if !bp.isMobile}
-		<SideNav class="h-full flex-none" {sections} isActive={(item) => isActive(item, page.url.pathname)} {counters} {attention} {expanded} onNavigate={go} onToggle={bp.isDesktop ? toggleMenu : undefined}>
+		<SideNav class="h-full flex-none print:hidden" {sections} isActive={(item) => isActive(item, page.url.pathname)} {counters} {attention} {expanded} onNavigate={go} onToggle={bp.isDesktop ? toggleMenu : undefined}>
 			{#snippet brand()}{@render brandLink(!expanded)}{/snippet}
 		</SideNav>
 	{/if}
 
-	<div class="flex min-w-0 flex-1 flex-col">
+	<div class="flex min-w-0 flex-1 flex-col print:block">
 		<TopBar user={{ name: session.fullName, role: session.roleLabel }} items={userItems} onItem={onUserItem} compact={bp.isMobile}>
 			{#snippet start()}
 				{#if bp.isMobile}
@@ -130,12 +130,12 @@
 		</TopBar>
 
 		{#if session.passwordChangeRequired}
-			<div class="flex-none px-4 pt-3 max-md:px-3">
+			<div class="flex-none px-4 pt-3 max-md:px-3 print:hidden">
 				<Notice tone="warning" actions={[{ label: 'Сменить пароль', onclick: () => goto('/profile?tab=security') }]}>Пока вы не смените пароль, часть действий недоступна.</Notice>
 			</div>
 		{/if}
 
-		<main class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto outline-none" id="content" tabindex="-1">{@render children?.()}</main>
+		<main class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto outline-none print:overflow-visible" id="content" tabindex="-1">{@render children?.()}</main>
 	</div>
 </div>
 

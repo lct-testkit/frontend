@@ -29,7 +29,7 @@
 {#snippet chevron()}<ChevronDown />{/snippet}
 
 <!-- name and role are cut at 16rem: a long full name must not push the icons around (the DS text has no ellipsis of its own) -->
-<TopMenu class="h-14 flex-none px-6 max-lg:px-4 max-md:px-3 [&_.atmr-top-menu__profile-text]:max-w-64 [&_.atmr-top-menu__profile-text>*]:truncate">
+<TopMenu class="h-14 flex-none print:hidden px-6 max-lg:px-4 max-md:px-3 [&_.atmr-top-menu__profile-text]:max-w-64 [&_.atmr-top-menu__profile-text>*]:truncate">
 	<TopMenuProductContainer align="left">{@render start?.()}</TopMenuProductContainer>
 
 	<TopMenuUtilitiesContainer>{@render utilities?.()}</TopMenuUtilitiesContainer>
