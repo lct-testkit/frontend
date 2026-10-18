@@ -9,7 +9,7 @@
 	import { count } from '$lib/utils/format';
 	import type { ReportTemplate } from '../types';
 	import ParamsForm, { type WorkflowOption } from './ParamsForm.svelte';
-	import { REPORT_FORMATS, REPORT_FORMAT_LABELS, REPORT_SPECS, normalizeParams, paramsFor, validateParams, type ReportFormat } from './params';
+	import { REPORT_FORMATS, REPORT_FORMAT_LABELS, REPORT_SPECS, describeTemplate, normalizeParams, paramsFor, validateParams, type ReportFormat } from './params';
 	import { useReportRun } from './run.svelte';
 
 	interface Props {
@@ -27,6 +27,7 @@
 
 	const defs = $derived(template ? paramsFor(template.code, template.default_params, { dateFields: template.date_fields, defaultDateField: template.default_date_field }) : []);
 	const spec = $derived(template ? REPORT_SPECS[template.code] : undefined);
+	const hasScope = $derived(defs.some((d) => d.group === 'scope'));
 	const formats = $derived(REPORT_FORMATS.filter((f) => template?.output_formats.includes(f)));
 	const busy = $derived(run.phase === 'running');
 
@@ -57,7 +58,7 @@
 <FormDrawer
 	open={template !== null}
 	title={template?.name ?? ''}
-	width={460}
+	width={hasScope ? 560 : 460}
 	saveLabel={run.phase === 'done' ? 'Скачать' : run.phase === 'failed' ? 'Повторить' : 'Запустить'}
 	cancelLabel={run.phase === 'done' ? 'Закрыть' : 'Отмена'}
 	showSave={run.phase !== 'running'}
@@ -70,7 +71,7 @@
 	{#if template}
 		{#if run.phase === 'form' || run.phase === 'failed'}
 			<div class="flex flex-col gap-4">
-				{#if template.description}<p class="t-body-s text-muted">{template.description}</p>{/if}
+				{#if template.description}<p class="t-body-s text-muted">{describeTemplate(template.description)}</p>{/if}
 				{#if spec?.hint}<p class="t-desc-l text-muted">{spec.hint}</p>{/if}
 				{#if spec?.personalData}<Notice class="shrink-0" tone="warning">Отчёт содержит персональные данные. Не передавайте файл посторонним</Notice>{/if}
 				{#if formats.length > 1}

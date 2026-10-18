@@ -24,14 +24,17 @@
 		/** приписка видна, когда в списке не меньше стольких строк (у списка без «Показать ещё») */
 		noteAt?: number;
 		class?: string;
+		/** словарь всех элементов, что приходили с сервера (для проверок снаружи: например, направление выбранного продукта) */
+		onKnown?: (known: ReadonlyMap<string, RemoteItem>) => void;
 		onChange?: (value: string[], items: RemoteItem[]) => void;
 	}
 
-	let { value = $bindable([]), search, resolve, label, placeholder, hint, error, disabled = false, required = false, emptyText = 'Ничего не найдено', note, noteAt, class: className = '', onChange }: Props = $props();
+	let { value = $bindable([]), search, resolve, label, placeholder, hint, error, disabled = false, required = false, emptyText = 'Ничего не найдено', note, noteAt, class: className = '', onKnown, onChange }: Props = $props();
 
 	const bp = useBreakpoint();
 	// svelte-ignore state_referenced_locally
 	const list = new RemoteList(search);
+	$effect(() => untrack(() => onKnown?.(list.known)));
 
 	// ключи без подписи: до ответа `resolve` тег называется коротким id
 	const asked = new Set<string>();
@@ -54,8 +57,13 @@
 		return options;
 	}
 	const short = (k: string) => `#${k.slice(-4)}`;
-	const menu = $derived(list.items.map((i) => ({ key: i.key, value: i.value, hint: i.hint })));
 	const selected = $derived(value.map((k) => ({ key: k, value: list.known.get(k)?.value ?? short(k) })));
+	// rt-ui рисует теги только для значений, которые есть среди `items`: выбранные, которых нет в текущей выдаче, дописываются в конец
+	const menu = $derived.by(() => {
+		const found = list.items.map((i) => ({ key: i.key, value: i.value, hint: i.hint }));
+		const seen = new Set(found.map((i) => i.key));
+		return [...found, ...selected.filter((i) => !seen.has(i.key))];
+	});
 	const showNote = $derived(Boolean(note) && (noteAt === undefined || list.items.length >= noteAt));
 	const empty = $derived(list.loading ? 'Поиск…' : list.error ? 'Не удалось загрузить' : emptyText);
 </script>

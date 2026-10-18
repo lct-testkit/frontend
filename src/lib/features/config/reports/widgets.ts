@@ -1,6 +1,7 @@
 // Виджеты дашборда: как таблица отчёта (JSON `GET /api/reports/{id}/data`, колонки — договорённость с `reporting/builders.py` бэкенда)
 // превращается в график, показатель или мини-таблицу.
 import { toList } from './params';
+import { isPeriodPreset, periodFor, type PeriodPreset } from './period';
 import { toNumber, type Cell, type ReportTable } from './table';
 
 export { toNumber };
@@ -37,6 +38,8 @@ export interface WidgetConfig {
 	title?: string;
 	/** `rows` — число строк; `sum:<колонка>` — сумма по колонке */
 	metric?: string;
+	/** быстрый период: даты считаются при каждом запуске, а не хранятся (плитка «Этот месяц» не устаревает) */
+	period?: PeriodPreset;
 }
 
 export function readConfig(raw: unknown): WidgetConfig | null {
@@ -47,7 +50,8 @@ export function readConfig(raw: unknown): WidgetConfig | null {
 		template_code: c.template_code,
 		params: c.params && typeof c.params === 'object' ? (c.params as Record<string, unknown>) : {},
 		title: typeof c.title === 'string' ? c.title : undefined,
-		metric: typeof c.metric === 'string' ? c.metric : undefined
+		metric: typeof c.metric === 'string' ? c.metric : undefined,
+		period: isPeriodPreset(c.period) ? c.period : undefined
 	};
 }
 
@@ -105,13 +109,22 @@ export function previewRows(table: ReportTable, limit = 8): { columns: string[];
 	return { columns: table.columns, rows: table.rows.slice(0, limit) };
 }
 
+/** Параметры запуска: даты быстрого периода пересчитываются на сегодня, остальное — как сохранено. */
+export function effectiveParams(config: Pick<WidgetConfig, 'params' | 'period'>, today: Date = new Date()): Record<string, unknown> {
+	const params = { ...(config.params ?? {}) };
+	if (!config.period) return params;
+	delete params.date_from;
+	delete params.date_to;
+	return { ...params, ...(periodFor(config.period, today) ?? {}) };
+}
+
 /** Значение параметра в канонической форме: списки (в том числе «a,b» из старых виджетов) — отсортированные массивы. */
 const canonical = (key: string, value: unknown): unknown => (Array.isArray(value) || key.endsWith('_ids') || key === 'vendors' || key === 'transfer_statuses' ? toList(value).sort() : value);
 
 /** Одинаковые отчёты разных виджетов запускаются один раз; порядок вузов в списке на ключ не влияет. */
-export const runKey = (config: Pick<WidgetConfig, 'template_code' | 'params'>): string =>
+export const runKey = (config: Pick<WidgetConfig, 'template_code' | 'params' | 'period'>, today: Date = new Date()): string =>
 	`${config.template_code}|${JSON.stringify(
-		Object.entries(config.params ?? {})
+		Object.entries(effectiveParams(config, today))
 			.sort(([a], [b]) => a.localeCompare(b))
 			.map(([k, v]) => [k, canonical(k, v)])
 	)}`;

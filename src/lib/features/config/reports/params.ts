@@ -124,7 +124,7 @@ export const REPORT_SPECS: Record<string, ReportSpec> = {
 		extra: [{ key: 'months', label: 'Месяцев', kind: 'int', min: 1, max: 36, default: 12, required: true, disabledBy: ['date_from', 'date_to'], disabledHint: 'Задан период — число месяцев не используется' }]
 	},
 	stuck_deals: { scope: { period: DEAL_DATES, ...ALL_FILTERS }, extra: [], tail: [limitDef(500)], hint: 'Только сделки с нарушенным SLA. Лишние строки по лимиту отсекаются' },
-	deal_register: { scope: { period: DEAL_DATES, ...ALL_FILTERS }, extra: [], tail: [limitDef(1000)], columns: true, hint: 'Строка на пару «сделка — продукт»' },
+	deal_register: { scope: { period: DEAL_DATES, ...ALL_FILTERS }, extra: [], tail: [limitDef(1000)], columns: true },
 	learning_progress: {
 		scope: { period: ['last_activity_at', 'enrolled_at', 'completed_at'], ...ALL_FILTERS },
 		extra: [],
@@ -188,6 +188,14 @@ export const REPORT_SPECS: Record<string, ReportSpec> = {
 		hint: 'Статусы сделок берутся автоматически: оплата и зачисление в LMS'
 	}
 };
+
+/** Описание шаблона без служебного перечня параметров: «Параметры: date_from/date_to, organization_ids …» человеку ни к чему. */
+export function describeTemplate(description: string): string {
+	return description
+		.replace(/\s*Параметры:[^.]*\.?/u, ' ')
+		.replace(/\s{2,}/g, ' ')
+		.trim();
+}
 
 export const hasSpec = (templateCode: string): boolean => templateCode in REPORT_SPECS;
 

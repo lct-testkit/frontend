@@ -5,7 +5,7 @@ import { ReportFailed, fetchReportData, isRateLimited, startReport, waitForRepor
 import { isReportBusy, normalizeParams, paramsFor } from './params';
 import { readCache, writeCache, type CacheEntry } from './dashboard-cache';
 import { fromReportData, type ReportTable } from './table';
-import { runKey, type WidgetConfig } from './widgets';
+import { effectiveParams, runKey, type WidgetConfig } from './widgets';
 
 export class DashboardData {
 	readonly dashboardId: string;
@@ -66,7 +66,7 @@ export class DashboardData {
 		this.loading = { ...this.loading, [key]: true };
 		try {
 			const defs = paramsFor(config.template_code);
-			let job = await startReport(config.template_code, 'xlsx', normalizeParams(defs, config.params ?? {}));
+			let job = await startReport(config.template_code, 'xlsx', normalizeParams(defs, effectiveParams(config)));
 			if (isReportBusy(job.status)) job = await waitForReport(job, { signal });
 			if (job.status === 'failed') throw new ReportFailed(job.error || 'Не удалось сформировать отчёт.');
 			const table = fromReportData(await fetchReportData(job.id, signal));
