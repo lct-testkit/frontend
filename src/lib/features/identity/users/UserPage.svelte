@@ -42,6 +42,7 @@
 	/** «Выполнить» из согласований: роль и заявка берутся из адреса */
 	let approval = $state<{ id: string | null; role: string | null }>({ id: null, role: null });
 	let invite = $state<UserCreated | null>(null);
+	let resetLink = $state<UserCreated | null>(null);
 	let autoUnblock = $state('');
 	let suspect = $state(false);
 	let invitingBusy = $state(false);
@@ -101,7 +102,10 @@
 	async function doReset(reason: string) {
 		const out = await unwrap(api.POST('/api/admin/users/{user_id}/reset-password', { ...path, body: { reason, suspect_compromise: suspect } }));
 		reset = false;
-		toast.success(out.detail || 'Сброс пароля выполнен');
+		if (out.reset_url && user) {
+			// почта не ушла (или SMTP нет): одноразовая ссылка на самостоятельную установку пароля — показываем администратору один раз
+			resetLink = { user, invite_url: out.reset_url, invite_expires_at: out.reset_expires_at ?? null, invite_email_sent: out.email_sent };
+		} else toast.success(out.detail || 'Сброс пароля выполнен');
 		await load(true);
 	}
 	async function reinvite() {
@@ -241,7 +245,7 @@
 		title="Сбросить пароль"
 		confirmLabel="Сбросить"
 		danger
-		note={session.mode === 'demo' ? 'Демо-режим: вход в один клик для этой учётной записи перестанет работать, пока пароль не будет задан заново.' : 'Сессии завершатся. Ссылка на установку нового пароля уйдёт на почту, только если на сервере настроена почта; иначе её придётся передать вручную.'}
+		note={session.mode === 'demo' ? 'Демо-режим: вход в один клик для этой учётной записи перестанет работать, пока пароль не будет задан заново.' : 'Сессии завершатся. Ссылка на новый пароль уйдёт на почту, если почта настроена; иначе она появится здесь, и её нужно передать сотруднику.'}
 		onSubmit={doReset}
 		onClose={() => (reset = false)}
 	>
@@ -252,6 +256,7 @@
 	</ReasonModal>
 
 	<InviteLinkModal result={invite} onClose={() => (invite = null)} />
+	<InviteLinkModal result={resetLink} purpose="reset" onClose={() => (resetLink = null)} />
 	<ErasureRequestModal
 		open={erasure}
 		subject={{ type: 'user', id, name: user.full_name }}

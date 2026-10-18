@@ -1,50 +1,41 @@
 <script lang="ts">
-	// Public: an emailed invitation link → who is invited, until when, and the way to the sign-in (the backend has the password set by Keycloak).
+	// Public: an invitation link → who is invited, until when, and the form to set the password (no letter needed); then the way to the sign-in.
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { api, unwrap, ApiError, type components } from '$lib/api';
 	import { getConfig } from '$lib/config';
+	import { InviteFlow } from '$lib/features/identity/invite.svelte';
 	import InviteCard from '$lib/features/identity/InviteCard.svelte';
 	import PublicShell from '$lib/ui/PublicShell.svelte';
 	import EmptyState from '$lib/ui/EmptyState.svelte';
+	import ErrorState from '$lib/ui/ErrorState.svelte';
 	import Skeleton from '$lib/ui/Skeleton.svelte';
 
-	type Invite = components['schemas']['InviteCheckResponse'];
+	const flow = new InviteFlow();
 
-	let invite = $state<Invite | null>(null);
-	let error = $state<ApiError | null>(null);
-	let loading = $state(true);
-
-	onMount(async () => {
-		try {
-			invite = await unwrap(api.GET('/api/auth/invite/{token}', { params: { path: { token: page.params.token ?? '' } } }));
-		} catch (e) {
-			error = e instanceof ApiError ? e : ApiError.network(e);
-		} finally {
-			loading = false;
-		}
-	});
+	onMount(() => void flow.load(page.params.token ?? ''));
 
 	function proceed() {
-		if (getConfig().mode === 'demo' || !invite) void goto('/login');
-		else location.assign(invite.login_url);
+		if (getConfig().mode === 'demo' || !flow.loginUrl) void goto('/login');
+		else location.assign(flow.loginUrl);
 	}
 </script>
 
 <svelte:head><title>Приглашение · RTK School</title></svelte:head>
 
 <PublicShell width="sm">
-	{#if loading}
+	{#if flow.phase === 'loading'}
 		<div class="rounded-lg border border-line bg-surface p-5 max-md:p-4"><Skeleton kind="lines" rows={3} /></div>
-	{:else if invite}
-		<InviteCard fullName={invite.full_name} emailMasked={invite.email_masked} expiresAt={invite.expires_at} onContinue={proceed} />
-	{:else}
+	{:else if flow.phase === 'failed'}
+		<div class="rounded-lg border border-line bg-surface"><ErrorState error={flow.loadError} onRetry={() => void flow.load(page.params.token ?? '')} /></div>
+	{:else if flow.phase === 'invalid'}
 		<div class="rounded-lg border border-line bg-surface">
 			<EmptyState
-				title={error?.status === 429 ? 'Слишком много попыток' : 'Ссылка недействительна'}
-				hint={error?.status === 429 ? `Повторите через ${error.retryAfter ?? 60} с.` : 'Она истекла или уже использована. Попросите администратора отправить приглашение повторно.'}
+				title={flow.loadError?.status === 429 ? 'Слишком много попыток' : 'Ссылка недействительна'}
+				hint={flow.loadError?.status === 429 ? `Повторите через ${flow.retryAfter ?? 60} с.` : 'Она истекла или уже использована. Попросите администратора выдать новую ссылку.'}
 			/>
 		</div>
+	{:else}
+		<InviteCard {flow} onContinue={proceed} />
 	{/if}
 </PublicShell>
