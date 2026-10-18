@@ -45,7 +45,7 @@
 			items = items.filter((x) => x.id !== b.id);
 			toast.success('Филиал удалён');
 		} catch (e) {
-			toast.error(e instanceof ApiError && e.isConflict ? 'У филиала есть дочерние — сначала удалите их.' : errorMessage(e));
+			toast.error(e instanceof ApiError && e.isConflict ? 'У филиала есть дочерние — сначала удалите их.' : e);
 		}
 	}
 

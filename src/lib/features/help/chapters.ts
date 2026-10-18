@@ -41,6 +41,7 @@ export const CHAPTERS: Chapter[] = [
 	{ slug: 'tasks', file: '09-tasks.md', title: 'Задачи, уведомления, профиль', group: 'user' },
 	{ slug: 'integrations', file: '10-integrations.md', title: 'Интеграции', group: 'user', needs: ['integration:admin'] },
 
+	{ slug: 'errors', file: '15-errors.md', title: 'Коды ошибок', group: 'reference' },
 	{ slug: 'design-system', file: '11-design-system.md', title: 'Дизайн-система rt-ui', group: 'reference' },
 	{ slug: 'shortcuts', file: '12-shortcuts.md', title: 'Клавиатура, темы, телефон', group: 'reference' },
 	{ slug: 'about', file: '13-about.md', title: 'О проекте', group: 'reference' }

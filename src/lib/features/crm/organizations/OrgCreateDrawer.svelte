@@ -4,7 +4,7 @@
 	import AccessRequestModal from '../access/AccessRequestModal.svelte';
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { api, ApiError, errorMessage, idem, unwrap } from '$lib/api';
+	import { api, ApiError, errorTextWithCode, idem, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
 	import { Btn, FormDrawer, Notice, toast } from '$lib/ui';
 	import { debounce } from '$lib/utils/debounce';
@@ -129,9 +129,9 @@
 				conflict = { id: String(e.extra.organization_id ?? ''), deleted: e.extra.deleted === true };
 			} else if (e instanceof ApiError && e.isValidation) {
 				errors = { ...errors, ...e.fieldErrors() };
-				failure = errors.name || errors.inn ? null : errorMessage(e);
+				failure = errors.name || errors.inn ? null : errorTextWithCode(e);
 			} else {
-				failure = errorMessage(e);
+				failure = errorTextWithCode(e);
 			}
 		} finally {
 			busy = false;

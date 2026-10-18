@@ -4,7 +4,7 @@
 	// а не только изменённые строки, и пустой список — осознанная очистка, а не отмена.
 	import { untrack } from 'svelte';
 	import { Trash } from '@lct-testkit/rt-ui/icons';
-	import { ApiError, errorMessage } from '$lib/api';
+	import { ApiError, errorTextWithCode } from '$lib/api';
 	import { FormDrawer, IconBtn, toast } from '$lib/ui';
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
@@ -91,7 +91,7 @@
 				conflict = true;
 				banner = 'Сделка изменена другим пользователем. Обновите данные — введённое сохранится.';
 			} else {
-				banner = errorMessage(e);
+				banner = errorTextWithCode(e);
 			}
 		} finally {
 			busy = false;

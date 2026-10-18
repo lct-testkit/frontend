@@ -1,6 +1,6 @@
 // Автоподстановка организации (dop.md §11.5): ввод «ИНН или название» → подсказки из локального реестра ЕГРЮЛ и наших организаций.
 // ИНН целиком проверяем по контрольной сумме сразу (без запроса) и затем берём карточку реестра; иначе — подсказки по названию / части ИНН.
-import { api, ApiError, errorMessage, unwrap } from '$lib/api';
+import { api, ApiError, errorTextWithCode, unwrap } from '$lib/api';
 import { debounce } from '$lib/utils/debounce';
 import { looksLikeInn, normalizeRequisite, validateInn } from '../requisites/validators';
 import type { OrgDetails, OrgSuggestion } from '../types';
@@ -81,7 +81,7 @@ export class OrgLookupState {
 		} catch (e) {
 			if (mine !== this.#seq) return;
 			this.hits = [];
-			this.message = { tone: 'error', text: e instanceof ApiError && e.status === 429 ? `Слишком много запросов, подождите ${e.retryAfter ?? 10} с` : errorMessage(e) };
+			this.message = { tone: 'error', text: e instanceof ApiError && e.status === 429 ? `Слишком много запросов, подождите ${e.retryAfter ?? 10} с` : errorTextWithCode(e) };
 		} finally {
 			if (mine === this.#seq) this.loading = false;
 		}

@@ -2,7 +2,7 @@
 	// Новый контакт: ФИО, должность, организация, e-mail, телефон, ЛПР, каналы связи. Idempotency-Key на время попытки.
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { api, ApiError, errorMessage, idem, unwrap } from '$lib/api';
+	import { api, ApiError, errorTextWithCode, idem, unwrap } from '$lib/api';
 	import { FormDrawer, Notice, toast } from '$lib/ui';
 	import type { Contact } from '../types';
 	import ContactForm from './ContactForm.svelte';
@@ -62,7 +62,7 @@
 			const found = duplicateCandidates(e);
 			if (found) duplicates = found;
 			else if (e instanceof ApiError && e.isValidation && Object.keys(e.fieldErrors()).length) errors = e.fieldErrors();
-			else failure = errorMessage(e);
+			else failure = errorTextWithCode(e);
 		} finally {
 			busy = false;
 		}

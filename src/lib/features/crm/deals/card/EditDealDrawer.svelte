@@ -2,7 +2,7 @@
 	// Правка сделки, поля по смыслу: «Сделка» (название, организация, контакт, источник, обучающиеся), «Стоимость и сроки», «Внутренняя оценка» (приоритет — внутренняя оценка CRM, отдельно от денег), поля воронки. PATCH с If-Match —
 	// шлём только изменённое; конфликт версий показывает баннер «Обновить», введённое сохраняется (обновляется только версия).
 	import { onMount, untrack } from 'svelte';
-	import { ApiError, errorMessage } from '$lib/api';
+	import { ApiError, errorTextWithCode } from '$lib/api';
 	import { CheckField, FormDrawer, FormRow, FormSection, toast } from '$lib/ui';
 	import DateField from '$lib/ui/fields/DateField.svelte';
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
@@ -145,7 +145,7 @@
 			} else if (e instanceof ApiError && e.isValidation && Object.keys(e.fieldErrors()).length) {
 				errors = e.fieldErrors();
 			} else {
-				banner = errorMessage(e);
+				banner = errorTextWithCode(e);
 			}
 		} finally {
 			busy = false;

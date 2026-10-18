@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Филиал или институт вуза: название, адрес, родитель (другой филиал этого же вуза; сам филиал и его потомки не предлагаются).
 	import { untrack } from 'svelte';
-	import { ApiError, api, errorMessage, unwrap } from '$lib/api';
+	import { ApiError, api, errorTextWithCode, unwrap } from '$lib/api';
 	import { FormModal, Pick, TextField, toast } from '$lib/ui';
 	import type { Branch } from '../types';
 	import { parentOptions } from './branchTree';
@@ -64,8 +64,8 @@
 			if (e instanceof ApiError && e.isValidation && e.errors.length) {
 				const f = e.fieldErrors();
 				fieldErrors = { name: f.name, parent: f.parent_id };
-				if (!f.name && !f.parent_id) error = errorMessage(e);
-			} else error = errorMessage(e);
+				if (!f.name && !f.parent_id) error = errorTextWithCode(e);
+			} else error = errorTextWithCode(e);
 		} finally {
 			busy = false;
 		}

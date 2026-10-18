@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Правка контакта (If-Match). Маскированные e-mail и телефон не отправляются, пока их не раскрыли и не изменили.
 	import { untrack } from 'svelte';
-	import { api, ApiError, errorMessage, ifMatch, unwrap } from '$lib/api';
+	import { api, ApiError, errorTextWithCode, ifMatch, unwrap } from '$lib/api';
 	import { FormDrawer, toast } from '$lib/ui';
 	import type { Contact } from '../types';
 	import ContactForm from './ContactForm.svelte';
@@ -76,7 +76,7 @@
 			} else if (e instanceof ApiError && e.isValidation && Object.keys(e.fieldErrors()).length) {
 				errors = e.fieldErrors();
 			} else {
-				banner = errorMessage(e);
+				banner = errorTextWithCode(e);
 			}
 		} finally {
 			busy = false;

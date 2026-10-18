@@ -149,3 +149,23 @@ export function errorMessage(e: unknown): string {
 	if (typeof e === 'string' && e) return e;
 	return 'Что-то пошло не так. Попробуйте ещё раз.';
 }
+
+/** Коды, которые человеку не показываем: у `CRM-1001` свой текст под полем формы, `CRM-1101` уводит на вход. */
+const SILENT_CODES = new Set(['CRM-1001', 'CRM-1101']);
+
+/** Код из каталога `CRM-XXYY`, который стоит показать человеку; `null` — сеть, чужая ошибка или «тихий» код. */
+export function errorCode(e: unknown): string | null {
+	if (!(e instanceof ApiError) || !e.code || !/^CRM-\d{4}$/.test(e.code) || SILENT_CODES.has(e.code)) return null;
+	return e.code;
+}
+
+/** Запись справочника ошибок: `CRM-1201` → `/help?s=errors#h-crm-1201`. */
+export const errorHelpHref = (code: string): string => `/help?s=errors#h-${code.toLowerCase()}`;
+
+/** Текст ошибки с кодом в конце — для баннеров и уведомлений в форме: «…текст… (CRM-1201)». */
+export function errorTextWithCode(e: unknown): string {
+	const code = errorCode(e);
+	const text = errorMessage(e);
+	return code ? `${text} (${code})` : text;
+}
+

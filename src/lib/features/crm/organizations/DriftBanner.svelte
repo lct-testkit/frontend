@@ -2,7 +2,7 @@
 	// Реквизиты в ЕГРЮЛ изменились: показываем «сейчас → в реестре» и даём принять всё или выбранное (POST apply-drift) либо «Оставить как есть»
 	// (POST dismiss-drift): баннер не вернётся, пока в реестре не появится ДРУГОЕ значение. Оба вызова — с If-Match. Крестик скрывает баннер только до перезагрузки.
 	import { Checkbox } from '@lct-testkit/rt-ui';
-	import { ApiError, api, errorMessage, ifMatch, unwrap } from '$lib/api';
+	import { ApiError, api, errorTextWithCode, ifMatch, unwrap } from '$lib/api';
 	import { Btn, Notice, toast } from '$lib/ui';
 	import type { Organization } from '../types';
 	import { driftEntries } from './orgUtils';
@@ -41,7 +41,7 @@
 			onApplied(next);
 		} catch (e) {
 			conflict = e instanceof ApiError && e.isConflict;
-			failure = conflict ? 'Организация изменена другим пользователем.' : errorMessage(e);
+			failure = conflict ? 'Организация изменена другим пользователем.' : errorTextWithCode(e);
 		} finally {
 			busy = false;
 		}

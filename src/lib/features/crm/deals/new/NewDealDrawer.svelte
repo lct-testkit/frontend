@@ -4,7 +4,7 @@
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { Segment, SegmentedControl } from '@lct-testkit/rt-ui';
-	import { api, ApiError, errorMessage, idem, unwrap } from '$lib/api';
+	import { api, ApiError, errorTextWithCode, idem, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
 	import { Btn, FormDrawer, FormRow, FormSection, MultiPick, UserPicker, toast } from '$lib/ui';
 	import ContactCreateDrawer from '../../contacts/ContactCreateDrawer.svelte';
@@ -129,11 +129,11 @@
 			if (e instanceof ApiError && e.isValidation) {
 				const fields = e.fieldErrors();
 				errors = { ...errors, ...fields };
-				if (!Object.keys(fields).length) failure = { text: errorMessage(e) };
+				if (!Object.keys(fields).length) failure = { text: errorTextWithCode(e) };
 			} else if (e instanceof ApiError && e.status === 409 && e.code === 'CRM-1001') {
 				failure = { text: 'Для этого типа сделок нет опубликованной воронки.', link: session.can('workflow:write') ? '/workflows' : undefined };
 			} else {
-				failure = { text: errorMessage(e) };
+				failure = { text: errorTextWithCode(e) };
 			}
 		} finally {
 			busy = false;

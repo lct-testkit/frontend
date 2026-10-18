@@ -2,7 +2,7 @@
 	// Вкладка «Профиль»: кто я в системе, свои данные (имя, часовой пояс, телефон — `PATCH /api/me`) и оформление.
 	// Роль, email и статус меняет только администратор — этой ручке они не переданы вовсе (422 «лишнее поле»).
 	import { onMount } from 'svelte';
-	import { ApiError, api, errorMessage, unwrap } from '$lib/api';
+	import { ApiError, api, errorTextWithCode, unwrap } from '$lib/api';
 	import { people } from '$lib/api/people.svelte';
 	import { session } from '$lib/auth/session.svelte';
 	import { POLICY_TEXT } from '$lib/content/policy';
@@ -89,9 +89,9 @@
 			if (e instanceof ApiError && e.isValidation) {
 				const fields = e.fieldErrors();
 				phoneError = fields.phone ?? undefined;
-				formError = fields.phone ? null : errorMessage(e);
+				formError = fields.phone ? null : errorTextWithCode(e);
 			} else {
-				formError = errorMessage(e);
+				formError = errorTextWithCode(e);
 			}
 		} finally {
 			saving = false;
