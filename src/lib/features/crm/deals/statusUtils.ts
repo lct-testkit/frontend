@@ -29,14 +29,38 @@ export function terminals(graph: WorkflowGraph | null | undefined): WorkflowStat
 	return (graph?.statuses ?? []).filter((s) => !s.is_archived && isTerminal(s)).sort((a, b) => a.sort_order - b.sort_order);
 }
 
-export type TransitionKind = 'forward' | 'back' | 'won' | 'lost' | 'parked';
+/**
+ * Вид перехода для кнопок: вперёд на ближний шаг, `skip` — вперёд через шаг (необязательный), `back` — назад, `resume` — из заморозки на шаг,
+ * `won` / `lost` / `parked` — терминальные статусы.
+ */
+export type TransitionKind = 'forward' | 'skip' | 'back' | 'resume' | 'won' | 'lost' | 'parked';
 
-export function transitionKind(target: WorkflowStatus | undefined, current: WorkflowStatus | undefined): TransitionKind {
+/** Номер шага в ленте (по порядку), -1 — не шаг (терминальный статус или архивный). */
+const stepIndexOf = (list: readonly WorkflowStatus[] | undefined, id: string | undefined): number => (list && id ? list.findIndex((s) => s.id === id) : -1);
+
+export function transitionKind(target: WorkflowStatus | undefined, current: WorkflowStatus | undefined, stepList?: readonly WorkflowStatus[]): TransitionKind {
 	if (!target) return 'forward';
 	if (target.type === 'won') return 'won';
 	if (target.type === 'lost') return 'lost';
 	if (target.type === 'parked') return 'parked';
-	return current && target.sort_order < current.sort_order ? 'back' : 'forward';
+	// из заморозки любой переход на шаг — возобновление (порядок «Заморожена» больше любого шага, «назад» было бы ложью)
+	if (current?.type === 'parked') return 'resume';
+	if (current && target.sort_order < current.sort_order) return 'back';
+	const from = stepIndexOf(stepList, current?.id);
+	const to = stepIndexOf(stepList, target.id);
+	return from >= 0 && to > from + 1 ? 'skip' : 'forward';
+}
+
+/**
+ * Необязательные шаги: шаг необязателен, если в графе есть переход с предыдущего шага сразу на следующий («через шаг»).
+ * Признак выводится из графа, отдельного поля у статуса нет.
+ */
+export function optionalStepIds(graph: WorkflowGraph | null | undefined): Set<string> {
+	const list = steps(graph);
+	const edges = new Set((graph?.transitions ?? []).map((t) => `${t.from_status_id}>${t.to_status_id}`));
+	const result = new Set<string>();
+	for (let i = 1; i < list.length - 1; i += 1) if (edges.has(`${list[i - 1].id}>${list[i + 1].id}`)) result.add(list[i].id);
+	return result;
 }
 
 export interface ClassifiedTransition {
@@ -53,24 +77,58 @@ export interface TransitionButtons {
 	more: ClassifiedTransition[];
 }
 
+export interface ClassifyOptions {
+	/** шаги воронки по порядку: по ним отличается «вперёд» от «через шаг» */
+	steps?: readonly WorkflowStatus[];
+	/** шаг, на котором сделка остановилась перед заморозкой: «Возобновить» на него — главная кнопка */
+	stoppedAt?: string | null;
+}
+
 /**
- * Какие переходы вынести кнопками: главный — первый доступный «вперёд» (или «успешно закрыть», если вперёд некуда),
- * рядом — «Заморозить» и «Отказ», всё остальное (возврат назад, недоступные роли) — в меню.
+ * Какие переходы вынести кнопками: главный — доступный «вперёд» с ближайшим шагом (или «успешно закрыть», если вперёд некуда;
+ * у замороженной — «возобновить» на шаг остановки), рядом — «Заморозить» и «Отказ», всё остальное (через шаг, возврат назад,
+ * остальные «возобновить», недоступные роли) — в меню.
  */
 export function classifyTransitions(
 	items: AvailableTransition[],
 	statusOf: (id: string) => WorkflowStatus | undefined,
-	current: WorkflowStatus | undefined
+	current: WorkflowStatus | undefined,
+	options: ClassifyOptions = {}
 ): TransitionButtons {
 	const all = items.map<ClassifiedTransition>((transition) => {
 		const target = statusOf(transition.to_status_id);
-		return { transition, target, kind: transitionKind(target, current) };
+		return { transition, target, kind: transitionKind(target, current, options.steps) };
 	});
 	const allowed = all.filter((c) => c.transition.role_allowed);
-	const primary = allowed.find((c) => c.kind === 'forward') ?? allowed.find((c) => c.kind === 'won') ?? null;
+	const nearest = allowed.filter((c) => c.kind === 'forward').sort((a, b) => (a.target?.sort_order ?? 0) - (b.target?.sort_order ?? 0))[0];
+	const resumed = options.stoppedAt ? allowed.find((c) => c.kind === 'resume' && c.target?.id === options.stoppedAt) : undefined;
+	const primary = nearest ?? resumed ?? allowed.find((c) => c.kind === 'won') ?? null;
 	const secondary = allowed.filter((c) => c !== primary && (c.kind === 'parked' || c.kind === 'lost')).slice(0, 2);
 	const more = all.filter((c) => c !== primary && !secondary.includes(c));
 	return { primary, secondary, more };
+}
+
+export type StepState = 'done' | 'skipped' | 'current' | 'earlier' | 'future' | 'stopped';
+
+/**
+ * Состояния шагов ленты. Слева от текущего: `skipped` — необязательный и сделка там не бывала, иначе `done`; справа: `earlier` — сделка там уже
+ * была (после возврата), иначе `future`. Остановленная (заморозка, отказ) — `stopped` на шаге остановки. После переноса на другую воронку
+ * (`migrated`) пропусков нет: шаги нового графа сделка не проходила.
+ */
+export function stepStates(
+	list: readonly WorkflowStatus[],
+	currentIndex: number,
+	visited: ReadonlySet<string>,
+	optional: ReadonlySet<string>,
+	stopped: boolean,
+	migrated = false
+): StepState[] {
+	return list.map((step, i) => {
+		if (currentIndex < 0) return 'future';
+		if (i === currentIndex) return stopped ? 'stopped' : 'current';
+		if (i < currentIndex) return !migrated && optional.has(step.id) && !visited.has(step.id) ? 'skipped' : 'done';
+		return visited.has(step.id) && !migrated ? 'earlier' : 'future';
+	});
 }
 
 /**

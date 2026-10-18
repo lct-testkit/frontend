@@ -21,6 +21,15 @@ export function mergeItems(existing: readonly DealRow[], incoming: readonly Deal
 	return [...existing, ...incoming.filter((d) => !seen.has(d.id))];
 }
 
+/** Столбцов больше этого числа — пустые сворачиваются по умолчанию. */
+export const FOLD_ABOVE = 8;
+
+/** Свёрнут ли столбец: переключатель включён, данные пришли без ошибки и сделок нет. */
+export const isFolded = (collapse: boolean, col: Pick<BoardColumn, 'total' | 'loading' | 'error'>): boolean => collapse && !col.loading && !col.error && col.total === 0;
+
+/** Значение переключателя «Свернуть пустые столбцы», пока пользователь его не трогал: включён при более чем 8 столбцах. */
+export const defaultCollapse = (columnCount: number): boolean => columnCount > FOLD_ABOVE;
+
 /** Подпись кнопки «Ещё N»: сколько подгрузится следующим шагом. 0 — кнопка не нужна. */
 export function remaining(col: Pick<BoardColumn, 'items' | 'total' | 'cursor'>): number {
 	if (!col.cursor) return 0;

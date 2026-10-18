@@ -1,7 +1,6 @@
 <script lang="ts">
 	// Вкладка «История»: слева таймлайн статусов (откуда, куда, кто, сколько пробыла в прошлом статусе, SLA в момент смены),
 	// справа лента событий (создание, смена ответственного, подпись, перенос при изменении воронки).
-	import { untrack } from 'svelte';
 	import { Badge } from '@lct-testkit/rt-ui';
 	import { ArrowRight, Download } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
@@ -19,13 +18,10 @@
 	import type { Attachment, DealEvent, DealHistory } from '../../types';
 	import { attachmentName, fileEventSummary, hideDuplicatedEvents, sortFiles } from './dealHistoryFiles';
 	import DealStatusChip from '../DealStatusChip.svelte';
-	import { workflows } from '../workflows.svelte';
 
-	let { dealId, workflowId, refreshKey = 0 }: { dealId: string; workflowId: string; refreshKey?: number } = $props();
+	// История приходит из состояния карточки (её же берёт лента шагов): один запрос на обе.
+	let { dealId, data, loading, error, onRetry }: { dealId: string; data: DealHistory | null; loading: boolean; error: unknown; onRetry: () => void } = $props();
 
-	let data = $state<DealHistory | null>(null);
-	let loading = $state(true);
-	let error = $state<unknown>(null);
 	/** файлы по записям истории (ручка требует право на скачивание: без него видно только число файлов) */
 	let filesByChange = $state<Record<string, Attachment[]>>({});
 	const canDownload = $derived(session.can('file:download'));
@@ -50,23 +46,11 @@
 		filesByChange = result;
 	}
 
-	async function load() {
-		error = null;
-		try {
-			await workflows.ensure(workflowId);
-			data = await unwrap(api.GET('/api/deals/{deal_id}/history', { params: { path: { deal_id: dealId } } }));
-			people.ensure([...data.statuses.map((s) => s.changed_by), ...data.events.map((e) => e.actor_id)]);
-			if (canDownload) void loadFiles(data.statuses).then(() => people.ensure(Object.values(filesByChange).flat().map((a) => a.uploaded_by)));
-		} catch (e) {
-			error = e;
-		} finally {
-			loading = false;
-		}
-	}
-
 	$effect(() => {
-		void refreshKey;
-		untrack(() => void load());
+		const history = data;
+		if (!history) return;
+		people.ensure([...history.statuses.map((s) => s.changed_by), ...history.events.map((e) => e.actor_id)]);
+		if (canDownload) void loadFiles(history.statuses).then(() => people.ensure(Object.values(filesByChange).flat().map((a) => a.uploaded_by)));
 	});
 
 	const statuses = $derived([...(data?.statuses ?? [])].sort((a, b) => b.changed_at.localeCompare(a.changed_at)));
@@ -94,10 +78,10 @@
 	}
 </script>
 
-{#if loading}
+{#if loading && !data}
 	<Skeleton kind="rows" rows={5} />
-{:else if error}
-	<ErrorState {error} onRetry={load} compact />
+{:else if error && !data}
+	<ErrorState {error} {onRetry} compact />
 {:else}
 	<div class="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-start gap-4 max-lg:grid-cols-1">
 		<Card title="Статусы">

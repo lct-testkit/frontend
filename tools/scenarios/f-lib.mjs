@@ -101,3 +101,39 @@ export async function deleteDealsByTitle(title) {
 		}
 	}
 }
+
+/**
+ * Сделка B2B по маршруту: числа — номера шагов из задания (1…14), 'park' — заморозка, 'lost' — отказ.
+ *   dealAlong('kam', 'Название', [2, 3, 4, 6, 7, 8, 6])  // пропуск шага 5 и возврат с 8 на 6
+ * Файловые условия переходов закрываются приложенным PDF, поля заморозки и отказа заполняются.
+ */
+export async function dealAlong(role, title, route) {
+	const j = await apiAs(role);
+	const wfs = (await j('/api/workflows?state=published&limit=20')).body.items;
+	const wf = wfs.find((w) => w.deal_type === 'b2b' && w.is_default);
+	const g = (await j(`/api/workflows/${wf.id}`)).body;
+	const all = g.statuses.filter((s) => !s.is_archived);
+	const stepList = all.filter((s) => s.type === 'initial' || s.type === 'intermediate').sort((a, b) => a.sort_order - b.sort_order);
+	const org = (await j('/api/organizations?limit=1')).body.items[0];
+	const contact = (await j(`/api/contacts?organization_id=${org.id}&limit=1`)).body.items[0];
+	let deal = (await j('/api/deals', { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify({ title, deal_type: 'b2b', organization_id: org.id, contact_id: contact?.id, workflow_id: wf.id, amount: '100000', currency: 'RUB', priority: 'normal', expected_close_date: '2027-03-01' }) })).body;
+	const reasons = (await j('/api/loss-reasons?is_active=true')).body.items;
+	for (const stop of route) {
+		const target = stop === 'park' ? all.find((s) => s.type === 'parked') : stop === 'lost' ? all.find((s) => s.type === 'lost') : stepList[stop - 1];
+		const av = (await j(`/api/deals/${deal.id}/available-transitions`)).body.items;
+		const t = av.find((x) => x.to_status_id === target.id);
+		if (!t) throw new Error(`нет перехода в «${target.name}» из «${all.find((s) => s.id === deal.status_id)?.name}»`);
+		const ids = [];
+		for (const leaf of t.conditions ?? []) {
+			const m = !leaf.satisfied && /^step_attachments\.(.+)$/.exec(leaf.field);
+			if (m && !ids.length) ids.push(await attachPdf(j, deal.id, m[1]));
+		}
+		const fields = {};
+		if (target.type === 'lost') fields.loss_reason_id = reasons[0]?.id;
+		if (target.type === 'parked') fields['custom_fields.park_reason'] = 'Решение учёного совета отложено';
+		const res = await j(`/api/deals/${deal.id}/transition`, { method: 'POST', headers: { 'If-Match': `"${deal.version}"` }, body: JSON.stringify({ to_status_id: target.id, comment: t.requires_comment ? 'Переход по демо-сценарию.' : null, fields, attachments: ids }) });
+		if (res.status !== 200) throw new Error(`переход в «${target.name}»: ${res.status} ${JSON.stringify(res.body).slice(0, 300)}`);
+		deal = res.body.deal;
+	}
+	return { deal, j };
+}

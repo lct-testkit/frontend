@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import { Segment, SegmentedControl } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
-	import { AddLarge, CloseSmall, GridColumns3, History, Refresh, Table, UserAdd } from '@lct-testkit/rt-ui/icons';
+	import { AddLarge, CloseSmall, Fold, GridColumns3, History, Refresh, Table, Unfold, UserAdd } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { createPager } from '$lib/api/pager.svelte';
 	import { session } from '$lib/auth/session.svelte';
@@ -22,10 +22,11 @@
 	import type { DealListItem } from '../types';
 	import BulkReassignModal from './list/BulkReassignModal.svelte';
 	import DealsBoard from './list/DealsBoard.svelte';
+	import { defaultCollapse } from './list/boardColumns';
 	import DealsTable from './list/DealsTable.svelte';
 	import { formatTabCount, loadTabCounts, tabQueries, type TabCounts, type TabKey } from './list/dealCounts';
 	import { activeCount, readFilters, sortToState, stateToSort, toQuery } from './list/dealFilters';
-	import { statusName } from './statusUtils';
+	import { statusName, steps, terminals } from './statusUtils';
 	import NewDealDrawer from './new/NewDealDrawer.svelte';
 	import { workflows } from './workflows.svelte';
 
@@ -66,6 +67,10 @@
 	);
 
 	let board = $state<{ reload: () => Promise<void> }>();
+	// «Свернуть пустые столбцы» доски: пока не трогали, включено при более чем 8 столбцах (14 шагов и 3 терминальных статуса)
+	let collapseChoice = $state<boolean | null>(null);
+	const boardGraph = $derived(workflows.graph(f.workflow || undefined));
+	const collapse = $derived(collapseChoice ?? defaultCollapse(boardGraph ? steps(boardGraph).length + terminals(boardGraph).length : 0));
 	let selected = $state<string[]>([]);
 	let bulkOpen = $state(false);
 	let recentOpen = $state(false);
@@ -178,6 +183,9 @@
 
 <!-- «Обновить» и «Недавние» стоят в конце ряда фильтров: рядом с вкладками, которые теперь несут числа, им уже не хватает места -->
 {#snippet trailing()}
+	{#if f.view === 'board' && f.workflow}
+		<IconBtn icon={collapse ? Unfold : Fold} label={collapse ? 'Показать пустые столбцы' : 'Свернуть пустые столбцы'} variant={collapse ? 'secondary' : 'ghost'} aria-pressed={collapse} onclick={() => (collapseChoice = !collapse)} data-testid="board-collapse" />
+	{/if}
 	{#if !bp.isMobile}
 		<!-- уже 1280 px ряд фильтров переносится, и две иконки остались бы одни на строке: на узких экранах не показываем -->
 		<div class="flex items-center gap-2 max-xl:hidden">
@@ -236,7 +244,7 @@
 
 		{#if f.view === 'board'}
 			{#if f.workflow}
-				<DealsBoard bind:this={board} workflowId={f.workflow} {query} onChange={recount} />
+				<DealsBoard bind:this={board} workflowId={f.workflow} {query} {collapse} onChange={recount} />
 			{/if}
 		{:else}
 			<DealsTable

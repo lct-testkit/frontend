@@ -3,7 +3,7 @@
 import { api, ifMatch, unwrap } from '$lib/api';
 import { session } from '$lib/auth/session.svelte';
 import { isWatcherOnly } from './access';
-import type { AvailableTransition, Deal, DealProduct } from '../../types';
+import type { AvailableTransition, Deal, DealHistory, DealProduct } from '../../types';
 import { workflows } from '../workflows.svelte';
 
 type DealUpdate = import('$lib/api').components['schemas']['DealUpdateRequest'];
@@ -24,8 +24,13 @@ export class DealCardState {
 	watcherOnly = $state(false);
 	/** версия данных вкладок: растёт после переходов, чтобы история/обсуждение перечитались */
 	epoch = $state(0);
+	/** история статусов и событий: общая для ленты шагов и вкладки «История» (один запрос на обе) */
+	history = $state<DealHistory | null>(null);
+	historyLoading = $state(true);
+	historyError = $state<unknown>(null);
 
 	#seq = 0;
+	#historySeq = 0;
 
 	constructor(id: string) {
 		this.id = id;
@@ -37,6 +42,28 @@ export class DealCardState {
 	get status() {
 		return workflows.status(this.deal?.status_id);
 	}
+	/** шаги, на которых сделка побывала (по истории) */
+	get visited(): Set<string> {
+		const ids = new Set<string>();
+		for (const s of this.history?.statuses ?? []) {
+			if (s.from_status_id) ids.add(s.from_status_id);
+			ids.add(s.to_status_id);
+		}
+		return ids;
+	}
+
+	/** шаг, с которого сделка ушла в текущий терминальный статус (заморозка, отказ) */
+	get stoppedAt(): string | null {
+		const id = this.deal?.status_id;
+		if (!id) return null;
+		return (this.history?.statuses ?? []).filter((s) => s.to_status_id === id).sort((a, b) => a.changed_at.localeCompare(b.changed_at)).at(-1)?.from_status_id ?? null;
+	}
+
+	/** сделку переносили на другую воронку: шаги нового графа она не проходила, пропусков не показываем */
+	get migrated(): boolean {
+		return !!this.history && (this.history.events.some((e) => e.event_type === 'WORKFLOW_MIGRATION') || this.history.statuses.some((s) => s.reason === 'workflow_migration'));
+	}
+
 	/** можно ли менять сделку по роли в ней (закрытость и права роли проверяются отдельно) */
 	get writable(): boolean {
 		return !this.watcherOnly;
@@ -54,7 +81,7 @@ export class DealCardState {
 			const card = await unwrap(api.GET('/api/deals/{deal_id}', { params: { path: { deal_id: this.id } } }));
 			if (mine !== this.#seq) return;
 			this.#apply(card);
-			await Promise.all([workflows.ensure(card.deal.workflow_id), this.loadTransitions(), this.loadAccess()]);
+			await Promise.all([workflows.ensure(card.deal.workflow_id), this.loadTransitions(), this.loadAccess(), this.loadHistory()]);
 		} catch (e) {
 			if (mine === this.#seq) this.error = e;
 		} finally {
@@ -78,6 +105,20 @@ export class DealCardState {
 		}
 	}
 
+	/** История сделки; ошибка не роняет карточку: лента шагов работает и без неё, вкладка «История» покажет ошибку с повтором. */
+	async loadHistory(): Promise<void> {
+		const mine = ++this.#historySeq;
+		this.historyError = null;
+		try {
+			const history = await unwrap(api.GET('/api/deals/{deal_id}/history', { params: { path: { deal_id: this.id } } }));
+			if (mine === this.#historySeq) this.history = history;
+		} catch (e) {
+			if (mine === this.#historySeq) this.historyError = e;
+		} finally {
+			if (mine === this.#historySeq) this.historyLoading = false;
+		}
+	}
+
 	async loadTransitions(): Promise<void> {
 		if (!this.deal || this.deal.closed_at) {
 			this.transitions = [];
@@ -97,7 +138,7 @@ export class DealCardState {
 			this.#apply(card);
 			this.conflict = false;
 			this.epoch += 1;
-			await this.loadTransitions();
+			await Promise.all([this.loadTransitions(), this.loadHistory()]);
 		} catch (e) {
 			this.error = e;
 		}
@@ -107,7 +148,7 @@ export class DealCardState {
 	async applied(deal: Deal): Promise<void> {
 		this.deal = deal;
 		this.epoch += 1;
-		await this.loadTransitions();
+		await Promise.all([this.loadTransitions(), this.loadHistory()]);
 	}
 
 	async patch(body: DealUpdate): Promise<Deal> {
@@ -133,6 +174,7 @@ export class DealCardState {
 		);
 		this.deal = deal;
 		this.epoch += 1;
+		void this.loadHistory();
 		return deal;
 	}
 }
