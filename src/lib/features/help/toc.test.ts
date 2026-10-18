@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HeadingIds, isInternalHref, slugify, splitExplicitId } from '$lib/utils/headings';
+import { HeadingIds, isInternalHref, slugify } from '$lib/utils/headings';
 import { extractToc, hasToc, splitTitle } from './toc';
 
 describe('slugify', () => {
@@ -23,7 +23,6 @@ describe('HeadingIds', () => {
 		expect(ids.next('Шаги').id).toBe('h-shagi-3');
 	});
 	it('явный якорь побеждает и убирается из текста', () => {
-		expect(splitExplicitId('CRM-1201 Условия {#crm-1201}')).toEqual({ text: 'CRM-1201 Условия', id: 'h-crm-1201' });
 		const ids = new HeadingIds();
 		expect(ids.next('CRM-1201 Условия {#crm-1201}')).toEqual({ text: 'CRM-1201 Условия', id: 'h-crm-1201' });
 	});

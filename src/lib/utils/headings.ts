@@ -6,7 +6,7 @@ const TRANSLIT: Record<string, string> = {
 };
 
 /** Префикс нужен, потому что DOMPurify вырезает `id`, совпадающие со свойствами `document` (`title`, `forms`…). */
-export const HEADING_PREFIX = 'h-';
+const HEADING_PREFIX = 'h-';
 
 /** `Резервное копирование` → `h-rezervnoe-kopirovanie`. */
 export function slugify(text: string): string {
@@ -23,7 +23,7 @@ export function slugify(text: string): string {
 const EXPLICIT = /\s*\{#([a-z0-9][a-z0-9-]*)\}\s*$/i;
 
 /** Заголовок с явным якорем: `CRM-1201 Условия {#crm-1201}` → текст без хвоста и якорь `h-crm-1201`. */
-export function splitExplicitId(text: string): { text: string; id: string | null } {
+function splitExplicitId(text: string): { text: string; id: string | null } {
 	const m = EXPLICIT.exec(text);
 	if (!m) return { text, id: null };
 	return { text: text.slice(0, m.index), id: `${HEADING_PREFIX}${m[1].toLowerCase()}` };

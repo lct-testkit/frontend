@@ -32,7 +32,7 @@ export function branchRows(items: readonly Branch[]): BranchRow[] {
 }
 
 /** Сам филиал и все его потомки: их нельзя выбрать родителем (цикл — 422). */
-export function descendantIds(items: readonly Branch[], id: string): Set<string> {
+function descendantIds(items: readonly Branch[], id: string): Set<string> {
 	const out = new Set<string>([id]);
 	let grew = true;
 	while (grew) {
