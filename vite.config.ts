@@ -42,9 +42,21 @@ export default defineConfig(({ mode }) => {
 				provider: 'v8',
 				include: ['src/lib/**/*.ts'],
 				exclude: ['src/lib/**/*.test.ts', 'src/lib/**/*.d.ts', 'src/lib/api/schema.d.ts'],
-				reporter: ['text-summary', 'lcov'],
-				// пороги по измеренной базе (2026-10-18: lines/statements 66%, branches 87%, functions 82%) минус 2 пункта; поднимайте, не опускайте
-				thresholds: { lines: 64, statements: 64, branches: 85, functions: 80 }
+				reporter: ['text-summary', 'lcov', 'json-summary'],
+				// общие пороги по замеру 2026-10-18 (lines/statements 73.9%, branches 88.3%, functions 84.9%) минус 2 пункта; поднимайте, не опускайте
+				// модульные — по замеру того же дня минус 2 (подписание 86%, личность 92%, CRM 80%, клиент API 56%, авторизация 23%):
+				// у `auth` покрытие сейчас низкое — порог честно фиксирует его, а не выдуманные 70%; поднимайте вместе с тестами сессии и токенов
+				thresholds: {
+					lines: 71,
+					statements: 71,
+					branches: 86,
+					functions: 82,
+					'src/lib/features/signing/**': { lines: 84 },
+					'src/lib/features/identity/**': { lines: 90 },
+					'src/lib/features/crm/**': { lines: 78 },
+					'src/lib/api/**': { lines: 54 },
+					'src/lib/auth/**': { lines: 21 }
+				}
 			}
 		}
 	};

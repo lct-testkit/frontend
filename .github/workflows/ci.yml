@@ -61,6 +61,10 @@ jobs:
       - name: Unit-тесты + покрытие (пороги в vite.config.ts)
         run: pnpm test:coverage
 
+      - name: Сводка покрытия в PR (по модулям)
+        if: always()
+        run: node tools/coverage-summary.mjs >> "$GITHUB_STEP_SUMMARY"
+
       - name: Числа в README совпадают с кодом (блок STATS)
         run: node tools/fill-stats.mjs --check
 
