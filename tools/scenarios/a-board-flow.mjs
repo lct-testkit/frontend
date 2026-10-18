@@ -3,10 +3,11 @@ import { BASE, accessToken } from '../lib.mjs';
 import { expect, newBrowser, newPage, step } from './a-lib.mjs';
 
 const tok = await accessToken('head');
-const wf = (await (await fetch(`${BASE}/api/workflows?state=published&limit=20`, { headers: { Authorization: `Bearer ${tok}` } })).json()).items.find((w) => w.deal_type === 'b2b');
+const wf = (await (await fetch(`${BASE}/api/workflows?state=published&limit=20`, { headers: { Authorization: `Bearer ${tok}` } })).json()).items.find((w) => w.deal_type === 'b2b' && w.is_default);
 const H = { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' };
 const org = (await (await fetch(`${BASE}/api/organizations?q=МОУПН&limit=1`, { headers: H })).json()).items[0];
-const fresh = await (await fetch(`${BASE}/api/deals`, { method: 'POST', headers: { ...H, 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify({ title: 'Летняя школа Data Science для студентов', deal_type: 'b2b', organization_id: org.id, amount: '210000', currency: 'RUB', priority: 'normal' }) })).json();
+const contact = (await (await fetch(`${BASE}/api/contacts?organization_id=${org.id}&limit=1`, { headers: H })).json()).items[0]; // первый шаг воронки из 14 требует контакт
+const fresh = await (await fetch(`${BASE}/api/deals`, { method: 'POST', headers: { ...H, 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify({ title: 'Летняя школа Data Science для студентов', deal_type: 'b2b', organization_id: org.id, contact_id: contact?.id, amount: '210000', currency: 'RUB', priority: 'normal' }) })).json();
 const browser = await newBrowser();
 const head = await newPage(browser, { who: 'head', width: 1440, height: 900 });
 const aud = await newPage(browser, { who: 'auditor', width: 1440, height: 900 });
@@ -29,10 +30,15 @@ try {
 	await head.getByTestId('transition-submit').waitFor({ timeout: 8000 });
 	expect(true, 'диалог перехода открылся после перетаскивания');
 	await head.screenshot({ path: '.shots/a/board-drag-dialog.png' });
+	const counter = async (name) => Number((await head.locator(`section[aria-label="${name}"] header`).innerText()).match(/(\d+)\s*$/)?.[1]);
+	const fromBefore = await counter(from);
+	const toBefore = await counter(target);
 	await head.getByTestId('transition-submit').click();
 	await head.waitForTimeout(1500);
 	const inTarget = await head.locator(`section[aria-label="${target}"] a[draggable=true]`, { hasText: fresh.number }).count();
 	expect(inTarget > 0, `карточка переехала в «${target}»`);
+	await head.waitForTimeout(800);
+	expect((await counter(from)) === fromBefore - 1 && (await counter(target)) === toBefore + 1, `счётчики столбцов: «${from}» ${fromBefore}→${await counter(from)}, «${target}» ${toBefore}→${await counter(target)}`);
 
 	step('AUDITOR');
 	for (const path of ['/deals', '/organizations', '/contacts', '/tasks']) {

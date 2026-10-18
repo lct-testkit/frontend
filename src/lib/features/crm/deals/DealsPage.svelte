@@ -23,6 +23,7 @@
 	import BulkReassignModal from './list/BulkReassignModal.svelte';
 	import DealsBoard from './list/DealsBoard.svelte';
 	import DealsTable from './list/DealsTable.svelte';
+	import { formatTabCount, loadTabCounts, tabQueries, type TabCounts, type TabKey } from './list/dealCounts';
 	import { activeCount, readFilters, sortToState, stateToSort, toQuery } from './list/dealFilters';
 	import { statusName } from './statusUtils';
 	import NewDealDrawer from './new/NewDealDrawer.svelte';
@@ -38,6 +39,27 @@
 	// на доске воронка выбрана всегда, поэтому в счётчик фильтров не входит
 	// (на доске статусы не фильтруют, поэтому в счётчик не входят)
 	const filterCount = $derived(activeCount(f, !showOwner) - (f.view === 'board' && f.workflow ? 1 : 0) - (f.view === 'board' && f.statuses.length ? 1 : 0));
+
+	// числа на вкладках: те же фильтры, что у списка, но без быстрого фильтра (вкладки сравниваются между собой).
+	// Пока новое число грузится, остаётся прежнее — без мигания нулей; до первого ответа вкладка без числа.
+	let tabCounts = $state<TabCounts>({});
+	let countsTick = $state(0);
+	const baseQuery = $derived(toQuery({ ...f, quick: 'all', statuses: f.view === 'board' ? [] : f.statuses }, meId));
+	$effect(() => {
+		if (!canRead) return;
+		const queries = tabQueries(baseQuery, meId);
+		void countsTick;
+		const ctrl = new AbortController();
+		const timer = setTimeout(async () => {
+			const counts = await loadTabCounts(queries, ctrl.signal);
+			if (!ctrl.signal.aborted) tabCounts = { ...tabCounts, ...counts };
+		}, 300);
+		return () => {
+			clearTimeout(timer);
+			ctrl.abort();
+		};
+	});
+	const recount = () => (countsTick += 1);
 
 	const pager = createPager<DealListItem>(async (cursor, signal) =>
 		unwrap(api.GET('/api/deals', { params: { query: { ...query, limit: 50, cursor: cursor ?? undefined } }, signal }))
@@ -77,7 +99,10 @@
 	const FILTER_KEYS = ['workflow', 'status', 'organization', 'direction', 'type', 'priority', 'owner', 'region', 'product', 'from', 'to'];
 	const cleared = Object.fromEntries(FILTER_KEYS.map((k) => [k, null]));
 	const reset = () => setQuery(cleared);
-	const refresh = () => (f.view === 'board' ? board?.reload() : pager.reload());
+	const refresh = () => {
+		recount();
+		return f.view === 'board' ? board?.reload() : pager.reload();
+	};
 
 	const publishedList = $derived(workflows.published.value ?? []);
 	const flowItems = $derived(publishedList.map((w) => ({ key: w.id, value: w.name, hint: DEAL_TYPE_LABELS[w.deal_type] })));
@@ -106,13 +131,14 @@
 		set({ direction: id, product: keep ? f.product || null : null });
 	}
 
-	const quickTabs = [
-		{ key: 'all', label: 'Все' },
-		{ key: 'mine', label: 'Мои' },
-		{ key: 'warning', label: 'Срок под угрозой' },
-		{ key: 'breached', label: 'Срок нарушен' },
-		{ key: 'closed', label: 'Закрытые' }
+	const TAB_LABELS: [TabKey, string][] = [
+		['all', 'Все'],
+		['mine', 'Мои'],
+		['warning', 'Под угрозой'],
+		['breached', 'Просрочены'],
+		['closed', 'Закрытые']
 	];
+	const quickTabs = $derived(TAB_LABELS.map(([key, label]) => ({ key, label, count: formatTabCount(tabCounts[key]) })));
 	// фильтры, что живут в боковой панели «Фильтры»: тип, регион, продукт, период (и воронка в режиме таблицы)
 	const moreActive = $derived([f.type, f.region, f.product, f.priority, showOwner ? f.owner : '', f.from || f.to, f.view === 'table' ? f.workflow : ''].filter(Boolean).length);
 
@@ -147,6 +173,20 @@
 		<EmptyState title="Сделок пока нет" compact>
 			{#snippet action()}{#if canCreate}<Btn label="Новая сделка" icon={AddLarge} variant="outline" colorScheme="neutral" onclick={openCreate} />{/if}{/snippet}
 		</EmptyState>
+	{/if}
+{/snippet}
+
+<!-- «Обновить» и «Недавние» стоят в конце ряда фильтров: рядом с вкладками, которые теперь несут числа, им уже не хватает места -->
+{#snippet trailing()}
+	{#if !bp.isMobile}
+		<!-- уже 1280 px ряд фильтров переносится, и две иконки остались бы одни на строке: на узких экранах не показываем -->
+		<div class="flex items-center gap-2 max-xl:hidden">
+		<IconBtn icon={Refresh} label="Обновить" onclick={refresh} />
+		<PopPanel open={recentOpen} onClose={() => (recentOpen = false)} title="Недавно открытые">
+			{#snippet trigger()}<IconBtn icon={History} label="Недавние" onclick={() => (recentOpen = !recentOpen)} aria-expanded={recentOpen} />{/snippet}
+			<RecentList compact limit={8} />
+		</PopPanel>
+		</div>
 	{/if}
 {/snippet}
 
@@ -185,11 +225,6 @@
 					<Segment index="table" label={bp.isMobile ? undefined : 'Таблица'} icon={tableIcon} aria-label="Таблица" />
 					<Segment index="board" label={bp.isMobile ? undefined : 'Доска'} icon={boardIcon} aria-label="Доска" />
 				</SegmentedControl>
-				{#if !bp.isMobile}<IconBtn icon={Refresh} label="Обновить" onclick={refresh} />{/if}
-				{#if !bp.isMobile}<PopPanel open={recentOpen} onClose={() => (recentOpen = false)} title="Недавно открытые">
-					{#snippet trigger()}<IconBtn icon={History} label="Недавние" onclick={() => (recentOpen = !recentOpen)} aria-expanded={recentOpen} />{/snippet}
-					<RecentList compact limit={8} />
-				</PopPanel>{/if}
 			{/if}
 		{/snippet}
 	</PageHeader>
@@ -197,11 +232,11 @@
 	{#if !canRead}
 		<EmptyState title="Нет доступа к сделкам" compact />
 	{:else}
-		<FilterBar search={f.q} placeholder="Номер, название или вуз" onSearch={(v) => set({ q: v || null })} active={filterCount} onReset={reset} {filters} {more} {moreActive} />
+		<FilterBar search={f.q} placeholder="Номер, название или вуз" onSearch={(v) => set({ q: v || null })} active={filterCount} onReset={reset} {filters} {more} {moreActive} {trailing} />
 
 		{#if f.view === 'board'}
 			{#if f.workflow}
-				<DealsBoard bind:this={board} workflowId={f.workflow} {query} />
+				<DealsBoard bind:this={board} workflowId={f.workflow} {query} onChange={recount} />
 			{/if}
 		{:else}
 			<DealsTable
