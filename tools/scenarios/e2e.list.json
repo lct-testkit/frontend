@@ -138,6 +138,10 @@
 			"tier": "full"
 		},
 		{
+			"file": "e-posture.mjs",
+			"tier": "full"
+		},
+		{
 			"file": "e-security.mjs",
 			"tier": "full"
 		},
