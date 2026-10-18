@@ -7,7 +7,7 @@ export async function getLicense(id: string, signal?: AbortSignal): Promise<Orga
 	try {
 		return await unwrap(api.GET('/api/organization-licenses/{license_id}', { params: { path: { license_id: id } }, signal }));
 	} catch (e) {
-		if (e instanceof ApiError && e.isNotFound) return null;
+		if (e instanceof ApiError && (e.isNotFound || e.isValidation)) return null; // чужая, удалённая или не id вовсе
 		throw e;
 	}
 }

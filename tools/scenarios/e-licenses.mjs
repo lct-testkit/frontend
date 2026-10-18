@@ -112,6 +112,14 @@ try {
 	await headPage.locator('button.atmr-button--primary, button.atmr-button--danger', { hasText: 'Удалить' }).last().click();
 	await headPage.waitForSelector('text=Лицензия уже удалена');
 	ok('повторное удаление: «Лицензия уже удалена», без ошибки');
+	console.log('(f) лицензия по ссылке');
+	const any = (await api('kam', 'GET', '/api/organization-licenses?limit=1')).json.items[0];
+	await page.goto(`${BASE}/licenses/${any.id}`);
+	await drawer.getByText(any.product_name).first().waitFor();
+	check(page.url().includes(`/licenses?edit=${any.id}`), '/licenses/<id> перенаправляет на /licenses?edit=<id> и открывает панель');
+	await page.goto(`${BASE}/licenses/00000000-0000-7000-8000-000000000000`);
+	await page.waitForSelector('text=Лицензия не найдена или недоступна');
+	check(!page.url().includes('edit='), 'чужой/несуществующий id: тост, адрес очищен, панели нет');
 } finally {
 	await cleanup();
 	await browser.close();

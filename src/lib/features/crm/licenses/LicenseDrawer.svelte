@@ -4,7 +4,7 @@
 	import { onMount, untrack } from 'svelte';
 	import { api, unwrap, idem, ifMatch, ApiError } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
-	import { Btn, FormDrawer, FormRow, confirm, toast } from '$lib/ui';
+	import { Btn, CopyButton, FormDrawer, FormRow, confirm, toast } from '$lib/ui';
 	import AreaField from '$lib/ui/fields/AreaField.svelte';
 	import DateField from '$lib/ui/fields/DateField.svelte';
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
@@ -143,6 +143,12 @@
 </script>
 
 <FormDrawer {open} title={isNew ? 'Новая лицензия' : `${item?.vendor ?? ''} · ${item?.product_name ?? ''}`} width={520} {saving} {formError} {conflict} {canSave} showSave={!readOnly} cancelLabel={readOnly ? 'Закрыть' : 'Отмена'} onSave={save} {onClose} onReload={reloadVersion}>
+	{#if item}
+		<div class="t-desc-l -mb-2 flex items-center gap-1 text-muted">
+			<CopyButton value={`${location.origin}/licenses/${item.id}`} label="Копировать ссылку на лицензию" done="Ссылка скопирована" />
+			<span>Ссылка на эту лицензию</span>
+		</div>
+	{/if}
 	<OrgPicker label="Вуз" required value={v.orgId} error={errors.organization_id} disabled={!isNew || !!orgId || readOnly} onChange={(id) => (v.orgId = id)} />
 	<SuggestField label="Вендор" required value={v.vendor} pickedId={v.vendorId} items={vendorSuggestions} error={errors.vendor} maxlength={MAX_LEN.vendor} disabled={readOnly} onChange={(text, id) => ((v.vendor = text), (v.vendorId = id))} />
 	<SuggestField label="ПО" required value={v.product} pickedId={v.productId} items={softwareSuggestions} error={errors.product_name} hint="Программное обеспечение по договору" maxlength={MAX_LEN.product} disabled={readOnly} onChange={(text, id) => ((v.product = text), (v.productId = id))} />
