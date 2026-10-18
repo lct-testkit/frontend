@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { REPORT_SPECS, canDownloadReport, describeTemplate, hasSpec, isReportExpired, normalizeParams, normalizePosition, paramsFor, toList, validateParams } from './params';
+import { REPORT_SPECS, canDownloadReport, defaultFormat, describeTemplate, formatHint, formatLabel, formatsFor, hasSpec, isReportExpired, normalizeParams, normalizePosition, paramsFor, toList, validateParams } from './params';
 import { runKey } from './widgets';
 
 /** Виды отчётов бэкенда (backend/app/modules/reporting/seed.py): у каждого обязана быть форма параметров. */
@@ -121,6 +121,31 @@ describe('параметры отчётов', () => {
 		expect(runKey({ template_code: 'x', params: { organization_ids: ['b', 'a'] } })).toBe(runKey({ template_code: 'x', params: { organization_ids: ['a', 'b'] } }));
 		expect(runKey({ template_code: 'x', params: { organization_ids: 'b,a' } })).toBe(runKey({ template_code: 'x', params: { organization_ids: ['a', 'b'] } }));
 		expect(runKey({ template_code: 'x', params: { months: 3 } })).not.toBe(runKey({ template_code: 'x', params: { months: 4 } }));
+	});
+});
+
+describe('форматы отчёта', () => {
+	it('формат по каноническому порядку, неизвестный не теряется', () => {
+		expect(formatsFor(['pdf', 'xls', 'xlsx'])).toEqual(['xlsx', 'xls', 'pdf']);
+		expect(formatsFor(['xlsx', 'ods'])).toEqual(['xlsx', 'ods']);
+		expect(formatsFor(['json', 'png', 'xlsx', 'xls', 'pdf'])).toEqual(['xlsx', 'xls', 'pdf', 'png', 'json']);
+		expect(formatsFor([])).toEqual([]);
+	});
+
+	it('формат по умолчанию: запомненный из доступных, иначе xlsx, иначе первый', () => {
+		expect(defaultFormat(['xls', 'pdf'])).toBe('xls');
+		expect(defaultFormat(['xls', 'pdf'], 'pdf')).toBe('pdf');
+		expect(defaultFormat(['xlsx', 'pdf'], 'png')).toBe('xlsx');
+		expect(defaultFormat(['xlsx', 'xls'])).toBe('xlsx');
+		expect(defaultFormat([], 'pdf')).toBe('xlsx');
+	});
+
+	it('подписи и подсказки; неизвестный код — в верхнем регистре', () => {
+		expect(formatLabel('xls')).toBe('Excel .xls');
+		expect(formatLabel('xlsx')).toBe('Excel .xlsx');
+		expect(formatLabel('ods')).toBe('ODS');
+		expect(formatHint('xls')).toMatch(/97/);
+		expect(formatHint('ods')).toBeUndefined();
 	});
 });
 

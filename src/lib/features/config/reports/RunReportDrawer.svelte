@@ -9,9 +9,9 @@
 	import { count } from '$lib/utils/format';
 	import type { ReportTemplate } from '../types';
 	import ParamsForm, { type WorkflowOption } from './ParamsForm.svelte';
-	import { REPORT_FORMATS, REPORT_FORMAT_LABELS, REPORT_SPECS, describeTemplate, normalizeParams, paramsFor, validateParams, type ReportFormat } from './params';
+	import { REPORT_SPECS, defaultFormat, describeTemplate, formatHint, formatLabel, formatsFor, normalizeParams, paramsFor, validateParams } from './params';
 	import { cleanSelection } from './columns';
-	import { columnsKey, recallStrings, remember } from './memory';
+	import { columnsKey, formatKey, recall, recallStrings, remember } from './memory';
 	import { useReportRun } from './run.svelte';
 
 	interface Props {
@@ -22,7 +22,7 @@
 	let { template, onClose }: Props = $props();
 
 	const run = useReportRun();
-	let format = $state<ReportFormat>('xlsx');
+	let format = $state('xlsx');
 	let values = $state<Record<string, unknown>>({});
 	let errors = $state<Record<string, string>>({});
 	let workflows = $state<WorkflowOption[]>([]);
@@ -30,7 +30,7 @@
 	const defs = $derived(template ? paramsFor(template.code, template.default_params, { dateFields: template.date_fields, defaultDateField: template.default_date_field, columns: template.columns }) : []);
 	const spec = $derived(template ? REPORT_SPECS[template.code] : undefined);
 	const hasScope = $derived(defs.some((d) => d.group === 'scope'));
-	const formats = $derived(REPORT_FORMATS.filter((f) => template?.output_formats.includes(f)));
+	const formats = $derived(formatsFor(template?.output_formats ?? []));
 	const busy = $derived(run.phase === 'running');
 
 	$effect(() => {
@@ -38,13 +38,14 @@
 		if (!t) return;
 		untrack(() => {
 			run.reset();
-			format = (t.output_formats.includes('xlsx') ? 'xlsx' : t.output_formats[0]) as ReportFormat;
+			const past = recall(formatKey(t.code));
+			format = defaultFormat(formatsFor(t.output_formats), typeof past === 'string' ? past : null);
 			values = { ...t.default_params };
 			// прошлый набор колонок этого отчёта (ТЗ Функц.13: кэш действий пользователя)
 			const columnDef = paramsFor(t.code, t.default_params, { columns: t.columns }).find((d) => d.kind === 'columns');
-			const past = recallStrings(columnsKey(t.code));
-			if (columnDef && past) {
-				const kept = cleanSelection(past, columnDef.options ?? []);
+			const pastColumns = recallStrings(columnsKey(t.code));
+			if (columnDef && pastColumns) {
+				const kept = cleanSelection(pastColumns, columnDef.options ?? []);
 				if (kept.length) values = { ...values, columns: kept };
 			}
 			errors = {};
@@ -62,6 +63,7 @@
 		if (Object.keys(errors).length) return;
 		const body = normalizeParams(defs, values);
 		remember(columnsKey(template.code), Array.isArray(body.columns) ? body.columns : undefined);
+		remember(formatKey(template.code), format);
 		void run.run(template.code, format, body);
 	}
 </script>
@@ -86,11 +88,12 @@
 				{#if spec?.hint}<p class="t-desc-l text-muted">{spec.hint}</p>{/if}
 				{#if spec?.personalData}<Notice class="shrink-0" tone="warning">Отчёт содержит персональные данные. Не передавайте файл посторонним</Notice>{/if}
 				{#if formats.length > 1}
-					<div class="flex flex-col gap-1.5">
-						<span class="t-desc-l text-muted">Формат</span>
-						<SegmentedControl class="self-start" size="m" value={format} onChange={(v: string) => (format = v as ReportFormat)}>
-							{#each formats as f (f)}<Segment index={f} label={REPORT_FORMAT_LABELS[f]} />{/each}
+					<div class="flex flex-col gap-1.5" role="group" aria-labelledby="report-format-label">
+						<span id="report-format-label" class="t-desc-l text-muted">Формат</span>
+						<SegmentedControl class="max-w-full self-start" size="m" value={format} onChange={(v: string) => (format = v)}>
+							{#each formats as f (f)}<Segment index={f} label={formatLabel(f)} />{/each}
 						</SegmentedControl>
+						{#if formatHint(format)}<span class="t-desc-l text-muted">{formatHint(format)}</span>{/if}
 					</div>
 				{/if}
 				<ParamsForm {defs} bind:values {errors} {workflows} />

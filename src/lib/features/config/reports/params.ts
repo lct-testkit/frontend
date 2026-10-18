@@ -2,9 +2,33 @@
 import { GLOSSARY } from '$lib/ui/glossary';
 import { TRANSFER_STATUS_LABELS } from '../../crm/shared/labels';
 
-export const REPORT_FORMATS = ['xlsx', 'pdf', 'png'] as const;
-export type ReportFormat = (typeof REPORT_FORMATS)[number];
-export const REPORT_FORMAT_LABELS: Record<ReportFormat, string> = { xlsx: 'Excel', pdf: 'PDF', png: 'Картинка' };
+/** Форматы, которые умеет бэкенд (порядок — как на экране). */
+export const REPORT_FORMATS = ['xlsx', 'xls', 'pdf', 'png', 'json'] as const;
+/** Неизвестный серверу формат из будущего не ломает типы: он показывается кодом в верхнем регистре. */
+export type ReportFormat = (typeof REPORT_FORMATS)[number] | (string & {});
+export const REPORT_FORMAT_LABELS: Record<string, string> = { xlsx: 'Excel .xlsx', xls: 'Excel .xls', pdf: 'PDF', png: 'PNG', json: 'JSON' };
+export const REPORT_FORMAT_HINTS: Record<string, string> = {
+	xlsx: 'Для Excel 2007 и новее',
+	xls: 'Для Excel 97–2003 и старых программ',
+	pdf: 'Для печати и передачи',
+	png: 'Картинка диаграммы',
+	json: 'Данные для обмена с другими системами'
+};
+
+export const formatLabel = (code: string): string => REPORT_FORMAT_LABELS[code] ?? code.toUpperCase();
+export const formatHint = (code: string): string | undefined => REPORT_FORMAT_HINTS[code];
+
+/** Форматы шаблона: известные в каноническом порядке, за ними неизвестные (формат бэкенда не теряем). */
+export function formatsFor(outputFormats: readonly string[]): string[] {
+	const known = (REPORT_FORMATS as readonly string[]).filter((f) => outputFormats.includes(f));
+	return [...known, ...outputFormats.filter((f) => !(REPORT_FORMATS as readonly string[]).includes(f))];
+}
+
+/** Формат по умолчанию: запомненный (если он есть у шаблона), иначе xlsx, иначе первый. */
+export function defaultFormat(formats: readonly string[], remembered?: string | null): string {
+	if (remembered && formats.includes(remembered)) return remembered;
+	return formats.includes('xlsx') ? 'xlsx' : (formats[0] ?? 'xlsx');
+}
 
 export const REPORT_STATUSES = ['queued', 'processing', 'completed', 'failed'] as const;
 export type ReportStatus = (typeof REPORT_STATUSES)[number];
