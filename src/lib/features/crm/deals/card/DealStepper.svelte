@@ -7,7 +7,7 @@
 	import { StatusChip, StatusSteps, type Step } from '$lib/ui';
 	import { statusTypeHint } from '../../shared/hints';
 	import type { AvailableTransition, Deal, WorkflowGraph } from '../../types';
-	import { isTerminal, statusName, statusTone, steps } from '../statusUtils';
+	import { deniedText, isTerminal, roleHint, statusName, statusTone, steps } from '../statusUtils';
 
 	interface Props {
 		graph: WorkflowGraph | undefined;
@@ -46,12 +46,17 @@
 
 	const view = $derived<Step[]>(
 		list.map((step, i) => {
-			const transition = transitions.find((t) => t.to_status_id === step.id && t.role_allowed);
+			const toStep = transitions.filter((t) => t.to_status_id === step.id);
+			const transition = toStep.find((t) => t.role_allowed);
+			// переход в шаг есть, но роли запрещён — подсказка вместо молчаливой неактивности
+			const denied = !transition ? toStep[0] : undefined;
+			const who = denied ? roleHint(denied, graph) : null;
 			return {
 				id: step.id,
 				name: statusName(step.name),
 				state: i < index ? 'done' : i === index ? (terminal ? 'stopped' : 'current') : 'future',
-				onclick: transition ? () => onStep?.(transition) : undefined
+				onclick: transition ? () => onStep?.(transition) : undefined,
+				hint: denied ? deniedText(who) : undefined
 			};
 		})
 	);

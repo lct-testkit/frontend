@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { Segment, SegmentedControl } from '@lct-testkit/rt-ui';
+	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { Refresh } from '@lct-testkit/rt-ui/icons';
 	import { session } from '$lib/auth/session.svelte';
 	import { landingFor } from '$lib/nav';
@@ -42,18 +43,27 @@
 	const SLA = { breached: { tone: 'error', label: 'Просрочено' }, warning: { tone: 'warning', label: 'Скоро срок' } } as const;
 	const PRIORITY_DOT: Record<string, string> = { critical: 'bg-danger', high: 'bg-warning', normal: 'bg-soft', low: 'bg-line-strong' };
 	let funnelType = $state<string | null>(null);
+	const bp = useBreakpoint();
 	const activeType = $derived(funnelType ?? data.mainType);
 	const funnel = $derived(data.funnel(activeType));
 	const maxFunnel = $derived(Math.max(1, ...funnel.map((f) => f.count)));
 </script>
 
+{#snippet refresh()}<IconBtn icon={Refresh} label="Обновить" loading={data.loading} onclick={() => data.load()} />{/snippet}
+<!-- телефон: кнопка не получает свой ряд над плитками — она в шапке первого блока со списком -->
+{#snippet mobileRefresh()}{#if bp.isMobile}{@render refresh()}{/if}{/snippet}
+
 <svelte:head><title>Главная · RTK School</title></svelte:head>
 
 {#if dashboard}
 	<Page>
-		<PageHeader title="Главная">
-			{#snippet actions()}<IconBtn icon={Refresh} label="Обновить" loading={data.loading} onclick={() => data.load()} />{/snippet}
-		</PageHeader>
+		{#if bp.isMobile}
+			<PageHeader title="Главная" />
+		{:else}
+			<PageHeader title="Главная">
+				{#snippet actions()}{@render refresh()}{/snippet}
+			</PageHeader>
+		{/if}
 
 		{#if data.error}
 			<ErrorState error={data.error} onRetry={() => data.load()} />
@@ -86,12 +96,12 @@
 				<div class="flex min-w-0 flex-col gap-4">
 					{#if session.can('deal:read')}
 {#if data.loading}
-	<Card title="Требуют внимания"><Skeleton kind="lines" rows={4} /></Card>
+	<Card title="Требуют внимания" action={mobileRefresh}><Skeleton kind="lines" rows={4} /></Card>
 {:else if data.attention.length === 0}
-	<Card title="Требуют внимания"><EmptyState title="Просроченных сделок нет" compact /></Card>
+	<Card title="Требуют внимания" action={mobileRefresh}><EmptyState title="Просроченных сделок нет" compact /></Card>
 {:else}
 	<RowList title="Требуют внимания" count={data.attention.length}>
-		{#snippet action()}{#if data.attention.length > 6}<a class="t-body-s-strong text-accent" href={attentionHref}>Все</a>{/if}{/snippet}
+		{#snippet action()}{#if data.attention.length > 6}<a class="t-body-s-strong text-accent" href={attentionHref}>Все</a>{/if}{@render mobileRefresh()}{/snippet}
 		{#each data.attention.slice(0, 6) as deal (deal.id)}
 			<ListRow title={deal.title} href="/deals/{deal.id}">
 				{#snippet description()}

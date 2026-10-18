@@ -1,4 +1,5 @@
 // Чистые функции над графом воронки: порядок шагов, тон статуса, классификация переходов для кнопок.
+import { ROLE_LABEL } from '$lib/auth/session.svelte';
 import type { AvailableTransition, WorkflowGraph, WorkflowStatus } from '../types';
 
 export type StatusTone = 'neutral' | 'accent' | 'success' | 'warning' | 'error' | 'info';
@@ -71,3 +72,22 @@ export function classifyTransitions(
 	const more = all.filter((c) => c !== primary && !secondary.includes(c));
 	return { primary, secondary, more };
 }
+
+/**
+ * Кому доступен переход: роли из графа воронки (`allowed_roles`) и Администратор (бэкенд допускает его всегда).
+ * «Руководитель, Администратор»; у перехода без ограничения по ролям — `null`.
+ */
+export function roleHint(transition: Pick<AvailableTransition, 'id'> | undefined, graph: WorkflowGraph | null | undefined): string | null {
+	return roleList(graph?.transitions?.find((t) => t.id === transition?.id)?.allowed_roles);
+}
+
+/** То же по готовому списку ролей (например, из `extra.allowed_roles` отказа `CRM-1202`). */
+export function roleList(roles: readonly unknown[] | null | undefined): string | null {
+	const codes = (roles ?? []).filter((r): r is string => typeof r === 'string' && r !== '');
+	if (!codes.length) return null;
+	const all = codes.includes('ADMIN') ? codes : [...codes, 'ADMIN'];
+	return [...new Set(all)].map((r) => ROLE_LABEL[r] ?? r).join(', ');
+}
+
+/** Подсказка у недоступного роли перехода: «Недоступно вашей роли. Только: Руководитель, Администратор». */
+export const deniedText = (who: string | null): string => (who ? `Недоступно вашей роли. Только: ${who}` : 'Недоступно вашей роли');
