@@ -10,6 +10,8 @@
 	import type { ReportTemplate } from '../types';
 	import ParamsForm, { type WorkflowOption } from './ParamsForm.svelte';
 	import { REPORT_FORMATS, REPORT_FORMAT_LABELS, REPORT_SPECS, describeTemplate, normalizeParams, paramsFor, validateParams, type ReportFormat } from './params';
+	import { cleanSelection } from './columns';
+	import { columnsKey, recallStrings, remember } from './memory';
 	import { useReportRun } from './run.svelte';
 
 	interface Props {
@@ -25,7 +27,7 @@
 	let errors = $state<Record<string, string>>({});
 	let workflows = $state<WorkflowOption[]>([]);
 
-	const defs = $derived(template ? paramsFor(template.code, template.default_params, { dateFields: template.date_fields, defaultDateField: template.default_date_field }) : []);
+	const defs = $derived(template ? paramsFor(template.code, template.default_params, { dateFields: template.date_fields, defaultDateField: template.default_date_field, columns: template.columns }) : []);
 	const spec = $derived(template ? REPORT_SPECS[template.code] : undefined);
 	const hasScope = $derived(defs.some((d) => d.group === 'scope'));
 	const formats = $derived(REPORT_FORMATS.filter((f) => template?.output_formats.includes(f)));
@@ -38,6 +40,13 @@
 			run.reset();
 			format = (t.output_formats.includes('xlsx') ? 'xlsx' : t.output_formats[0]) as ReportFormat;
 			values = { ...t.default_params };
+			// прошлый набор колонок этого отчёта (ТЗ Функц.13: кэш действий пользователя)
+			const columnDef = paramsFor(t.code, t.default_params, { columns: t.columns }).find((d) => d.kind === 'columns');
+			const past = recallStrings(columnsKey(t.code));
+			if (columnDef && past) {
+				const kept = cleanSelection(past, columnDef.options ?? []);
+				if (kept.length) values = { ...values, columns: kept };
+			}
 			errors = {};
 			if (paramsFor(t.code).some((d) => d.kind === 'workflow') && workflows.length === 0) {
 				unwrap(api.GET('/api/workflows', { params: { query: { state: 'published', limit: 100 } } }))
@@ -51,7 +60,9 @@
 		if (!template || busy || run.cooldown) return;
 		errors = validateParams(defs, values, { workflowTypes: Object.fromEntries(workflows.map((w) => [w.id, w.deal_type])) });
 		if (Object.keys(errors).length) return;
-		void run.run(template.code, format, normalizeParams(defs, values));
+		const body = normalizeParams(defs, values);
+		remember(columnsKey(template.code), Array.isArray(body.columns) ? body.columns : undefined);
+		void run.run(template.code, format, body);
 	}
 </script>
 

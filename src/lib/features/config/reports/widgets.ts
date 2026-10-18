@@ -119,7 +119,7 @@ export function effectiveParams(config: Pick<WidgetConfig, 'params' | 'period'>,
 }
 
 /** Значение параметра в канонической форме: списки (в том числе «a,b» из старых виджетов) — отсортированные массивы. */
-const canonical = (key: string, value: unknown): unknown => (Array.isArray(value) || key.endsWith('_ids') || key === 'vendors' || key === 'transfer_statuses' ? toList(value).sort() : value);
+const canonical = (key: string, value: unknown): unknown => (key === 'columns' ? value : Array.isArray(value) || key.endsWith('_ids') || key === 'vendors' || key === 'transfer_statuses' ? toList(value).sort() : value);
 
 /** Одинаковые отчёты разных виджетов запускаются один раз; порядок вузов в списке на ключ не влияет. */
 export const runKey = (config: Pick<WidgetConfig, 'template_code' | 'params' | 'period'>, today: Date = new Date()): string =>

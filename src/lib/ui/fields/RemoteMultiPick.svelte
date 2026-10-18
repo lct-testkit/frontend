@@ -73,7 +73,10 @@
 
 <!-- the DS label ignores the pointer, so a label with an explanation is drawn here: same place and size, with the Tip on the word -->
 <div class={['flex min-w-0 flex-col gap-1', className]}>
-{#if labelHint}<span class="t-desc-l px-0.5 text-muted"><Term label={label ?? ''} hint={labelHint} /></span>{/if}
+{#if labelHint}
+	<!-- the closed Tip keeps a 200 px popper box in the layout: without the clip it widens the page on a phone -->
+	<div class="relative overflow-x-clip"><span class="t-desc-l px-0.5 text-muted"><Term label={label ?? ''} hint={labelHint} placement="top" /></span></div>
+{/if}
 <Multiselect
 	class="w-full"
 	size={bp.isMobile ? 'l' : 'm'}

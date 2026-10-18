@@ -12,16 +12,18 @@
 		label?: string;
 		/** the explanation when the word is not in terms.ts (a status, a role) */
 		hint?: string;
+		/** where the explanation opens (`auto` by default) */
+		placement?: 'auto' | 'top' | 'bottom' | 'left' | 'right';
 		class?: string;
 	}
 
-	let { term, label, hint, class: className = '' }: Props = $props();
+	let { term, label, hint, placement = 'auto', class: className = '' }: Props = $props();
 	const text = $derived(hint ?? (term ? TERM_HINTS[term] : undefined));
 	const shown = $derived(label ?? term ?? '');
 </script>
 
 {#if text}
-	<Tip title={shown} {text} class={className}>
+	<Tip title={shown} {text} {placement} class={className}>
 		<span class="cursor-help underline decoration-dotted decoration-1 underline-offset-4">{shown}</span>
 	</Tip>
 	<span class="sr-only">. {text}</span>
