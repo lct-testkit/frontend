@@ -36,7 +36,7 @@
 
 	let { user }: { user: UserOut } = $props();
 
-	const STEPS = ['Дела', 'Преемник и распределение', 'Подтверждение'];
+	const STEPS = ['Дела', 'Распределение', 'Подтверждение'];
 
 	let step = $state(0);
 	let loading = $state(true);
@@ -297,16 +297,19 @@
 				{/if}
 			{/if}
 		{:else if step === 1}
-			<FormBody>
+			<FormBody wide>
 				<UserPicker label="Преемник по умолчанию" required roles={['KAM', 'HEAD']} exclude={[user.id]} value={successorId} error={touched ? check.errors.successorId : undefined} onChange={(id) => (successorId = id)} />
 				<AreaField label="Причина увольнения" required rows={3} value={reason} error={touched ? check.errors.reason : undefined} maxlength={500} onInput={(v) => (reason = v)} />
 				{#if summary && (summary.deals > 0 || summary.organizations > 0)}
-					<Toggle label="Распределить по вузам" checked={allocate} onChange={toggleAllocate} hint="Вуз целиком или отдельная сделка — другому сотруднику; остальное уйдёт преемнику по умолчанию" />
+					<div class="flex flex-col gap-1">
+						<Toggle label="Распределить по вузам" checked={allocate} onChange={toggleAllocate} />
+						<p class="t-body-s m-0 text-muted">Вуз целиком или отдельная сделка — другому сотруднику; остальное уйдёт преемнику по умолчанию.</p>
+					</div>
 				{/if}
 			</FormBody>
 
 			{#if allocate}
-				<div class="flex flex-col gap-3" data-testid="allocation-panel">
+				<div class="flex w-full max-w-3xl min-w-0 flex-col gap-3" data-testid="allocation-panel">
 					{#if itemsLoading}
 						<Skeleton kind="rows" rows={4} />
 					{:else if itemsError}
@@ -332,7 +335,7 @@
 							</div>
 						</div>
 						{#if successorId}
-							<AllocationTable {groups} {orgs} {choice} {candidates} {stale} onChange={(next) => (choice = next)} />
+							<AllocationTable {groups} {orgs} {choice} {candidates} {stale} defaultLabel={`${successor} (по умолч.)`} onChange={(next) => (choice = next)} />
 						{:else}
 							<Notice class="shrink-0" tone="info">Сначала выберите преемника по умолчанию — с ним сравнивается любой другой выбор.</Notice>
 						{/if}
