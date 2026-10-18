@@ -19,6 +19,7 @@
 	import SideNav from './SideNav.svelte';
 	import TopBar from './TopBar.svelte';
 	import TopBarIcon from './TopBarIcon.svelte';
+	import { dialogA11y } from './dialog-a11y';
 
 	let { children }: { children?: Snippet } = $props();
 
@@ -91,6 +92,15 @@
 {/snippet}
 
 <div class="fixed inset-0 flex overflow-hidden bg-page text-fg">
+	<!-- WCAG 2.4.1: the first Tab stop skips the menu and the top bar -->
+	<a
+		href="#content"
+		class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-(--atmr-z-index-modal) focus:rounded-md focus:bg-surface focus:px-4 focus:py-2 focus:shadow-m"
+		onclick={(e) => {
+			e.preventDefault();
+			document.getElementById('content')?.focus();
+		}}>Перейти к содержимому</a
+	>
 	{#if !bp.isMobile}
 		<SideNav class="h-full flex-none" {sections} isActive={(item) => isActive(item, page.url.pathname)} {counters} {attention} {expanded} onNavigate={go} onToggle={bp.isDesktop ? toggleMenu : undefined}>
 			{#snippet brand()}{@render brandLink(!expanded)}{/snippet}
@@ -127,6 +137,7 @@
 
 {#if bp.isMobile}
 	<Drawer position="left" fullHeight dimension={Math.min(320, Math.max(240, bp.width - 56))} isOpened={navOpen} drawerClassName="p-0!" onClickOverlay={() => (navOpen = false)} onClose={() => (navOpen = false)}>
+		<div class="h-full w-full" use:dialogA11y={{ label: 'Меню' }}>
 		<SideNav class="h-full w-full border-r-0" {sections} isActive={(item) => isActive(item, page.url.pathname)} {counters} {attention} expanded onNavigate={go}>
 			{#snippet brand()}{@render brandLink(false)}{/snippet}
 			{#snippet footer()}
@@ -136,5 +147,6 @@
 				</div>
 			{/snippet}
 		</SideNav>
+		</div>
 	</Drawer>
 {/if}
