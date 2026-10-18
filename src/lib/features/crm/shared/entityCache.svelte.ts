@@ -13,7 +13,7 @@ const RETRY_AFTER_MS = 15_000;
 /** Сколько страниц списка сделок читать ради названий (100 на странице). */
 const PRELOAD_PAGES = 5;
 
-class EntityCache<T extends { id: string }> {
+export class EntityCache<T extends { id: string }> {
 	/** undefined = не спрашивали · null = недоступно */
 	#map = new SvelteMap<string, T | null>();
 	#queue: string[] = [];

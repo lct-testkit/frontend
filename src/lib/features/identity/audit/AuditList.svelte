@@ -50,7 +50,7 @@
 {#snippet action(e: AuditEntry)}<TableCell><span class="block truncate py-1.5" title={e.action}>{auditActionLabel(e.action)}</span></TableCell>{/snippet}
 {#snippet entity(e: AuditEntry)}
 	<TableCell>
-		{@const label = entityLabel(e.entity_type, e.entity_id)}
+		{@const label = entityLabel(e.entity_type, e.entity_id, e)}
 		<span class="flex min-w-0 gap-1">
 			<span class="shrink-0">{entityTypeLabel(e.entity_type)}</span>
 			{#if label}

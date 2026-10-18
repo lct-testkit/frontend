@@ -1,7 +1,12 @@
 // Журнал аудита: разбор `changes` (форматы `{field: {old, new}}`, `{field: [old, new]}` и скаляры).
+import { SvelteMap } from 'svelte/reactivity';
+import { api, unwrap } from '$lib/api';
 import { people } from '$lib/api/people.svelte';
 import { session } from '$lib/auth/session.svelte';
-import { contactCache, contactLabel, dealLabel, orgCache, orgLabel, preloadDeals } from '$lib/features/crm/shared/entityCache.svelte';
+import { EntityCache, contactCache, contactLabel, dealLabel, orgCache, orgLabel, preloadDeals } from '$lib/features/crm/shared/entityCache.svelte';
+import { dealFieldDefs, directions, lossReasons, products } from '$lib/features/crm/shared/refs.svelte';
+import { getDocumentsBatch } from '$lib/features/signing/api';
+import { formatDate } from '$lib/utils/format';
 
 export interface ChangeRow {
 	field: string;
@@ -114,20 +119,116 @@ export function shortId(id: string | null | undefined): string {
 	return id.length > 13 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id;
 }
 
-/** Подгружает сущности события в те же кэши, что уже держат имена в карточках и списках CRM — до этого
- * колонка «Сущность» показывала только фрагмент id (`01a0ddae`) даже для сделок и организаций. */
-export function ensureAuditEntities(items: { entity_type?: string | null; entity_id?: string | null }[]): void {
-	// сделки — только тем, кто их видит (Аудитору сделки недоступны: каждый запрос был бы 403), и списком, а не по одной (удалённые не дают 404)
-	if (session.can('deal:read')) void preloadDeals(items.filter((i) => i.entity_type === 'deal').map((i) => i.entity_id)).catch(() => {});
-	orgCache.ensure(items.filter((i) => i.entity_type === 'organization').map((i) => i.entity_id));
-	contactCache.ensure(items.filter((i) => i.entity_type === 'contact').map((i) => i.entity_id));
-	people.ensure(items.filter((i) => i.entity_type === 'user').map((i) => i.entity_id));
+/** Запись журнала в том виде, в каком её читают резолверы названий. */
+export interface AuditEntryLike {
+	action?: string | null;
+	entity_type?: string | null;
+	entity_id?: string | null;
+	changes?: Record<string, unknown> | null;
 }
 
-/** Название сущности события по тем же кэшам — `null`, если тип не из этого списка (например, воронка,
- * файл, задача, комментарий…) или у сущности пока нет клиентского кэша: вызывающий показывает короткий id,
- * как и раньше. */
-export function entityLabel(type: string | null | undefined, id: string | null | undefined): string | null {
+// --- названия остальных типов сущностей (F3-12). Бэкенд имя в запись не пишет (ПДн не оседают в неизменяемой цепочке),
+// поэтому имя берётся при показе: по id (кэш на сессию, до 6 запросов одновременно) или из справочника-списка.
+const teamCache = new EntityCache<{ id: string; name: string }>((id) => unwrap(api.GET('/api/admin/teams/{team_id}', { params: { path: { team_id: id } } })), 6);
+const workflowCache = new EntityCache<{ id: string; name: string }>((id) => unwrap(api.GET('/api/workflows/{workflow_id}', { params: { path: { workflow_id: id } } })).then((g) => g.workflow), 6);
+const dashboardCache = new EntityCache<{ id: string; name: string }>((id) => unwrap(api.GET('/api/dashboards/{dashboard_id}', { params: { path: { dashboard_id: id } } })), 6);
+const reportCache = new EntityCache<{ id: string; format: string; created_at: string }>((id) => unwrap(api.GET('/api/reports/{report_id}', { params: { path: { report_id: id } } })), 6);
+const importCache = new EntityCache<{ id: string; entity_type: string; created_at: string }>((id) => unwrap(api.GET('/api/imports/{job_id}', { params: { path: { job_id: id } } })), 6);
+const licenseCache = new EntityCache<{ id: string; contract_number?: string | null; product_name: string }>((id) => unwrap(api.GET('/api/organization-licenses/{license_id}', { params: { path: { license_id: id } } })), 6);
+
+/** Документы на подпись — одним запросом на пачку id (ручка `batch`), а не по одному. */
+const documentTitles = new SvelteMap<string, string | null>();
+function ensureDocuments(ids: string[]): void {
+	const want = [...new Set(ids)].filter((id) => !documentTitles.has(id));
+	if (!want.length) return;
+	for (const id of want) documentTitles.set(id, null);
+	void getDocumentsBatch(want)
+		.then((docs) => {
+			for (const d of docs) documentTitles.set(d.id, d.title);
+		})
+		.catch(() => {});
+}
+
+const IMPORT_OF: Record<string, string> = { organization: 'организаций', contact: 'контактов', deal: 'сделок', user: 'сотрудников' };
+
+interface Resolver {
+	/** кто видит такие сущности: у остальных запрос был бы 403 (Аудитор через резолвер не ходит, у него запасной путь из `changes`) */
+	roles: readonly string[] | null;
+	ensure(ids: string[]): void;
+	label(id: string): string | null;
+}
+
+const ensureLazy = (lazy: { ensure(): Promise<unknown> }) => void lazy.ensure().catch(() => {});
+const byCache = <T extends { id: string }>(cache: EntityCache<T>, roles: readonly string[] | null, text: (x: T) => string | null): Resolver => ({
+	roles,
+	ensure: (ids) => cache.ensure(ids),
+	label: (id) => {
+		const x = cache.get(id);
+		return x ? text(x) : null;
+	}
+});
+const byList = <T extends { id: string }>(lazy: { ensure(): Promise<unknown>; value: T[] | undefined }, roles: readonly string[] | null, text: (x: T) => string): Resolver => ({
+	roles,
+	ensure: () => ensureLazy(lazy),
+	label: (id) => {
+		const x = lazy.value?.find((r) => r.id === id);
+		return x ? text(x) : null;
+	}
+});
+const STAFF = ['KAM', 'HEAD', 'ADMIN'] as const;
+
+/** Реестр резолверов по типу сущности. Типы без записи (файл, задача, комментарий…) остаются на запасном пути `labelFromChanges`. */
+const RESOLVERS: Record<string, Resolver> = {
+	team: byCache(teamCache, ['ADMIN'], (t) => t.name),
+	workflow: byCache(workflowCache, null, (w) => w.name),
+	dashboard: byCache(dashboardCache, STAFF, (d) => d.name),
+	report_job: byCache(reportCache, STAFF, (r) => `${r.format.toUpperCase()} от ${formatDate(r.created_at)}`),
+	import_job: byCache(importCache, ['HEAD', 'ADMIN'], (j) => `${IMPORT_OF[j.entity_type] ? `${IMPORT_OF[j.entity_type]} ` : ''}от ${formatDate(j.created_at)}`),
+	organization_license: byCache(licenseCache, STAFF, (l) => l.contract_number || l.product_name),
+	signature_document: { roles: null, ensure: ensureDocuments, label: (id) => documentTitles.get(id) ?? null },
+	product: byList(products, null, (p) => p.name),
+	direction: byList(directions, null, (d) => d.name),
+	loss_reason: byList(lossReasons, STAFF, (r) => r.name),
+	custom_field_def: byList(dealFieldDefs, STAFF, (f) => f.label)
+};
+
+const allowed = (r: Resolver): boolean => !r.roles || (!!session.role && r.roles.includes(session.role));
+
+const NAME_KEYS = ['name', 'title', 'original_filename', 'code', 'date'] as const;
+const pickChange = (raw: unknown, deleted: boolean): unknown => {
+	if (isOldNew(raw)) return deleted ? (raw.old ?? raw.new) : (raw.new ?? raw.old);
+	if (Array.isArray(raw) && raw.length === 2) return deleted ? (raw[0] ?? raw[1]) : (raw[1] ?? raw[0]);
+	return raw;
+};
+
+/** Запасной путь: имя из самой записи — первое непустое из name, title, original_filename, code, date (новое значение; при удалении — старое). */
+export function labelFromChanges(entry: AuditEntryLike | null | undefined): string | null {
+	const changes = entry?.changes;
+	if (!changes) return null;
+	const deleted = /DELETED|REMOVED|ARCHIVED/.test(entry?.action ?? '');
+	for (const key of NAME_KEYS) {
+		const v = pickChange(changes[key], deleted);
+		if (typeof v === 'string' && v.trim()) return v.trim();
+	}
+	return null;
+}
+
+/** Подгружает сущности события в те же кэши, что уже держат имена в карточках и списках CRM. */
+export function ensureAuditEntities(items: readonly { entity_type?: string | null; entity_id?: string | null }[]): void {
+	const ids = (type: string) => items.filter((i) => i.entity_type === type && i.entity_id).map((i) => i.entity_id as string);
+	// сделки — только тем, кто их видит (Аудитору сделки недоступны: каждый запрос был бы 403), и списком, а не по одной (удалённые не дают 404)
+	if (session.can('deal:read')) void preloadDeals(ids('deal')).catch(() => {});
+	orgCache.ensure(ids('organization'));
+	contactCache.ensure(ids('contact'));
+	people.ensure(ids('user'));
+	for (const [type, resolver] of Object.entries(RESOLVERS)) {
+		const list = ids(type);
+		if (list.length && allowed(resolver)) resolver.ensure(list);
+	}
+}
+
+/** Название сущности события: по кэшам, затем из `changes` записи; `null` — имени нет (вызывающий показывает короткий id). */
+export function entityLabel(type: string | null | undefined, id: string | null | undefined, entry?: AuditEntryLike | null): string | null {
 	if (!id) return null;
 	switch (type) {
 		case 'deal':
@@ -138,7 +239,10 @@ export function entityLabel(type: string | null | undefined, id: string | null |
 			return contactLabel(id);
 		case 'user':
 			return people.name(id);
-		default:
-			return null;
+		default: {
+			const resolver = type ? RESOLVERS[type] : undefined;
+			const named = resolver && allowed(resolver) ? resolver.label(id) : null;
+			return named ?? labelFromChanges(entry);
+		}
 	}
 }
