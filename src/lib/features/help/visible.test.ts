@@ -38,6 +38,14 @@ describe('видимость глав', () => {
 		expect(slugs('ADMIN')).toEqual(CHAPTERS.map((c) => c.slug));
 	});
 
+	it('ролевые главы: КАМ — своя, руководитель — КАМ, своя и аудитора, аудитор — своя, администратор — все четыре', () => {
+		const roleChapters = (role: string) => slugs(role).filter((x) => x.startsWith('role-'));
+		expect(roleChapters('KAM')).toEqual(['role-kam']);
+		expect(roleChapters('HEAD')).toEqual(['role-kam', 'role-head', 'role-auditor']);
+		expect(roleChapters('AUDITOR')).toEqual(['role-auditor']);
+		expect(roleChapters('ADMIN')).toEqual(['role-kam', 'role-head', 'role-admin', 'role-auditor']);
+	});
+
 	it('роль из audience сужает видимость', () => {
 		const only: Chapter = { slug: 'x', file: 'x.md', title: 'X', group: 'user', audience: ['HEAD'] };
 		expect(isChapterVisible(only, viewer('HEAD'))).toBe(true);
