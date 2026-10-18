@@ -4,7 +4,6 @@ import { api } from '$lib/api';
 import type { DealQuery } from './dealFilters';
 
 export type TabKey = 'all' | 'mine' | 'warning' | 'breached' | 'closed';
-export const TAB_KEYS: readonly TabKey[] = ['all', 'mine', 'warning', 'breached', 'closed'];
 
 export type TabCounts = Partial<Record<TabKey, number>>;
 

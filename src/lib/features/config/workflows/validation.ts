@@ -165,17 +165,6 @@ export function validateGraph(draft: GraphDraft, ctx: GraphValidationContext = {
 
 export const hasErrors = (issues: readonly GraphIssue[]): boolean => issues.some((i) => i.severity === 'error');
 
-export function issuesByStatus(issues: readonly GraphIssue[]): Map<string, GraphIssue[]> {
-	const map = new Map<string, GraphIssue[]>();
-	for (const i of issues) for (const k of i.statusKeys) map.set(k, [...(map.get(k) ?? []), i]);
-	return map;
-}
-export function issuesByTransition(issues: readonly GraphIssue[]): Map<string, GraphIssue[]> {
-	const map = new Map<string, GraphIssue[]>();
-	for (const i of issues) for (const k of i.transitionKeys) map.set(k, [...(map.get(k) ?? []), i]);
-	return map;
-}
-
 /** Пункт проверки воронки с сервера (`ValidationIssue`, B9-6): `refs` — коды статусов, `path` — `transitions[<имя>].conditions`. */
 export interface ServerIssue {
 	code: string;
@@ -253,7 +242,7 @@ export function parseServerIssues(res: ServerValidation, draft: GraphDraft, clie
  * Запасной разбор плоских строк старого `/validate`: узлы — по коду статуса, рёбра — по имени перехода (`transitions[<имя>]…`).
  * Формулировки — из workflow/service.py `_validate_graph_data` до B9-6.
  */
-export function parseServerStrings(errors: readonly string[], warnings: readonly string[], draft: GraphDraft): GraphIssue[] {
+function parseServerStrings(errors: readonly string[], warnings: readonly string[], draft: GraphDraft): GraphIssue[] {
 	const byCode = new Map(draft.statuses.map((s) => [s.code, s.key] as const));
 	const keysByCodes = (list: string): string[] =>
 		list

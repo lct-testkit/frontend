@@ -82,10 +82,6 @@ export function hasTokens(): boolean {
 	return read() !== null;
 }
 
-export function tokenUsername(): string | null {
-	return read()?.username ?? null;
-}
-
 /** Refreshes single-flight; returns null when the refresh token is gone (→ caller signs out). */
 export async function refreshTokens(): Promise<StoredTokens | null> {
 	const current = read();

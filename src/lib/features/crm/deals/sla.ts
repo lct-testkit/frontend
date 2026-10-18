@@ -4,8 +4,8 @@
 
 import { formatDurationShort } from '../shared/duration';
 
-export const SLA_WARN_THRESHOLD = 0.75;
-export const SLA_BREACH_THRESHOLD = 1;
+const SLA_WARN_THRESHOLD = 0.75;
+const SLA_BREACH_THRESHOLD = 1;
 
 export type SlaState = 'ok' | 'warning' | 'breached' | 'paused';
 /** `none` — таймера нет: статус без правила SLA или сделка закрыта. */

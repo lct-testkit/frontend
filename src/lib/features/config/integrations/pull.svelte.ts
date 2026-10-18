@@ -13,11 +13,11 @@ export interface PullDeps {
 	now(): number;
 }
 
-export const POLL_INTERVAL = 2000;
+const POLL_INTERVAL = 2000;
 /** Тик воркера — раз в минуту, плюс время самого забора. */
 export const POLL_TIMEOUT = 120_000;
 
-export const liveDeps: PullDeps = {
+const liveDeps: PullDeps = {
 	start: (code) => unwrap(api.POST('/api/admin/integrations/sources/{code}/pull', { params: { path: { code } }, body: {} })),
 	status: (code) => unwrap(api.GET('/api/admin/integrations/sources/{code}/status', { params: { path: { code } } })),
 	now: () => Date.now()

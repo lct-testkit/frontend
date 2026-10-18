@@ -1,7 +1,7 @@
 // Форма источника: проверка имён переменных окружения, вынос двух ключей `config` в отдельные поля, пример запроса для терминала.
 
 /** Как у бэкенда (`IntegrationSourceUpdateRequest.credentials_ref`): имя переменной окружения. */
-export const REF_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const REF_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 export const REF_MAX = 128;
 
 /** Текст ошибки для имени переменной или `null`; пустое значение допустимо. */

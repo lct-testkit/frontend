@@ -57,26 +57,11 @@ export const STATUS_TYPE_LABELS: Record<string, string> = {
 	parked: 'Заморожена'
 };
 
-export const STATUS_TYPE_SCHEMES: Record<string, BadgeScheme> = {
-	initial: 'neutral',
-	intermediate: 'accent',
-	won: 'success',
-	lost: 'error',
-	parked: 'warning'
-};
-
 export const TASK_STATUS_LABELS: Record<string, string> = {
 	open: 'Открыта',
 	in_progress: 'В работе',
 	done: 'Выполнена',
 	cancelled: 'Отменена'
-};
-
-export const TASK_STATUS_SCHEMES: Record<string, BadgeScheme> = {
-	open: 'info',
-	in_progress: 'accent',
-	done: 'success',
-	cancelled: 'neutral'
 };
 
 export const PARTICIPANT_ROLE_LABELS: Record<string, string> = {
@@ -132,14 +117,6 @@ export const ATTACHMENT_CATEGORY_LABELS: Record<string, string> = {
 	report: 'Отчёт',
 	signature_container: 'Контейнер подписи',
 	other: 'Прочее'
-};
-
-export const FILE_STATUS_LABELS: Record<string, string> = {
-	pending: 'Загружается',
-	ready: 'Готов',
-	infected: 'Не прошёл проверку',
-	quarantined: 'В карантине',
-	deleted: 'Удалён'
 };
 
 export const ORG_TYPE_LABELS: Record<string, string> = {
@@ -231,12 +208,6 @@ export const NOTIFICATION_PRIORITY_LABELS: Record<string, string> = {
 	normal: 'Обычный',
 	high: 'Высокий',
 	critical: 'Критический'
-};
-
-export const NOTIFICATION_CHANNEL_LABELS: Record<string, string> = {
-	in_app: 'В приложении',
-	email: 'E-mail',
-	telegram: 'Telegram'
 };
 
 export const ENTITY_TYPE_LABELS: Record<string, string> = {

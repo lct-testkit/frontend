@@ -37,6 +37,6 @@ export const securityEventHint = (type: string): string | undefined => SECURITY_
 
 export const SEVERITY_LABELS: Record<string, string> = { info: 'Информация', warning: 'Предупреждение', critical: 'Критично' };
 export type SeverityTone = 'neutral' | 'warning' | 'error';
-export const SEVERITY_TONES: Record<string, SeverityTone> = { info: 'neutral', warning: 'warning', critical: 'error' };
+const SEVERITY_TONES: Record<string, SeverityTone> = { info: 'neutral', warning: 'warning', critical: 'error' };
 
 export const severityMeta = (severity: string): { label: string; tone: SeverityTone } => ({ label: SEVERITY_LABELS[severity] ?? severity, tone: SEVERITY_TONES[severity] ?? 'neutral' });

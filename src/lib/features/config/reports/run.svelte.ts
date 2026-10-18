@@ -12,7 +12,7 @@ import { track } from './tracker.svelte';
 export type RunPhase = 'form' | 'running' | 'background' | 'done' | 'failed' | 'limit';
 
 /** Лимит незавершённых отчётов на сотрудника (`reports_max_concurrent` бэкенда); точное число берётся из текста ответа. */
-export const REPORTS_LIMIT = 10;
+const REPORTS_LIMIT = 10;
 
 /** Лимит из текста сервера: «Не завершено отчётов: 10 (лимит 10)…». */
 export function limitFrom(detail: string): number {

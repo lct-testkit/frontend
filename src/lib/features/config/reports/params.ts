@@ -3,11 +3,11 @@ import { GLOSSARY } from '$lib/ui/glossary';
 import { TRANSFER_STATUS_LABELS } from '../../crm/shared/labels';
 
 /** Форматы, которые умеет бэкенд (порядок — как на экране). */
-export const REPORT_FORMATS = ['xlsx', 'xls', 'pdf', 'png', 'json'] as const;
+const REPORT_FORMATS = ['xlsx', 'xls', 'pdf', 'png', 'json'] as const;
 /** Неизвестный серверу формат из будущего не ломает типы: он показывается кодом в верхнем регистре. */
 export type ReportFormat = (typeof REPORT_FORMATS)[number] | (string & {});
-export const REPORT_FORMAT_LABELS: Record<string, string> = { xlsx: 'Excel .xlsx', xls: 'Excel .xls', pdf: 'PDF', png: 'PNG', json: 'JSON' };
-export const REPORT_FORMAT_HINTS: Record<string, string> = {
+const REPORT_FORMAT_LABELS: Record<string, string> = { xlsx: 'Excel .xlsx', xls: 'Excel .xls', pdf: 'PDF', png: 'PNG', json: 'JSON' };
+const REPORT_FORMAT_HINTS: Record<string, string> = {
 	xlsx: 'Для Excel 2007 и новее',
 	xls: 'Для Excel 97–2003 и старых программ',
 	pdf: 'Для печати и передачи',
@@ -30,8 +30,7 @@ export function defaultFormat(formats: readonly string[], remembered?: string | 
 	return formats.includes('xlsx') ? 'xlsx' : (formats[0] ?? 'xlsx');
 }
 
-export const REPORT_STATUSES = ['queued', 'processing', 'completed', 'failed'] as const;
-export type ReportStatus = (typeof REPORT_STATUSES)[number];
+export type ReportStatus = 'queued' | 'processing' | 'completed' | 'failed';
 export const REPORT_STATUS_INFO: Record<ReportStatus, { label: string; tone: 'neutral' | 'info' | 'success' | 'error' }> = {
 	queued: { label: 'В очереди', tone: 'neutral' },
 	processing: { label: 'Формируется', tone: 'info' },
@@ -87,7 +86,7 @@ export interface ReportParamDef {
 // --- Подписи периода --------------------------------------------------------------------------
 
 /** По какой дате считается период: ключи — `date_fields` шаблона (`GET /api/report-templates`). */
-export const DATE_FIELD_LABELS: Record<string, string> = {
+const DATE_FIELD_LABELS: Record<string, string> = {
 	created_at: 'Сделка создана',
 	closed_at: 'Сделка закрыта',
 	updated_at: 'Сделка изменена',
@@ -96,7 +95,7 @@ export const DATE_FIELD_LABELS: Record<string, string> = {
 	completed_at: 'Учащийся завершил обучение',
 	license_signed_at: 'Лицензия подписана'
 };
-export const dateFieldLabel = (key: string): string => DATE_FIELD_LABELS[key] ?? key;
+const dateFieldLabel = (key: string): string => DATE_FIELD_LABELS[key] ?? key;
 
 const DEAL_DATES = ['created_at', 'closed_at', 'updated_at'] as const;
 
@@ -244,12 +243,12 @@ export interface TemplateInfo {
 }
 
 /** Подпись поля периода: «Период» или «Сделка закрыта», если дата одна и зафиксирована. */
-export function periodLabel(dateFields: readonly string[]): string {
+function periodLabel(dateFields: readonly string[]): string {
 	return dateFields.length === 1 ? dateFieldLabel(dateFields[0]) : 'Период';
 }
 
 /** Допустимые даты периода шаблона (сервер, иначе встроенный список). */
-export function dateFieldsFor(templateCode: string, info?: TemplateInfo): readonly string[] {
+function dateFieldsFor(templateCode: string, info?: TemplateInfo): readonly string[] {
 	const fromServer = info?.dateFields;
 	if (fromServer) return fromServer;
 	return REPORT_SPECS[templateCode]?.scope.period ?? [];
@@ -444,7 +443,7 @@ export interface WidgetPosition {
 	w: number;
 	h: number;
 }
-export const GRID_COLUMNS = 12;
+const GRID_COLUMNS = 12;
 export const WIDGET_WIDTHS: readonly { key: number; value: string }[] = [
 	{ key: 4, value: 'Треть' },
 	{ key: 6, value: 'Половина' },

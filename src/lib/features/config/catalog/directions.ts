@@ -44,7 +44,7 @@ export interface FlatDirection {
 	node: DirNode;
 	depth: number;
 }
-export function flatten(nodes: readonly DirNode[], depth = 0): FlatDirection[] {
+function flatten(nodes: readonly DirNode[], depth = 0): FlatDirection[] {
 	return nodes.flatMap((node) => [{ node, depth }, ...flatten(node.children, depth + 1)]);
 }
 

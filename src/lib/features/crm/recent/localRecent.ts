@@ -18,7 +18,7 @@ export const RECENT_KEY = 'rtk.crm.recent.v2';
 /** Первая версия хранила и названия (ФИО контактов) — её стираем при первом чтении, не переносим. */
 export const LEGACY_RECENT_KEY = 'rtk.crm.recent';
 const MAX = 10;
-export const KNOWN_TYPES = ['deal', 'organization', 'contact'] as const;
+const KNOWN_TYPES = ['deal', 'organization', 'contact'] as const;
 
 function read(): Record<string, LocalRecent[]> {
 	try {

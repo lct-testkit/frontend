@@ -77,7 +77,7 @@ export interface CursorLine {
 }
 
 /** Курсор — момент времени: показываем «до …»; не дата — как есть. */
-export function cursorText(value: string): string {
+function cursorText(value: string): string {
 	return Number.isNaN(Date.parse(value)) ? value : `до ${formatDateTime(value)}`;
 }
 

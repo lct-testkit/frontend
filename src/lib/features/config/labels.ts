@@ -49,13 +49,6 @@ export const CUSTOM_FIELD_TYPES: readonly Option[] = [
 	{ key: 'file', value: 'Файл' }
 ];
 
-export const ORG_TYPES: readonly Option[] = [
-	{ key: 'university', value: 'Вуз' },
-	{ key: 'college', value: 'Колледж' },
-	{ key: 'company', value: 'Компания' },
-	{ key: 'individual_entrepreneur', value: 'ИП' }
-];
-
 // --- Реестр ЕГРЮЛ -------------------------------------------------------------------
 
 export const REGISTRY_SOURCES: readonly Option[] = [

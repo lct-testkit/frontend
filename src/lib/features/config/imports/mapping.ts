@@ -35,10 +35,9 @@ export const IMPORT_MODE_LABELS: Record<ImportMode, { label: string; hint: strin
 	update: { label: 'Только обновить', hint: 'Строки без существующей записи считаются ошибкой' }
 };
 
-export const SOURCE_FORMATS = ['xlsx', 'xls', 'csv', 'json'] as const;
+const SOURCE_FORMATS = ['xlsx', 'xls', 'csv', 'json'] as const;
 export type SourceFormat = (typeof SOURCE_FORMATS)[number];
 export const IMPORT_MAX_FILE_BYTES = 50 * 1024 * 1024;
-export const IMPORT_MAX_ROWS = 100_000;
 export const IMPORT_ACCEPT: Record<string, string[]> = {
 	'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
 	'application/vnd.ms-excel': ['.xls'],
@@ -51,9 +50,6 @@ export function sourceFormatFromName(fileName: string): SourceFormat | null {
 	const ext = fileName.toLowerCase().split('.').pop() ?? '';
 	return (SOURCE_FORMATS as readonly string[]).includes(ext) ? (ext as SourceFormat) : null;
 }
-
-/** Значение «не импортировать колонку» в Select маппинга. */
-export const SKIP_TARGET = '';
 
 // --- Проверка и пресеты ---------------------------------------------------------
 
@@ -132,10 +128,8 @@ export function sampleValues(rows: readonly (readonly string[])[], columnIndex: 
 
 // --- Статусы задания -----------------------------------------------------------------
 
-export const IMPORT_JOB_STATUSES = [
-	'uploaded', 'mapped', 'validated', 'applying', 'completed', 'completed_with_errors', 'rolling_back', 'rolled_back', 'failed'
-] as const;
-export type ImportJobStatus = (typeof IMPORT_JOB_STATUSES)[number];
+export type ImportJobStatus =
+	| 'uploaded' | 'mapped' | 'validated' | 'applying' | 'completed' | 'completed_with_errors' | 'rolling_back' | 'rolled_back' | 'failed';
 
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'error';
 

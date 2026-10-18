@@ -1,5 +1,5 @@
 // One theme class on <body> (`Theme_root_<theme>`): portals (Modal, Drawer, Popover) live in <body> and inherit it.
-export const THEMES = ['rtk_default_light', 'rtk_default_dark', 'rtk_purple_light', 'rtk_purple_dark'] as const;
+const THEMES = ['rtk_default_light', 'rtk_default_dark', 'rtk_purple_light', 'rtk_purple_dark'] as const;
 export type Theme = (typeof THEMES)[number];
 
 const KEY = 'rtk.theme';

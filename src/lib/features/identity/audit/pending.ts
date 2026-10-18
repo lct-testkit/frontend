@@ -12,13 +12,13 @@ export interface Pending {
 export type PendingState = 'off' | 'sealed' | 'sealing' | 'delayed';
 
 /** Старше этого ожидание считается задержкой (значение уточнить замером в B8). */
-export const DELAYED_AFTER_SECONDS = 30;
+const DELAYED_AFTER_SECONDS = 30;
 /** После скольких минут непрерывного ожидания опрос замедляется. */
-export const SLOW_POLL_AFTER_MS = 10 * 60 * 1000;
-export const POLL_SEALED_MS = 15_000;
-export const POLL_SEALING_MS = 3_000;
-export const POLL_DELAYED_MS = 10_000;
-export const POLL_SLOW_MS = 30_000;
+const SLOW_POLL_AFTER_MS = 10 * 60 * 1000;
+const POLL_SEALED_MS = 15_000;
+const POLL_SEALING_MS = 3_000;
+const POLL_DELAYED_MS = 10_000;
+const POLL_SLOW_MS = 30_000;
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null);
 

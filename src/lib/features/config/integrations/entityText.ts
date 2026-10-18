@@ -2,7 +2,7 @@
 import { contactCache, contactLabel, dealLabel, orgCache, orgLabel, preloadDeals } from '../../crm/shared/entityCache.svelte';
 
 const NAMES: Record<string, string> = { deal: 'Сделка', organization: 'Организация', contact: 'Контакт' };
-export const entityTypeName = (type: string): string => NAMES[type] ?? type;
+const entityTypeName = (type: string): string => NAMES[type] ?? type;
 
 /** «D-1042 · Название сделки» или «Сделка · a1b2c3», если у записи нет понятной подписи (другой тип). */
 export function entityText(type: string, id: string): string {

@@ -16,21 +16,3 @@ export function preloadHref(href: string | null | undefined): void {
 	requested.add(href);
 	preloadData(href).catch(() => {});
 }
-
-/**
- * `use:preloadHover={() => href}` on a button/div that navigates on click via `goto(href)`.
- * The getter (not a plain string) lets the href follow reactive state (e.g. a list row bound in an `{#each}`).
- */
-export function preloadHover(node: HTMLElement, getHref: () => string | null | undefined) {
-	let current = getHref;
-	const onEnter = () => preloadHref(current());
-	node.addEventListener('pointerenter', onEnter);
-	return {
-		update(next: () => string | null | undefined) {
-			current = next;
-		},
-		destroy() {
-			node.removeEventListener('pointerenter', onEnter);
-		}
-	};
-}

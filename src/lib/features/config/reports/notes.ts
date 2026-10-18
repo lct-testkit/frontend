@@ -25,7 +25,7 @@ export interface ReportNote {
 }
 
 /** Максимум «Не больше строк» на сервере (builders.py): подсказка, до скольки можно поднять предел. */
-export const MAX_LIMIT = 5000;
+const MAX_LIMIT = 5000;
 
 export function reportNotes(input: NoteInput): ReportNote[] {
 	const notes: ReportNote[] = [];

@@ -90,7 +90,7 @@ export interface FieldDef {
 	options?: FieldOption[];
 }
 
-export const PRIORITY_OPTIONS: FieldOption[] = [
+const PRIORITY_OPTIONS: FieldOption[] = [
 	{ key: 'low', value: 'Низкий' },
 	{ key: 'normal', value: 'Обычный' },
 	{ key: 'high', value: 'Высокий' },
@@ -98,7 +98,7 @@ export const PRIORITY_OPTIONS: FieldOption[] = [
 ];
 
 /** Значения `deals.signature_status` (dop.md §10.6: guard `signature_status = signed`). */
-export const SIGNATURE_STATUS_OPTIONS: FieldOption[] = [
+const SIGNATURE_STATUS_OPTIONS: FieldOption[] = [
 	{ key: 'pending', value: 'Ожидает подписи' },
 	{ key: 'signed', value: 'Подписан' },
 	{ key: 'rejected', value: 'Отклонён' },
@@ -131,7 +131,7 @@ export const ATTACHMENT_CATEGORIES: FieldOption[] = [
 	{ key: 'other', value: 'Прочее' }
 ];
 
-export const ATTACHMENT_FIELDS: readonly FieldDef[] = ATTACHMENT_CATEGORIES.map((c) => ({
+const ATTACHMENT_FIELDS: readonly FieldDef[] = ATTACHMENT_CATEGORIES.map((c) => ({
 	key: `attachments.${c.key}`,
 	label: `Вложение «${c.value}»`,
 	kind: 'attachment',
@@ -139,7 +139,7 @@ export const ATTACHMENT_FIELDS: readonly FieldDef[] = ATTACHMENT_CATEGORIES.map(
 }));
 
 /** `step_attachments.<категория>` — файл, приложенный именно на текущем шаге (dsl.py `ALLOWED_FIELD_PREFIXES`, B2-7). */
-export const STEP_ATTACHMENT_FIELDS: readonly FieldDef[] = ATTACHMENT_CATEGORIES.map((c) => ({
+const STEP_ATTACHMENT_FIELDS: readonly FieldDef[] = ATTACHMENT_CATEGORIES.map((c) => ({
 	key: `step_attachments.${c.key}`,
 	label: `Вложение «${c.value}» на этом шаге`,
 	kind: 'attachment',
@@ -166,7 +166,7 @@ export interface CustomFieldLike {
 }
 
 /** Тип пользовательского поля (`custom_field_defs.field_type`) → тип поля условия. */
-export function customFieldKind(fieldType: string): FieldKind {
+function customFieldKind(fieldType: string): FieldKind {
 	switch (fieldType) {
 		case 'number':
 			return 'number';

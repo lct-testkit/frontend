@@ -38,7 +38,7 @@ export function productsTitle(deal: DealRow): string {
 }
 
 /** Уникальные направления сделки по порядку появления. */
-export function directionNames(deal: DealRow): string[] {
+function directionNames(deal: DealRow): string[] {
 	const seen = new Set<string>();
 	const out: string[] = [];
 	for (const d of deal.directions ?? []) {

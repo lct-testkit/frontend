@@ -3,7 +3,6 @@ import type {
 	DocumentStatus,
 	EdmConclusionMethod,
 	EdmPartyType,
-	OtpChannel,
 	RequestStatus,
 	SignerLike,
 	StatusMeta,
@@ -80,8 +79,6 @@ const DOC_TYPE: Record<DocType, string> = {
 	custom: 'Документ'
 };
 
-const OTP_CHANNEL: Record<OtpChannel, string> = { sms: 'СМС', email: 'эл. почту', telegram: 'Telegram' };
-
 const EDM_PARTY: Record<EdmPartyType, string> = {
 	organization: 'Организация',
 	contact: 'Контакт',
@@ -117,8 +114,6 @@ export function verifyStatusMeta(status: string): StatusMeta & { title: string; 
 }
 
 export const docTypeLabel = (type: string): string => DOC_TYPE[type as DocType] ?? 'Документ';
-export const otpChannelLabel = (channel: string): string =>
-	OTP_CHANNEL[channel as OtpChannel] ?? channel;
 export const edmPartyLabel = (type: string): string => EDM_PARTY[type as EdmPartyType] ?? type;
 export const edmMethodLabel = (method: string): string =>
 	EDM_METHOD[method as EdmConclusionMethod] ?? method;

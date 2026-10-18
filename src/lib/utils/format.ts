@@ -11,7 +11,6 @@ const fmtDateTime = new Intl.DateTimeFormat('ru-RU', {
 	minute: '2-digit'
 });
 const fmtTime = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' });
-const fmtLongDate = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 const fmtNumber = new Intl.NumberFormat('ru-RU');
 const rtf = new Intl.RelativeTimeFormat('ru', { numeric: 'auto' });
 
@@ -43,12 +42,6 @@ export function formatDateTime(value: string | number | Date | null | undefined)
 export function formatTime(value: string | number | Date | null | undefined): string {
 	const d = toDate(value);
 	return d ? fmtTime.format(d) : EMPTY;
-}
-
-/** 5 марта 2026 г. */
-export function formatLongDate(value: string | number | Date | null | undefined): string {
-	const d = toDate(value);
-	return d ? fmtLongDate.format(d) : EMPTY;
 }
 
 /** «5 минут назад», «вчера», «через 2 дня»; older than 7 days → absolute date. */
@@ -99,11 +92,6 @@ export function formatMoneyShort(value: number | string | null | undefined, curr
 	if (abs >= 1e6) return `${trim(n / 1e6)}${NBSP}млн${NBSP}${sign}`;
 	if (abs >= 1e3) return `${trim(n / 1e3)}${NBSP}тыс.${NBSP}${sign}`;
 	return formatMoney(n, currency);
-}
-
-export function formatPercent(value: number | null | undefined, digits = 0): string {
-	if (value === null || value === undefined || !Number.isFinite(value)) return EMPTY;
-	return `${value.toFixed(digits).replace('.', ',')}${NBSP}%`;
 }
 
 /** Russian plural: plural(5, ['сделка', 'сделки', 'сделок']) → «сделок» */

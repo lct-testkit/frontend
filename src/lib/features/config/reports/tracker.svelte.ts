@@ -5,7 +5,7 @@ import { Poller } from '../shared/polling.svelte';
 import { getReport } from './api';
 import { isReportBusy } from './params';
 
-export const TRACK_INTERVAL = 3000;
+const TRACK_INTERVAL = 3000;
 export const TRACK_MAX_MS = 10 * 60_000;
 export const TRACK_MAX_JOBS = 10;
 

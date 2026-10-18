@@ -6,7 +6,7 @@ export const OTP_LENGTH = 6;
 /** Совпадает с `signature_otp_max_attempts` бэкенда; сервер остаток не отдаёт, поэтому считаем сами. */
 export const OTP_DEFAULT_MAX_ATTEMPTS = 3;
 /** Совпадает с окном rate-limit `signature:otp:send` (1 раз в 60 с). */
-export const OTP_RESEND_COOLDOWN_SEC = 60;
+const OTP_RESEND_COOLDOWN_SEC = 60;
 /** Не более 5 кодов на один запрос подписи. */
 export const OTP_MAX_SENDS = 5;
 

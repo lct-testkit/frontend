@@ -64,8 +64,8 @@ export interface OffboardValidation {
 	errors: Partial<Record<'successorId' | 'reason' | 'acknowledged', string>>;
 }
 
-export const OFFBOARD_REASON_MIN = 3;
-export const OFFBOARD_REASON_MAX = 500;
+const OFFBOARD_REASON_MIN = 3;
+const OFFBOARD_REASON_MAX = 500;
 
 /** Проверка перед `mode: 'confirm'` — зеркало `OffboardRequest` и `offboard_confirm`. */
 export function validateOffboard(form: OffboardForm, step: 'successor' | 'confirm' = 'confirm'): OffboardValidation {

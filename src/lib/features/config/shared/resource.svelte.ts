@@ -1,7 +1,7 @@
 // Загрузка одного значения с отменой устаревших запросов: `const r = createResource((signal) => unwrap(api.GET(...)))`.
 // `r.data` реактивно, `r.reload()` не сбрасывает данные (нет «прыжков» вёрстки), `r.loading` — только первая загрузка.
 
-export class Resource<T> {
+class Resource<T> {
 	data = $state<T | null>(null);
 	/** первая загрузка (пока данных нет) */
 	loading = $state(true);

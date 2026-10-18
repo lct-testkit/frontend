@@ -15,7 +15,7 @@ export interface DirtyTracker {
 }
 
 /** right after the form opens its values settle by themselves (defaults, loaded data): until the person acts, they are the starting point */
-export const SETTLE_MS = 1200;
+const SETTLE_MS = 1200;
 
 export function createDirtyTracker(start = 0): DirtyTracker {
 	let baseline: string | null = null;
@@ -40,7 +40,7 @@ export function createDirtyTracker(start = 0): DirtyTracker {
 }
 
 /** the values of everything the person can fill in inside `root` */
-export function formSignature(root: ParentNode): string {
+function formSignature(root: ParentNode): string {
 	const parts: string[] = [];
 	root.querySelectorAll('input, textarea, select').forEach((el) => {
 		const input = el as HTMLInputElement;

@@ -63,7 +63,7 @@ export function emptyDraft(): RuleDraft {
 
 const text = (v: unknown): string => (v === null || v === undefined ? '' : typeof v === 'string' ? v : JSON.stringify(v));
 
-export function stringifyValueMap(map: Record<string, string> | null | undefined): string {
+function stringifyValueMap(map: Record<string, string> | null | undefined): string {
 	return Object.entries(map ?? {})
 		.map(([k, v]) => `${k} = ${v}`)
 		.join('\n');
@@ -101,7 +101,7 @@ export function ruleToDraft(rule: MappingRule): RuleDraft {
 	};
 }
 
-export const targetOf = (d: RuleDraft): string => (d.target === CUSTOM_TARGET ? `${CUSTOM_PREFIX}${d.custom.trim()}` : (d.target ?? ''));
+const targetOf = (d: RuleDraft): string => (d.target === CUSTOM_TARGET ? `${CUSTOM_PREFIX}${d.custom.trim()}` : (d.target ?? ''));
 
 export function draftToRule(d: RuleDraft): MappingRule {
 	const rule: MappingRule = { target: targetOf(d), transform: d.transform, required: d.required };
@@ -172,7 +172,7 @@ export function mapServerIssues(issues: readonly { field: string; reason: string
 	return out;
 }
 
-export const SAMPLE_LIMIT = 20 * 1024;
+const SAMPLE_LIMIT = 20 * 1024;
 
 export type SampleResult = { state: 'empty' } | { state: 'error'; message: string } | { state: 'ok'; record: Record<string, unknown> };
 
