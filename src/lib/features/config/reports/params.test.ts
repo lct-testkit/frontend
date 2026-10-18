@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { REPORT_SPECS, canDownloadReport, defaultFormat, describeTemplate, formatHint, formatLabel, formatsFor, hasSpec, isReportExpired, normalizeParams, normalizePosition, paramsFor, toList, validateParams } from './params';
+import { REPORT_SPECS, canDownloadReport, fileState, defaultFormat, describeTemplate, formatHint, formatLabel, formatsFor, hasSpec, isReportExpired, normalizeParams, normalizePosition, paramsFor, toList, validateParams } from './params';
 import { runKey } from './widgets';
 
 /** Виды отчётов бэкенда (backend/app/modules/reporting/seed.py): у каждого обязана быть форма параметров. */
@@ -164,6 +164,26 @@ describe('срок хранения', () => {
 		expect(canDownloadReport({ status: 'completed', expires_at: '2026-09-27T00:00:00Z' }, now)).toBe(true);
 		expect(canDownloadReport({ status: 'processing', expires_at: null }, now)).toBe(false);
 		expect(isReportExpired({ status: 'failed', expires_at: '2026-09-19T00:00:00Z' }, now)).toBe(false);
+	});
+});
+
+describe('состояние файла отчёта', () => {
+	const now = new Date('2026-10-18T12:00:00Z');
+	const future = '2026-10-25T00:00:00Z';
+	it('готов с будущим сроком — ready; с прошедшим — expired', () => {
+		expect(fileState({ status: 'completed', expires_at: future }, { now })).toBe('ready');
+		expect(fileState({ status: 'completed', expires_at: '2026-10-17T00:00:00Z' }, { now })).toBe('expired');
+	});
+	it('файла нет (file_id = null) или сервер уже ответил 410 — gone, даже при будущем сроке', () => {
+		expect(fileState({ status: 'completed', expires_at: future, file_id: null }, { now })).toBe('gone');
+		expect(fileState({ status: 'completed', expires_at: future, file_id: 'f' }, { now, gone: true })).toBe('gone');
+		expect(fileState({ status: 'completed', expires_at: future, file_id: 'f' }, { now })).toBe('ready');
+	});
+	it('очередь и обработка — pending, ошибка — failed; скачать можно только ready', () => {
+		expect(fileState({ status: 'queued' })).toBe('pending');
+		expect(fileState({ status: 'processing' })).toBe('pending');
+		expect(fileState({ status: 'failed' })).toBe('failed');
+		expect(canDownloadReport({ status: 'completed', expires_at: future, file_id: null }, now)).toBe(false);
 	});
 });
 

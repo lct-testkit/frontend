@@ -111,18 +111,26 @@ describe('reportUrl / downloadReport', () => {
 		expect(await reportUrl('job-1')).toBe('https://s3.example/ready.xlsx');
 	});
 
-	it('422 — «срок хранения истёк» (ReportFailed), не сырой ApiError', async () => {
-		get.mockResolvedValue(fail(422, { detail: 'expired' }));
-		const { reportUrl, ReportFailed } = await load();
-
-		await expect(reportUrl('job-1')).rejects.toBeInstanceOf(ReportFailed);
+	it('410 — срок хранения истёк или файла нет (ReportExpired, он же ReportFailed)', async () => {
+		get.mockResolvedValue(fail(410, { detail: 'нет файла', code: 'CRM-1603' }));
+		const { reportUrl, ReportExpired, ReportFailed } = await load();
+		const e = await reportUrl('job-1').catch((x) => x);
+		expect(e).toBeInstanceOf(ReportExpired);
+		expect(e).toBeInstanceOf(ReportFailed);
 	});
 
-	it('другой статус — ошибка не подменяется', async () => {
-		get.mockResolvedValue(fail(500, { detail: 'boom' }));
-		const { reportUrl, ReportFailed } = await load();
+	it('409 — отчёт ещё не готов (ReportNotReady)', async () => {
+		get.mockResolvedValue(fail(409, { code: 'CRM-1602' }));
+		const { reportUrl, ReportNotReady } = await load();
+		await expect(reportUrl('job-1')).rejects.toBeInstanceOf(ReportNotReady);
+	});
 
-		await expect(reportUrl('job-1')).rejects.not.toBeInstanceOf(ReportFailed);
+	it('422 и 500 больше не подменяются', async () => {
+		const { reportUrl, ReportFailed } = await load();
+		for (const status of [422, 500]) {
+			get.mockResolvedValue(fail(status, { detail: 'boom' }));
+			await expect(reportUrl('job-1')).rejects.not.toBeInstanceOf(ReportFailed);
+		}
 	});
 });
 

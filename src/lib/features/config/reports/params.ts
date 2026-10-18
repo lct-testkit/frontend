@@ -393,16 +393,33 @@ export interface ReportJobLike {
 	status: string;
 	expires_at?: string | null;
 	finished_at?: string | null;
+	/** `null` у готового задания — файла в хранилище нет; не задано — не знаем */
+	file_id?: string | null;
 }
 
-/** Файл готового отчёта удаляется ретеншеном после `expires_at`; отдельного флага у API нет. */
+/** Файл готового отчёта удаляется ретеншеном после `expires_at`. */
 export function isReportExpired(job: ReportJobLike, now: Date = new Date()): boolean {
 	if (job.status !== 'completed' || !job.expires_at) return false;
 	const expires = Date.parse(job.expires_at);
 	return Number.isFinite(expires) && expires <= now.getTime();
 }
 
-export const canDownloadReport = (job: ReportJobLike, now: Date = new Date()): boolean => job.status === 'completed' && !isReportExpired(job, now);
+export type FileState = 'pending' | 'ready' | 'expired' | 'gone' | 'failed';
+
+/**
+ * Что с файлом отчёта: ждёт (очередь, обработка), готов, срок хранения истёк, файла нет (удалён или не создавался), ошибка.
+ * `gone` приходит из сессии: сервер уже ответил 410 на скачивание.
+ */
+export function fileState(job: ReportJobLike, opts: { now?: Date; gone?: boolean } = {}): FileState {
+	if (job.status === 'failed') return 'failed';
+	if (job.status !== 'completed') return 'pending';
+	if (opts.gone) return 'gone';
+	if (isReportExpired(job, opts.now)) return 'expired';
+	if (job.file_id === null) return 'gone';
+	return 'ready';
+}
+
+export const canDownloadReport = (job: ReportJobLike, now: Date = new Date()): boolean => fileState(job, { now }) === 'ready';
 
 // --- Дашборды ---------------------------------------------------------------------
 

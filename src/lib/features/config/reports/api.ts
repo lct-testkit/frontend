@@ -59,12 +59,29 @@ export async function waitForReport(job: ReportJob, opts: { interval?: number; t
 export const fetchReportData = (id: string, signal?: AbortSignal): Promise<ReportDataOut> =>
 	unwrap(api.GET('/api/reports/{report_id}/data', { params: { path: { report_id: id } }, signal }));
 
-/** Ссылка на файл (действует недолго). 422 у бэкенда — «файл ещё не готов» и «срок хранения истёк» (backend-issues #17). */
+/** Срок хранения файла истёк или файла нет в хранилище (410, CRM-1603). */
+export class ReportExpired extends ReportFailed {
+	constructor(message = 'Файл отчёта уже удалён из хранилища. Запустите отчёт заново') {
+		super(message);
+		this.name = 'ReportExpired';
+	}
+}
+
+/** Отчёт ещё не готов или завершился ошибкой (409, CRM-1602). */
+export class ReportNotReady extends ReportFailed {
+	constructor(message = 'Отчёт ещё не готов или завершился с ошибкой') {
+		super(message);
+		this.name = 'ReportNotReady';
+	}
+}
+
+/** Ссылка на файл (действует недолго). 410 / CRM-1603 — срок хранения истёк или файла нет, 409 / CRM-1602 — отчёт не готов. */
 export async function reportUrl(id: string): Promise<string> {
 	try {
 		return (await unwrap(api.GET('/api/reports/{report_id}/download', { params: { path: { report_id: id } } }))).url;
 	} catch (e) {
-		if (e instanceof ApiError && e.status === 422) throw new ReportFailed('Срок хранения файла истёк. Запустите отчёт заново.');
+		if (e instanceof ApiError && (e.status === 410 || e.code === 'CRM-1603')) throw new ReportExpired();
+		if (e instanceof ApiError && (e.status === 409 || e.code === 'CRM-1602')) throw new ReportNotReady();
 		throw e;
 	}
 }

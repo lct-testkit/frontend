@@ -1,6 +1,8 @@
 <script lang="ts">
 	// Виды отчётов: карточки; клик открывает панель запуска. Шаблоны, недоступные роли, сервер уже отфильтровал.
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { Badge } from '@lct-testkit/rt-ui';
 	import { ArrowRight } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
@@ -15,6 +17,16 @@
 	onMount(() => void list.reload());
 
 	let selected = $state<ReportTemplate | null>(null);
+
+	// «Запустить заново» из «Моих отчётов»: ?run=<код> открывает панель этого отчёта, после чего параметр убирается из адреса
+	$effect(() => {
+		const code = page.url.searchParams.get('run');
+		const templates = list.data;
+		if (!code || !templates) return;
+		const found = templates.find((t) => t.code === code);
+		if (found) selected = found;
+		void goto('/reports', { replaceState: true, noScroll: true });
+	});
 </script>
 
 <Page>
