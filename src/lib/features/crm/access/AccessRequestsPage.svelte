@@ -14,6 +14,7 @@
 	import { orgCache, orgTitle } from '../shared/entityCache.svelte';
 	import type { AccessRequest } from '../types';
 	import AccessDecisionModal from './AccessDecisionModal.svelte';
+	import { accessInbox } from './inbox.svelte';
 	import { REQUEST_STATUS_FILTERS, accessUntil, effectiveStatus, matchesStatus, requestActions, statusMeta } from './accessRequests';
 
 	const BOXES = [
@@ -48,7 +49,10 @@
 	let busy = $state<string | null>(null);
 
 	// строка остаётся с новым статусом, пока список не перечитают
-	const replace = (next: AccessRequest) => pager.patch((r) => r.id === next.id, next);
+	const replace = (next: AccessRequest) => {
+		pager.patch((r) => r.id === next.id, next);
+		void accessInbox.refresh();
+	};
 
 	async function act(r: AccessRequest, kind: 'cancel' | 'revoke') {
 		const ok = await confirm(
