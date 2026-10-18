@@ -99,6 +99,7 @@ export const DEAL_EVENT_LABELS: Record<string, string> = {
 	OWNER_CHANGED: 'Сменён ответственный',
 	FIELD_CHANGED: 'Изменены поля',
 	FILE_ADDED: 'Добавлен файл',
+	FILE_REMOVED: 'Удалён файл',
 	SIGNATURE_REQUESTED: 'Запрошена подпись',
 	SIGNATURE_SIGNED: 'Документ подписан',
 	SIGNATURE_REJECTED: 'Подпись отклонена',

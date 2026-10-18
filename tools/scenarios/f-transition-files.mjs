@@ -63,6 +63,26 @@ try {
 	const bound = (await attachments())[0];
 	expect(!!bound?.status_history_id && !!bound?.status_id, `вложение привязано к записи истории (${bound?.status_history_id?.slice(0, 8)}), статус ${bound?.status_id?.slice(0, 8)}`);
 
+	step('вкладка «История»: файл под записью статуса, без дубля в событиях, «Скачать» открывает ссылку');
+	await page.goto(`${BASE}/deals/${deal.id}?tab=history`, { waitUntil: 'load' });
+	const files = page.getByTestId('history-files');
+	await files.waitFor({ timeout: 15000 });
+	const text = (await files.innerText()).replace(/\s+/g, ' ');
+	expect(text.includes('contract.pdf') && text.includes('Договор') && /590/.test(text), `под записью статуса: ${text}`);
+	const eventsText = (await page.locator('main').innerText()).replace(/\s+/g, ' ');
+	await shot('4-history-files');
+	const added = (eventsText.match(/Добавлен файл/g) ?? []).length;
+	expect(added === 1, `«Добавлен файл» в событиях: ${added} (только отменённый в диалоге файл; приложенный к переходу скрыт)`);
+	await page.evaluate(() => {
+		window.__opened = [];
+		window.open = (url) => (window.__opened.push(String(url)), null);
+	});
+	await files.getByRole('button', { name: 'Скачать' }).first().click();
+	await page.waitForFunction(() => window.__opened.length > 0, null, { timeout: 8000 });
+	const opened = await page.evaluate(() => window.__opened[0]);
+	expect(/^https?:\/\//.test(opened), `«Скачать» открывает ссылку: ${opened.slice(0, 60)}…`);
+	await shot('4-history-files');
+
 	step('уход по подсказке «К подписанию» сохраняет комментарий');
 	await page.goto(`${BASE}/deals/${six.deal.id}`, { waitUntil: 'load' });
 	await next().click();
