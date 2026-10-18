@@ -7,6 +7,7 @@
 	import { Counter } from '@lct-testkit/rt-ui';
 	import { people } from '$lib/api/people.svelte';
 	import { api, unwrap } from '$lib/api';
+	import { AddLarge } from '@lct-testkit/rt-ui/icons';
 	import { Avatar, Btn, EmptyState, ErrorState, Money, Skeleton, toast } from '$lib/ui';
 	import PriorityChip from '../../shared/PriorityChip.svelte';
 	import SlaIndicator from '../../shared/SlaIndicator.svelte';
@@ -26,9 +27,13 @@
 		collapse?: boolean;
 		/** сделка переехала в другой статус: родитель может пересчитать числа на вкладках */
 		onChange?: () => void;
+		/** a search, a tab or a filter is on: an empty board offers to reset them */
+		filtered?: boolean;
+		onReset?: () => void;
+		onCreate?: () => void;
 	}
 
-	let { workflowId, query, collapse = false, onChange }: Props = $props();
+	let { workflowId, query, collapse = false, onChange, filtered = false, onReset, onCreate }: Props = $props();
 
 	const PARALLEL = 6;
 	let cols = $state<Record<string, BoardColumn>>({});
@@ -39,6 +44,8 @@
 	const graph = $derived(workflows.graph(workflowId));
 	const columns = $derived([...steps(graph), ...terminals(graph)]);
 	const allDeals = $derived(Object.values(cols).flatMap((c) => c.items));
+	/** every column answered and none has a deal: sixteen thin strips with «0» tell nothing — say it in words */
+	const allEmpty = $derived(columns.length > 0 && columns.every((c) => cols[c.id] && !cols[c.id].loading && !cols[c.id].error && cols[c.id].items.length === 0 && !(cols[c.id].total && cols[c.id].total! > 0)));
 
 	// статусы доска не фильтрует (у каждого столбца свой), остальные фильтры — общие
 	const base = (statusId: string) => ({ ...query, status_id: [statusId], workflow_id: workflowId });
@@ -256,6 +263,12 @@
 	</div>
 {:else if !graph}
 	<EmptyState title="Воронка не найдена" compact />
+{:else if allEmpty}
+	<EmptyState title={filtered ? 'Сделок по этим условиям нет' : 'В этой воронке пока нет сделок'} compact>
+		{#snippet action()}
+			{#if filtered && onReset}<Btn label="Сбросить фильтры" variant="outline" colorScheme="neutral" onclick={onReset} />{:else if onCreate}<Btn label="Новая сделка" icon={AddLarge} variant="outline" colorScheme="neutral" onclick={onCreate} />{/if}
+		{/snippet}
+	</EmptyState>
 {:else}
 	<div class="-mx-3 flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-3 pb-3 md:mx-0 md:min-h-0 md:flex-1 md:snap-none md:items-stretch md:px-0" aria-busy={Object.values(cols).some((c) => c.loading) || undefined}>
 		{#each columns as status (status.id)}
