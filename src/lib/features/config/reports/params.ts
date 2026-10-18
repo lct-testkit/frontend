@@ -234,7 +234,7 @@ export function scopeDefs(spec: ReportSpec, dateFields: readonly string[], defau
 		}
 		defs.push({ key: 'date_from', label: `${periodLabel(dateFields)} с`, kind: 'date', group: 'scope' }, { key: 'date_to', label: `${periodLabel(dateFields)} по`, kind: 'date', group: 'scope' });
 	}
-	if (scope.organizations) defs.push({ key: 'organization_ids', label: GLOSSARY.org.plural, kind: 'organization_multi', hint: 'Пусто — все', group: 'scope' });
+	if (scope.organizations) defs.push({ key: 'organization_ids', label: GLOSSARY.org.plural, kind: 'organization_multi', hint: GLOSSARY.org.hint, group: 'scope' });
 	if (scope.directions) defs.push({ key: 'direction_ids', label: GLOSSARY.direction.plural, kind: 'direction_multi', hint: GLOSSARY.direction.hint, group: 'scope' });
 	if (scope.products) defs.push({ key: 'product_ids', label: GLOSSARY.product.plural, kind: 'product_multi', hint: GLOSSARY.product.hint, group: 'scope' });
 	if (scope.owners) defs.push({ key: 'owner_ids', label: spec.ownersLabel ?? GLOSSARY.deal_owner.plural, kind: 'owner_multi', hint: GLOSSARY.deal_owner.hint, group: 'scope' });
