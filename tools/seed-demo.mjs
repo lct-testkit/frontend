@@ -192,7 +192,36 @@ async function ensureTeam(me) {
 	};
 	await assign(me.head, { team_id: team.id });
 	await assign(me.kam, { team_id: team.id, manager_id: me.head.id });
+	await ensureTeamTree(team);
 	return team;
+}
+
+/** Команды с регионами для картинки справки: «Отдел вузов» — Москва, «Отдел колледжей» — Ростовская область, «Региональный отдел» внутри «Отдела вузов» — Новосибирская область. */
+async function ensureTeamTree(root) {
+	const regions = (await get('kam', '/api/regions')).items;
+	const regionId = (name) => regions.find((r) => r.name === name)?.id ?? null;
+	const users = (await get('admin', '/api/admin/users?limit=100')).items;
+	const headId = (name) => users.find((u) => u.full_name === name)?.id ?? null;
+	const fresh = await get('admin', `/api/admin/teams/${root.id}`);
+	if (!fresh.region_id && regionId('Москва')) {
+		await call('admin', 'PATCH', `/api/admin/teams/${root.id}`, { region_id: regionId('Москва') }, ifMatch(fresh.version));
+		console.log(`  + «${TEAM_NAME}»: регион Москва`);
+	}
+	const extra = [
+		{ name: 'Отдел колледжей', region: 'Ростовская область', head: 'Дмитрий Волков', parent_id: null },
+		{ name: 'Региональный отдел', region: 'Новосибирская область', head: 'Сергей Смирнов', parent_id: root.id }
+	];
+	const teams = (await get('admin', '/api/admin/teams?limit=100')).items;
+	for (const t of extra) {
+		if (teams.some((x) => x.name === t.name)) continue;
+		const body = { name: t.name, parent_id: t.parent_id, region_id: regionId(t.region), head_id: headId(t.head) };
+		try {
+			await post('admin', '/api/admin/teams', body);
+		} catch {
+			await post('admin', '/api/admin/teams', { ...body, head_id: null });
+		}
+		console.log(`  + команда «${t.name}»`);
+	}
 }
 
 async function ensureReferenceData() {
