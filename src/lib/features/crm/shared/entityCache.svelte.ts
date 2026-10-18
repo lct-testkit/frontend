@@ -4,7 +4,7 @@ import { SvelteMap } from 'svelte/reactivity';
 import { api, unwrap, ApiError } from '$lib/api';
 import { session } from '$lib/auth/session.svelte';
 import type { Contact, Organization } from '../types';
-import { clearGone, isGone, markGone } from './goneDeals';
+import { clearGone, isGone, markGone, type GoneKind } from './goneEntities';
 
 /** Сколько ждать перед повторной попыткой после 429 или 5xx (мс); сбой сети повторяется со следующим ensure. */
 const RETRY_AFTER_MS = 15_000;
@@ -90,11 +90,17 @@ class EntityCache<T extends { id: string }> {
 	}
 }
 
-export const orgCache = new EntityCache<Organization>((id) =>
-	unwrap(api.GET('/api/organizations/{organization_id}', { params: { path: { organization_id: id } } }))
+const goneHooks = (kind: GoneKind) => ({ known: (id: string) => isGone(kind, id), onMissing: (id: string) => markGone(kind, id) });
+
+export const orgCache = new EntityCache<Organization>(
+	(id) => unwrap(api.GET('/api/organizations/{organization_id}', { params: { path: { organization_id: id } } })),
+	6,
+	goneHooks('organization')
 );
-export const contactCache = new EntityCache<Contact>((id) =>
-	unwrap(api.GET('/api/contacts/{contact_id}', { params: { path: { contact_id: id } } }))
+export const contactCache = new EntityCache<Contact>(
+	(id) => unwrap(api.GET('/api/contacts/{contact_id}', { params: { path: { contact_id: id } } })),
+	6,
+	goneHooks('contact')
 );
 
 export const orgTitle = (o: Pick<Organization, 'name' | 'short_name'>): string => o.short_name || o.name;
@@ -105,13 +111,13 @@ export const contactFullName = (c: Pick<Contact, 'last_name' | 'first_name' | 'm
 export function orgLabel(id: string | null | undefined): string {
 	if (!id) return '';
 	const org = orgCache.get(id);
-	return org === undefined ? '…' : org ? orgTitle(org) : 'Организация недоступна';
+	return org === undefined ? '…' : org ? orgTitle(org) : isGone('organization', id) ? 'Организация удалена' : 'Организация недоступна';
 }
 
 export function contactLabel(id: string | null | undefined): string {
 	if (!id) return '';
 	const contact = contactCache.get(id);
-	return contact === undefined ? '…' : contact ? contactFullName(contact) : 'Контакт недоступен';
+	return contact === undefined ? '…' : contact ? contactFullName(contact) : isGone('contact', id) ? 'Контакт удалён' : 'Контакт недоступен';
 }
 
 // Сделки для подписей задач и уведомлений. `GET /deals/{id}` пишет сделку в «Недавние» пользователя, поэтому названия сначала
@@ -123,7 +129,7 @@ import type { Deal } from '../types';
 export const dealCache = new EntityCache<Deal>(
 	async (id) => (await unwrap(api.GET('/api/deals/{deal_id}', { params: { path: { deal_id: id } } }))).deal,
 	6,
-	{ known: isGone, onMissing: markGone }
+	goneHooks('deal')
 );
 session.onReset(clearGone);
 
@@ -153,5 +159,5 @@ export async function preloadDeals(ids: (string | null | undefined)[]): Promise<
 export const dealLabel = (id: string | null | undefined): string => {
 	const deal = id ? dealCache.get(id) : undefined;
 	if (!id) return '…';
-	return deal === undefined ? '…' : deal ? `${deal.number} · ${deal.title}` : isGone(id) ? 'Сделка удалена' : 'Сделка недоступна';
+	return deal === undefined ? '…' : deal ? `${deal.number} · ${deal.title}` : isGone('deal', id) ? 'Сделка удалена' : 'Сделка недоступна';
 };
