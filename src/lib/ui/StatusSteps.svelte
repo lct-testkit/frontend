@@ -32,10 +32,12 @@
 		steps: Step[];
 		/** the right end of the header line: a badge of the final status (won / lost / parked) */
 		end?: Snippet;
+		/** an action next to the name of the current step (a link to rename it); not on a phone, where the name line is hidden */
+		here?: Snippet;
 		label?: string;
 	}
 
-	let { steps, end, label = 'Этапы воронки' }: Props = $props();
+	let { steps, end, here, label = 'Этапы воронки' }: Props = $props();
 
 	let strip = $state<HTMLElement | null>(null);
 	let atStart = $state(true);
@@ -134,6 +136,7 @@
 		<div class="flex min-h-9 min-w-0 items-center gap-3">
 			<span class="t-body-s-strong flex-none">{caption}</span>
 			{#if hereName}<span class="t-body-s min-w-0 flex-1 truncate text-muted max-md:hidden" title={hereName}>{hereName}</span>{/if}
+			{#if here && hereName}<span class="flex-none max-md:hidden">{@render here()}</span>{/if}
 			<span class="ml-auto flex flex-none items-center gap-2">
 				{#if end}{@render end()}{/if}
 				{#if scrolls}

@@ -12,6 +12,7 @@
 	import MultiPick from '$lib/ui/fields/MultiPick.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import TextField from '$lib/ui/fields/TextField.svelte';
+	import { hasSameName, normalizeStatusName, statusNameError } from '../statusName';
 
 	interface Props {
 		editor: WorkflowEditor;
@@ -40,6 +41,22 @@
 		});
 	});
 
+	// Руководитель без права править воронку: поле «Название» активно, правка уходит отдельной кнопкой одной ручкой (не в черновик графа)
+	const renameOnly = $derived(editor.renameOnly && !isNew);
+	let nameValue = $state('');
+	$effect(() => {
+		const name = status.name;
+		untrack(() => (nameValue = name));
+	});
+	const nameError = $derived(renameOnly ? statusNameError(nameValue) : null);
+	const nameChanged = $derived(normalizeStatusName(nameValue) !== normalizeStatusName(status.name));
+	const sameName = $derived(renameOnly && hasSameName(editor.draft.statuses, status.key, nameValue));
+
+	async function saveName() {
+		if (nameError || !nameChanged) return;
+		if (await confirm({ title: 'Переименовать шаг?', message: 'Название изменится у всех сделок воронки.', confirmLabel: 'Сохранить' })) await editor.renameStatus(status.key, nameValue);
+	}
+
 	function rename(name: string) {
 		const others = editor.draft.statuses.filter((s) => s.key !== status.key).map((s) => s.code);
 		editor.updateStatus(status.key, { name, ...(isNew && !codeTouched ? { code: makeCode(name, others) } : {}) });
@@ -67,7 +84,12 @@
 <div class="flex flex-col gap-4">
 	<PanelIssues issues={errs} />
 
-	<TextField label="Название" required value={status.name} disabled={editor.readonly} onInput={rename} autofocus={isNew} />
+	{#if renameOnly}
+		<TextField label="Название" required value={nameValue} error={nameError ?? undefined} hint={sameName ? 'Шаг с таким названием уже есть' : undefined} onInput={(v) => (nameValue = v)} />
+		<Btn label="Сохранить название" disabled={!!nameError || !nameChanged} loading={editor.saving} onclick={saveName} data-testid="status-rename-save" />
+	{:else}
+		<TextField label="Название" required value={status.name} disabled={editor.readonly} onInput={rename} autofocus={isNew} />
+	{/if}
 	<TextField
 		label="Код"
 		required={isNew}
