@@ -6,6 +6,8 @@ import { session } from '$lib/auth/session.svelte';
 import { EntityCache, contactCache, contactLabel, dealLabel, orgCache, orgLabel, preloadDeals } from '$lib/features/crm/shared/entityCache.svelte';
 import { dealFieldDefs, directions, lossReasons, products } from '$lib/features/crm/shared/refs.svelte';
 import { getDocumentsBatch } from '$lib/features/signing/api';
+import { Lazy } from '$lib/features/crm/shared/lazy.svelte';
+import { NOTIFICATION_CHANNELS, NOTIFICATION_EVENT_CODES, labelOf } from '$lib/features/config/labels';
 import { formatDate } from '$lib/utils/format';
 
 export interface ChangeRow {
@@ -149,6 +151,11 @@ function ensureDocuments(ids: string[]): void {
 		.catch(() => {});
 }
 
+// справочники администратора: шаблоны уведомлений, источники интеграций, версии реестра ЕГРЮЛ (у ручек нет чтения по id или оно дороже списка)
+const templateList = new Lazy<{ id: string; code: string; channel: string }[]>(async () => (await unwrap(api.GET('/api/admin/notification-templates', { params: { query: { limit: 100 } } }))).items);
+const sourceList = new Lazy<{ id: string; name: string }[]>(async () => await unwrap(api.GET('/api/admin/integrations/sources')));
+const registryCache = new EntityCache<{ id: string; created_at: string; imported_at?: string | null }>((id) => unwrap(api.GET('/api/admin/registry/versions/{version_id}', { params: { path: { version_id: id } } })), 6);
+
 const IMPORT_OF: Record<string, string> = { organization: 'организаций', contact: 'контактов', deal: 'сделок', user: 'сотрудников' };
 
 interface Resolver {
@@ -185,6 +192,9 @@ const RESOLVERS: Record<string, Resolver> = {
 	report_job: byCache(reportCache, STAFF, (r) => `${r.format.toUpperCase()} от ${formatDate(r.created_at)}`),
 	import_job: byCache(importCache, ['HEAD', 'ADMIN'], (j) => `${IMPORT_OF[j.entity_type] ? `${IMPORT_OF[j.entity_type]} ` : ''}от ${formatDate(j.created_at)}`),
 	organization_license: byCache(licenseCache, STAFF, (l) => l.contract_number || l.product_name),
+	notification_template: byList(templateList, ['ADMIN'], (t) => `${NOTIFICATION_EVENT_CODES.find((e) => e.key === t.code)?.value ?? t.code} · ${labelOf(NOTIFICATION_CHANNELS, t.channel)}`),
+	integration_source: byList(sourceList, ['ADMIN'], (s) => s.name),
+	registry_version: byCache(registryCache, ['ADMIN'], (v) => `Выгрузка ЕГРЮЛ от ${formatDate(v.imported_at ?? v.created_at)}`),
 	signature_document: { roles: null, ensure: ensureDocuments, label: (id) => documentTitles.get(id) ?? null },
 	product: byList(products, null, (p) => p.name),
 	direction: byList(directions, null, (d) => d.name),
