@@ -1,7 +1,6 @@
 <script lang="ts">
 	// Search box: debounced `onSearch(value)` (default 300 ms), clearable, Enter fires immediately, Esc clears.
 	import { Input } from '@lct-testkit/rt-ui';
-	import { fieldA11y } from './fields/field-a11y';
 	import { Search } from '@lct-testkit/rt-ui/icons';
 	import { debounce } from '$lib/utils/debounce';
 
@@ -34,7 +33,6 @@
 <div
 	class={['w-full min-w-0', className]}
 	role="search"
-	use:fieldA11y={undefined}
 	onkeydown={(e) => (e.key === 'Enter' ? fire.flush() : e.key === 'Escape' && text ? (change(''), fire.flush()) : null)}
 >
 	<Input

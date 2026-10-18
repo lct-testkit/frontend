@@ -3,7 +3,6 @@
 	// Ctrl/⌘+Enter → `onSubmit`. `ref` is the <textarea> itself (to insert text at the cursor).
 	import { TextArea } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
-	import { fieldA11y } from './field-a11y';
 
 	interface Props {
 		value?: string;
@@ -44,7 +43,6 @@
 	const bp = useBreakpoint();
 </script>
 
-<div class="contents" use:fieldA11y={error}>
 <TextArea
 	class={['w-full', className]}
 	size={bp.isMobile ? 'l' : 'm'}
@@ -71,4 +69,3 @@
 		}
 	}}
 />
-</div>
