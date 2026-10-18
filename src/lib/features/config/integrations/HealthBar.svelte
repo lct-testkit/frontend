@@ -34,7 +34,10 @@
 
 <section class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-line bg-surface px-4 py-3 max-md:px-3" aria-label="Состояние системы">
 	{#if report}
-		<StatusChip label={labelOf(HEALTH_STATUSES, report.status)} tone={healthTone(report.status)} />
+		<!-- Одно сообщение: при исправной системе его заменяет сводка по источникам, иначе «всё работает» спорит с «источники отключены». -->
+		{#if report.status !== 'ok' || !sources}
+			<StatusChip label={labelOf(HEALTH_STATUSES, report.status)} tone={healthTone(report.status)} />
+		{/if}
 		{#if sources}<StatusChip label={sources.text} tone={sources.tone} />{/if}
 		<ul class="m-0 flex min-w-0 flex-1 list-none flex-wrap gap-1.5 p-0 max-md:order-last max-md:basis-full">
 			{#each report.dependencies as d (d.name)}
