@@ -11,6 +11,13 @@ describe('меню', () => {
 		expect(isVisible(licenses, asCan('audit:read'))).toBe(false);
 	});
 
+	it('«События безопасности» видны только с правом security_event:read (администратор, аудитор), не руководителю', () => {
+		const security = items.find((i) => i.id === 'security')!;
+		expect(security.href).toBe('/admin/security');
+		expect(isVisible(security, asCan('security_event:read'))).toBe(true);
+		expect(isVisible(security, asCan('audit:read', 'user:read'))).toBe(false);
+	});
+
 	it('пункт стоит сразу после «Организаций»', () => {
 		const work = NAV.find((s) => s.id === 'work')!.items.map((i) => i.id);
 		expect(work.indexOf('licenses')).toBe(work.indexOf('orgs') + 1);

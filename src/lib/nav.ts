@@ -18,6 +18,7 @@ import {
 	Mail,
 	MarketingFunnel,
 	Portfolio,
+	Security,
 	SecurityCheck,
 	Settings,
 	Task,
@@ -82,6 +83,7 @@ export const NAV: NavSection[] = [
 			{ id: 'approvals', label: 'Согласования', href: '/admin/approvals', icon: SecurityCheck, permission: 'user:write' },
 			{ id: 'erasure', label: 'Удаление ПДн', href: '/admin/erasure', icon: Trash, permission: 'erasure:manage' },
 			{ id: 'audit', label: 'Журнал аудита', href: '/admin/audit', icon: History, permission: 'audit:read' },
+			{ id: 'security', label: 'События безопасности', href: '/admin/security', icon: Security, permission: 'security_event:read' },
 			{ id: 'settings', label: 'Настройки', href: '/admin/settings', icon: Settings, permission: 'settings:write' }
 		]
 	}
