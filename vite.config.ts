@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => {
 		},
 		build: { target: 'es2022', chunkSizeWarningLimit: 900 },
 		test: {
-			include: ['src/**/*.{test,spec}.ts', 'tools/**/*.test.ts'],
+			include: ['src/**/*.{test,spec}.ts', 'tools/**/*.test.ts', 'tools/**/*.test.mjs'],
 			environment: 'node',
 			coverage: {
 				// unit-тесты покрывают чистую логику (.ts); компоненты (.svelte) проверяются svelte-check, мок-стендом (tools/mock: экраны, состояния, клавиатура, XSS) и сценариями на живом стенде; тестов компонентов в браузере нет — им нужны @vitest/browser и vitest-browser-svelte (решение владельца, F8-3)

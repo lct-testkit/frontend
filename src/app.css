@@ -49,7 +49,7 @@
 	--color-on-danger: var(--atmr-error-on-error);
 	--color-success: var(--atmr-success-default);
 	--color-success-soft: var(--atmr-success-container-soft);
-	--color-warning: var(--atmr-warning-default);
+	--color-warning: var(--app-warning-text, var(--atmr-warning-default));
 	--color-warning-soft: var(--atmr-warning-container-soft);
 	--color-info: var(--atmr-info-default);
 	--color-info-soft: var(--atmr-info-container-soft);

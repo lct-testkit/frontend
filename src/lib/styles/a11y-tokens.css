@@ -1,0 +1,47 @@
+/* stylelint-disable color-no-hex, function-disallowed-list -- токены доступности: значения считает tools/check-contrast.mjs, на глаз их подбирать нельзя */
+
+/* Светлые темы: приглушённый текст 4,5:1 и выше на всех поверхностях, подписи чипов и вторичных кнопок, границы полей 3:1 */
+body.Theme_root_rtk_default_light,
+body.Theme_root_rtk_purple_light {
+	--app-control-edge: rgba(88, 93, 105, 0.66);
+	--app-warning-text: var(--atmr-warning-800);
+	--atmr-fg-muted: rgba(16, 24, 40, 0.64);
+	--atmr-error-default: var(--atmr-error-700);
+	--atmr-success-default: var(--atmr-success-700);
+	--atmr-error-on-container: var(--atmr-error-700);
+	--atmr-success-on-container: var(--atmr-success-700);
+	--atmr-warning-on-container: var(--atmr-warning-800);
+	--atmr-info-on-container: var(--atmr-info-700);
+	--atmr-status-01-on-container: var(--atmr-status-01-700);
+	--atmr-status-02-on-container: var(--atmr-status-02-700);
+	--atmr-status-03-on-container: var(--atmr-status-03-700);
+	--atmr-status-04-on-container: var(--atmr-status-04-700);
+	--atmr-status-05-on-container: var(--atmr-status-05-700);
+	--atmr-status-06-on-container: var(--atmr-status-06-700);
+	--atmr-input-primary-border-color-default: var(--app-control-edge);
+	--atmr-input-primary-border-color-hover: rgba(88, 93, 105, 0.8);
+	--atmr-checkbox-primary-border-color-default: var(--app-control-edge);
+	--atmr-radiobutton-primary-border-color-default: var(--app-control-edge);
+	--atmr-switch-primary-track-bg-color-default: var(--app-control-edge);
+}
+
+/* Только Rostelecom light: оранжевый #ff4f12 даёт 3,29:1 на белом; #c93e0e (расстояние до фирменного 11,5) даёт 5,03:1 */
+body.Theme_root_rtk_default_light {
+	--atmr-accent-default: #c93e0e;
+	--atmr-accent-hover: var(--atmr-accent-700);
+	--atmr-accent-active: var(--atmr-accent-800);
+	--atmr-accent-on-container: var(--atmr-accent-700);
+	--atmr-input-primary-border-color-focus: var(--atmr-accent-default);
+}
+
+/* Тёмные темы: нужны только границы управляющих элементов */
+body.Theme_root_rtk_default_dark,
+body.Theme_root_rtk_purple_dark {
+	--app-control-edge: rgba(181, 183, 192, 0.5);
+	--app-warning-text: var(--atmr-warning-default);
+	--atmr-input-primary-border-color-default: var(--app-control-edge);
+	--atmr-input-primary-border-color-hover: rgba(181, 183, 192, 0.65);
+	--atmr-checkbox-primary-border-color-default: var(--app-control-edge);
+	--atmr-radiobutton-primary-border-color-default: var(--app-control-edge);
+	--atmr-switch-primary-track-bg-color-default: var(--app-control-edge);
+}
