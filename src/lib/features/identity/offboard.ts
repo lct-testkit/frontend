@@ -13,6 +13,8 @@ export interface WorkloadSummary {
 	tasks: number;
 	imports: number;
 	reports: number;
+	/** вузы, где сотрудник ответственный (с B4-4; у старого бэкенда нет) */
+	organizations: number;
 	signatureRequests: number;
 	criticalDeals: CriticalDeal[];
 	/** Модуль сделок недоступен: счётчики нулевые не потому, что дел нет. */
@@ -37,6 +39,7 @@ export function summarizeWorkload(items: readonly OffboardItem[]): WorkloadSumma
 		deals: count('deals'),
 		tasks: count('tasks'),
 		imports: count('imports'),
+		organizations: count('organizations'),
 		reports: count('reports'),
 		signatureRequests: count('signature_requests'),
 		criticalDeals,
@@ -44,7 +47,7 @@ export function summarizeWorkload(items: readonly OffboardItem[]): WorkloadSumma
 	};
 	const isEmpty =
 		!unsupported &&
-		summary.deals + summary.tasks + summary.imports + summary.reports + summary.signatureRequests === 0;
+		summary.deals + summary.tasks + summary.imports + summary.reports + summary.signatureRequests + summary.organizations === 0;
 	return { ...summary, isEmpty };
 }
 
