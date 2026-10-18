@@ -1,4 +1,5 @@
 // Фильтры списка сделок живут в адресной строке (`?q=&type=b2b&quick=mine`): «Назад», перезагрузка и ссылки работают.
+// Параметр `org` (с `new=1`) открывает форму «Новая сделка», фильтром по вузу служит `organization`.
 // Здесь — чтение параметров, перевод в query API и подсчёт включённых фильтров.
 
 export type DealView = 'table' | 'board';
@@ -9,7 +10,10 @@ export interface DealFilters {
 	quick: QuickFilter;
 	q: string;
 	workflow: string;
-	status: string;
+	/** несколько статусов (только таблица): в адресе `status=a,b`, старая ссылка `status=a` читается так же */
+	statuses: string[];
+	organization: string;
+	direction: string;
 	type: string;
 	priority: string;
 	owner: string;
@@ -46,7 +50,9 @@ export function readFilters(params: URLSearchParams): DealFilters {
 		quick: (QUICK.has(quick) ? quick : 'all') as QuickFilter,
 		q: get('q'),
 		workflow: get('workflow'),
-		status: get('status'),
+		statuses: params.getAll('status').flatMap((v) => v.split(',')).filter(Boolean),
+		organization: get('organization'),
+		direction: get('direction'),
 		type: get('type'),
 		priority: get('priority'),
 		owner: get('owner'),
@@ -64,8 +70,10 @@ const endOfDay = (iso: string) => new Date(`${iso}T23:59:59.999`).toISOString();
 export interface DealQuery {
 	q?: string;
 	workflow_id?: string;
-	/** повторяемый параметр (несколько статусов); UI выбирает один */
+	/** повторяемый параметр: несколько статусов */
 	status_id?: string[];
+	organization_id?: string[];
+	direction_id?: string[];
 	deal_type?: string;
 	priority?: string;
 	owner_id?: string[];
@@ -83,7 +91,9 @@ export function toQuery(f: DealFilters, meId: string | null | undefined): DealQu
 	const query: DealQuery = {
 		q: f.q.trim() || undefined,
 		workflow_id: f.workflow || undefined,
-		status_id: f.status ? [f.status] : undefined,
+		status_id: f.statuses.length ? f.statuses : undefined,
+		organization_id: f.organization ? [f.organization] : undefined,
+		direction_id: f.direction ? [f.direction] : undefined,
 		deal_type: f.type || undefined,
 		priority: f.priority || undefined,
 		owner_id: f.owner ? [f.owner] : undefined,
@@ -102,5 +112,5 @@ export function toQuery(f: DealFilters, meId: string | null | undefined): DealQu
 
 /** Включённые фильтры панели (без поиска, вида и быстрых чипов). */
 export function activeCount(f: DealFilters, hiddenOwner = false): number {
-	return [f.workflow, f.status, f.type, f.priority, hiddenOwner ? '' : f.owner, f.region, f.product, f.from || f.to].filter(Boolean).length;
+	return [f.workflow, f.statuses.length ? 'x' : '', f.organization, f.direction, f.type, f.priority, hiddenOwner ? '' : f.owner, f.region, f.product, f.from || f.to].filter(Boolean).length;
 }

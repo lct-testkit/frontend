@@ -2,7 +2,7 @@
 	// Вкладки «Контакты» и «Сделки» организации: те же таблицы, что в общих списках, с фильтром по организации.
 	import { onMount, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { AddLarge } from '@lct-testkit/rt-ui/icons';
+	import { AddLarge, ArrowRight } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { createPager } from '$lib/api/pager.svelte';
 	import { session } from '$lib/auth/session.svelte';
@@ -43,9 +43,14 @@
 			}}
 		/>
 	{:else}
-		{#if session.can('deal:create')}
-			<div class="max-md:hidden"><Btn label="Новая сделка" icon={AddLarge} onclick={() => goto(`/deals?new=1&org=${orgId}`)} /></div>
-		{/if}
+		<div class="flex flex-wrap items-center gap-2">
+			{#if session.can('deal:create')}
+				<div class="max-md:hidden"><Btn label="Новая сделка" icon={AddLarge} onclick={() => goto(`/deals?new=1&org=${orgId}`)} /></div>
+			{/if}
+			{#if session.can('deal:read')}
+				<Btn label="Все сделки вуза" icon={ArrowRight} variant="ghost" colorScheme="neutral" onclick={() => goto(`/deals?organization=${orgId}`)} data-testid="org-all-deals" />
+			{/if}
+		</div>
 		<DealsTable pager={deals}>
 			{#snippet empty()}<EmptyState title="Сделок пока нет" compact />{/snippet}
 		</DealsTable>

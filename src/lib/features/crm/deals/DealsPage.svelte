@@ -11,11 +11,14 @@
 	import { Btn, EmptyState, FilterBar, IconBtn, Page, PageHeader, TabsBar, UserPicker } from '$lib/ui';
 	import { setQuery } from '$lib/utils/query-state.svelte';
 	import RecentList from '../recent/RecentList.svelte';
-		import PopPanel from '../shared/PopPanel.svelte';
-		import RangeField from '$lib/ui/fields/RangeField.svelte';
+	import PopPanel from '../shared/PopPanel.svelte';
+	import OrgPicker from '../shared/pickers/OrgPicker.svelte';
+	import RangeField from '$lib/ui/fields/RangeField.svelte';
+	import MultiPick from '$lib/ui/fields/MultiPick.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import { DEAL_TYPE_LABELS, PRIORITY_LABELS } from '../shared/labels';
-	import { products, regions } from '../shared/refs.svelte';
+	import { productFitsDirection, withDescendants } from '../shared/directions';
+	import { directionItems, directions, products, regions } from '../shared/refs.svelte';
 	import type { Deal } from '../types';
 	import BulkReassignModal from './list/BulkReassignModal.svelte';
 	import DealsBoard from './list/DealsBoard.svelte';
@@ -33,7 +36,8 @@
 	const showOwner = $derived(session.can('deal:reassign'));
 	const query = $derived(toQuery(f, meId));
 	// на доске воронка выбрана всегда, поэтому в счётчик фильтров не входит
-	const filterCount = $derived(activeCount(f, !showOwner) - (f.view === 'board' && f.workflow ? 1 : 0));
+	// (на доске статусы не фильтруют, поэтому в счётчик не входят)
+	const filterCount = $derived(activeCount(f, !showOwner) - (f.view === 'board' && f.workflow ? 1 : 0) - (f.view === 'board' && f.statuses.length ? 1 : 0));
 
 	const pager = createPager<Deal>(async (cursor, signal) =>
 		unwrap(api.GET('/api/deals', { params: { query: { ...query, limit: 50, cursor: cursor ?? undefined } }, signal }))
@@ -50,6 +54,7 @@
 		void workflows.published.ensure().then((list) => workflows.ensureMany(list.map((w) => w.id))).catch(() => {});
 		void regions.ensure().catch(() => {});
 		void products.ensure().catch(() => {});
+		void directions.ensure().catch(() => {});
 	});
 
 	$effect(() => {
@@ -67,8 +72,11 @@
 		void setQuery({ workflow: def.id });
 	});
 
-	const set = (patch: Record<string, string | null>) => setQuery(patch);
-	const reset = () => setQuery({ workflow: null, status: null, type: null, priority: null, owner: null, region: null, product: null, from: null, to: null });
+	const set = (patch: Record<string, string | string[] | null>) => setQuery(patch);
+	/** ключи адресной строки, что сбрасывают фильтры (поиск и вкладка — отдельно); `new`, `org`, `contact` — форма создания, не фильтры */
+	const FILTER_KEYS = ['workflow', 'status', 'organization', 'direction', 'type', 'priority', 'owner', 'region', 'product', 'from', 'to'];
+	const cleared = Object.fromEntries(FILTER_KEYS.map((k) => [k, null]));
+	const reset = () => setQuery(cleared);
 	const refresh = () => (f.view === 'board' ? board?.reload() : pager.reload());
 
 	const publishedList = $derived(workflows.published.value ?? []);
@@ -85,7 +93,18 @@
 	const typeItems = Object.entries(DEAL_TYPE_LABELS).map(([key, value]) => ({ key, value }));
 	const priorityItems = Object.entries(PRIORITY_LABELS).map(([key, value]) => ({ key, value }));
 	const regionItems = $derived((regions.value ?? []).map((r) => ({ key: r.id, value: r.name })));
-	const productItems = $derived((products.value ?? []).map((p) => ({ key: p.id, value: p.name })));
+	const directionOpts = $derived(directionItems(directions.value));
+	// список продуктов сужается по выбранному направлению (вместе с вложенными)
+	const productItems = $derived.by(() => {
+		const inDirection = f.direction && directions.value ? withDescendants(directions.value, f.direction) : null;
+		return (products.value ?? []).filter((p) => !inDirection || (p.direction_id && inDirection.has(p.direction_id))).map((p) => ({ key: p.id, value: p.name }));
+	});
+	/** смена направления сбрасывает продукт, если он из другого направления */
+	function setDirection(id: string | null) {
+		const prod = products.value?.find((p) => p.id === f.product);
+		const keep = !prod || productFitsDirection(directions.value ?? [], prod.direction_id, id);
+		set({ direction: id, product: keep ? f.product || null : null });
+	}
 
 	const quickTabs = [
 		{ key: 'all', label: 'Все' },
@@ -95,7 +114,7 @@
 		{ key: 'closed', label: 'Закрытые' }
 	];
 	// фильтры, что живут в боковой панели «Фильтры»: тип, регион, продукт, период (и воронка в режиме таблицы)
-	const moreActive = $derived([f.type, f.region, f.product, f.from || f.to, f.view === 'table' ? f.workflow : ''].filter(Boolean).length);
+	const moreActive = $derived([f.type, f.region, f.product, f.priority, showOwner ? f.owner : '', f.from || f.to, f.view === 'table' ? f.workflow : ''].filter(Boolean).length);
 
 	// форма создания открывается ссылкой `?new=1` (и `&org=` / `&contact=` из карточек организации и контакта)
 	const creating = $derived(page.url.searchParams.get('new') === '1' && canCreate);
@@ -122,7 +141,7 @@
 {#snippet emptyList()}
 	{#if filterCount > 0 || f.q || f.quick !== 'all'}
 		<EmptyState title="Ничего не найдено" compact>
-			{#snippet action()}<Btn label="Сбросить фильтры" variant="outline" colorScheme="neutral" onclick={() => setQuery({ q: null, quick: null, workflow: null, status: null, type: null, priority: null, owner: null, region: null, product: null, from: null, to: null })} />{/snippet}
+			{#snippet action()}<Btn label="Сбросить фильтры" variant="outline" colorScheme="neutral" onclick={() => setQuery({ q: null, quick: null, ...cleared })} />{/snippet}
 		</EmptyState>
 	{:else}
 		<EmptyState title="Сделок пока нет" compact>
@@ -132,24 +151,26 @@
 {/snippet}
 
 {#snippet filters()}
+	<OrgPicker label="Вуз" value={f.organization || null} onChange={(id) => set({ organization: id })} />
+	<Pick label="Направление" items={directionOpts} clearable search value={f.direction || null} placeholder="Все" onChange={setDirection} />
 	{#if f.view === 'board'}
 		<Pick label="Воронка" items={flowItems} clearable value={f.workflow || null} placeholder="Все" onChange={(v) => set({ workflow: v, status: null })} />
 	{:else}
-		<Pick label="Статус" items={statusItems} clearable search value={f.status || null} placeholder="Все" onChange={(v) => set({ status: v })} />
+		<MultiPick label="Статус" items={statusItems} value={f.statuses} placeholder="Все" onChange={(v) => set({ status: v })} />
 	{/if}
-	{#if showOwner}
-		<UserPicker label="Ответственный" roles={['KAM', 'HEAD']} value={f.owner || null} placeholder="Все" onChange={(id) => set({ owner: id })} />
-	{/if}
-	<Pick label="Приоритет" items={priorityItems} clearable value={f.priority || null} placeholder="Любой" onChange={(v) => set({ priority: v })} />
 {/snippet}
 
 {#snippet more()}
 	{#if f.view === 'table'}
 		<Pick label="Воронка" items={flowItems} clearable value={f.workflow || null} placeholder="Все" onChange={(v) => set({ workflow: v, status: null })} />
 	{/if}
+	<Pick label="Продукт" items={productItems} clearable search value={f.product || null} placeholder="Все" onChange={(v) => set({ product: v })} />
+	{#if showOwner}
+		<UserPicker label="Ответственный" roles={['KAM', 'HEAD']} value={f.owner || null} placeholder="Все" onChange={(id) => set({ owner: id })} />
+	{/if}
+	<Pick label="Приоритет" items={priorityItems} clearable value={f.priority || null} placeholder="Любой" onChange={(v) => set({ priority: v })} />
 	<Pick label="Тип" items={typeItems} clearable value={f.type || null} placeholder="Все" onChange={(v) => set({ type: v, status: null })} />
 	<Pick label="Регион" items={regionItems} clearable search value={f.region || null} placeholder="Все" onChange={(v) => set({ region: v })} />
-	<Pick label="Продукт" items={productItems} clearable search value={f.product || null} placeholder="Все" onChange={(v) => set({ product: v })} />
 	<RangeField label="Создана" from={f.from} to={f.to} onChange={(from, to) => set({ from: from || null, to: to || null })} />
 {/snippet}
 

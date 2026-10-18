@@ -1,7 +1,8 @@
 // Справочники, которые нужны нескольким экранам (регионы, продукты, причины отказа, пользовательские поля).
 import { api, unwrap } from '$lib/api';
 import { Lazy } from './lazy.svelte';
-import type { CustomFieldDef, LossReason, Product, Region } from '../types';
+import type { CustomFieldDef, Direction, LossReason, Product, Region } from '../types';
+import { directionOptions } from './directions';
 
 export const regions = new Lazy<Region[]>(async () => (await unwrap(api.GET('/api/regions'))).items);
 
@@ -20,6 +21,12 @@ export const products = new Lazy<Product[]>(async () => {
 	}
 	return out;
 });
+
+/** Все ИТ-направления (дерево по `parent_id`): справочник небольшой, ответ целиком без курсора. */
+export const directions = new Lazy<Direction[]>(async () => (await unwrap(api.GET('/api/directions', { params: { query: { all: true } } }))).items);
+
+/** Плоский список для выбора: родитель, за ним его дети; у ребёнка в подсказке — родитель. */
+export const directionItems = (list: readonly Direction[] | undefined) => directionOptions(list ?? []);
 
 export const dealFieldDefs = new Lazy<CustomFieldDef[]>(
 	async () => (await unwrap(api.GET('/api/custom-field-defs', { params: { query: { entity_type: 'deal', is_active: true } } }))).items
