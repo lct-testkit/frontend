@@ -166,6 +166,25 @@ describe('dealCache — удалённая сделка (404) не запраш�
 		}
 	});
 
+	it('организация и контакт: 404 тоже запоминается, подписи «удалена»/«удалён»', async () => {
+		stubSessionStorage();
+		get.mockReturnValueOnce(problem404()).mockReturnValueOnce(problem404());
+		const first = await load();
+		first.orgCache.ensure(['org-gone']);
+		first.contactCache.ensure(['contact-gone']);
+		await tick();
+		expect(first.orgLabel('org-gone')).toBe('Организация удалена');
+		expect(first.contactLabel('contact-gone')).toBe('Контакт удалён');
+
+		vi.resetModules();
+		const second = await load();
+		second.orgCache.ensure(['org-gone']);
+		second.contactCache.ensure(['contact-gone']);
+		await tick();
+		expect(get).toHaveBeenCalledTimes(2); // после «перезагрузки» запросов нет
+		expect(second.orgLabel('org-gone')).toBe('Организация удалена');
+	});
+
 	it('403 — «недоступна», а не «удалена», и в sessionStorage не пишется', async () => {
 		const store = stubSessionStorage();
 		get.mockReturnValueOnce(Promise.resolve({ data: undefined, error: { code: 'CRM-1102' }, response: new Response(null, { status: 403 }) }));
