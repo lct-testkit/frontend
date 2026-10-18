@@ -12,6 +12,7 @@
 	import { describeUserAgent } from '../sessions';
 	import type { AuditEntry } from '../types';
 	import { entityHref } from './audit-query';
+	import { occurredAt } from './pending';
 
 	let { entry, onClose }: { entry: AuditEntry | null; onClose: () => void } = $props();
 
@@ -26,16 +27,23 @@
 	const changes = $derived(e ? formatChanges(e.changes) : []);
 	const href = $derived(e ? entityHref(e.entity_type, e.entity_id) : null);
 	const label = $derived(e ? entityLabel(e.entity_type, e.entity_id, e) : null);
+	const when = $derived(e ? occurredAt(e) : { event: '', sealed: null });
 </script>
 
 <AppDrawer open={!!entry} title={e ? auditActionLabel(e.action) : ''} width={560} {onClose}>
 	{#if e && result}
 		<div class="flex flex-wrap items-center gap-2">
 			<StatusChip label={result.label} tone={result.tone} hint={AUDIT_RESULT_HINTS[e.result as keyof typeof AUDIT_RESULT_HINTS]} />
-			<span class="t-desc-l text-muted">{formatDateTime(e.created_at)}</span>
+			<span class="t-desc-l text-muted">{formatDateTime(when.event)}</span>
 		</div>
 
 		<dl class="m-0 grid grid-cols-[max-content_1fr] gap-x-5 gap-y-2 max-md:grid-cols-1 max-md:gap-y-0.5">
+			{#if when.sealed}
+				<dt class="t-desc-l text-muted">Событие</dt>
+				<dd class="t-body-m m-0 mb-2 md:mb-0">{formatDateTime(when.event)}</dd>
+				<dt class="t-desc-l text-muted">Запечатано</dt>
+				<dd class="t-body-m m-0 mb-2 md:mb-0">{formatDateTime(when.sealed)}</dd>
+			{/if}
 			<dt class="t-desc-l text-muted">Сотрудник</dt>
 			<dd class="t-body-m m-0 mb-2 md:mb-0">{e.actor_id ? people.name(e.actor_id) : 'Система'}{e.actor_role ? ` · ${roleLabel(e.actor_role)}` : ''}</dd>
 			<dt class="t-desc-l text-muted">Сущность</dt>
