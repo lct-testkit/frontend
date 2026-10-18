@@ -14,7 +14,7 @@ export class ReportFailed extends Error {
 export const isRateLimited = (e: unknown): boolean => e instanceof ApiError && (e.status === 429 || e.code === 'CRM-1601');
 
 export async function startReport(templateCode: string, format: ReportFormat, params: Record<string, unknown>): Promise<ReportJob> {
-	return unwrap(api.POST('/api/reports', { body: { template_code: templateCode, format, params }, headers: idem() }));
+	return unwrap(api.POST('/api/reports', { body: { template_code: templateCode, format: format as ReportJob['format'], params }, headers: idem() }));
 }
 
 export const getReport = (id: string, signal?: AbortSignal): Promise<ReportJob> => unwrap(api.GET('/api/reports/{report_id}', { params: { path: { report_id: id } }, signal }));

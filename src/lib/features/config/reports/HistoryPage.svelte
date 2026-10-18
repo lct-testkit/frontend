@@ -9,7 +9,7 @@
 	import { createResource } from '../shared/resource.svelte';
 	import { createPoller } from '../shared/polling.svelte';
 	import { downloadReport } from './api';
-	import { REPORT_FORMAT_LABELS, REPORT_STATUS_INFO, canDownloadReport, isReportBusy, isReportExpired, type ReportFormat, type ReportStatus } from './params';
+	import { REPORT_STATUS_INFO, canDownloadReport, formatLabel, isReportBusy, isReportExpired, type ReportStatus } from './params';
 	import ReportTabs from './ReportTabs.svelte';
 
 	const pager = createPager<ReportJob>((cursor, signal) => unwrap(api.GET('/api/reports', { params: { query: { limit: 50, cursor } }, signal })));
@@ -49,7 +49,7 @@
 </script>
 
 {#snippet nameCell(j: ReportJob)}<TableCell><span class="t-body-m-strong wrap-anywhere">{nameOf(j.template_code)}</span></TableCell>{/snippet}
-{#snippet formatCell(j: ReportJob)}<TableCell><span class="t-body-s">{REPORT_FORMAT_LABELS[j.format as ReportFormat] ?? j.format}</span></TableCell>{/snippet}
+{#snippet formatCell(j: ReportJob)}<TableCell><span class="t-body-s">{formatLabel(j.format)}</span></TableCell>{/snippet}
 {#snippet statusCell(j: ReportJob)}
 	<TableCell>
 		{#if isReportExpired(j)}<span class="t-desc-l text-soft">Срок хранения истёк</span>{:else}<StatusChip label={info(j.status).label} tone={info(j.status).tone} title={j.error ?? undefined} />{/if}
@@ -65,7 +65,7 @@
 		<div class="flex min-w-0 flex-1 flex-col gap-1">
 			<span class="t-body-m-strong wrap-anywhere">{nameOf(j.template_code)}</span>
 			<span class="t-desc-l flex flex-wrap items-center gap-x-2 gap-y-1 text-muted">
-				{REPORT_FORMAT_LABELS[j.format as ReportFormat] ?? j.format} · <DateText value={j.created_at} time />
+				{formatLabel(j.format)} · <DateText value={j.created_at} time />
 			</span>
 			{#if isReportExpired(j)}<span class="t-desc-l text-soft">Срок хранения истёк</span>{:else}<span><StatusChip label={info(j.status).label} tone={info(j.status).tone} /></span>{/if}
 		</div>

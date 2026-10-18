@@ -9,7 +9,7 @@
 	import { createResource } from '../shared/resource.svelte';
 	import ReportTabs from './ReportTabs.svelte';
 	import RunReportDrawer from './RunReportDrawer.svelte';
-	import { REPORT_FORMAT_LABELS, type ReportFormat } from './params';
+	import { formatLabel, formatsFor } from './params';
 
 	const list = createResource((signal) => unwrap(api.GET('/api/report-templates', { signal })).then((r) => r.items.filter((t) => t.is_active)));
 	onMount(() => void list.reload());
@@ -47,7 +47,7 @@
 						</span>
 						{#if t.description}<span class="t-body-s line-clamp-3 text-muted">{t.description}</span>{/if}
 						<span class="mt-auto flex flex-wrap gap-1.5 pt-1">
-							{#each t.output_formats as f (f)}<Badge size="2xs" variant="secondary" colorScheme="neutral" label={REPORT_FORMAT_LABELS[f as ReportFormat]} />{/each}
+							{#each formatsFor(t.output_formats) as f (f)}<Badge size="2xs" variant="secondary" colorScheme="neutral" label={formatLabel(f)} />{/each}
 						</span>
 					</button>
 				</li>
