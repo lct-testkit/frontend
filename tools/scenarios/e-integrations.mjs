@@ -66,7 +66,7 @@ try {
 		await api('DELETE', '/api/admin/integrations/sources/cms/mapping');
 		await page.goto(`${BASE}/admin/integrations`);
 		await card.waitFor();
-		await card.getByRole('button', { name: 'Изменить' }).click();
+		await card.getByRole('button', { name: 'Изменить поля заявки' }).click();
 		const dr = page.locator('.atmr-drawer');
 		await dr.getByText('Поля заявки').first().waitFor();
 		await dr.getByText('Вставьте пример запроса').waitFor({ timeout: 5000 });
@@ -100,11 +100,40 @@ try {
 		await page.waitForSelector('text=Поля заявки сохранены');
 		const saved = (await api('GET', '/api/admin/integrations/sources/cms/mapping')).json.mapping;
 		check(saved && saved.rules.length === 4 && saved.version >= 1, `сохранено 4 правила, версия ${saved?.version}`);
-		await card.getByRole('button', { name: 'Изменить' }).click();
+		await card.getByRole('button', { name: 'Изменить поля заявки' }).click();
 		await page.locator('li[aria-label="Правило 4"]').waitFor();
 		ok('после повторного открытия правила на месте');
 		await page.keyboard.press('Escape');
 		await api('DELETE', '/api/admin/integrations/sources/cms/mapping');
+	}
+
+	console.log('(f) «Куда попадают заявки»: маршрут по умолчанию и правило, строка на карточке');
+	{
+		await api('DELETE', '/api/admin/integrations/sources/cms/routing');
+		await page.goto(`${BASE}/admin/integrations`);
+		await card.waitFor();
+		await card.getByText('B2C, воронка по умолчанию').waitFor({ timeout: 8000 });
+		ok('без настройки карточка: «B2C, воронка по умолчанию»');
+		await card.getByRole('button', { name: 'Изменить маршрут заявок' }).click();
+		const dr = page.locator('.atmr-drawer');
+		await dr.getByText('По умолчанию').first().waitFor();
+		await pickIn(page, dr, 'Тип сделки', 'B2B', 0);
+		await pickIn(page, dr, 'Воронка', 'B2B: взаимодействие с вузом', 0);
+		await page.waitForTimeout(800);
+		await pickIn(page, dr, 'Статус новой заявки', 'Организация встречи', 0);
+		await dr.getByRole('button', { name: 'Добавить правило' }).click();
+		const rule = dr.locator('li[aria-label="Правило 1"]');
+		await pickIn(page, rule, 'Поле заявки', 'Тип заявки');
+		await fillIn(rule, 'Значение', 'university');
+		await page.screenshot({ path: process.env.SHOT_DIR ? `${process.env.SHOT_DIR}/routing-desktop.png` : undefined });
+		await dr.getByRole('button', { name: 'Сохранить' }).click();
+		await page.waitForSelector('text=Маршрут заявок сохранён');
+		const saved = (await api('GET', '/api/admin/integrations/sources/cms/routing')).json.routing;
+		check(saved?.default?.deal_type === 'b2b' && saved.default.workflow_code === 'b2b_university_v2', `сохранён маршрут: ${JSON.stringify(saved?.default)}`);
+		check(saved?.rules?.length === 1 && saved.rules[0].when.equals === 'university', 'сохранено правило lead_kind = university');
+		await card.getByText('B2B, воронка «B2B: взаимодействие с вузом', { exact: false }).waitFor({ timeout: 8000 });
+		ok(`карточка: ${(await card.getByText('B2B, воронка', { exact: false }).first().innerText()).trim()}`);
+		await api('DELETE', '/api/admin/integrations/sources/cms/routing');
 	}
 
 	if (!MOCK) {
