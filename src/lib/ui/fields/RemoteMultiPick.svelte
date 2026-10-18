@@ -4,7 +4,6 @@
 	// после нового поиска; ключи без подписи (сохранённый виджет) разрешаются одним пакетом через `resolve`.
 	import { untrack } from 'svelte';
 	import { Multiselect } from '@lct-testkit/rt-ui';
-	import Term from '$lib/ui/Term.svelte';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { RemoteList, type RemoteItem, type RemoteSearch } from './remote-list.svelte';
 
@@ -14,8 +13,6 @@
 		/** подписи для ключей, которых ещё не видели (после загрузки формы с готовым значением) */
 		resolve?: (ids: string[]) => Promise<RemoteItem[]>;
 		label?: string;
-		/** пояснение к подписи: всплывает по наведению (глоссарий), а не стоит под полем */
-		labelHint?: string;
 		placeholder?: string;
 		hint?: string;
 		error?: string;
@@ -32,7 +29,7 @@
 		onChange?: (value: string[], items: RemoteItem[]) => void;
 	}
 
-	let { value = $bindable([]), search, resolve, label, labelHint, placeholder, hint, error, disabled = false, required = false, emptyText = 'Ничего не найдено', note, noteAt, class: className = '', onKnown, onChange }: Props = $props();
+	let { value = $bindable([]), search, resolve, label, placeholder, hint, error, disabled = false, required = false, emptyText = 'Ничего не найдено', note, noteAt, class: className = '', onKnown, onChange }: Props = $props();
 
 	const bp = useBreakpoint();
 	// svelte-ignore state_referenced_locally
@@ -71,17 +68,10 @@
 	const empty = $derived(list.loading ? 'Поиск…' : list.error ? 'Не удалось загрузить' : emptyText);
 </script>
 
-<!-- the DS label ignores the pointer, so a label with an explanation is drawn here: same place and size, with the Tip on the word -->
-<div class={['flex min-w-0 flex-col gap-1', className]}>
-{#if labelHint}
-	<!-- the closed Tip keeps a 200 px popper box in the layout: without the clip it widens the page on a phone -->
-	<div class="relative overflow-x-clip"><span class="t-desc-l px-0.5 text-muted"><Term label={label ?? ''} hint={labelHint} placement="top" /></span></div>
-{/if}
 <Multiselect
-	class="w-full"
+	class={['w-full', className]}
 	size={bp.isMobile ? 'l' : 'm'}
 	{label}
-	showLabel={!labelHint}
 	placeholder={value.length ? undefined : placeholder}
 	error={error}
 	hintPrefix={error ? undefined : hint}
@@ -115,4 +105,3 @@
 		{/if}
 	{/snippet}
 </Multiselect>
-</div>
