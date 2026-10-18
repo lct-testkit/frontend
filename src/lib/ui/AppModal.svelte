@@ -11,6 +11,7 @@
 	import { confirmState } from './confirm.svelte';
 	import { mayClose } from './form-close';
 	import IconBtn from './IconBtn.svelte';
+	import { dialogA11y } from './dialog-a11y';
 
 	interface Props {
 		open: boolean;
@@ -26,9 +27,11 @@
 		footer?: Snippet;
 		/** `header` replaces the plain title row */
 		header?: Snippet;
+		/** the accessible name of a window without `title` (defaults to «Окно») */
+		label?: string;
 	}
 
-	let { open, title = '', size = 'm', centered = false, dismissible = true, dirty = false, onClose, children, footer, header }: Props = $props();
+	let { open, title = '', size = 'm', centered = false, dismissible = true, dirty = false, onClose, children, footer, header, label }: Props = $props();
 
 	const bp = useBreakpoint();
 	const WIDTH = { s: 420, m: 560, l: 760, xl: 980 } as const;
@@ -51,7 +54,7 @@
 	onClickOverlay={close}
 	onEsc={close}
 >
-	<div class="flex max-h-[inherit] min-h-0 w-full flex-col">
+	<div class="flex max-h-[inherit] min-h-0 w-full flex-col" use:dialogA11y={{ label: title || label }}>
 		{#if header}
 			{@render header()}
 		{:else if title || dismissible}
