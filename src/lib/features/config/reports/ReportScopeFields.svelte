@@ -98,16 +98,15 @@
 	{#if facets.length}
 		<FormRow>
 			{#if def('organization_ids')}
-				<RemoteMultiPick class={cls('organization_ids')} label={def('organization_ids')?.label} labelHint={def('organization_ids')?.hint} value={toList(values.organization_ids)} search={orgSearch} resolve={orgResolve} emptyText="Вузов не найдено" onChange={(v) => set({ organization_ids: v })} />
+				<RemoteMultiPick class={cls('organization_ids')} label={def('organization_ids')?.label} value={toList(values.organization_ids)} search={orgSearch} resolve={orgResolve} emptyText="Вузов не найдено" onChange={(v) => set({ organization_ids: v })} />
 			{/if}
 			{#if def('direction_ids')}
-				<RemoteMultiPick class={cls('direction_ids')} label={def('direction_ids')?.label} labelHint={def('direction_ids')?.hint} value={toList(values.direction_ids)} search={directionSearch} resolve={directionResolve} emptyText="Направлений не найдено" onChange={(v) => set({ direction_ids: v })} />
+				<RemoteMultiPick class={cls('direction_ids')} label={def('direction_ids')?.label} value={toList(values.direction_ids)} search={directionSearch} resolve={directionResolve} emptyText="Направлений не найдено" onChange={(v) => set({ direction_ids: v })} />
 			{/if}
 			{#if def('product_ids')}
 				<RemoteMultiPick
 					class={cls('product_ids')}
 					label={def('product_ids')?.label}
-					labelHint={def('product_ids')?.hint}
 					value={toList(values.product_ids)}
 					search={productSearch}
 					resolve={productResolve}
@@ -120,7 +119,6 @@
 				<RemoteMultiPick
 					class={cls('owner_ids')}
 					label={def('owner_ids')?.label}
-					labelHint={def('owner_ids')?.hint}
 					value={toList(values.owner_ids)}
 					search={ownerSearch}
 					resolve={ownerResolve}
