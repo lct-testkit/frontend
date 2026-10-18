@@ -348,6 +348,8 @@
 <!-- `pointerover` below is a perf hint only (preloads a row's page on hover): the rows themselves, not this div, stay the real click/keyboard target -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div bind:this={area} class={['w-full min-w-0', fill && 'md:min-h-0 md:flex-1 md:basis-0 md:overflow-hidden', embedded && 'dt-embedded', onRowClick && 'dt-rows-open', !onRowClick && !selectable && 'dt-static']} aria-busy={loading || undefined} onpointerover={rowHref ? onRowsPointerOver : undefined} onpointerdowncapture={markPointer} onkeydowncapture={() => (clickStartedInCheckbox = false)} use:rowKeydown use:headerSort={{ sortable: sortableKeys, sort, hints: headerHints }}>
+	<!-- the selection changed (a filter, a tab) and the old rows stay until the new ones come: a thin pulsing line above says so (no fading of the rows — that would lower the contrast) -->
+	{#if loading && rows.length > 0 && !error}<div class="relative z-10 -mb-0.5 h-0.5 w-full animate-pulse rounded-full bg-accent" role="presentation"></div>{/if}
 	{#if error}
 		<ErrorState {error} {onRetry} />
 	{:else if loading && rows.length === 0}
