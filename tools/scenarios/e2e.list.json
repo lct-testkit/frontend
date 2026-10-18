@@ -110,6 +110,10 @@
 			"tier": "full"
 		},
 		{
+			"file": "e-invite.mjs",
+			"tier": "full"
+		},
+		{
 			"file": "e-keyboard.mjs",
 			"tier": "full"
 		},
