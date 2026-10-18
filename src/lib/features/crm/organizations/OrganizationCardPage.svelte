@@ -13,8 +13,9 @@
 	import { page } from '$app/state';
 	import { Refresh } from '@lct-testkit/rt-ui/icons';
 	import { ApiError, api, errorMessage, ifMatch, unwrap } from '$lib/api';
+	import { people } from '$lib/api/people.svelte';
 	import { session } from '$lib/auth/session.svelte';
-	import { Btn, ErrorState, IconBtn, Notice, Page, PageHeader, Skeleton, StatusChip, TabsBar, Term, toast } from '$lib/ui';
+	import { Avatar, Btn, DateText, ErrorState, IconBtn, Notice, Page, PageHeader, Skeleton, StatusChip, TabsBar, Term, UserName, toast } from '$lib/ui';
 	import Card from '$lib/ui/Card.svelte';
 	import { formatDate } from '$lib/utils/format';
 	import { setQuery } from '$lib/utils/query-state.svelte';
@@ -28,6 +29,8 @@
 	import OrgForm from './OrgForm.svelte';
 	import OrgLicenses from './OrgLicenses.svelte';
 	import OrgLinked from './OrgLinked.svelte';
+	import OwnerModal from './OwnerModal.svelte';
+	import { canAssignOwner, ownerHistory, type OwnerChangeEntry } from './ownership';
 	import { emptyOrgForm, formFromOrg, toPatchBody, type OrgFormValues } from './orgUtils';
 
 	let { id }: { id: string } = $props();
@@ -50,6 +53,21 @@
 	const setTab = (t: string) => setQuery({ tab: t === 'reqs' ? null : t }, { push: true });
 
 	const canWrite = $derived(session.can('organization:write'));
+	const canOwner = $derived(canAssignOwner((p) => session.can(p)));
+	let ownerModal = $state<'change' | 'remove' | null>(null);
+	let ownerLog = $state<OwnerChangeEntry[] | null>(null);
+
+	/** последние смены ответственного из журнала аудита (видны тем, у кого есть право на журнал) */
+	async function loadOwnerLog() {
+		if (!session.can('audit:read')) return;
+		try {
+			const page = await unwrap(api.GET('/api/admin/audit', { params: { query: { entity_type: 'organization', entity_id: id, limit: 50 } } }));
+			ownerLog = ownerHistory(page.items).slice(0, 5);
+			people.ensure(ownerLog.flatMap((e) => [e.actorId, e.oldId, e.newId]));
+		} catch {
+			ownerLog = null;
+		}
+	}
 	const dirty = $derived(Object.keys(toPatchBody(base, values)).length > 0);
 	const risk = $derived(org?.registry_status === 'liquidating' || org?.registry_status === 'liquidated');
 
@@ -73,7 +91,10 @@
 			loading = false;
 		}
 	}
-	onMount(() => void load());
+	onMount(() => {
+		void load();
+		void loadOwnerLog();
+	});
 
 	async function save() {
 		if (!org || saving || !dirty) return;
@@ -130,6 +151,21 @@
 			{#if org.registry_checked_at}<span>проверено по <Term term="ЕГРЮЛ" /> {formatDate(org.registry_checked_at)}</span>{/if}
 		</p>
 
+		<div class="flex min-h-9 flex-wrap items-center gap-x-3 gap-y-1" data-testid="org-owner">
+			<span class="t-body-s text-muted">Ответственный</span>
+			{#if org.owner_id}
+				<span class="t-body-m flex items-center gap-2"><Avatar name={people.name(org.owner_id)} size={24} /><UserName id={org.owner_id} /></span>
+			{:else}
+				<StatusChip label="Не назначен" tone="neutral" />
+			{/if}
+			{#if canOwner}
+				<span class="flex items-center gap-1">
+					<Btn label={org.owner_id ? 'Сменить' : 'Назначить'} variant="ghost" colorScheme="neutral" size="s" onclick={() => (ownerModal = 'change')} data-testid="org-owner-change" />
+					{#if org.owner_id}<Btn label="Снять" variant="ghost" colorScheme="neutral" size="s" onclick={() => (ownerModal = 'remove')} data-testid="org-owner-remove" />{/if}
+				</span>
+			{/if}
+		</div>
+
 		{#if risk}
 			<Notice class="shrink-0" tone="error" role="alert">
 				Юридический риск: организация {org.registry_status === 'liquidated' ? 'ликвидирована' : 'ликвидируется'}. Проверьте активные сделки.
@@ -147,7 +183,7 @@
 					{#if banner}
 						<Notice class="shrink-0" tone={banner.conflict ? 'warning' : 'error'} role="alert" actions={banner.conflict ? [{ label: 'Обновить', onclick: () => ((banner = null), load(true)) }] : []}>{banner.text}</Notice>
 					{/if}
-					<OrgForm bind:values {errors} {org} innReadonly canOwner={session.can('deal:reassign')} disabled={!canWrite || saving} onReveal={reveal} onEnter={save} />
+					<OrgForm bind:values {errors} {org} innReadonly canOwner={false} disabled={!canWrite || saving} onReveal={reveal} onEnter={save} />
 					{#if canWrite && dirty}
 						<div class="flex justify-end gap-2">
 							<Btn label="Отмена" variant="ghost" colorScheme="neutral" onclick={reset} />
@@ -156,6 +192,18 @@
 					{/if}
 				</div>
 			</Card>
+			{#if ownerLog?.length}
+				<Card title="Смены ответственного">
+					<ul class="m-0 flex list-none flex-col gap-2 p-0" data-testid="owner-log">
+						{#each ownerLog as e (e.at)}
+							<li class="t-body-m flex flex-col gap-0.5">
+								<span class="break-words"><DateText value={e.at} time /> · {people.name(e.actorId, 'Система')}: {e.oldId ? people.name(e.oldId) : 'не был назначен'} → {e.newId ? people.name(e.newId) : 'снят'}</span>
+								{#if e.reason}<span class="t-desc-l text-muted break-words">Причина: {e.reason}</span>{/if}
+							</li>
+						{/each}
+					</ul>
+				</Card>
+			{/if}
 		{:else if tab === 'contacts'}
 			<OrgLinked orgId={org.id} kind="contacts" />
 		{:else if tab === 'deals'}
@@ -167,3 +215,18 @@
 		{/if}
 	{/if}
 </Page>
+
+{#if org && canOwner}
+	<OwnerModal
+		open={ownerModal !== null}
+		{org}
+		startRemoving={ownerModal === 'remove'}
+		onClose={() => (ownerModal = null)}
+		onDone={(next) => {
+			ownerModal = null;
+			adopt(next, true);
+			void loadOwnerLog();
+		}}
+		onConflict={() => load(true)}
+	/>
+{/if}

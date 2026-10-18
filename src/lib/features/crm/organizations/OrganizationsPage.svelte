@@ -3,9 +3,10 @@
 	// В строке два поля, чтобы она оставалась одной и при включённых фильтрах («Сбросить») на ноутбуке 1366–1440.
 	// «Новая организация» открывает поиск по реестру (ИНН или название) и создаёт карточку с подставленными реквизитами.
 	import { onMount, untrack } from 'svelte';
+	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-		import { AddLarge, AttentionMark, Refresh } from '@lct-testkit/rt-ui/icons';
+		import { AddLarge, AttentionMark, CloseSmall, Refresh, UserAdd } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { createPager } from '$lib/api/pager.svelte';
 	import { people } from '$lib/api/people.svelte';
@@ -20,7 +21,9 @@
 	import { ORG_TYPE_LABELS, REGISTRY_STATUS_LABELS, REGISTRY_STATUS_SCHEMES } from '../shared/labels';
 	import { regionName, regions } from '../shared/refs.svelte';
 	import type { Organization } from '../types';
+	import BulkOwnerModal from './BulkOwnerModal.svelte';
 	import OrgCreateDrawer from './OrgCreateDrawer.svelte';
+	import { canAssignOwner } from './ownership';
 
 	const get = (name: string) => page.url.searchParams.get(name) ?? '';
 	const q = $derived(get('q'));
@@ -32,6 +35,11 @@
 	const canWrite = $derived(session.can('organization:write'));
 	const showOwner = $derived(session.can('deal:reassign'));
 	const creating = $derived(get('new') === '1' && canWrite);
+	const bp = useBreakpoint();
+	const canOwner = $derived(canAssignOwner((p) => session.can(p)));
+	let selected = $state<string[]>([]);
+	let bulk = $state<'assign' | 'remove' | null>(null);
+	const selectedOrgs = $derived(selected.map((id) => ({ id, name: orgTitle(pager.items.find((o) => o.id === id) ?? { name: 'Организация', short_name: null }) })));
 
 	const params = $derived({
 		q: q.trim() || undefined,
@@ -50,7 +58,7 @@
 	});
 	$effect(() => {
 		JSON.stringify(params);
-		if (session.can('organization:read')) untrack(() => void pager.reload());
+		if (session.can('organization:read')) untrack(() => ((selected = []), void pager.reload()));
 	});
 	$effect(() => people.ensure(pager.items.map((o) => o.owner_id)));
 
@@ -100,7 +108,7 @@
 {#snippet accrCell(row: Organization)}
 	<TableCell><span class="text-muted">{row.is_accredited ? (row.accreditation_until ? `до ${formatDate(row.accreditation_until)}` : 'Да') : '—'}</span></TableCell>
 {/snippet}
-{#snippet ownerCell(row: Organization)}<TableCell><span class="truncate"><UserName id={row.owner_id} /></span></TableCell>{/snippet}
+{#snippet ownerCell(row: Organization)}<TableCell>{#if row.owner_id}<span class="truncate"><UserName id={row.owner_id} /></span>{:else}<StatusChip label="Не назначен" tone="neutral" />{/if}</TableCell>{/snippet}
 
 {#snippet card(row: Organization)}
 	<div class="flex min-w-0 flex-col gap-1">
@@ -122,6 +130,13 @@
 	<Pick label="Статус в ЕГРЮЛ" items={statusItems} clearable value={status || null} placeholder="Все" onChange={(v) => setQuery({ status: v })} />
 	<Pick label="Аккредитация" items={accItems} clearable value={accredited || null} placeholder="Все" onChange={(v) => setQuery({ accredited: v })} />
 	{#if showOwner}<UserPicker label="Ответственный" roles={['KAM', 'HEAD']} value={owner || null} placeholder="Все" onChange={(id) => setQuery({ owner: id })} />{/if}
+{/snippet}
+
+{#snippet actionBar()}
+	<span class="t-body-m whitespace-nowrap">Выбрано: {selected.length}</span>
+	<Btn label={bp.isMobile ? 'Назначить' : 'Назначить ответственного'} icon={UserAdd} size="s" onclick={() => (bulk = 'assign')} data-testid="orgs-bulk-assign" />
+	<Btn label={bp.isMobile ? 'Снять' : 'Снять ответственного'} variant="outline" colorScheme="neutral" size="s" onclick={() => (bulk = 'remove')} data-testid="orgs-bulk-remove" />
+	<IconBtn icon={CloseSmall} label="Снять выбор" onclick={() => (selected = [])} />
 {/snippet}
 
 {#snippet trailing()}<IconBtn icon={Refresh} label="Обновить" onclick={() => pager.reload()} />{/snippet}
@@ -160,10 +175,27 @@
 			loadingMore={pager.loadingMore}
 			onLoadMore={() => pager.loadMore()}
 			empty={emptyList}
+			selectable={canOwner}
+			{selected}
+			onSelectionChange={(keys) => (selected = keys.slice(0, 1000))}
+			{actionBar}
 			ariaLabel="Организации"
 		/>
 	{/if}
 </Page>
+
+{#if canOwner}
+	<BulkOwnerModal
+		open={bulk !== null}
+		orgs={selectedOrgs}
+		startRemoving={bulk === 'remove'}
+		onClose={() => (bulk = null)}
+		onDone={() => {
+			selected = [];
+			void pager.reload();
+		}}
+	/>
+{/if}
 
 <OrgCreateDrawer
 	open={creating}
