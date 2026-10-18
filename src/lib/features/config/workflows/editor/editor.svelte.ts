@@ -23,7 +23,7 @@ import {
 	type StatusDraft,
 	type TransitionDraft
 } from '../graph';
-import { hasErrors, parseServerIssues, validateGraph } from '../validation';
+import { hasErrors, mergeIssues, parseServerIssues, validateGraph } from '../validation';
 import { normalizeStatusName, statusNameError } from '../statusName';
 
 export type Selection = { kind: 'status' | 'transition'; key: string };
@@ -58,15 +58,17 @@ export class WorkflowEditor {
 	serverIssues = $state.raw<GraphIssue[]>([]);
 	customFields = $state.raw<CustomFieldDef[]>([]);
 	/** запрос «показать узел / ребро на холсте» (клик по проблеме); `n` меняется на каждый запрос */
-	focus = $state<{ key: string; n: number } | null>(null);
+	focus = $state<{ keys: string[]; n: number } | null>(null);
 	#focusN = 0;
+	/** узлы и рёбра, отмеченные замечанием, которое касается нескольких сразу (клик в списке проблем): подсвечены все */
+	marked = $state.raw<ReadonlySet<string>>(new Set());
 	#posTimer: ReturnType<typeof setTimeout> | undefined;
 
 	readonly = $derived(this.workflow?.state === 'archived' || !session.can('workflow:write'));
 	/** нет права править воронку, но есть право переименовывать шаги (Руководитель): открыто только поле «Название» шага */
 	renameOnly = $derived(this.workflow?.state !== 'archived' && !session.can('workflow:write') && session.can('workflow:rename_status'));
 	clientIssues = $derived(validateGraph(this.draft));
-	issues = $derived([...this.clientIssues, ...this.serverIssues]);
+	issues = $derived(mergeIssues(this.clientIssues, this.serverIssues));
 	errorCount = $derived(this.issues.filter((i) => i.severity === 'error').length);
 	warningCount = $derived(this.issues.filter((i) => i.severity === 'warning').length);
 	dirty = $derived(payloadKey(this.draft) !== this.#baseline);
@@ -151,10 +153,17 @@ export class WorkflowEditor {
 
 	select(selection: Selection | null): void {
 		this.selection = selection;
+		if (this.marked.size) this.marked = new Set();
 	}
 
 	showOnCanvas(key: string): void {
-		this.focus = { key, n: ++this.#focusN };
+		this.focus = { keys: key ? [key] : [], n: ++this.#focusN };
+	}
+
+	/** Показать на холсте сразу несколько узлов / рёбер и подсветить их все. */
+	markOnCanvas(keys: readonly string[]): void {
+		this.marked = new Set(keys);
+		this.focus = { keys: [...keys], n: ++this.#focusN };
 	}
 
 	addStatus(init: Partial<Pick<StatusDraft, 'name' | 'type' | 'color'>> = {}, near?: Point): StatusDraft {
@@ -317,7 +326,7 @@ export class WorkflowEditor {
 		this.validating = true;
 		try {
 			const res = await unwrap(api.POST('/api/workflows/{workflow_id}/validate', { params: { path: { workflow_id: this.id } } }));
-			this.serverIssues = parseServerIssues(res.errors ?? [], res.warnings ?? [], this.draft);
+			this.serverIssues = parseServerIssues(res, this.draft, this.clientIssues);
 			return { ok: res.ok, warnings: res.warnings ?? [] };
 		} catch (e) {
 			toast.error(e, 'Не удалось проверить воронку');

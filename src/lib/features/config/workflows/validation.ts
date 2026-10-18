@@ -99,6 +99,13 @@ export function validateGraph(draft: GraphDraft, ctx: GraphValidationContext = {
 		}
 	}
 
+	// заморозка — пауза: без исходящих переходов сделку из неё нельзя возобновить (совет, публикацию не блокирует)
+	for (const s of live) {
+		if (s.type === 'parked' && !forward.get(s.key)?.length) {
+			issues.push(issue('warning', 'parked_no_exit', `Статус «${s.name}» (заморозка) без исходящих переходов: сделку из него нельзя возобновить`, [s.key]));
+		}
+	}
+
 	// --- достижимость и ловушки
 	if (initials.length === 1) {
 		const reachable = reach([initials[0].key], forward);
@@ -169,11 +176,84 @@ export function issuesByTransition(issues: readonly GraphIssue[]): Map<string, G
 	return map;
 }
 
+/** Пункт проверки воронки с сервера (`ValidationIssue`, B9-6): `refs` — коды статусов, `path` — `transitions[<имя>].conditions`. */
+export interface ServerIssue {
+	code: string;
+	severity: 'error' | 'warning';
+	message: string;
+	path?: string | null;
+	refs?: readonly string[];
+}
+
+/** Весь ответ `POST /validate`: `issues` — структурированно, `errors` / `warnings` — те же замечания строками (для старого бэкенда). */
+export interface ServerValidation {
+	ok?: boolean;
+	errors?: readonly string[];
+	warnings?: readonly string[];
+	issues?: readonly ServerIssue[];
+}
+
+/** Коды сервера (`INITIAL_COUNT`, …) → коды клиентской проверки: замечание выглядит одинаково, откуда бы оно ни пришло. */
+const SERVER_CODES: Record<string, string> = {
+	INITIAL_COUNT: 'initial_count',
+	NO_TERMINAL: 'no_terminal',
+	UNREACHABLE_STATUS: 'unreachable',
+	TRAP_STATUS: 'trap',
+	PARKED_WITHOUT_EXIT: 'parked_no_exit',
+	CONDITION_INVALID: 'condition',
+	ACTION_INVALID: 'action',
+	SIGNATURE_REJECT_TARGET_UNKNOWN: 'signature_on_rejected',
+	SIGNATURE_SIGNED_TARGET_UNKNOWN: 'signature_on_signed',
+	LOST_WITHOUT_REASON: 'lost_without_reason',
+	WON_WITHOUT_AMOUNT_OR_DATE: 'won_without_conditions'
+};
+
+/** Коды, у которых `refs` — статусы, которых касается замечание (у остальных `refs` — цель действия, не узел с проблемой). */
+const STATUS_REF_CODES = new Set(['initial_count', 'unreachable', 'trap', 'parked_no_exit']);
+
 /**
- * Серверный `/validate` отдаёт плоские строки. Привязываем их к узлам по коду статуса и к рёбрам по имени перехода
- * (`transitions[<имя>]…`). Формулировки — из workflow/service.py `_validate_graph_data`.
+ * Переходы, о которых замечание: путь `transitions[<имя>]…` или `transitions[<id>-><id>]…` (у перехода без имени).
+ * Сервер не отдаёт id перехода, поэтому при одинаковых именах («Отказ» у каждого шага) берём те, у которых то же замечание нашла
+ * клиентская проверка; если и она молчит — все с таким именем.
  */
-export function parseServerIssues(errors: readonly string[], warnings: readonly string[], draft: GraphDraft): GraphIssue[] {
+function transitionKeysFromPath(path: string | null | undefined, code: string, draft: GraphDraft, client: readonly GraphIssue[]): string[] {
+	const open = path?.indexOf('transitions[') ?? -1;
+	if (!path || open < 0) return [];
+	const rest = path.slice(open + 'transitions['.length);
+	const end = rest.endsWith(']') ? rest.length - 1 : rest.indexOf('].');
+	if (end < 0) return [];
+	const label = rest.slice(0, end);
+	const [from, to] = label.split('->');
+	const candidates = draft.transitions.filter((t) => (to !== undefined ? t.from === from && t.to === to : t.name === label));
+	if (candidates.length < 2) return candidates.map((t) => t.key);
+	const flagged = candidates.filter((t) => client.some((i) => i.code === code && i.transitionKeys.includes(t.key)));
+	return (flagged.length ? flagged : candidates).map((t) => t.key);
+}
+
+function fromStructured(list: readonly ServerIssue[], draft: GraphDraft, client: readonly GraphIssue[]): GraphIssue[] {
+	const keyByCode = new Map(draft.statuses.map((s) => [s.code, s.key] as const));
+	return list.map<GraphIssue>((i) => {
+		const code = SERVER_CODES[i.code] ?? i.code.toLowerCase();
+		const statusKeys = STATUS_REF_CODES.has(code) ? (i.refs ?? []).map((c) => keyByCode.get(c)).filter((k): k is string => Boolean(k)) : [];
+		return { severity: i.severity, code, message: i.message, statusKeys, transitionKeys: transitionKeysFromPath(i.path, code, draft, client), source: 'server' };
+	});
+}
+
+/**
+ * Ответ серверного `/validate` → замечания с привязкой к узлам и рёбрам. Есть `issues` — берём их (коды и `refs`, текст сообщений не разбираем);
+ * нет (старый бэкенд: пустой `issues` при непустых строках) — запасной разбор строк, его можно удалить после перехода всех стендов на B9-6.
+ * `client` — замечания клиентской проверки: по ним выбирается нужный переход среди одноимённых.
+ */
+export function parseServerIssues(res: ServerValidation, draft: GraphDraft, client: readonly GraphIssue[] = []): GraphIssue[] {
+	if (res.issues?.length) return fromStructured(res.issues, draft, client);
+	return parseServerStrings(res.errors ?? [], res.warnings ?? [], draft);
+}
+
+/**
+ * Запасной разбор плоских строк старого `/validate`: узлы — по коду статуса, рёбра — по имени перехода (`transitions[<имя>]…`).
+ * Формулировки — из workflow/service.py `_validate_graph_data` до B9-6.
+ */
+export function parseServerStrings(errors: readonly string[], warnings: readonly string[], draft: GraphDraft): GraphIssue[] {
 	const byCode = new Map(draft.statuses.map((s) => [s.code, s.key] as const));
 	const keysByCodes = (list: string): string[] =>
 		list
@@ -200,6 +280,17 @@ export function parseServerIssues(errors: readonly string[], warnings: readonly 
 	};
 
 	return [...errors.map((e) => classify(e, 'error')), ...warnings.map((w) => classify(w, 'warning'))];
+}
+
+const sameKeys = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((k) => b.includes(k));
+
+/**
+ * Замечания клиента и сервера одним списком: серверное, которое клиентская проверка уже нашла (тот же код и те же узлы / переходы),
+ * не повторяется — иначе после «Проверить» каждая ошибка стояла бы в списке дважды.
+ */
+export function mergeIssues(client: readonly GraphIssue[], server: readonly GraphIssue[]): GraphIssue[] {
+	const fresh = server.filter((s) => !client.some((c) => c.code === s.code && (s.statusKeys.length || s.transitionKeys.length) && sameKeys(c.statusKeys, s.statusKeys) && sameKeys(c.transitionKeys, s.transitionKeys)));
+	return [...client, ...fresh];
 }
 
 /** Быстрая проверка одного перехода для панели свойств (без графовых проверок). */

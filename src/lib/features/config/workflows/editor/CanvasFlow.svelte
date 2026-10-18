@@ -42,14 +42,15 @@
 	$effect(() => {
 		const flow = toFlow(editor.draft, editor.positions, editor.issues, { readonly: !editable, compactLabels: editor.draft.transitions.length > 16 });
 		const sel = editor.selection;
-		nodes = flow.nodes.map((n) => ({ ...n, selected: sel?.kind === 'status' && sel.key === n.id }));
+		const marked = editor.marked;
+		nodes = flow.nodes.map((n) => ({ ...n, selected: (sel?.kind === 'status' && sel.key === n.id) || marked.has(n.id) }));
 		// выбран статус или переход — остальные рёбра приглушаем, иначе в плотной воронке ничего не разобрать
 		const related = (e: TransitionEdge) => (sel?.kind === 'status' ? e.source === sel.key || e.target === sel.key : sel?.kind === 'transition' ? e.id === sel.key : true);
 		edges = flow.edges.map((e) => ({
 			...e,
 			data: e.data && { ...e.data, select: () => editor.select({ kind: 'transition', key: e.id }) },
-			selected: sel?.kind === 'transition' && sel.key === e.id,
-			class: related(e) ? undefined : 'opacity-15'
+			selected: (sel?.kind === 'transition' && sel.key === e.id) || marked.has(e.id),
+			class: related(e) || marked.has(e.id) ? undefined : 'opacity-15'
 		}));
 	});
 
@@ -58,11 +59,18 @@
 		const request = editor.focus;
 		if (!request) return;
 		untrack(() => {
-			const transition = editor.draft.transitions.find((t) => t.key === request.key);
-			const id = transition ? transition.from : request.key;
-			const known = id && nodes.some((n) => n.id === id);
+			// ключ — узел или переход (у перехода показываем оба конца); у замечания про несколько узлов в кадре все
+			const ids = new Set<string>();
+			for (const key of request.keys) {
+				const transition = editor.draft.transitions.find((t) => t.key === key);
+				for (const id of transition ? [transition.from, transition.to] : [key]) if (nodes.some((n) => n.id === id)) ids.add(id);
+			}
+			const single = ids.size === 1;
 			// небольшая задержка: узлы должны успеть получить новые позиции
-			setTimeout(() => void fitView(known ? { nodes: [{ id }], duration: 300, maxZoom: 1.1, padding: 0.6 } : { duration: 300, padding: 0.2, maxZoom: 1 }), 60);
+			setTimeout(
+				() => void fitView(ids.size ? { nodes: [...ids].map((id) => ({ id })), duration: 300, maxZoom: single ? 1.1 : 0.9, padding: single ? 0.6 : 0.3 } : { duration: 300, padding: 0.2, maxZoom: 1 }),
+				60
+			);
 		});
 	});
 

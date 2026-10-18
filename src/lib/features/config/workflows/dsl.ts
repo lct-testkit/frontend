@@ -138,6 +138,14 @@ export const ATTACHMENT_FIELDS: readonly FieldDef[] = ATTACHMENT_CATEGORIES.map(
 	group: 'attachment'
 }));
 
+/** `step_attachments.<категория>` — файл, приложенный именно на текущем шаге (dsl.py `ALLOWED_FIELD_PREFIXES`, B2-7). */
+export const STEP_ATTACHMENT_FIELDS: readonly FieldDef[] = ATTACHMENT_CATEGORIES.map((c) => ({
+	key: `step_attachments.${c.key}`,
+	label: `Вложение «${c.value}» на этом шаге`,
+	kind: 'attachment',
+	group: 'attachment'
+}));
+
 /** Какие операторы предлагать для поля данного типа. */
 export const OPERATORS_BY_KIND: Record<FieldKind, Operator[]> = {
 	money: ['not_null', 'is_null', 'gt', 'gte', 'lt', 'lte', 'eq', 'neq'],
@@ -184,7 +192,7 @@ export function fieldCatalogue(customFields: readonly CustomFieldLike[] = []): F
 		kind: customFieldKind(f.field_type),
 		group: 'custom'
 	}));
-	return [...DEAL_FIELDS, ...custom, ...ATTACHMENT_FIELDS];
+	return [...DEAL_FIELDS, ...custom, ...ATTACHMENT_FIELDS, ...STEP_ATTACHMENT_FIELDS];
 }
 
 export const DEFAULT_CATALOGUE: readonly FieldDef[] = fieldCatalogue();

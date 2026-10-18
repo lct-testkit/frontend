@@ -54,11 +54,11 @@ export interface ConditionValidationOptions {
 
 function validateFieldName(field: string, path: string, known: ReadonlySet<string> | undefined): string[] {
 	if (ALLOWED_FIELDS.has(field)) return [];
-	for (const prefix of ['custom_fields.', 'attachments.'] as const) {
+	for (const prefix of ['custom_fields.', 'attachments.', 'step_attachments.'] as const) {
 		if (!field.startsWith(prefix)) continue;
 		const tail = field.slice(prefix.length);
 		if (!tail || tail.includes('.')) return [`${path}: после «${prefix}» ожидается одно имя без точек`];
-		if (prefix === 'attachments.' && !ATTACHMENT_KEYS.has(tail)) return [`${path}: неизвестная категория вложения «${tail}»`];
+		if (prefix !== 'custom_fields.' && !ATTACHMENT_KEYS.has(tail)) return [`${path}: неизвестная категория вложения «${tail}»`];
 		if (prefix === 'custom_fields.' && known && !known.has(tail)) return [`${path}: пользовательское поле «${tail}» не определено`];
 		return [];
 	}

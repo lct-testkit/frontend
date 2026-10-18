@@ -15,7 +15,8 @@ import {
 	type StatusDraft,
 	type TransitionDraft
 } from './graph';
-import { hasErrors, parseServerIssues, transitionIssues, validateGraph } from './validation';
+import { funnel14, stepId } from './fixtures/workflow14';
+import { hasErrors, mergeIssues, parseServerIssues, transitionIssues, validateGraph } from './validation';
 
 // Код на сервере — минимум 2 символа, поэтому однобуквенные ключи получают префикс.
 const status = (key: string, type: StatusDraft['type'] = 'intermediate', extra: Partial<StatusDraft> = {}): StatusDraft => ({
@@ -223,18 +224,92 @@ describe('validateGraph (зеркало _validate_graph_data)', () => {
 });
 
 describe('parseServerIssues', () => {
-	it('привязывает строки сервера к узлам по коду и к рёбрам по имени', () => {
-		const draft = fromServer(SERVER);
+	const draft = fromServer(SERVER);
+
+	it('ответ с issues даёт замечания по кодам и refs, без разбора текста', () => {
 		const issues = parseServerIssues(
-			[
-				'Воронка должна иметь ровно один статус типа initial, найдено 0',
-				'Недостижимые из initial статусы: second, won',
-				'Статусы без пути в терминальный статус (ловушки): second',
-				'transitions[Закрыть].conditions.field: поле ‘nope’ не разрешено в условиях',
-				'transitions[Дальше].actions.request_signature.on_rejected: статус ‘x’ не найден в воронке',
-				'Что-то новое'
-			],
-			['Переход «Закрыть» в won обычно требует условие по сумме и дате закрытия'],
+			{
+				ok: false,
+				errors: ['текст, который не должен разбираться'],
+				warnings: [],
+				issues: [
+					{ code: 'INITIAL_COUNT', severity: 'error', message: 'нет начального', refs: [] },
+					{ code: 'UNREACHABLE_STATUS', severity: 'error', message: 'недостижимые', refs: ['second', 'won'] },
+					{ code: 'TRAP_STATUS', severity: 'error', message: 'ловушки', refs: ['second'] },
+					{ code: 'CONDITION_INVALID', severity: 'error', message: 'условие', path: 'transitions[Закрыть].conditions' },
+					{ code: 'SIGNATURE_REJECT_TARGET_UNKNOWN', severity: 'error', message: 'откат', path: 'transitions[Дальше].actions', refs: ['x'] },
+					{ code: 'WON_WITHOUT_AMOUNT_OR_DATE', severity: 'warning', message: 'совет', path: 'transitions[Закрыть]' },
+					{ code: 'PARKED_WITHOUT_EXIT', severity: 'warning', message: 'заморозка', refs: ['first'] },
+					{ code: 'SOMETHING_NEW', severity: 'warning', message: 'новое' }
+				]
+			},
+			draft
+		);
+		expect(issues.map((i) => i.code)).toEqual(['initial_count', 'unreachable', 'trap', 'condition', 'signature_on_rejected', 'won_without_conditions', 'parked_no_exit', 'something_new']);
+		expect(issues[1].statusKeys).toEqual(['s2', 'won']);
+		expect(issues[2].statusKeys).toEqual(['s2']);
+		expect(issues[3].transitionKeys).toEqual(['t2']);
+		// refs у подписи — цель действия, а не узел с проблемой
+		expect(issues[4]).toMatchObject({ statusKeys: [], transitionKeys: ['t1'] });
+		expect(issues[5]).toMatchObject({ severity: 'warning', transitionKeys: ['t2'], source: 'server' });
+		expect(issues[6].statusKeys).toEqual(['s1']);
+		expect(issues[7]).toMatchObject({ statusKeys: [], transitionKeys: [] });
+	});
+
+	describe('одинаковые имена переходов', () => {
+		const funnel = fromServer(funnel14());
+
+		it('ошибка у одного «Отказа» подсвечивает только его, если клиентская проверка нашла тот же', () => {
+			const broken = funnel.transitions.find((t) => t.name === 'Отказ' && t.from === stepId(7));
+			const withBug: GraphDraft = { ...funnel, transitions: funnel.transitions.map((t) => (t === broken ? { ...t, conditions: { field: 'nope', op: 'not_null' } as Condition } : t)) };
+			const client = validateGraph(withBug);
+			const issues = parseServerIssues({ ok: false, issues: [{ code: 'CONDITION_INVALID', severity: 'error', message: 'x', path: 'transitions[Отказ].conditions' }] }, withBug, client);
+			expect(funnel.transitions.filter((t) => t.name === 'Отказ')).toHaveLength(14);
+			expect(issues[0].transitionKeys).toEqual([broken?.key]);
+		});
+
+		it('если клиентская проверка молчит — все переходы с этим именем (честно «не знаем какой»)', () => {
+			const issues = parseServerIssues({ ok: false, issues: [{ code: 'CONDITION_INVALID', severity: 'error', message: 'x', path: 'transitions[Отказ].conditions' }] }, funnel, []);
+			expect(issues[0].transitionKeys).toHaveLength(14);
+		});
+
+		it('переход без имени: путь «из->в» находит ровно одно ребро', () => {
+			const a = funnel.statuses[0].key;
+			const b = funnel.statuses[1].key;
+			const issues = parseServerIssues({ ok: false, issues: [{ code: 'CONDITION_INVALID', severity: 'error', message: 'x', path: `transitions[${a}->${b}].conditions` }] }, funnel);
+			expect(issues[0].transitionKeys).toEqual([funnel.transitions.find((t) => t.from === a && t.to === b)?.key]);
+		});
+	});
+
+	it('коды и переходы, которых нет в черновике, не ломают разбор: замечание без привязки', () => {
+		const issues = parseServerIssues(
+			{
+				ok: false,
+				issues: [
+					{ code: 'TRAP_STATUS', severity: 'error', message: 'x', refs: ['nobody'] },
+					{ code: 'CONDITION_INVALID', severity: 'error', message: 'y', path: 'transitions[Нет такого].conditions' }
+				]
+			},
+			draft
+		);
+		expect(issues).toHaveLength(2);
+		expect(issues.every((i) => i.statusKeys.length === 0 && i.transitionKeys.length === 0)).toBe(true);
+	});
+
+	it('ответ без issues разбирается по строкам, как раньше', () => {
+		const issues = parseServerIssues(
+			{
+				ok: false,
+				errors: [
+					'Воронка должна иметь ровно один статус типа initial, найдено 0',
+					'Недостижимые из initial статусы: second, won',
+					'Статусы без пути в терминальный статус (ловушки): second',
+					'transitions[Закрыть].conditions.field: поле ‘nope’ не разрешено в условиях',
+					'transitions[Дальше].actions.request_signature.on_rejected: статус ‘x’ не найден в воронке',
+					'Что-то новое'
+				],
+				warnings: ['Переход «Закрыть» в won обычно требует условие по сумме и дате закрытия']
+			},
 			draft
 		);
 		expect(issues.map((i) => i.code)).toEqual(['initial_count', 'unreachable', 'trap', 'condition', 'signature_on_rejected', 'server', 'won_without_conditions']);
@@ -242,5 +317,45 @@ describe('parseServerIssues', () => {
 		expect(issues[3].transitionKeys).toEqual(['t2']);
 		expect(issues[4].transitionKeys).toEqual(['t1']);
 		expect(issues[6]).toMatchObject({ severity: 'warning', transitionKeys: ['t2'], source: 'server' });
+	});
+
+	it('пустой issues при непустых errors — старый бэкенд, разбор строк', () => {
+		const issues = parseServerIssues({ ok: false, errors: ['Недостижимые из initial статусы: second'], issues: [] }, draft);
+		expect(issues[0]).toMatchObject({ code: 'unreachable', statusKeys: ['s2'] });
+	});
+});
+
+describe('клиентская проверка воронки из 14 шагов', () => {
+	it('условия по файлам шага (step_attachments.*) допустимы — как на сервере', () => {
+		const draft = fromServer(funnel14());
+		const withCondition = (conditions: Condition): GraphDraft => ({ ...draft, transitions: draft.transitions.map((t) => (t.name === 'Далее: шаг 5' ? { ...t, conditions } : t)) });
+		expect(hasErrors(validateGraph(withCondition({ op: 'exists', field: 'step_attachments.contract' } as Condition)))).toBe(false);
+		expect(validateGraph(withCondition({ op: 'exists', field: 'step_attachments.nope' } as Condition)).some((i) => i.code === 'condition' && /категория/.test(i.message))).toBe(true);
+	});
+
+	it('граф из 17 статусов и 71 перехода проверяется без ошибок и быстро', () => {
+		const draft = fromServer(funnel14());
+		const started = performance.now();
+		const issues = validateGraph(draft);
+		expect(performance.now() - started).toBeLessThan(50);
+		expect(issues.filter((i) => i.severity === 'error')).toEqual([]);
+	});
+
+	it('заморозка без выходов — совет parked_no_exit, не ошибка', () => {
+		const draft = fromServer(funnel14());
+		const noExit: GraphDraft = { ...draft, transitions: draft.transitions.filter((t) => t.from !== 'parked') };
+		expect(validateGraph(noExit).find((i) => i.code === 'parked_no_exit')).toMatchObject({ severity: 'warning', statusKeys: ['parked'] });
+	});
+});
+
+describe('mergeIssues', () => {
+	const mk = (code: string, statusKeys: string[], transitionKeys: string[], source: 'client' | 'server') => ({ severity: 'error' as const, code, message: code, statusKeys, transitionKeys, source });
+	it('серверное замечание, которое клиент уже нашёл, не повторяется', () => {
+		const merged = mergeIssues([mk('condition', [], ['t1'], 'client')], [mk('condition', [], ['t1'], 'server'), mk('condition', [], ['t2'], 'server')]);
+		expect(merged.map((i) => [i.source, i.transitionKeys[0]])).toEqual([['client', 't1'], ['server', 't2']]);
+	});
+	it('замечание без привязки не считается повтором', () => {
+		const merged = mergeIssues([mk('server', [], [], 'client')], [mk('server', [], [], 'server')]);
+		expect(merged).toHaveLength(2);
 	});
 });
