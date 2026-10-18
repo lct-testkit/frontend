@@ -206,12 +206,20 @@
 		dropped = next;
 	}
 	// what makes the table fit again: its width, its rows, its columns
+	// The fit costs a forced layout of EVERY row (and a second render of the grid when a column goes), so it is O(rows) per loaded page — over a long
+	// «Показать ещё» run that is O(n²) (1000 rows: 18 s instead of 6 s). Once the first FIT_ROWS rows have been measured, more rows of the same table do not
+	// move the columns (chips, dates and numbers are bounded; long text sits in `fr` columns): measure again only when the width or the columns change, or the rows are replaced.
+	const FIT_ROWS = 100;
+	let fitted = { key: '', rows: 0 };
 	$effect(() => {
-		void areaWidth;
-		void rows.length;
-		void eligible;
+		const key = areaWidth + '|' + eligible.map((c) => c.key).join(',');
+		const count = rows.length;
 		if (bp.isMobile) return;
-		untrack(() => void refit());
+		untrack(() => {
+			if (key === fitted.key && count >= fitted.rows && fitted.rows >= FIT_ROWS) return;
+			fitted = { key, rows: count };
+			void refit();
+		});
 	});
 
 	function cycle(key: string) {
