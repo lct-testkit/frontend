@@ -21,7 +21,9 @@
 	import Term from '$lib/ui/Term.svelte';
 	import { USER_STATUS_HINTS, ROLE_HINTS } from './hints';
 	import { buildMePatch, profileFormFromMe, validatePhone, type ProfileFormValues } from './profileForm';
+	import { otpChannel } from './otpChannel';
 	import ThemePicker from './ThemePicker.svelte';
+	import { getConfig } from '$lib/config';
 	import { timezoneOptions } from './timezones';
 
 	const me = $derived(session.me);
@@ -64,6 +66,11 @@
 				]
 			: []
 	);
+
+	// куда уйдёт код подтверждения подписи: по сохранённому профилю (строка данных) и по тому, что набрано в форме (подсказка под полем)
+	const demo = getConfig().mode === 'demo';
+	const otpSaved = $derived(otpChannel({ phone: me?.phone, email: me?.email, demo }));
+	const otpForm = $derived(otpChannel({ phone: values.phone, email: me?.email, demo }));
 
 	const dirty = $derived(Object.keys(buildMePatch(base, values)).length > 0);
 
@@ -117,6 +124,8 @@
 					<dt class="t-desc-l text-muted">{row.label}</dt>
 					<dd class="t-body-m m-0 mb-2 break-words md:mb-0">{row.value}</dd>
 				{/each}
+				<dt class="t-desc-l text-muted">Подтверждение подписи</dt>
+				<dd class="t-body-m m-0 mb-2 md:mb-0">{otpSaved.text}</dd>
 				<dt class="t-desc-l text-muted">Последний вход</dt>
 				<dd class="t-body-m m-0 mb-2 md:mb-0"><DateText value={me.last_login_at} time relative /></dd>
 				<dt class="t-desc-l text-muted">Согласие на ПДн</dt>
@@ -133,8 +142,9 @@
 				<TextField label="Отображаемое имя" placeholder={me.full_name} hint="Если оставить пустым, показывается ФИО." maxlength={255} value={values.displayName} disabled={saving} onInput={(v) => (values.displayName = v)} />
 				<FormRow>
 					<Pick label="Часовой пояс" items={timezoneOptions(values.timezone)} value={values.timezone} disabled={saving} onChange={(v) => v && (values.timezone = v)} />
-					<TextField label="Телефон" hint="Нужен для кода подтверждения подписи по SMS." inputmode="tel" placeholder="+7 900 000-00-00" value={values.phone} error={phoneError} disabled={saving} onInput={(v) => ((values.phone = v), (phoneError = undefined))} onEnter={save} />
+					<TextField label="Телефон" hint={otpForm.text} inputmode="tel" placeholder="+7 900 000-00-00" value={values.phone} error={phoneError} disabled={saving} onInput={(v) => ((values.phone = v), (phoneError = undefined))} onEnter={save} />
 				</FormRow>
+				{#if otpSaved.channel === 'none'}<Notice class="shrink-0" tone="warning">Телефон не указан: код подтверждения подписи отправить некуда, подписывать документы вы не сможете.</Notice>{/if}
 				{#if formError}<Notice class="shrink-0" tone="error" role="alert">{formError}</Notice>{/if}
 				<div class="flex gap-2">
 					<Btn label="Сохранить" loading={saving} disabled={!dirty || !!phoneError} onclick={save} data-testid="profile-save" />
