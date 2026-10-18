@@ -16,14 +16,17 @@
 	import { columnsKey, formatKey, recall, recallStrings, remember } from './memory';
 	import { jobNoteInput, reportNotes } from './notes';
 	import ReportNotes from './ReportNotes.svelte';
+	import { knownParams, type RerunRequest } from './rerun';
 	import { clock, useReportRun } from './run.svelte';
 
 	interface Props {
 		template: ReportTemplate | null;
+		/** параметры прошлого запуска («Запустить заново»): заполняют форму вместо значений по умолчанию */
+		initial?: RerunRequest | null;
 		onClose: () => void;
 	}
 
-	let { template, onClose }: Props = $props();
+	let { template, initial = null, onClose }: Props = $props();
 
 	const run = useReportRun();
 	let format = $state('xlsx');
@@ -44,11 +47,14 @@
 		untrack(() => {
 			run.reset();
 			const past = recall(formatKey(t.code));
-			format = defaultFormat(formatsFor(t.output_formats), typeof past === 'string' ? past : null);
+			const from = initial && initial.code === t.code ? initial : null;
+			format = defaultFormat(formatsFor(t.output_formats), from?.format ?? (typeof past === 'string' ? past : null));
 			values = { ...t.default_params };
+			// параметры прошлого запуска: только известные форме ключи (колонки — после проверки по каталогу ниже)
+			if (from) values = { ...values, ...knownParams(from.params, paramsFor(t.code, t.default_params, { dateFields: t.date_fields, defaultDateField: t.default_date_field, columns: t.columns }).map((d) => d.key)) };
 			// прошлый набор колонок этого отчёта (ТЗ Функц.13: кэш действий пользователя)
 			const columnDef = paramsFor(t.code, t.default_params, { columns: t.columns }).find((d) => d.kind === 'columns');
-			const pastColumns = recallStrings(columnsKey(t.code));
+			const pastColumns = from ? undefined : recallStrings(columnsKey(t.code));
 			if (columnDef && pastColumns) {
 				const kept = cleanSelection(pastColumns, columnDef.options ?? []);
 				if (kept.length) values = { ...values, columns: kept };
