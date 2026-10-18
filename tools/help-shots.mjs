@@ -258,7 +258,7 @@ export const SHOTS = [
 			await wait(1500);
 		}
 	},
-	{ name: 'phone-deals', chapter: '12-shortcuts', who: 'kam', url: '/deals', viewport: [390, 844], clip: { x: 0, y: 0, width: 390, height: 844 } },
+	{ name: 'phone-deals', chapter: '12-shortcuts', who: 'kam', url: '/deals', viewport: [390, 844], clip: { x: 0, y: 0, width: 390, height: 700 } },
 	{ name: 'security', chapter: '08-security', who: 'kam', url: '/profile', clip: { x: 270, y: 70, width: 830, height: 599 }, before: click((p) => p.getByText('Безопасность', { exact: true })) },
 	{
 		name: 'workflow-graph',
