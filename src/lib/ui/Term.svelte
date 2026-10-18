@@ -26,7 +26,6 @@
 	<Tip title={shown} {text} {placement} class={className}>
 		<span class="cursor-help underline decoration-dotted decoration-1 underline-offset-4">{shown}</span>
 	</Tip>
-	<span class="sr-only">. {text}</span>
 {:else}
 	<span class={className}>{shown}</span>
 {/if}

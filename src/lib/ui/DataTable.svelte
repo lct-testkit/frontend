@@ -42,6 +42,8 @@
 	import { TableGrid, type TableGridColumn } from '@lct-testkit/rt-ui/components/TableGrid';
 	import { Checkbox } from '@lct-testkit/rt-ui';
 	import { TableCards, useBreakpoint } from '@lct-testkit/rt-ui/ext';
+	import NoTabStops from './NoTabStops.svelte';
+	import { tableA11y } from './table-a11y';
 	import Btn from './Btn.svelte';
 	import EmptyState from './EmptyState.svelte';
 	import ErrorState from './ErrorState.svelte';
@@ -80,7 +82,8 @@
 		actionBar?: Snippet;
 		/** the table scrolls inside the page (header and footer stay): the parent must be a flex column with `min-height: 0` */
 		fill?: boolean;
-		ariaLabel?: string;
+		/** the name of the table for assistive technology («Сделки») */
+		ariaLabel: string;
 		id?: string;
 		/** no frame of its own: the table sits inside a Card (which has one) — one border, not two */
 		embedded?: boolean;
@@ -310,10 +313,12 @@
 		function onKeydown(event: KeyboardEvent) {
 			if (!onRowClick || (event.key !== 'Enter' && event.key !== ' ')) return;
 			const target = event.target as HTMLElement;
-			if (!target.matches?.('[data-table-row="true"]')) return;
+			// the row itself (never gets focus: `display: contents`) or the first cell of a row without a link (tableA11y gives it the tab stop)
+			const rowEl = target.closest<HTMLElement>('[data-table-row="true"]');
+			if (!rowEl || (target !== rowEl && (target !== rowEl.querySelector('.atmr-tablegrid__cell') || rowEl.querySelector('a[href]')))) return;
 			event.preventDefault();
 			const all = node.querySelectorAll<HTMLElement>('[data-table-row="true"]');
-			const index = Array.prototype.indexOf.call(all, target) - 1;
+			const index = Array.prototype.indexOf.call(all, rowEl) - 1;
 			const row = index >= 0 ? rows[index] : undefined;
 			if (row) onRowClick(row);
 		}
@@ -321,6 +326,8 @@
 		return { destroy: () => node.removeEventListener('keydown', onKeydown) };
 	}
 </script>
+
+{#snippet cardNoStops(row: Row)}<NoTabStops>{@render card(row)}</NoTabStops>{/snippet}
 
 <!-- панель выбранных строк в таблице DS: содержимое страницы (число, кнопки) ложится в один ряд, а не столбиком -->
 {#snippet gridBar()}
@@ -347,7 +354,7 @@
 
 <!-- `pointerover` below is a perf hint only (preloads a row's page on hover): the rows themselves, not this div, stay the real click/keyboard target -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div bind:this={area} class={['w-full min-w-0', fill && 'md:min-h-0 md:flex-1 md:basis-0 md:overflow-hidden', embedded && 'dt-embedded', onRowClick && 'dt-rows-open', !onRowClick && !selectable && 'dt-static']} aria-busy={loading || undefined} onpointerover={rowHref ? onRowsPointerOver : undefined} onpointerdowncapture={markPointer} onkeydowncapture={() => (clickStartedInCheckbox = false)} use:rowKeydown use:headerSort={{ sortable: sortableKeys, sort, hints: headerHints }}>
+<div bind:this={area} class={['w-full min-w-0', fill && 'md:min-h-0 md:flex-1 md:basis-0 md:overflow-hidden', embedded && 'dt-embedded', onRowClick && 'dt-rows-open', !onRowClick && !selectable && 'dt-static']} aria-busy={loading || undefined} onpointerover={rowHref ? onRowsPointerOver : undefined} onpointerdowncapture={markPointer} onkeydowncapture={() => (clickStartedInCheckbox = false)} use:rowKeydown use:headerSort={{ sortable: sortableKeys, sort, hints: headerHints }} use:tableA11y={{ label: ariaLabel, rows: rows.length, total, hasMore, interactive: onRowClick !== undefined || selectable }}>
 	<!-- the selection changed (a filter, a tab) and the old rows stay until the new ones come: a thin pulsing line above says so (no fading of the rows — that would lower the contrast) -->
 	{#if loading && rows.length > 0 && !error}<div class="relative z-10 -mb-0.5 h-0.5 w-full animate-pulse rounded-full bg-accent" role="presentation"></div>{/if}
 	{#if error}
@@ -358,7 +365,7 @@
 		{#if rows.length === 0}
 			{@render emptyView()}
 		{:else}
-			<TableCards {rows} {card} {selectable} {selected} {onSelectionChange} {onRowClick} aria-label={ariaLabel} />
+			<TableCards {rows} card={cardNoStops} {selectable} {selected} {onSelectionChange} {onRowClick} aria-label={ariaLabel} />
 			{#if hasMore}<div class="flex justify-center p-3" use:inview><Btn label="Показать ещё" variant="outline" colorScheme="neutral" loading={loadingMore} onclick={() => onLoadMore?.()} /></div>{/if}
 			{#if selectable && selected.length > 0 && actionBar}
 				<div class="sticky bottom-0 z-(--atmr-z-index-sticky) flex items-center gap-2 rounded-md border border-line bg-surface p-3">{@render actionBar()}</div>
