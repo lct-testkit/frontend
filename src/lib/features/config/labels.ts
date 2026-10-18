@@ -16,6 +16,12 @@ export const PRODUCT_FORMATS: readonly Option[] = [
 	{ key: 'blended', value: 'Смешанный' }
 ];
 
+/** Вид продукта (B3-7): курс обучения или ИТ-продукт — программное обеспечение вендора, на которое оформляются лицензии. */
+export const PRODUCT_KINDS: readonly (Option & { hint: string })[] = [
+	{ key: 'course', value: 'Курс', hint: 'Курс, программа или трек обучения' },
+	{ key: 'software', value: 'ИТ-продукт (ПО)', hint: 'Программное обеспечение вендора: на него оформляются лицензии' }
+];
+
 export const LOSS_REASON_CATEGORIES: readonly Option[] = [
 	{ key: 'price', value: 'Цена' },
 	{ key: 'timing', value: 'Сроки' },
