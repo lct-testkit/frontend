@@ -115,8 +115,22 @@ class Session {
 		this.reset(null);
 	}
 
+	#resetHooks: (() => void)[] = [];
+
+	/** Register a cleanup that runs whenever the local identity is dropped (logout, expired session): per-user caches, drafts. */
+	onReset(fn: () => void): void {
+		if (!this.#resetHooks.includes(fn)) this.#resetHooks.push(fn);
+	}
+
 	/** Drop the local identity (no network). */
 	reset(notice: string | null) {
+		for (const fn of this.#resetHooks) {
+			try {
+				fn();
+			} catch {
+				// a failing cleanup must not keep the user signed in
+			}
+		}
 		this.me = null;
 		this.status = 'anonymous';
 		this.consentRequired = false;

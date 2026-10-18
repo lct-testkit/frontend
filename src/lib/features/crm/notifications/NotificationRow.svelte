@@ -2,7 +2,7 @@
 	// Одна запись уведомления на ListRow: заголовок (у непрочитанного жирный, справа точка), текст, сделка, время; у важных — метка приоритета.
 	// Клик по строке ведёт к объекту и отмечает прочитанным; кнопка «Прочитано» — только отметить.
 	import { Btn, DateText, ListRow, StatusChip } from '$lib/ui';
-	import { dealCache, dealLabel } from '../shared/entityCache.svelte';
+	import { dealLabel } from '../shared/entityCache.svelte';
 	import { NOTIFICATION_PRIORITY_LABELS } from '../shared/labels';
 	import type { NotificationItem } from '../types';
 	import { entityHref } from './eventCodes';
@@ -18,9 +18,6 @@
 
 	const href = $derived(entityHref(item.entity_type, item.entity_id));
 	const body = $derived(notificationBody(item));
-	$effect(() => {
-		if (item.entity_type === 'deal' && item.entity_id) dealCache.ensure([item.entity_id]);
-	});
 </script>
 
 {#snippet description()}
