@@ -8,6 +8,7 @@
 	import Notice from '$lib/ui/Notice.svelte';
 	import Skeleton from '$lib/ui/Skeleton.svelte';
 	import { count } from '$lib/utils/format';
+	import { chainNote, parsePending } from './pending';
 
 	let { open, onClose }: { open: boolean; onClose: () => void } = $props();
 
@@ -17,6 +18,8 @@
 	let report = $state<Report | null>(null);
 	let error = $state<unknown>(null);
 	let busy = $state(false);
+	// режим очереди: события, ещё не вошедшие в цепочку, проверкой не охвачены (поля читаются из сырого ответа)
+	const note = $derived(chainNote(parsePending(report)));
 
 	async function run() {
 		busy = true;
@@ -45,7 +48,8 @@
 	{:else if error}
 		<ErrorState {error} onRetry={run} compact />
 	{:else if report}
-		<Notice class="shrink-0" tone={report.ok ? 'success' : 'error'} role="status" title={report.ok ? 'Цепочка цела' : 'Найдены нарушения'} data-testid="chain-result" data-ok={report.ok}>Проверено {count(report.checked, ['запись', 'записи', 'записей'])}</Notice>
+		<Notice class="shrink-0" tone={report.ok ? 'success' : 'error'} role="status" title={report.ok ? (note ? 'Цепочка цела для запечатанных записей' : 'Цепочка цела') : 'Найдены нарушения'} data-testid="chain-result" data-ok={report.ok}>Проверено {count(report.checked, ['запись', 'записи', 'записей'])}</Notice>
+		{#if note}<p class="t-body-s m-0 text-muted" data-testid="chain-pending">{note}</p>{/if}
 		{#if report.problems.length}
 			<ul class="t-body-s m-0 flex list-disc flex-col gap-1 pl-5">
 				{#each report.problems.slice(0, 20) as p (p)}<li class="break-words">{p}</li>{/each}

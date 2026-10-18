@@ -5,6 +5,8 @@
 	import { session } from '$lib/auth/session.svelte';
 	import { apiQuery, AUDIT_FILTER_KEYS, exportFilename, type AuditFilters } from '$lib/features/identity/audit/audit-query';
 	import AuditList from '$lib/features/identity/audit/AuditList.svelte';
+	import { exportNote } from '$lib/features/identity/audit/pending';
+	import { auditPending } from '$lib/features/identity/audit/pendingStore.svelte';
 	import ChainCheckModal from '$lib/features/identity/audit/ChainCheckModal.svelte';
 	import IconBtn from '$lib/ui/IconBtn.svelte';
 	import Page from '$lib/ui/Page.svelte';
@@ -19,7 +21,7 @@
 	async function exportNdjson() {
 		const ok = await confirm({
 			title: 'Выгрузить журнал?',
-			message: 'Выгрузка до 10 000 записей с текущими фильтрами. В журнал попадёт событие «Массовая выгрузка».',
+			message: `Выгрузка до 10 000 записей с текущими фильтрами. В журнал попадёт событие «Массовая выгрузка».${auditPending.value && auditPending.value.count > 0 ? ' В выгрузку не войдут события, ожидающие запечатывания.' : ''}`,
 			confirmLabel: 'Выгрузить'
 		});
 		if (!ok) return;
@@ -37,7 +39,8 @@
 			link.download = exportFilename();
 			link.click();
 			setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
-			toast.success('Выгрузка готова');
+			const note = exportNote(response.headers.get('X-Audit-Pending'));
+			toast.success(note ? `Выгрузка готова. ${note}` : 'Выгрузка готова');
 		} catch (e) {
 			toast.error(e);
 		} finally {

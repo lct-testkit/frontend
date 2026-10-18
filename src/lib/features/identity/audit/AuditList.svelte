@@ -1,10 +1,11 @@
 <script lang="ts">
 	// Журнал аудита: фильтры в URL, курсорная подгрузка, строка открывает подробности. `trailing` — кнопки страницы: они стоят в строке фильтров.
-	import type { Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 	import { api, unwrap } from '$lib/api';
 	import { createPager } from '$lib/api/pager.svelte';
 	import { people } from '$lib/api/people.svelte';
 	import DateText from '$lib/ui/DateText.svelte';
+	import Notice from '$lib/ui/Notice.svelte';
 	import DataTable, { type Col } from '$lib/ui/DataTable.svelte';
 	import TableCell from '$lib/ui/TableCell.svelte';
 	import StatusChip from '$lib/ui/StatusChip.svelte';
@@ -16,6 +17,8 @@
 	import AuditDetails from './AuditDetails.svelte';
 	import AuditFilters from './AuditFilters.svelte';
 	import { AUDIT_FILTER_KEYS, apiQuery, type AuditFilters as Filters } from './audit-query';
+	import { bannerText, mergeHead, occurredAt, parsePending, pendingState, pollDelay } from './pending';
+	import { auditPending } from './pendingStore.svelte';
 
 	let { trailing }: { trailing?: Snippet } = $props();
 
@@ -23,13 +26,75 @@
 	const key = $derived(JSON.stringify(values));
 	let current = $state<AuditEntry | null>(null);
 
+	// ожидающие запечатывания события (режим очереди): поля читаются из сырого ответа, в режиме sync их нет и экран как раньше
+	let pending = $state<ReturnType<typeof parsePending>>(null);
+	/** с какого момента ожидание идёт непрерывно (после 10 минут опрос замедляется) */
+	let waitingSince: number | null = null;
+
+	function takePending(page: unknown) {
+		const next = parsePending(page);
+		waitingSince = next && next.count > 0 ? (waitingSince ?? Date.now()) : null;
+		pending = next;
+		auditPending.value = next;
+	}
+
 	const pager = createPager<AuditEntry>((cursor, signal) =>
 		unwrap(api.GET('/api/admin/audit', { params: { query: { ...apiQuery(values), limit: 50, cursor } }, signal })).then((page) => {
+			if (!cursor) takePending(page);
 			people.ensure(page.items.map((i) => i.actor_id));
 			ensureAuditEntities(page.items);
 			return page;
 		})
 	);
+
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	let polling = false;
+
+	/** Первая страница с теми же фильтрами: новые строки встают сверху, фильтры, прокрутка и подгруженные страницы не трогаются. */
+	async function refreshHead() {
+		if (polling || pager.loading) return;
+		polling = true;
+		try {
+			const page = await unwrap(api.GET('/api/admin/audit', { params: { query: { ...apiQuery(values), limit: 50 } } }));
+			takePending(page);
+			people.ensure(page.items.map((i) => i.actor_id));
+			ensureAuditEntities(page.items);
+			const merged = mergeHead(pager.items, page.items);
+			if (merged.gap) await pager.reload();
+			else pager.items = merged.items;
+		} catch {
+			// следующий опрос повторит
+		} finally {
+			polling = false;
+		}
+	}
+
+	function schedule() {
+		clearTimeout(timer);
+		const delay = pollDelay(pending, typeof document !== 'undefined' && document.visibilityState === 'hidden', waitingSince ? Date.now() - waitingSince : 0);
+		if (delay !== null) timer = setTimeout(() => void refreshHead(), delay);
+	}
+
+	$effect(() => {
+		void pending;
+		schedule();
+		return () => clearTimeout(timer);
+	});
+	onMount(() => {
+		const onVisible = () => {
+			if (document.visibilityState === 'visible' && pendingState(pending) !== 'off') void refreshHead();
+			schedule();
+		};
+		document.addEventListener('visibilitychange', onVisible);
+		return () => {
+			document.removeEventListener('visibilitychange', onVisible);
+			auditPending.value = null;
+		};
+	});
+
+	const banner = $derived(bannerText(pending));
+	const pstate = $derived(pendingState(pending));
+	const emptyText = $derived(pending && pending.count > 0 ? 'Подходящие события ещё запечатываются' : 'Событий по этим условиям нет');
 
 	$effect(() => {
 		void key;
@@ -45,7 +110,7 @@
 	];
 </script>
 
-{#snippet time(e: AuditEntry)}<TableCell><DateText value={e.created_at} time /></TableCell>{/snippet}
+{#snippet time(e: AuditEntry)}<TableCell><DateText value={occurredAt(e).event} time /></TableCell>{/snippet}
 {#snippet actor(e: AuditEntry)}<TableCell><span class="truncate">{e.actor_id ? people.name(e.actor_id) : 'Система'}</span></TableCell>{/snippet}
 {#snippet action(e: AuditEntry)}<TableCell><span class="block truncate py-1.5" title={e.action}>{auditActionLabel(e.action)}</span></TableCell>{/snippet}
 {#snippet entity(e: AuditEntry)}
@@ -74,11 +139,16 @@
 			<span class="t-body-m-strong min-w-0 flex-1 break-words">{auditActionLabel(e.action)}</span>
 			<StatusChip label={meta.label} tone={meta.tone} hint={AUDIT_RESULT_HINTS[e.result as keyof typeof AUDIT_RESULT_HINTS]} />
 		</div>
-		<span class="t-desc-l text-muted">{e.actor_id ? people.name(e.actor_id) : 'Система'} · <DateText value={e.created_at} time /></span>
+		<span class="t-desc-l text-muted">{e.actor_id ? people.name(e.actor_id) : 'Система'} · <DateText value={occurredAt(e).event} time /></span>
 	</div>
 {/snippet}
 
 <AuditFilters {values} {trailing} onChange={(patch) => void setQuery(patch)} />
+{#if banner}
+	<Notice tone={banner.tone} title={banner.title} role="status" aria-live="polite" data-testid="audit-pending" data-state={pstate} actions={pstate === 'delayed' ? [{ label: 'Обновить', onclick: () => void refreshHead() }] : undefined}>{banner.text}</Notice>
+{:else if pstate === 'sealed'}
+	<p class="t-desc-l m-0 text-muted" role="status" aria-live="polite" data-testid="audit-pending" data-state="sealed">Все события запечатаны</p>
+{/if}
 <DataTable
 	id="audit"
 	rows={pager.items}
@@ -91,7 +161,7 @@
 	hasMore={pager.hasMore}
 	loadingMore={pager.loadingMore}
 	onLoadMore={() => pager.loadMore()}
-	emptyText="Событий по этим условиям нет"
+	{emptyText}
 	ariaLabel="Журнал аудита"
 />
 <AuditDetails entry={current} onClose={() => (current = null)} />
