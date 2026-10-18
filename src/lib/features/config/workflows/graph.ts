@@ -586,6 +586,12 @@ export function toFlow(draft: GraphDraft, positions: Positions, issues: GraphIss
 			type: TRANSITION_EDGE_TYPE,
 			source: transition.from,
 			target: transition.to,
+			...(positions[transition.from] && positions[transition.to]
+				? (() => {
+						const sides = edgeSides(positions[transition.from], positions[transition.to]);
+						return { sourceHandle: `s-${sides.source}`, targetHandle: `t-${sides.target}` };
+					})()
+				: {}),
 			deletable: false,
 			data: {
 				transition,
@@ -598,6 +604,59 @@ export function toFlow(draft: GraphDraft, positions: Positions, issues: GraphIss
 			}
 		}));
 	return { nodes, edges, total: onScreen.length };
+}
+
+/** Размер узла на холсте (ширина `w-58`); по нему считается раскладка. */
+export const NODE_WIDTH = 232;
+
+/** Сторона узла, с которой выходит / в которую входит ребро: по взаимному положению узлов (соседи в ряду — справа налево, ряды — сверху вниз). */
+export function edgeSides(from: Point, to: Point): { source: 'r' | 'l' | 'b' | 't'; target: 'r' | 'l' | 'b' | 't' } {
+	const dx = to.x - from.x;
+	const dy = to.y - from.y;
+	if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx) * 0.6) return dy > 0 ? { source: 'b', target: 't' } : { source: 't', target: 'b' };
+	return dx >= 0 ? { source: 'r', target: 'l' } : { source: 'l', target: 'r' };
+}
+
+export interface SnakeOptions {
+	/** узлов в ряду (по умолчанию 3) */
+	columns?: number;
+	colGap?: number;
+	rowGap?: number;
+}
+
+/**
+ * Раскладка «змейкой» для длинной воронки: шаги по порядку рядами по 3 узла, чётные ряды идут справа налево, поэтому переход со
+ * следующего шага — всегда соседний узел или узел прямо под ним. Завершающие статусы — отдельный ряд под шагами, архивные и
+ * остальные — ещё ниже.
+ */
+export function layoutSnake(draft: GraphDraft, options: SnakeOptions = {}): Positions {
+	const columns = options.columns ?? 3;
+	const colGap = options.colGap ?? NODE_WIDTH + 52;
+	const rowGap = options.rowGap ?? 124;
+	const steps = stepsOf(draft);
+	const stepKeys = new Set(steps.map((s) => s.key));
+	const rest = draft.statuses.filter((s) => !stepKeys.has(s.key));
+	const terminals = rest.filter((s) => !s.is_archived && TERMINAL_TYPES.has(s.type)).sort((a, b) => a.sort_order - b.sort_order);
+	const others = rest.filter((s) => !terminals.includes(s)).sort((a, b) => a.sort_order - b.sort_order);
+	const positions: Positions = {};
+	steps.forEach((s, i) => {
+		const row = Math.floor(i / columns);
+		const col = i % columns;
+		positions[s.key] = { x: (row % 2 === 0 ? col : columns - 1 - col) * colGap, y: row * rowGap };
+	});
+	const rows = Math.ceil(steps.length / columns);
+	const place = (list: StatusDraft[], row: number) =>
+		list.forEach((s, i) => {
+			positions[s.key] = { x: (i % columns) * colGap, y: (row + Math.floor(i / columns)) * rowGap + (row > rows - 1 ? 24 : 0) };
+		});
+	place(terminals, rows);
+	place(others, rows + Math.ceil(terminals.length / columns));
+	return positions;
+}
+
+/** Автораскладка: длинная воронка (больше 8 шагов) — «змейкой» по порядку шагов, короткая — по уровням обхода. */
+export function autoLayout(draft: GraphDraft): Positions {
+	return stepsOf(draft).length > 8 ? layoutSnake(draft) : layoutByLevels(draft);
 }
 
 export function positionsFromNodes(nodes: readonly Pick<Node, 'id' | 'position'>[]): Positions {
