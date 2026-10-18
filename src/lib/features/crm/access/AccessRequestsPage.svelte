@@ -14,7 +14,7 @@
 	import { orgCache, orgTitle } from '../shared/entityCache.svelte';
 	import type { AccessRequest } from '../types';
 	import AccessDecisionModal from './AccessDecisionModal.svelte';
-	import { REQUEST_STATUS_FILTERS, accessUntil, effectiveStatus, requestActions, statusMeta } from './accessRequests';
+	import { REQUEST_STATUS_FILTERS, accessUntil, effectiveStatus, matchesStatus, requestActions, statusMeta } from './accessRequests';
 
 	const BOXES = [
 		{ key: 'inbox', label: 'Входящие' },
@@ -24,7 +24,7 @@
 	const statusKey = $derived(REQUEST_STATUS_FILTERS.find((f) => f.key === page.url.searchParams.get('status'))?.key ?? 'pending');
 
 	const pager = createPager<AccessRequest>(async (cursor, signal) =>
-		unwrap(api.GET('/api/access-requests', { params: { query: { box, status: statusKey === 'all' ? undefined : statusKey, limit: 50, cursor: cursor ?? undefined } }, signal }))
+		unwrap(api.GET('/api/access-requests', { params: { query: { box, status: statusKey === 'all' ? undefined : statusKey, limit: 50, cursor: cursor ?? undefined } }, signal })).then((res) => ({ ...res, items: res.items.filter((r) => matchesStatus(r, statusKey)) }))
 	);
 	$effect(() => {
 		void box;
@@ -71,10 +71,10 @@
 
 	const columns = $derived<Col<AccessRequest>[]>([
 		{ key: 'org', title: 'Вуз', width: 'minmax(180px, 1.5fr)', render: orgCell },
-		...(box === 'inbox' ? [{ key: 'requester', title: 'Кто просит', width: 'minmax(130px, 1fr)', drop: 3, render: whoCell }] : []),
+		...(box === 'inbox' ? [{ key: 'requester', title: 'Кто просит', width: 'minmax(200px, 1fr)', drop: 3, render: whoCell }] : []),
 		{ key: 'reason', title: 'Причина', width: 'minmax(180px, 2fr)', drop: 2, render: reasonCell },
 		{ key: 'created', title: 'Отправлен', drop: 1, render: dateCell },
-		{ key: 'status', title: 'Статус', render: statusCell },
+		{ key: 'status', title: 'Статус', width: 'minmax(250px, 0.8fr)', render: statusCell },
 		{ key: 'actions', title: '', align: 'right', render: actionCell }
 	]);
 </script>
@@ -107,7 +107,7 @@
 	<span class="flex items-center justify-end gap-1 max-md:justify-start">
 		{#if a.decide}
 			<Btn label="Одобрить" size="s" icon={CheckLarge} onclick={() => (deciding = { request: r, mode: 'approve' })} />
-			<IconBtn icon={CloseLarge} label="Отклонить" danger size="s" onclick={() => (deciding = { request: r, mode: 'reject' })} />
+			<Btn label="Отклонить" size="s" variant="outline" colorScheme="neutral" icon={CloseLarge} onclick={() => (deciding = { request: r, mode: 'reject' })} />
 		{/if}
 		{#if a.revoke}<Btn label="Снять доступ" size="s" variant="outline" colorScheme="neutral" loading={busy === r.id} onclick={() => act(r, 'revoke')} />{/if}
 		{#if a.cancel}<Btn label="Отменить" size="s" variant="outline" colorScheme="neutral" loading={busy === r.id} onclick={() => act(r, 'cancel')} />{/if}
