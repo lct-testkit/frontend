@@ -2,6 +2,7 @@
 	// Вкладка «Лицензии» карточки организации: лицензии/договоры вуз-вендор-ПО (rtk_requiriments.md разд. 4, Треб.1).
 	// Только чтение — у бэкенда нет create/edit ручек (загружаются импортом xls, catalog.router), поэтому здесь нет форм и кнопок.
 	// ФИО менеджера и «ответственные от вуза» бэкенд может отдать маскированными (без права contact:reveal) — показываем как пришло.
+	import { GLOSSARY } from '$lib/ui/glossary';
 	import { onMount, untrack } from 'svelte';
 	import { api, unwrap } from '$lib/api';
 	import { createPager } from '$lib/api/pager.svelte';
@@ -20,7 +21,7 @@
 
 	const columns: Col<OrganizationLicense>[] = [
 		{ key: 'vendor', title: 'Вендор', width: 'minmax(120px, 1.2fr)', render: vendorCell },
-		{ key: 'product', title: 'ПО', width: 'minmax(140px, 1.4fr)', render: productCell },
+		{ key: 'product', title: GLOSSARY.software.label, width: 'minmax(140px, 1.4fr)', render: productCell },
 		{ key: 'transfer_status', title: 'Передача', render: statusCell },
 		{ key: 'license_signed_at', title: 'Подписан', render: signedCell, drop: 4 },
 		{ key: 'license_valid_year', title: 'Срок', render: termCell, drop: 3 },
