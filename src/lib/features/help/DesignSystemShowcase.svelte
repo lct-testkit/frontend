@@ -22,8 +22,8 @@
 	let chipOn = $state('open');
 
 	const STATUSES = [
-		{ key: 'new', value: 'Идентификация вуза' },
-		{ key: 'qual', value: 'Квалификация' },
+		{ key: 'new', value: 'Поиск контактов ответственного в вузе' },
+		{ key: 'qual', value: 'Организация встречи с представителями вуза' },
 		{ key: 'won', value: 'Выиграна' },
 		{ key: 'lost', value: 'Потеряна' }
 	];
@@ -48,8 +48,8 @@
 		amount: number;
 	}
 	const DEALS: Deal[] = [
-		{ id: 'D-2026-000081', title: 'Летняя школа Data Science', org: 'КГТУ', status: 'Квалификация', tone: 'info', amount: 210000 },
-		{ id: 'D-2026-000080', title: 'Повышение квалификации кафедры', org: 'МОУПН', status: 'Идентификация вуза', tone: 'neutral', amount: 150000 },
+		{ id: 'D-2026-000081', title: 'Летняя школа Data Science', org: 'КГТУ', status: 'Организация встречи с представителями вуза', tone: 'info', amount: 210000 },
+		{ id: 'D-2026-000080', title: 'Повышение квалификации кафедры', org: 'МОУПН', status: 'Поиск контактов ответственного в вузе', tone: 'neutral', amount: 150000 },
 		{ id: 'D-2026-000078', title: 'Курс по робототехнике', org: 'Колледж связи №5', status: 'Выиграна', tone: 'success', amount: 480000 },
 		{ id: 'D-2026-000075', title: 'DevOps с нуля', org: 'Институт технологий', status: 'Срок подходит', tone: 'warning', amount: 96000 }
 	];
@@ -179,8 +179,8 @@
 
 {#snippet badges()}
 	<div class="flex flex-wrap items-center gap-2">
-		<StatusChip label="Идентификация вуза" tone="neutral" />
-		<StatusChip label="Квалификация" tone="info" />
+		<StatusChip label="Поиск контактов ответственного в вузе" tone="neutral" />
+		<StatusChip label="Организация встречи с представителями вуза" tone="info" />
 		<StatusChip label="Выиграна" tone="success" />
 		<StatusChip label="Срок подходит" tone="warning" />
 		<StatusChip label="Просрочено" tone="error" />

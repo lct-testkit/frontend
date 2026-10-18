@@ -525,11 +525,11 @@ export function layerCounts(draft: GraphDraft): Record<EdgeLayer, number> {
 	return counts;
 }
 
-/** Рёбер больше этого числа — по умолчанию показан основной путь и пропуски, остальные слои включаются переключателями. */
-export const LAYERS_DENSE_ABOVE = 16;
+/** «Большой граф»: больше 8 шагов — раскладка змейкой, больше 16 переходов — рёбра слоями (по умолчанию основной путь и пропуски, остальное переключателями). */
+export const LARGE_GRAPH = { steps: 8, transitions: 16 } as const;
 
 /** Слои по умолчанию: небольшая воронка — все, плотная — основной путь и «через шаг». */
-export const defaultLayers = (transitionCount: number): ReadonlySet<EdgeLayer> => new Set<EdgeLayer>(transitionCount > LAYERS_DENSE_ABOVE ? ['main', 'skip'] : EDGE_LAYERS);
+export const defaultLayers = (transitionCount: number): ReadonlySet<EdgeLayer> => new Set<EdgeLayer>(transitionCount > LARGE_GRAPH.transitions ? ['main', 'skip'] : EDGE_LAYERS);
 
 export interface ToFlowOptions {
 	/** показанные слои; без параметра — все рёбра. Скрыты рёбра остальных слоёв, кроме рёбер с ошибкой проверки, несохранённых и закреплённых. */
@@ -665,7 +665,7 @@ export function layoutSnake(draft: GraphDraft, options: SnakeOptions = {}): Posi
 
 /** Автораскладка: длинная воронка (больше 8 шагов) — «змейкой» по порядку шагов, короткая — по уровням обхода. */
 export function autoLayout(draft: GraphDraft): Positions {
-	return stepsOf(draft).length > 8 ? layoutSnake(draft) : layoutByLevels(draft);
+	return stepsOf(draft).length > LARGE_GRAPH.steps ? layoutSnake(draft) : layoutByLevels(draft);
 }
 
 export function positionsFromNodes(nodes: readonly Pick<Node, 'id' | 'position'>[]): Positions {
