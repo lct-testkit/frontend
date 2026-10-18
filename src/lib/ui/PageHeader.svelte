@@ -115,7 +115,7 @@
 		<h1 class="sr-only">{title}</h1>
 		<div class="flex min-w-0 items-center gap-x-3 border-b-2 border-line">
 			<!-- the strip overlaps the border of the row by its own 2 px: the orange mark of the current tab lies exactly on the grey line; on a phone it scrolls and the buttons stay at its end -->
-			<div bind:this={strip} class={['-mb-0.5 min-w-0 flex-1 max-md:overflow-hidden', hasButtons && 'md:[&_.atmr-tabs-group]:[--atmr-tabitem-m-padding-bottom:calc(7.6px+6px)]']}>{@render tabs(false)}</div>
+			<div bind:this={strip} class={['-mb-0.5 min-w-0 flex-1 max-md:overflow-hidden', hasButtons && 'md:[&_.atmr-tabs-group]:[--atmr-tabitem-m-padding-bottom:calc(6px+6px)]']}>{@render tabs(false)}</div>
 			{#if !stacked}<div class="ml-auto flex flex-none items-start justify-end self-start">{@render buttons()}</div>{/if}
 		</div>
 		{#if stacked}<div class="mt-4 flex justify-end">{@render buttons()}</div>{/if}
