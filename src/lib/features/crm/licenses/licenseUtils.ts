@@ -20,7 +20,7 @@ export const LICENSE_FIELD_LABELS = [
 ] as const;
 
 /** Заголовки колонок таблицы: короче полей ТЗ (иначе десять колонок не помещаются), полное название поля ТЗ — в подсказке заголовка. */
-export const LICENSE_COLUMN_TITLES = ['Вуз', 'Вендор', 'ПО', 'Договор', 'Подписание', 'Срок (год)', 'Передача', 'Менеджер', 'Ответственные', 'Комментарий'] as const;
+export const LICENSE_COLUMN_TITLES = ['Вуз', 'Вендор', 'ПО', 'Договор', 'Подписание', 'Срок', 'Передача', 'Менеджер', 'Ответственные', 'Комментарий'] as const;
 
 /** Вендор без формы собственности и кавычек: «ООО «Астра Линукс»» → «Астра Линукс» (полное — в подсказке). */
 export function shortVendor(name: string): string {
@@ -38,7 +38,7 @@ export interface TermInfo {
 	text: string;
 	tone: 'neutral' | 'warning' | 'error';
 	/** «Истекает» — заканчивается в этом году; «Истекла» — уже закончилась */
-	badge?: 'Истекает' | 'Истекла';
+	badge?: 'Истекает' | 'Истекла' | 'Проверьте';
 	hint?: string;
 }
 
@@ -67,11 +67,11 @@ function byEndYear(year: number, now: Date): TermInfo {
 export function licenseTermInfo(l: TermFields, now: Date = new Date()): TermInfo {
 	if (l.is_perpetual) return { text: 'Бессрочно', tone: 'neutral' };
 	if (l.license_valid_until) return byEndDate(l.license_valid_until, now);
-	if (l.license_term_years != null) return { text: count(l.license_term_years, ['год', 'года', 'лет']), tone: 'neutral', hint: 'Срок в годах, дата окончания не указана' };
+	if (l.license_term_years != null) return { text: `на ${count(l.license_term_years, ['год', 'года', 'лет'])}`, tone: 'neutral', hint: 'Срок в годах, дата окончания не указана' };
 	const raw = l.license_valid_year;
 	if (raw == null) return { text: '—', tone: 'neutral' };
 	if (raw >= MIN_REAL_YEAR) return byEndYear(raw, now);
-	return { text: count(raw, ['год', 'года', 'лет']), tone: 'warning', hint: 'Похоже на срок в годах, а не на год окончания' };
+	return { text: `на ${count(raw, ['год', 'года', 'лет'])}`, tone: 'warning', badge: 'Проверьте', hint: 'Похоже на срок в годах, а не на год окончания: уточните в договоре' };
 }
 
 /** Колонка «Подписание лицензии»: дата, а если даты нет — «Подписана»/«Не подписана». */
@@ -79,7 +79,7 @@ export function licenseSignedText(l: Pick<OrganizationLicense, 'is_signed' | 'li
 	if (l.license_signed_at) return formatDate(l.license_signed_at);
 	if (l.is_signed === true) return 'Подписана';
 	if (l.is_signed === false) return 'Не подписана';
-	return '—';
+	return 'Не указано';
 }
 
 /** Подпись статуса передачи; неизвестное или пустое значение — как в остальных перечислениях бэкенда. */

@@ -142,7 +142,7 @@
 	}
 </script>
 
-<FormDrawer {open} title={isNew ? 'Новая лицензия' : `${item?.vendor ?? ''} · ${item?.product_name ?? ''}`} width={520} {saving} {formError} {conflict} {canSave} showSave={!readOnly} cancelLabel={readOnly ? 'Закрыть' : 'Отмена'} onSave={save} {onClose} onReload={reloadVersion}>
+<FormDrawer {open} title={isNew ? 'Новая лицензия' : `${item?.vendor ?? ''} · ${item?.product_name ?? ''}`} width={560} {saving} {formError} {conflict} {canSave} showSave={!readOnly} cancelLabel={readOnly ? 'Закрыть' : 'Отмена'} onSave={save} {onClose} onReload={reloadVersion}>
 	{#if item}
 		<div class="t-desc-l -mb-2 flex items-center gap-1 text-muted">
 			<CopyButton value={`${location.origin}/licenses/${item.id}`} label="Копировать ссылку на лицензию" done="Ссылка скопирована" />
@@ -161,7 +161,7 @@
 	<Toggle label="Бессрочная" bind:checked={v.perpetual} disabled={readOnly} />
 	{#if !v.perpetual}
 		<FormRow>
-			<DateField label="Действует до" bind:value={v.validUntil} error={errors.license_valid_until} hint="Год — в колонку «Срок»" disabled={readOnly} />
+			<DateField label="Действует до" bind:value={v.validUntil} error={errors.license_valid_until} hint="Год показывается в колонке «Срок»" disabled={readOnly} />
 			<NumberField label="Срок, лет" bind:value={v.termYears} integer min={TERM_YEARS.min} max={TERM_YEARS.max} error={errors.license_term_years} hint="Если даты окончания нет" disabled={readOnly} />
 		</FormRow>
 	{:else if errors.license_valid_until}
