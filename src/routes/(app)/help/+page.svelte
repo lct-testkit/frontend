@@ -148,7 +148,7 @@
 			return inGroup.length ? [{ key: `group:${g.key}`, value: g.title, isTitle: true }, ...inGroup.map((c) => ({ key: c.slug, value: c.title }))] : [];
 		})
 	);
-	const sideToc = $derived(showToc && !bp.isMobile && bp.width >= 1280);
+	const sideToc = $derived(showToc && !bp.isMobile && bp.width >= 1280 && !current?.wide);
 	const forbiddenHint = $derived(forbidden?.group === 'admin' ? 'Эта глава для администратора' : 'Эта глава вам недоступна');
 </script>
 

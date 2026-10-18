@@ -2,7 +2,7 @@
 // чанками и подгружаются по требованию (`loader.ts`); в бандле страницы остаётся только этот индекс.
 // Видимость строится на правах человека (`GET /api/me → scopes`), а не на названиях ролей: главу видит тот, у кого есть ЛЮБОЕ из `needs`.
 
-export type ChapterGroup = 'start' | 'user' | 'admin' | 'reference';
+export type ChapterGroup = 'start' | 'user' | 'roles' | 'admin' | 'reference';
 
 export interface Chapter {
 	/** адрес главы: `/help?s=<slug>` */
@@ -17,11 +17,14 @@ export interface Chapter {
 	audience?: string[];
 	/** названия экранов и разделов, о которых глава («Подписание»): поиск находит главу и по ним */
 	keywords?: string;
+	/** глава с широкими таблицами: на всю ширину карточки, оглавление — списком в начале, а не колонкой справа */
+	wide?: boolean;
 }
 
 export const GROUPS: { key: ChapterGroup; title: string }[] = [
 	{ key: 'start', title: 'Начало работы' },
 	{ key: 'user', title: 'Руководство пользователя' },
+	{ key: 'roles', title: 'Руководство по ролям' },
 	{ key: 'admin', title: 'Руководство администратора' },
 	{ key: 'reference', title: 'Справочник' }
 ];
@@ -33,15 +36,24 @@ export const CHAPTERS: Chapter[] = [
 	{ slug: 'start', file: '01-start.md', title: 'Быстрый старт', group: 'start' },
 
 	{ slug: 'deals', file: '02-deals.md', title: 'Сделки', group: 'user', needs: ['deal:read'] },
+	{ slug: 'funnel', file: '18-funnel.md', title: 'Воронка из 14 шагов', group: 'user', needs: ['deal:read'], wide: true },
+	{ slug: 'files', file: '17-files.md', title: 'Файлы в сделке', group: 'user', needs: ['deal:read'] },
 	{ slug: 'organizations', file: '03-organizations.md', title: 'Организации и контакты', group: 'user', needs: ['organization:read'] },
+	{ slug: 'licenses', file: '14-licenses.md', title: 'Лицензии вуз — вендор — ПО', group: 'user', needs: ['catalog:read'] },
 	{ slug: 'signing', file: '04-signing.md', title: 'Электронная подпись (ПЭП)', group: 'user', needs: ['signature:read', 'signature:sign', 'signature:create'] },
-	{ slug: 'import-reports', file: '05-import-reports.md', title: 'Импорт и отчёты', group: 'user', needs: ['report:read', 'import:run'] },
+	{ slug: 'import', file: '05-import.md', title: 'Импорт', group: 'user', needs: ['import:run'] },
+	{ slug: 'reports', file: '16-reports.md', title: 'Отчёты', group: 'user', needs: ['report:read'], wide: true },
 	{ slug: 'audit', file: '23-audit.md', title: 'Журнал аудита', group: 'user', needs: ['audit:read'] },
 	{ slug: 'admin', file: '06-admin.md', title: 'Администрирование', group: 'user', needs: ['user:read'] },
 	{ slug: 'workflows', file: '07-workflows.md', title: 'Конструктор воронок', group: 'user', needs: ['workflow:write'] },
 	{ slug: 'security', file: '08-security.md', title: 'Безопасность и персональные данные', group: 'user' },
 	{ slug: 'tasks', file: '09-tasks.md', title: 'Задачи, уведомления, профиль', group: 'user' },
 	{ slug: 'integrations', file: '10-integrations.md', title: 'Интеграции', group: 'user', needs: ['integration:admin'] },
+
+	{ slug: 'role-kam', file: '19-role-kam.md', title: 'Менеджер (КАМ)', group: 'roles', needs: ['deal:transition'] },
+	{ slug: 'role-head', file: '20-role-head.md', title: 'Руководитель', group: 'roles', needs: ['deal:reassign'] },
+	{ slug: 'role-admin', file: '21-role-admin.md', title: 'Администратор', group: 'roles', needs: ['settings:write'] },
+	{ slug: 'role-auditor', file: '22-role-auditor.md', title: 'Аудитор', group: 'roles', needs: ['audit:read'] },
 
 	{ slug: 'admin-overview', file: 'admin/01-overview.md', title: 'Обзор и требования', group: 'admin', needs: ADMIN },
 	{ slug: 'admin-install', file: 'admin/02-install.md', title: 'Установка: онлайн и офлайн', group: 'admin', needs: ADMIN, keywords: 'install docker compose офлайн bundle install.sh' },
@@ -57,7 +69,7 @@ export const CHAPTERS: Chapter[] = [
 	{ slug: 'admin-ha', file: 'admin/12-ha.md', title: 'Высокая доступность на трёх узлах', group: 'admin', needs: ADMIN, keywords: 'HA Patroni etcd SeaweedFS отказоустойчивость failover' },
 	{ slug: 'admin-security', file: 'admin/13-security.md', title: 'Безопасность и аудит', group: 'admin', needs: ADMIN },
 	{ slug: 'admin-troubleshooting', file: 'admin/14-troubleshooting.md', title: 'Неполадки', group: 'admin', needs: ADMIN, keywords: 'ошибки проблемы troubleshooting' },
-	{ slug: 'admin-checklist', file: 'admin/15-checklist.md', title: 'Чек-лист ввода в эксплуатацию', group: 'admin', needs: ADMIN },
+	{ slug: 'admin-checklist', file: 'admin/15-checklist.md', title: 'Чек-лист ввода в эксплуатацию', group: 'admin', needs: ADMIN, wide: true },
 
 	{ slug: 'errors', file: '15-errors.md', title: 'Коды ошибок', group: 'reference' },
 	{ slug: 'design-system', file: '11-design-system.md', title: 'Дизайн-система rt-ui', group: 'reference' },
