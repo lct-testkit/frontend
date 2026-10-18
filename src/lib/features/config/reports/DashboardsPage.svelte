@@ -46,7 +46,7 @@
 					>
 						<span class="flex items-start justify-between gap-2">
 							<span class="t-body-l-strong min-w-0 wrap-anywhere">{d.name}</span>
-							<ChevronRight class="size-5 flex-none fill-soft" />
+							<span class="t-body-l-strong flex h-[1lh] flex-none items-center"><ChevronRight class="size-5 fill-soft" /></span>
 						</span>
 						<span class="t-desc-l flex flex-wrap items-center gap-x-2 gap-y-1 text-muted">
 							{#if d.is_shared}<StatusChip label="Общий" tone="info" />{/if}
