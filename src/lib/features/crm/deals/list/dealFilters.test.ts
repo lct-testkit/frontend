@@ -39,4 +39,30 @@ describe('фильтры сделок в адресе', () => {
 		expect(activeCount(readFilters(params('type=b2b&priority=high&from=2026-03-01')))).toBe(3);
 		expect(activeCount(readFilters(params('owner=x')), true)).toBe(0);
 	});
+	it('несколько статусов: status=a,b и повторяющийся status читаются массивом, старая ссылка status=a — тоже', () => {
+		expect(readFilters(params('status=a,b')).statuses).toEqual(['a', 'b']);
+		expect(readFilters(params('status=a&status=b')).statuses).toEqual(['a', 'b']);
+		expect(readFilters(params('status=a')).statuses).toEqual(['a']);
+		expect(readFilters(params('')).statuses).toEqual([]);
+	});
+	it('toQuery: статусы — повторяемый status_id, пустые не уходят; вуз и направление — organization_id и direction_id', () => {
+		expect(toQuery(readFilters(params('status=a,b')), null).status_id).toEqual(['a', 'b']);
+		expect(toQuery(readFilters(params('')), null).status_id).toBeUndefined();
+		const q = toQuery(readFilters(params('organization=o1&direction=d1')), null);
+		expect(q.organization_id).toEqual(['o1']);
+		expect(q.direction_id).toEqual(['d1']);
+		expect(toQuery(readFilters(params('')), null).organization_id).toBeUndefined();
+	});
+	it('параметр org (форма «Новая сделка») фильтром по вузу не становится', () => {
+		const f = readFilters(params('new=1&org=x&contact=y'));
+		expect(f.organization).toBe('');
+		expect(toQuery(f, null).organization_id).toBeUndefined();
+		expect(activeCount(f)).toBe(0);
+	});
+	it('activeCount: +1 за вуз, +1 за направление, +1 за любое число статусов', () => {
+		expect(activeCount(readFilters(params('organization=o')))).toBe(1);
+		expect(activeCount(readFilters(params('organization=o&direction=d')))).toBe(2);
+		expect(activeCount(readFilters(params('status=a,b,c')))).toBe(1);
+		expect(activeCount(readFilters(params('organization=o&direction=d&status=a,b')))).toBe(3);
+	});
 });

@@ -2,6 +2,7 @@
 	// The choice of SEVERAL values from a list: `bind:value` — an array of keys; the chosen ones stand as tags. A DS `m` field on a desktop, `l` on a phone.
 	import { Multiselect } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
+	import { inFilterRow } from '../filter-row';
 	import type { PickItem } from './Pick.svelte';
 
 	interface Props {
@@ -14,14 +15,18 @@
 		disabled?: boolean;
 		required?: boolean;
 		search?: boolean;
+		/** теги переносятся на несколько строк (в строке фильтров выключено: поле остаётся одной высоты, теги прокручиваются) */
+		autoHeight?: boolean;
 		emptyText?: string;
 		class?: string;
 		onChange?: (value: string[]) => void;
 	}
 
-	let { value = $bindable([]), items, label, placeholder, error, hint, disabled = false, required = false, search = true, emptyText = 'Ничего не найдено', class: className = '', onChange }: Props = $props();
+	let { value = $bindable([]), items, label, placeholder, error, hint, disabled = false, required = false, search = true, autoHeight = true, emptyText = 'Ничего не найдено', class: className = '', onChange }: Props = $props();
 
 	const bp = useBreakpoint();
+	// в строке фильтров у поля нет подписи сверху: подпись — его подсказка в пустом поле (как у Pick)
+	const bare = inFilterRow();
 	// the DS keeps the search input in the field while a `placeholder` is set — with tags chosen it wraps to a second row, so the placeholder goes with the last tag
 	const menu = $derived(items.map((i) => ({ key: i.key, value: i.value, hint: i.hint, disabled: i.disabled })));
 	const selected = $derived(menu.filter((i) => value.includes(i.key)));
@@ -30,14 +35,16 @@
 <Multiselect
 	class={['w-full', className]}
 	size={bp.isMobile ? 'l' : 'm'}
-	{label}
-	placeholder={value.length ? undefined : placeholder}
+	label={bare ? undefined : label}
+	aria-label={bare ? label : undefined}
+	title={bare ? label : undefined}
+	placeholder={value.length ? undefined : bare ? (label ?? placeholder) : placeholder}
 	{error}
 	hintPrefix={hint}
 	{disabled}
 	{required}
 	{emptyText}
-	autoHeight
+	{autoHeight}
 	placement="bottom"
 	items={menu}
 	value={selected}

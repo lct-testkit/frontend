@@ -4,6 +4,9 @@ import type { components } from '$lib/api';
 type S = components['schemas'];
 
 export type Deal = S['DealOut'];
+/** строка `GET /api/deals`: сделка + продукты с направлениями и название статуса */
+export type DealListItem = S['DealListItemOut'];
+export type DealProductBrief = S['DealProductBriefOut'];
 export type DealCard = S['DealCardOut'];
 export type DealProduct = S['DealProductOut'];
 export type DealCreate = S['DealCreateRequest'];
@@ -33,6 +36,7 @@ export type AvailableTransition = S['AvailableTransitionOut'];
 export type CustomFieldDef = S['CustomFieldDefOut'];
 export type Region = S['RegionOut'];
 export type Product = S['ProductOut'];
+export type Direction = S['DirectionOut'];
 export type LossReason = S['LossReasonOut'];
 
 export type OrgSuggestion = S['OrgSuggestionOut'];
