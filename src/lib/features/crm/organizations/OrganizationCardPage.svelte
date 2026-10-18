@@ -31,6 +31,7 @@
 	import OrgLicenses from './OrgLicenses.svelte';
 	import OrgJourney from './OrgJourney.svelte';
 	import OrgLinked from './OrgLinked.svelte';
+	import { useLeaveGuard } from '$lib/ui/leave-guard.svelte';
 	import OwnerModal from './OwnerModal.svelte';
 	import { canAssignOwner, ownerHistory, type OwnerChangeEntry } from './ownership';
 	import { emptyOrgForm, formFromOrg, toPatchBody, type OrgFormValues } from './orgUtils';
@@ -71,6 +72,8 @@
 		}
 	}
 	const dirty = $derived(Object.keys(toPatchBody(base, values)).length > 0);
+	// a tab of this page keeps the input (the same component), so only a leave to another page asks
+	useLeaveGuard(() => dirty, 'Несохранённые реквизиты организации будут потеряны.');
 	const risk = $derived(org?.registry_status === 'liquidating' || org?.registry_status === 'liquidated');
 
 	function adopt(next: Organization, keepEdits = false) {
