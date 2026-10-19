@@ -29,6 +29,7 @@ export const GROUPS: { key: ChapterGroup; title: string }[] = [
 /** Порядок в массиве — порядок в меню. */
 export const CHAPTERS: Chapter[] = [
 	{ slug: 'start', file: '01-start.md', title: 'Быстрый старт', group: 'start' },
+	{ slug: 'whats-new', file: '24-whats-new.md', title: 'Что нового с выхода в финал', group: 'start', wide: true, keywords: 'версия 0.6.0 0.6.1 журнал изменений релиз обновления Mailpit почта стенда Laravel сайт школы' },
 
 	{ slug: 'deals', file: '02-deals.md', title: 'Сделки', group: 'user' },
 	{ slug: 'funnel', file: '18-funnel.md', title: 'Воронка из 14 шагов', group: 'user', wide: true },
