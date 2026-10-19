@@ -37,9 +37,10 @@
 	});
 
 	const more = $derived(data.partial ? '+' : '');
-	// плитка объединяет «просрочено» и «скоро срок» (`data.attention`) в одно число, а быстрые вкладки списка — только по одной;
-	// ведём на то, что ближе к её собственной подсказке «просрочено: N» (просроченные, если они есть, иначе скоро истекающие)
-	const attentionHref = $derived(data.attention.some((d) => d.sla_state === 'breached') ? '/deals?quick=breached' : '/deals?quick=warning');
+	// плитка считает просроченные (число вкладки «Просрочены» списка, по `total` сервера, а не по первой странице); «скоро срок» — подсказкой под числом.
+	// Ведём на просроченные, а если их нет — на скоро истекающие
+	const attentionHref = $derived(data.breachedTotal > 0 || data.warningTotal === 0 ? '/deals?quick=breached' : '/deals?quick=warning');
+	const attentionTotal = $derived(data.breachedTotal + data.warningTotal);
 	const SLA = { breached: { tone: 'error', label: 'Просрочено' }, warning: { tone: 'warning', label: 'Скоро срок' } } as const;
 	const PRIORITY_DOT: Record<string, string> = { critical: 'bg-danger', high: 'bg-warning', normal: 'bg-soft', low: 'bg-line-strong' };
 	let funnelType = $state<string | null>(null);
@@ -70,16 +71,17 @@
 		{:else}
 			{#if session.can('deal:read')}
 				<div class="grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-md:gap-2">
-					<Tile label="В работе" value={`${formatNumber(data.active.length)}${more}`} href="/deals" loading={data.loading} />
-					<Tile label="Сумма в работе" value={formatMoneyShort(data.activeAmount)} href="/deals" loading={data.loading} />
+					<Tile label="В работе" value={formatNumber(data.activeTotal)} href="/deals" loading={data.loading} reserveHint />
+					<Tile label="Сумма в работе" value={`${formatMoneyShort(data.activeAmount)}${more}`} href="/deals" loading={data.loading} reserveHint />
 					<Tile
-						label="SLA под угрозой"
-						tip="Сделки, у которых срок пребывания в статусе (SLA) почти истёк или уже вышел."
-						value={data.attention.length}
-						tone={data.attention.length ? 'danger' : 'neutral'}
-						hint={data.attention.length ? `просрочено: ${data.attention.filter((d) => d.sla_state === 'breached').length}` : undefined}
+						label="SLA просрочен"
+						tip="Сделки, у которых срок пребывания в статусе (SLA) уже вышел. Под числом — сколько сделок скоро выйдут за срок."
+						value={formatNumber(data.breachedTotal)}
+						tone={data.breachedTotal ? 'danger' : 'neutral'}
+						hint={data.warningTotal ? `скоро срок: ${formatNumber(data.warningTotal)}` : undefined}
 						href={attentionHref}
 						loading={data.loading}
+						reserveHint
 					/>
 					<Tile
 						label="Мои задачи"
@@ -88,6 +90,7 @@
 						hint={data.overdueTasks.length ? `просрочено: ${data.overdueTasks.length}` : undefined}
 						href="/tasks"
 						loading={data.loading}
+						reserveHint
 					/>
 				</div>
 			{/if}
@@ -96,12 +99,12 @@
 				<div class="flex min-w-0 flex-col gap-4">
 					{#if session.can('deal:read')}
 {#if data.loading}
-	<Card title="Требуют внимания" action={mobileRefresh}><Skeleton kind="lines" rows={4} /></Card>
+	<RowList title="Требуют внимания" loading={6} action={mobileRefresh} />
 {:else if data.attention.length === 0}
 	<Card title="Требуют внимания" action={mobileRefresh}><EmptyState title="Просроченных сделок нет" compact /></Card>
 {:else}
-	<RowList title="Требуют внимания" count={data.attention.length}>
-		{#snippet action()}{#if data.attention.length > 6}<a class="t-body-s-strong text-accent" href={attentionHref}>Все</a>{/if}{@render mobileRefresh()}{/snippet}
+	<RowList title="Требуют внимания" count={attentionTotal}>
+		{#snippet action()}{#if attentionTotal > 6}<a class="t-body-s-strong text-accent" href={attentionHref}>Все</a>{/if}{@render mobileRefresh()}{/snippet}
 		{#each data.attention.slice(0, 6) as deal (deal.id)}
 			<ListRow title={deal.title} href="/deals/{deal.id}">
 				{#snippet description()}
@@ -122,7 +125,7 @@
 								</SegmentedControl>
 							{/snippet}
 							{#if data.loading}
-								<Skeleton kind="lines" rows={5} />
+								<Skeleton kind="lines" rows={9} />
 							{:else if funnel.length === 0}
 								<EmptyState title="Активных сделок нет" compact />
 							{:else}
@@ -145,7 +148,7 @@
 				<div class="flex min-w-0 flex-col gap-4">
 					{#if session.can('deal:read')}
 {#if data.loading}
-	<Card title="Мои задачи"><Skeleton kind="lines" rows={3} /></Card>
+	<RowList title="Мои задачи" loading={3} />
 {:else if data.openTasks.length === 0}
 	<Card title="Мои задачи"><EmptyState title="Открытых задач нет" compact /></Card>
 {:else}
@@ -165,7 +168,7 @@
 
 					{#if session.can('signature:sign') && (data.loading || data.pendingSignatures.length > 0)}
 						{#if data.loading}
-							<Card title="На подпись"><Skeleton kind="lines" rows={2} /></Card>
+							<RowList title="На подпись" loading={2} />
 						{:else}
 							<RowList title="На подпись" count={data.pendingSignatures.length}>
 								{#snippet action()}<a class="t-body-s -m-3 p-3" href="/signing">Все</a>{/snippet}
