@@ -136,7 +136,7 @@
 <FormDrawer
 	{open}
 	title="Новое соглашение об ЭДО"
-	width={520}
+	width={560}
 	saveTestId="edm-save"
 	saving={saving}
 	canSave={progress === null}

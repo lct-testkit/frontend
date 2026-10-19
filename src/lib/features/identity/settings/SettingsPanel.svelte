@@ -121,7 +121,7 @@
 <FormDrawer
 	open={editing !== null}
 	title={editing?.key ?? ''}
-	width={520}
+	width={560}
 	saveTestId="setting-save"
 	showSave={!readonly}
 	cancelLabel={readonly ? 'Закрыть' : 'Отмена'}
