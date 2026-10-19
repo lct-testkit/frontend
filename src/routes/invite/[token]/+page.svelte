@@ -7,6 +7,7 @@
 	import { InviteFlow } from '$lib/features/identity/invite.svelte';
 	import InviteCard from '$lib/features/identity/InviteCard.svelte';
 	import PublicShell from '$lib/ui/PublicShell.svelte';
+	import Btn from '$lib/ui/Btn.svelte';
 	import EmptyState from '$lib/ui/EmptyState.svelte';
 	import ErrorState from '$lib/ui/ErrorState.svelte';
 	import Skeleton from '$lib/ui/Skeleton.svelte';
@@ -33,7 +34,9 @@
 			<EmptyState
 				title={flow.loadError?.status === 429 ? 'Слишком много попыток' : 'Ссылка недействительна'}
 				hint={flow.loadError?.status === 429 ? `Повторите через ${flow.retryAfter ?? 60} с.` : 'Она истекла или уже использована. Попросите администратора выдать новую ссылку.'}
-			/>
+			>
+				{#snippet action()}<Btn label="Войти" variant="outline" colorScheme="neutral" onclick={() => goto('/login')} data-testid="invite-to-login" />{/snippet}
+			</EmptyState>
 		</div>
 	{:else}
 		<InviteCard {flow} onContinue={proceed} />

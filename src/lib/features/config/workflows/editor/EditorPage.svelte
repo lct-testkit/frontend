@@ -255,7 +255,7 @@
 		{:else}
 			{@render starter()}
 			<!-- the graph of 14+ steps shrinks to a 4 px thumbnail on a phone (scale 0.26) and promises something it cannot give: the steps are the lists below, the scheme is for a screen from 1024 px -->
-			<p class="t-body-s m-0 text-muted">Схема переходов — на экране шире 1024 px. Здесь шаги и переходы списками: нажмите шаг, чтобы открыть его свойства.</p>
+			<p class="t-body-s m-0 text-muted">Схема переходов видна на широком экране — на компьютере или планшете. Здесь шаги и переходы списками: нажмите шаг, чтобы открыть его свойства.</p>
 			<MobileLists {editor} onOrder={() => (orderOpen = true)} />
 		{/if}
 	{/if}

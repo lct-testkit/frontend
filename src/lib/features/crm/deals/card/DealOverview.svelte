@@ -1,5 +1,5 @@
 <script lang="ts">
-	// Вкладка «Обзор»: поля по смыслу — «Сделка» (что это), «Стоимость и сроки», «Заморозка» / «Отказ» (только в таком статусе), дополнительные поля воронки, продукты (полная замена через PUT /deals/{id}/products — EditProductsDrawer, ранее было только чтение, backend-issues A-7), участники.
+	// Вкладка «Обзор»: поля по смыслу — «Сделка» (что это), «Даты» (сумма и плановая дата закрытия — в шапке), «Заморозка» / «Отказ» (только в таком статусе), дополнительные поля воронки, продукты (полная замена через PUT /deals/{id}/products — EditProductsDrawer, ранее было только чтение, backend-issues A-7), участники.
 	// Приоритет (внутренняя оценка CRM) — чипом в шапке, «Изменена» (служебная дата) — тихой строкой внизу; в фактах сделки их нет.
 	import { onMount } from 'svelte';
 	import { Edit } from '@lct-testkit/rt-ui/icons';
@@ -71,10 +71,9 @@
 			</KeyValueList>
 		</Card>
 
-		<Card title="Стоимость и сроки">
+		<!-- сумма и плановая дата закрытия уже в шапке карточки: второй раз их не повторяем -->
+		<Card title="Даты">
 			<KeyValueList columns={3}>
-				<KeyValue label="Сумма"><Money value={deal.amount} currency={deal.currency} /></KeyValue>
-				<KeyValue label="Плановая дата закрытия" value={deal.expected_close_date ? formatDate(deal.expected_close_date) : null} />
 				<KeyValue label="Создана"><DateText value={deal.created_at} time /></KeyValue>
 				{#if deal.closed_at && !group}<KeyValue label="Закрыта"><DateText value={deal.closed_at} time /></KeyValue>{/if}
 			</KeyValueList>
