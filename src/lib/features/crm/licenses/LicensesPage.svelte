@@ -125,7 +125,7 @@
 {#snippet more()}
 	<Pick label="ПО" items={productItems} clearable search value={filters.product || null} placeholder="Всё" emptyText={catalogEmpty} onChange={(v) => change({ product: v ?? '' })} />
 	<MultiPick label="Статус по передаче" items={statusItems} value={filters.status} placeholder="Любой" search={false} onChange={(v) => change({ status: v })} />
-	<Pick label="Действует в году" items={yearItems} clearable value={filters.year || null} placeholder="Любой" hint="Лицензия не закончилась до 1 января этого года" onChange={(v) => change({ year: v ?? '' })} />
+	<Pick label="Действует в году" items={yearItems} clearable value={filters.year || null} placeholder="Любой" hint="Лицензии, срок которых не истёк к 1 января выбранного года" onChange={(v) => change({ year: v ?? '' })} />
 	<Pick label="Подписание" items={signedItems} clearable value={filters.signed || null} placeholder="Любое" onChange={(v) => change({ signed: (v ?? '') as LicenseFilters['signed'] })} />
 {/snippet}
 

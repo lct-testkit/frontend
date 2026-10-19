@@ -121,7 +121,7 @@
 	{#if passport}
 		<FormSection title="Подпись входящих запросов">
 			<TextField label="Секрет подписи (имя переменной)" bind:value={signingRef} error={errors.signing_secret_ref ?? validateRef(signingRef) ?? undefined} maxlength={REF_MAX} hint="Если пусто, берётся секрет из поля «Секрет: имя переменной» выше" />
-			<Toggle label="Проверять время запроса" bind:checked={requireTs} hint="В запросе должна быть метка времени (заголовок X-Timestamp): запрос без неё отклоняется, а перехваченный нельзя повторить позже пяти минут" />
+			<Toggle label="Проверять время запроса" bind:checked={requireTs} hint="Запрос без заголовка X-Timestamp отклоняется, а перехваченный запрос нельзя повторить через 5 минут" />
 		</FormSection>
 	{/if}
 	<FormSection collapsible title="Дополнительно" open={configText.trim() !== '{}'} summary="Дополнительные настройки">
