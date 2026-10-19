@@ -134,6 +134,20 @@ export interface ReportSpec {
 const ALL_FILTERS = { organizations: true, directions: true, products: true, owners: true } as const;
 const limitDef = (def: number): ReportParamDef => ({ key: 'limit', label: 'Не больше строк', kind: 'int', min: 1, max: 5000, default: def, required: true });
 
+/** Два способа задать срок — последние N месяцев или свой период — стоят рядом, и подпись каждого говорит, что сработает: заданный период главнее числа месяцев. */
+const MONTHS_DEF: ReportParamDef = {
+	key: 'months',
+	label: 'Последних месяцев',
+	kind: 'int',
+	min: 1,
+	max: 36,
+	default: 12,
+	required: true,
+	hint: 'От 1 до 36. Если ниже выбран свой период, берётся он, а не это число',
+	disabledBy: ['date_from', 'date_to'],
+	disabledHint: 'Выбран свой период — число месяцев не используется'
+};
+
 export const REPORT_SPECS: Record<string, ReportSpec> = {
 	deal_funnel: {
 		scope: { period: DEAL_DATES, ...ALL_FILTERS },
@@ -154,7 +168,7 @@ export const REPORT_SPECS: Record<string, ReportSpec> = {
 	},
 	monthly_dynamics: {
 		scope: { period: [], ...ALL_FILTERS },
-		extra: [{ key: 'months', label: 'Месяцев', kind: 'int', min: 1, max: 36, default: 12, required: true, disabledBy: ['date_from', 'date_to'], disabledHint: 'Задан период — число месяцев не используется' }]
+		extra: [MONTHS_DEF]
 	},
 	stuck_deals: { scope: { period: DEAL_DATES, ...ALL_FILTERS }, extra: [], tail: [limitDef(500)], hint: 'Только сделки с нарушенным SLA. Лишние строки по лимиту отсекаются' },
 	deal_register: { scope: { period: DEAL_DATES, ...ALL_FILTERS }, extra: [], tail: [limitDef(1000)], columns: true, tzColumns: ['organization', 'direction', 'product', 'status', 'owner'] },
@@ -213,12 +227,10 @@ export const REPORT_SPECS: Record<string, ReportSpec> = {
 		// месяц считается по дате создания документа внутри отчёта: выбора даты периода нет (как у «Динамики по месяцам»)
 		scope: { period: [], organizations: false, directions: false, products: false, owners: false },
 		extra: [
-			{ key: 'months', label: 'Месяцев', kind: 'int', min: 1, max: 36, default: 12, required: true, disabledBy: ['date_from', 'date_to'], disabledHint: 'Задан период — число месяцев не используется' },
 			{
 				key: 'doc_type',
 				label: 'Тип документа',
 				kind: 'enum',
-				hint: 'Пусто — все типы',
 				options: [
 					{ key: 'kp', value: 'Коммерческое предложение' },
 					{ key: 'act', value: 'Акт' },
@@ -227,7 +239,8 @@ export const REPORT_SPECS: Record<string, ReportSpec> = {
 					{ key: 'erasure_act', value: 'Акт об уничтожении ПДн' },
 					{ key: 'custom', value: 'Прочие документы' }
 				]
-			}
+			},
+			MONTHS_DEF
 		]
 	},
 	lms_users_upload: {

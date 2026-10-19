@@ -41,7 +41,7 @@ describe('реестр шаблонов', () => {
 		expect(keysOf('license_register')).toEqual(['date_field', 'date_from', 'date_to', 'organization_ids', 'vendors', 'transfer_statuses', 'valid_year', 'expired', 'limit']);
 		expect(keysOf('lms_users_upload')).toEqual(['product_id', 'stream_number', 'date_from', 'date_to']);
 		// «Подписание по периодам»: месяцы или период, тип документа; ни вуза, ни направления, ни date_field (сервер их не принимает)
-		expect(keysOf('signing_periods')).toEqual(['months', 'doc_type', 'date_from', 'date_to']);
+		expect(keysOf('signing_periods')).toEqual(['doc_type', 'months', 'date_from', 'date_to']); // число месяцев стоит прямо над периодом: QA2 Н13
 		expect(paramsFor('нет такого')).toEqual([]);
 	});
 
