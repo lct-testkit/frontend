@@ -2,6 +2,7 @@
 // Call it while the component initialises (beforeNavigate and $effect need that).
 import { beforeNavigate, goto } from '$app/navigation';
 import { confirm } from './confirm.svelte';
+import { mayClose } from './form-close';
 
 export function useLeaveGuard(dirty: () => boolean, message: string, title = 'Выйти без сохранения?') {
 	let leaving = false;
@@ -23,5 +24,33 @@ export function useLeaveGuard(dirty: () => boolean, message: string, title = 'В
 		};
 		window.addEventListener('beforeunload', warn);
 		return () => window.removeEventListener('beforeunload', warn);
+	});
+}
+
+let askingBack = false;
+
+/**
+ * A dialog with unsaved input, opened through the address (`?new=1`): the Back button must ask like Esc and ✕ do («Закрыть без сохранения?»), not throw the
+ * filled form away. Back would leave the address without `?new=1`, the dialog would close by itself and the input would be gone.
+ * Call it while the dialog component initialises; `active` = the dialog is open AND has unsaved input. «Продолжить» (or a dialog that is not dirty) leaves
+ * the history as it is; «Закрыть» repeats the same step back.
+ */
+export function useBackGuard(active: () => boolean) {
+	let passing = false;
+	beforeNavigate((nav) => {
+		if (passing || askingBack || nav.type !== 'popstate' || nav.willUnload || !active()) return;
+		nav.cancel();
+		const delta = nav.delta;
+		const to = nav.to?.url;
+		askingBack = true;
+		void mayClose(true).then((yes) => {
+			askingBack = false;
+			if (!yes) return;
+			passing = true;
+			// the same step the person took (several Back clicks = the same distance); the guard lets it through once
+			if (delta) history.go(delta);
+			else if (to) void goto(to);
+			setTimeout(() => (passing = false), 600);
+		});
 	});
 }
