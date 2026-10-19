@@ -2,7 +2,7 @@
 	// Документ на подписи: статус, подписанты, действия по статусу и правам. Один вид для карточки сделки (`compact`)
 	// и для страницы документа.
 	import { goto } from '$app/navigation';
-	import { Download, Pen, Refresh, Send, Stop, ArrowRight } from '@lct-testkit/rt-ui/icons';
+	import { Download, Pen, Refresh, Send, CloseLarge, ArrowRight } from '@lct-testkit/rt-ui/icons';
 	import { session } from '$lib/auth/session.svelte';
 	import { roleLabel } from '../identity/labels';
 	import ReasonModal from '../identity/ReasonModal.svelte';
@@ -193,12 +193,12 @@
 				<Btn label={doc.status === 'blocked_no_agreement' ? 'Отправить повторно' : 'Отправить'} icon={Send} loading={sending} onclick={send} data-testid="doc-send" />
 			{/if}
 			{#if act.canRecreate && onRecreate}
-				<Btn label="Отправить заново" variant="secondary" colorScheme="neutral" onclick={() => onRecreate(doc)} />
+				<Btn label="Отправить заново" variant="outline" colorScheme="neutral" onclick={() => onRecreate(doc)} />
 			{/if}
+			{#if act.canVoid}<Btn label="Аннулировать" icon={CloseLarge} variant="ghost" colorScheme="neutral" danger onclick={() => (voidOpen = true)} data-testid="doc-void" />{/if}
 			<span class="ml-auto flex items-center gap-1">
 				{#if act.canSignedContainer}<IconBtn icon={Download} label="Контейнер подписи (для проверки)" onclick={signedContainer} />{/if}
 				{#if act.canProtocol}<IconBtn icon={Download} label="Протокол подписания" onclick={protocol} />{/if}
-				{#if act.canVoid}<IconBtn icon={Stop} label="Аннулировать" danger onclick={() => (voidOpen = true)} />{/if}
 				{#if compact}<IconBtn icon={ArrowRight} label="Открыть документ" onclick={() => goto(`/signing/${doc.id}`)} />{/if}
 			</span>
 		</footer>

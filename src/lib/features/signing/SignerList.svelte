@@ -2,7 +2,7 @@
 	// Подписанты документа по порядку: кто подписал, кто в работе, кто ждёт очереди. «Вы» выделен.
 	import type { Component } from 'svelte';
 	import { CheckLarge, CloseLarge, Pen, TimeStroke } from '@lct-testkit/rt-ui/icons';
-	import { Term } from '$lib/ui';
+	import { StatusChip } from '$lib/ui';
 	import { REQUEST_STATUS_HINTS } from './hints';
 	import { requestStatusMeta } from './status';
 
@@ -44,7 +44,7 @@
 				{#if signer.is_me}<span class="t-desc-l text-muted"> · вы</span>{/if}
 				{#if signer.hint}<span class="t-desc-m block text-muted">{signer.hint}</span>{/if}
 			</span>
-			<span class="t-desc-l flex-none text-right whitespace-nowrap text-muted"><Term label={meta.label} hint={REQUEST_STATUS_HINTS[signer.status as keyof typeof REQUEST_STATUS_HINTS]} /></span>
+			<span class="flex-none"><StatusChip label={meta.label} tone={meta.tone} hint={REQUEST_STATUS_HINTS[signer.status as keyof typeof REQUEST_STATUS_HINTS]} /></span>
 		</li>
 	{/each}
 </ol>
