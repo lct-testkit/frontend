@@ -263,6 +263,10 @@ export function describeTemplate(description: string): string {
 		.replace(/без права\s+`?contact:reveal`?/giu, 'без права просмотра персональных данных')
 		.replace(/источник\s+lms/giu, 'источник LMS')
 		.replace(/\s*\(signature_documents\)/giu, '')
+		.replace(/индекс как среднее доле каждого показателя/giu, 'индекс — среднее из долей каждого показателя')
+		.replace(/Пусто и без пометки «не реализована», если источник LMS не присылал данных\.?/giu, 'Пусто, если LMS не присылала данные.')
+		.replace(/—\s*листинг, не агрегат/giu, '— список сделок, а не сводка')
+		.replace(/содержит ПДн/giu, 'содержит персональные данные')
 		.replace(/\s{2,}/g, ' ')
 		.trim();
 }
