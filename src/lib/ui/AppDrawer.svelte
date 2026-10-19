@@ -9,6 +9,7 @@
 	import BtnSizeScope from './BtnSizeScope.svelte';
 	import { confirmState } from './confirm.svelte';
 	import { mayClose } from './form-close';
+	import { useBackGuard } from './leave-guard.svelte';
 	import IconBtn from './IconBtn.svelte';
 	import { dialogA11y } from './dialog-a11y';
 
@@ -32,6 +33,7 @@
 	let { open, title = '', width = 520, position = 'right', dirty = false, onClose, children, footer, header, label }: Props = $props();
 
 	const bp = useBreakpoint();
+	useBackGuard(() => open && dirty);
 	const dimension = $derived(bp.isMobile ? Math.max(bp.width, 320) : Math.min(width, Math.max(bp.width - 64, 360)));
 
 	// a confirm (e.g. "Закрыть без сохранения?") stacked on top of this panel must be the only thing Esc/overlay-click reaches: this panel and the

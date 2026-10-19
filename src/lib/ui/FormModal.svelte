@@ -5,6 +5,7 @@
 	import FormFooter from './FormFooter.svelte';
 	import { mayClose } from './form-close';
 	import { watchDirty } from './form-dirty';
+	import { useBackGuard } from './leave-guard.svelte';
 
 	interface Props {
 		open: boolean;
@@ -43,6 +44,9 @@
 
 	let autoDirty = $state(false);
 	const isDirty = $derived(dirty ?? autoDirty);
+
+	// «Назад» браузера у диалога с адресом (`?new=1`) спрашивает так же, как Esc и крестик
+	useBackGuard(() => open && isDirty && !saving);
 
 	async function close() {
 		if (saving) return;

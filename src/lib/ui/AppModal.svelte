@@ -10,6 +10,7 @@
 	import BtnSizeScope from './BtnSizeScope.svelte';
 	import { confirmState } from './confirm.svelte';
 	import { mayClose } from './form-close';
+	import { useBackGuard } from './leave-guard.svelte';
 	import IconBtn from './IconBtn.svelte';
 	import { dialogA11y } from './dialog-a11y';
 
@@ -34,6 +35,7 @@
 	let { open, title = '', size = 'm', centered = false, dismissible = true, dirty = false, onClose, children, footer, header, label }: Props = $props();
 
 	const bp = useBreakpoint();
+	useBackGuard(() => open && dirty);
 	const WIDTH = { s: 420, m: 560, l: 760, xl: 980 } as const;
 	const margin = $derived(bp.isMobile ? 8 : 40);
 	// see AppDrawer.svelte: a confirm stacked on top shares this z-index, so letting both react to the same Esc/overlay-click reopens an
