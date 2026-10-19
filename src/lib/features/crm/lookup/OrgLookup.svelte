@@ -6,7 +6,7 @@
 	import { Search } from '@lct-testkit/rt-ui/icons';
 	import { Skeleton, toast } from '$lib/ui';
 	import { REGISTRY_STATUS_LABELS } from '../shared/labels';
-	import { OrgLookupState, type LookupHit, type OrgLookupEntry } from './lookupState.svelte';
+	import { MAX_QUERY, OrgLookupState, type LookupHit, type OrgLookupEntry } from './lookupState.svelte';
 
 	interface Props {
 		onPick?: (entry: OrgLookupEntry) => void;
@@ -57,6 +57,7 @@
 		placeholder="Например, 1655012340 или «политехнический»"
 		value={lookup.query}
 		inputmode="search"
+		maxlength={MAX_QUERY}
 		error={lookup.message?.tone === 'error' ? lookup.message.text : undefined}
 		hintPrefix={lookup.message?.tone === 'info' ? lookup.message.text : undefined}
 		onChange={(e: Event) => lookup.input((e.target as HTMLInputElement).value)}
