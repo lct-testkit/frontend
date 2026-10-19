@@ -10,7 +10,7 @@
 	];
 	// Карточка организации: реквизиты (с пометками «из ЕГРЮЛ» / «изменено вручную»), баннер расхождений с реестром, риск ликвидации,
 	// вкладки «Реквизиты / Контакты / Сделки / Файлы». Для ИП телефон и e-mail маскированы — «Показать» пишет доступ в журнал.
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Refresh } from '@lct-testkit/rt-ui/icons';
@@ -37,7 +37,7 @@
 	import { useLeaveGuard } from '$lib/ui/leave-guard.svelte';
 	import OwnerModal from './OwnerModal.svelte';
 	import { canAssignOwner, ownerHistory, type OwnerChangeEntry } from './ownership';
-	import { emptyOrgForm, formFromOrg, toPatchBody, type OrgFormValues } from './orgUtils';
+	import { dropEditedErrors, emptyOrgForm, formFromOrg, toPatchBody, validateOrgFields, type OrgFormValues } from './orgUtils';
 
 	let { id }: { id: string } = $props();
 
@@ -75,6 +75,15 @@
 		}
 	}
 	const dirty = $derived(Object.keys(toPatchBody(base, values)).length > 0);
+	// the error of a field goes away as soon as the field is edited
+	let seen = emptyOrgForm();
+	$effect(() => {
+		const now = { ...values };
+		untrack(() => {
+			if (Object.keys(errors).length) errors = dropEditedErrors(errors, seen, now);
+			seen = now;
+		});
+	});
 	// a tab of this page keeps the input (the same component), so only a leave to another page asks
 	useLeaveGuard(() => dirty, 'Несохранённые реквизиты организации будут потеряны.');
 	const risk = $derived(org?.registry_status === 'liquidating' || org?.registry_status === 'liquidated');
@@ -106,6 +115,12 @@
 
 	async function save() {
 		if (!org || saving || !dirty) return;
+		const mistakes = validateOrgFields(values, base);
+		if (Object.keys(mistakes).length) {
+			errors = mistakes;
+			banner = null;
+			return;
+		}
 		saving = true;
 		banner = null;
 		errors = {};

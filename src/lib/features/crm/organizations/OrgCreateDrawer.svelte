@@ -10,11 +10,11 @@
 	import { Btn, FormDrawer, Notice, toast } from '$lib/ui';
 	import { debounce } from '$lib/utils/debounce';
 	import OrgLookup from '../lookup/OrgLookup.svelte';
-	import type { OrgLookupEntry } from '../lookup/lookupState.svelte';
+	import { OrgLookupState, type OrgLookupEntry } from '../lookup/lookupState.svelte';
 	import { normalizeRequisite, validateInn, validateKpp, validateOgrnAny } from '../requisites/validators';
 	import type { DuplicateCandidate, Organization } from '../types';
 	import OrgForm from './OrgForm.svelte';
-	import { emptyOrgForm, formFromDetails, guessOrgType, toCreateBody, type OrgFormValues } from './orgUtils';
+	import { dropEditedErrors, emptyOrgForm, formFromDetails, guessOrgType, toCreateBody, validateOrgFields, type OrgFormValues } from './orgUtils';
 
 	interface Props {
 		open: boolean;
@@ -36,6 +36,7 @@
 	/** гонка: другой пользователь успел создать организацию с этим ИНН (409 CRM-1302) */
 	let conflict = $state<{ id: string; deleted: boolean } | null>(null);
 	let lookupKey = $state(0);
+	const lookup = new OrgLookupState();
 	let key = uuid();
 	let keySig = '';
 
@@ -50,8 +51,19 @@
 			duplicates = [];
 			conflict = null;
 			lookupKey += 1;
+			lookup.clear();
 			key = uuid();
 			keySig = '';
+		});
+	});
+
+	// an error goes away as soon as its field is edited («Введите название или ИНН» above a filled name)
+	let seen = emptyOrgForm();
+	$effect(() => {
+		const now = { ...values };
+		untrack(() => {
+			if (Object.keys(errors).length) errors = dropEditedErrors(errors, seen, now);
+			seen = now;
 		});
 	});
 
@@ -90,6 +102,19 @@
 		step = 'form';
 	}
 
+	/**
+	 * «Заполнить вручную»: набранное в поиске переезжает в форму (цифры — в ИНН, слова — в название), а само поле поиска и его подсказка
+	 * («Неверная контрольная сумма ИНН») очищаются: ошибка поиска не должна висеть над формой, где ИНН проверяется своими правилами.
+	 */
+	function fillManually() {
+		const text = lookup.query.trim();
+		const digits = normalizeRequisite(text);
+		if (/^\d{10}$|^\d{12}$/.test(digits)) values.inn = digits;
+		else if (text && !/^\d+$/.test(digits)) values.name = text;
+		lookup.clear();
+		step = 'form';
+	}
+
 	function validate(): boolean {
 		const next: Record<string, string> = {};
 		if (!values.name.trim() && !values.inn.trim()) next.name = 'Введите название или ИНН';
@@ -105,6 +130,7 @@
 			const r = validateOgrnAny(values.ogrn);
 			if (!r.ok) next.ogrn = r.reason ?? 'Неверный ОГРН';
 		}
+		Object.assign(next, validateOrgFields(values));
 		errors = next;
 		return Object.keys(next).length === 0;
 	}
@@ -163,11 +189,11 @@
 
 <FormDrawer {open} title="Новая организация" width={560} saveLabel="Создать" saveTestId="org-create-submit" showSave={step === 'form'} canSave={!blocked} saving={busy} {dirty} formError={failure} onSave={submit} {onClose}>
 	{#key lookupKey}
-		<OrgLookup autofocus={!prefillInn} onPick={picked} onOpenExisting={open_} />
+		<OrgLookup {lookup} autofocus={!prefillInn} onPick={picked} onOpenExisting={open_} />
 	{/key}
 
 	{#if step === 'lookup'}
-		<div><Btn label="Заполнить вручную" variant="ghost" onclick={() => (step = 'form')} /></div>
+		<div><Btn label="Заполнить вручную" variant="ghost" onclick={fillManually} /></div>
 	{:else}
 		{#if fromRegistry}<p class="t-desc-l m-0 text-muted">Данные подставлены из реестра ЕГРЮЛ — проверьте и создайте.</p>{/if}
 
