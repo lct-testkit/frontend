@@ -44,8 +44,7 @@
 {#snippet nameCell(w: Workflow)}
 	<TableCell>
 		<span class="flex min-w-0 flex-col">
-			<span class="t-body-m-strong wrap-anywhere">{w.name}</span>
-			<span class="t-desc-m font-mono text-soft">{w.code}</span>
+			<span class="t-body-m-strong wrap-anywhere" title={w.code}>{w.name}</span>
 		</span>
 	</TableCell>
 {/snippet}
@@ -69,7 +68,7 @@
 			<StatusChip label={stateLabel(w.state)} tone={stateTone(w.state)} hint={workflowStateHint(w.state)} />
 			{#if w.is_default}<StatusChip label="По умолчанию" tone="accent" />{/if}
 		</div>
-		<span class="t-desc-l text-muted"><span class="font-mono">{w.code}</span>{w.published_at ? ' · ' : ''}{#if w.published_at}<DateText value={w.published_at} />{/if}</span>
+		{#if w.published_at}<span class="t-desc-l text-muted">Опубликована <DateText value={w.published_at} /></span>{/if}
 	</div>
 {/snippet}
 

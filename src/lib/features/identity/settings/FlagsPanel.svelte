@@ -9,6 +9,9 @@
 
 	type Flag = components['schemas']['FeatureFlagOut'];
 
+	/** Короткие названия известных флагов; у новых (заведённых администратором) крупным остаётся код, ниже — описание. */
+	const FLAG_TITLES: Record<string, string> = { external_org_lookup: 'Внешний поиск организаций' };
+
 	// «Новый флаг» нажимают в шапке страницы, поэтому окно создания открывает родитель
 	let { createOpen = $bindable(false) }: { createOpen?: boolean } = $props();
 
@@ -74,8 +77,14 @@
 		{#each flags as flag (flag.code)}
 			<li class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-4 py-3 last:border-b-0">
 				<div class="flex min-w-48 flex-1 flex-col">
-					<span class="t-body-m-strong font-mono">{flag.code}</span>
-					{#if flag.description}<span class="t-desc-l text-muted">{flag.description}</span>{/if}
+					{#if FLAG_TITLES[flag.code]}
+						<span class="t-body-m-strong">{FLAG_TITLES[flag.code]}</span>
+						{#if flag.description}<span class="t-desc-l text-muted">{flag.description}</span>{/if}
+						<span class="t-desc-m font-mono text-soft">{flag.code}</span>
+					{:else}
+						<span class="t-body-m-strong font-mono">{flag.code}</span>
+						{#if flag.description}<span class="t-desc-l text-muted">{flag.description}</span>{/if}
+					{/if}
 				</div>
 				<span class="t-desc-l flex items-center gap-2 text-muted" title="Доля пользователей, для которых флаг включён">
 					<InputNumberStepper size={bp.isMobile ? 'l' : 'm'} min={0} max={100} step={10} value={flag.rollout} disabled={!flag.is_enabled || busy === flag.code ? 'all' : undefined} aria-label="Доля, %" onChange={(v: number) => rollout(flag, v)} />
