@@ -80,6 +80,12 @@
 		<ErrorState error={new ApiError({ status: 403, detail: 'Импорт доступен руководителю и администратору.' })} />
 	{:else}
 		<FilterBar search={readQuery('q')} placeholder="Что загружали, статус или кто" onSearch={(v) => setQuery({ q: v || null })} primary={{ label: 'Новый импорт', onclick: () => goto('/imports/new') }} />
+		<!-- «38 · 9 / 29 / 0» без пояснения читается как угодно: расшифровка цветами самих чисел -->
+		{#if rows.some((j) => j.total_rows && !isDraftJob(j))}
+			<p class="t-desc-l m-0 text-muted" data-testid="rows-legend">
+				Строки: всего · <span class="text-success">без замечаний</span> / <span class="text-warning">с предупреждениями</span> / <span class="text-danger">с ошибками</span>
+			</p>
+		{/if}
 		<DataTable
 			{rows}
 			{columns}
