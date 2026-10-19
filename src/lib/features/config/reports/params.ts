@@ -132,7 +132,7 @@ export interface ReportSpec {
 }
 
 const ALL_FILTERS = { organizations: true, directions: true, products: true, owners: true } as const;
-const limitDef = (def: number): ReportParamDef => ({ key: 'limit', label: 'Не больше строк', kind: 'int', min: 1, max: 5000, default: def, required: true });
+const limitDef = (def: number): ReportParamDef => ({ key: 'limit', label: 'Максимум строк в отчёте', hint: 'Если записей больше, в файл попадут первые — от 1 до 5000', kind: 'int', min: 1, max: 5000, default: def, required: true });
 
 /** Два способа задать срок — последние N месяцев или свой период — стоят рядом, и подпись каждого говорит, что сработает: заданный период главнее числа месяцев. */
 const MONTHS_DEF: ReportParamDef = {
@@ -213,7 +213,7 @@ export const REPORT_SPECS: Record<string, ReportSpec> = {
 		extra: [],
 		tail: [
 			{ key: 'vendors', label: GLOSSARY.vendor.plural, kind: 'text_list', hint: 'Названия через запятую. Пусто — все' },
-			{ key: 'transfer_statuses', label: 'Статус по передаче', kind: 'enum_multi', hint: 'Пусто — любой', options: Object.entries(TRANSFER_STATUS_LABELS).map(([key, value]) => ({ key, value })) },
+			{ key: 'transfer_statuses', label: 'Статус по передаче', kind: 'enum_multi', hint: 'Отмеченные статусы складываются: подойдёт лицензия с любым из них. Пусто — любой статус', options: Object.entries(TRANSFER_STATUS_LABELS).map(([key, value]) => ({ key, value })) },
 			{ key: 'valid_year', label: 'Год окончания', kind: 'int', min: 2000, max: 2100, hint: 'Пусто — любой' },
 			{ key: 'expired', label: 'Только с истёкшим сроком', kind: 'bool' },
 			limitDef(1000)

@@ -129,6 +129,8 @@
 							{:else if funnel.length === 0}
 								<EmptyState title="Активных сделок нет" compact />
 							{:else}
+								{@const flow = data.funnelFlow(activeType)}
+								{#if flow}<p class="t-desc-l m-0 mb-3 text-muted">{flow.name}</p>{/if}
 								<ul class="m-0 flex list-none flex-col gap-2 p-0">
 									{#each funnel as row (row.status.id)}
 										<li class="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)_2rem] items-center gap-3 max-md:grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)_1.5rem] max-md:gap-2">

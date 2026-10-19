@@ -33,10 +33,18 @@
 
 	// пресет виджета важнее дат: даты считаются при запуске
 	const shown = $derived(widget && period ? (periodFor(period, today) ?? { date_from: undefined, date_to: undefined }) : { date_from: values.date_from as string | undefined, date_to: values.date_to as string | undefined });
-	const activePreset = $derived(widget && period ? period : presetOf(shown.date_from, shown.date_to, today));
+	/** нажатый пресет: «Квартал» и «Этот месяц» в первый месяц квартала дают одни и те же даты — подсвечиваем то, что нажали */
+	let picked = $state<PeriodPreset | null>(null);
+	const pickedStill = $derived.by(() => {
+		if (!picked) return false;
+		const p = periodFor(picked, today);
+		return p ? p.date_from === shown.date_from && p.date_to === shown.date_to : !shown.date_from && !shown.date_to;
+	});
+	const activePreset = $derived(widget && period ? period : pickedStill ? picked : presetOf(shown.date_from, shown.date_to, today));
 
 	function applyPreset(preset: PeriodPreset) {
 		const range = periodFor(preset, today);
+		picked = preset;
 		set({ date_from: range?.date_from, date_to: range?.date_to });
 		if (widget) period = preset === 'all' ? undefined : preset;
 	}

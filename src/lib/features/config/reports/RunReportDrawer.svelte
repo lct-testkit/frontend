@@ -9,7 +9,7 @@
 	import { JSON as JsonIcon } from '@lct-testkit/rt-ui/icons';
 	import { ApiError } from '$lib/api';
 	import { Btn, FormDrawer, Notice, toast } from '$lib/ui';
-	import { count } from '$lib/utils/format';
+	import { count, formatDate } from '$lib/utils/format';
 	import type { ReportTemplate } from '../types';
 	import ParamsForm from './ParamsForm.svelte';
 	import { WorkflowList } from './workflows.svelte';
@@ -78,6 +78,23 @@
 		remember(columnsKey(template.code), Array.isArray(body.columns) ? body.columns : undefined);
 		remember(formatKey(template.code), format);
 		void run.run(template.code, format, body, template.name);
+	}
+
+	/** пустой отчёт: какие условия его сузили — период и выбранные фильтры, чтобы было понятно, что расширить */
+	const emptyText = $derived.by(() => {
+		const parts: string[] = [];
+		const from = values.date_from as string | undefined;
+		const to = values.date_to as string | undefined;
+		if (from || to) parts.push(`период ${from ? formatDate(from) : '…'} – ${to ? formatDate(to) : '…'}`);
+		const picked = defs.filter((d) => d.key !== 'date_from' && d.key !== 'date_to' && d.key !== 'columns' && d.key !== 'limit' && d.key !== 'date_field' && !d.default && hasValue(values[d.key]));
+		for (const d of picked) parts.push((d.label ?? d.key).toLowerCase());
+		return parts.length ? `Под условия не подошла ни одна запись. Отчёт сузили: ${parts.join(', ')}. Расширьте период или уберите фильтры.` : 'Под условия не подошла ни одна запись: данных для этого отчёта пока нет.';
+	});
+	const hasValue = (v: unknown) => (Array.isArray(v) ? v.length > 0 : v !== undefined && v !== null && v !== '' && v !== false);
+	function rerunAllTime() {
+		values = { ...values, date_from: undefined, date_to: undefined };
+		run.reset();
+		start();
 	}
 
 	/** Закрытие панели: идущий отчёт сворачивается (о готовности скажет тост), а не теряется. */
@@ -157,7 +174,9 @@
 				<p class="t-body-l-strong">Отчёт готов</p>
 				{#if run.job?.row_count != null}<p class="t-desc-l text-muted">{count(run.job.row_count, ['строка', 'строки', 'строк'])}</p>{/if}
 				<div class="flex w-full flex-col gap-2 text-left">
-					{#if run.job?.row_count === 0}<Notice tone="info">В отчёте нет строк. Проверьте период и фильтры</Notice>{/if}
+					{#if run.job?.row_count === 0}
+						<Notice tone="info" actions={values.date_from || values.date_to ? [{ label: 'Запустить за всё время', onclick: rerunAllTime }] : []}>{emptyText}</Notice>
+					{/if}
 					<ReportNotes {notes} />
 				</div>
 			</div>
