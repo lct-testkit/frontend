@@ -167,10 +167,10 @@
 				<section class="rounded-lg border border-line bg-surface p-4 max-md:p-3" aria-label="Безопасность">
 					<h2 class="t-body-m-strong m-0 mb-3">Безопасность</h2>
 					<KeyValueList layout="inline">
-						<KeyValue label="Последний вход">{#snippet children()}<DateText value={u.last_login_at} time />{/snippet}</KeyValue>
-						{#if u.invited_at}<KeyValue label="Приглашён">{#snippet children()}<DateText value={u.invited_at} time />{/snippet}</KeyValue>{/if}
-						{#if u.activated_at}<KeyValue label="Активирован">{#snippet children()}<DateText value={u.activated_at} time />{/snippet}</KeyValue>{/if}
-						{#if u.blocked_at}<KeyValue label="Заблокирован">{#snippet children()}<DateText value={u.blocked_at} time />{u.status_reason ? `: ${u.status_reason}` : ''}{/snippet}</KeyValue>{/if}
+						<KeyValue label="Последний вход"><DateText value={u.last_login_at} time /></KeyValue>
+						{#if u.invited_at}<KeyValue label="Приглашён"><DateText value={u.invited_at} time /></KeyValue>{/if}
+						{#if u.activated_at}<KeyValue label="Активирован"><DateText value={u.activated_at} time /></KeyValue>{/if}
+						{#if u.blocked_at}<KeyValue label="Заблокирован"><DateText value={u.blocked_at} time />{u.status_reason ? `: ${u.status_reason}` : ''}</KeyValue>{/if}
 						<KeyValue label="Смена пароля" value={u.must_change_password ? 'Требуется' : 'Не требуется'} />
 						<KeyValue label="Согласие на ПДн" value={u.consent_version ? `версия ${u.consent_version}` : 'не принято'} />
 					</KeyValueList>
