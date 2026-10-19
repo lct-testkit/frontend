@@ -183,7 +183,7 @@
 
 	<FormRow>
 		<NumberField label="Сумма, ₽" value={amount} error={errors.amount} onChange={(v) => (amount = v)} />
-		<DateField label="Плановая дата закрытия" value={closeDate} onChange={(v) => (closeDate = v)} />
+		<DateField label="Плановая дата закрытия" warnPast="Дата уже прошла" value={closeDate} onChange={(v) => (closeDate = v)} />
 	</FormRow>
 
 	{#if canPickOwner}<UserPicker label="Ответственный" roles={['KAM', 'HEAD']} value={owner} onChange={(id) => (owner = id)} hint="По умолчанию — вы" />{/if}

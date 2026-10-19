@@ -49,7 +49,7 @@
 	});
 
 	// svelte-ignore state_referenced_locally
-	let base = read(card.deal!);
+	let base = $state.raw<Values>(read(card.deal!));
 	// svelte-ignore state_referenced_locally
 	let v = $state<Values>(read(card.deal!));
 	let errors = $state<Record<string, string>>({});
@@ -182,7 +182,7 @@
 	<FormSection title="Стоимость и сроки" class="mt-2">
 		<FormRow>
 			<NumberField label="Сумма, ₽" value={v.amount} error={errors.amount} onChange={(x) => (v.amount = x)} />
-			<DateField label="Плановая дата закрытия" value={v.close} error={errors.expected_close_date} onChange={(x) => (v.close = x)} />
+			<DateField label="Плановая дата закрытия" warnPast={v.close !== base.close ? 'Дата уже прошла' : undefined} value={v.close} error={errors.expected_close_date} onChange={(x) => (v.close = x)} />
 		</FormRow>
 	</FormSection>
 
