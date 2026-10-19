@@ -218,7 +218,7 @@
 		<Skeleton kind="tile" rows={1} height={220} />
 	{:else}
 		<Notice tone="info">
-			Правила говорят, какой ключ запроса сайта куда ложится в CRM. Пока правил нет, работают встроенные названия: английские и русские, как в выгрузке «Данные оплат». Для сайта обязательны email или телефон.
+			Правила говорят, какое поле запроса с сайта в какое поле CRM попадает. Пока правил нет, работают встроенные названия: английские и русские, как в выгрузке «Данные оплат». Для сайта обязательны email или телефон.
 			{#if saved}<span class="mt-1 block"><StatusChip label={`Версия ${saved.version}`} tone="neutral" />{#if saved.approved_at}<span class="t-desc-l ml-2 text-muted">утвердил <UserName id={saved.approved_by} fallback="администратор" />, <DateText value={saved.approved_at} time /></span>{/if}</span>{/if}
 		</Notice>
 
@@ -241,7 +241,7 @@
 		</FormSection>
 
 		<FormSection title="Пример запроса">
-			<AreaField label="Тело запроса (JSON)" bind:value={sample} rows={6} maxRows={14} error={parsed.state === 'error' ? parsed.message : undefined} hint="Не больше 20 КБ. Ничего не сохраняется и не создаётся" />
+			<AreaField label="Пример запроса с сайта (JSON)" bind:value={sample} rows={6} maxRows={14} error={parsed.state === 'error' ? parsed.message : undefined} hint="Не больше 20 КБ. Ничего не сохраняется и не создаётся" />
 			<div class="flex flex-wrap gap-2">
 				<Btn label="Вставить типовой" variant="outline" colorScheme="neutral" onclick={() => (sample = JSON.stringify(TYPICAL_SAMPLE, null, 2))} />
 				<Btn label="Взять с сайта" variant="outline" colorScheme="neutral" onclick={fromRemote} />

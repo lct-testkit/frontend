@@ -108,9 +108,10 @@
 
 		<Card title="Тихие часы">
 			<div class="grid max-w-xl grid-cols-2 gap-3 max-md:grid-cols-1">
-				<Pick label="Не беспокоить с" items={hours} clearable value={from} placeholder="Всегда" onChange={(v) => (from = v)} />
-				<Pick label="до" items={hours} clearable value={to} placeholder="Всегда" onChange={(v) => (to = v)} />
+				<Pick label="Не беспокоить с" items={hours} clearable value={from} placeholder="Не задано" onChange={(v) => (from = v)} />
+				<Pick label="до" items={hours} clearable value={to} placeholder="Не задано" onChange={(v) => (to = v)} />
 			</div>
+			<p class="t-desc-l m-0 mt-3 text-muted">Тихие часы действуют, когда заданы оба времени. Письма и сообщения во внешние каналы в это время откладываются и уходят после его окончания; уведомления в приложении приходят всегда.</p>
 		</Card>
 
 		{#each groups as g (g.group)}
