@@ -24,7 +24,7 @@
 
 {#each shown as def (def.id)}
 	{#if def.field_type === 'number'}
-		<NumberField label={def.label} required={def.is_required} value={typeof values[def.code] === 'number' ? (values[def.code] as number) : null} error={errors[def.code]} onChange={(v) => set(def.code, v)} />
+		<NumberField allowNegative label={def.label} required={def.is_required} value={typeof values[def.code] === 'number' ? (values[def.code] as number) : null} error={errors[def.code]} onChange={(v) => set(def.code, v)} />
 	{:else if def.field_type === 'date'}
 		<DateField label={def.label} required={def.is_required} value={(values[def.code] as string | null) ?? null} error={errors[def.code]} onChange={(v) => set(def.code, v)} />
 	{:else if def.field_type === 'bool'}

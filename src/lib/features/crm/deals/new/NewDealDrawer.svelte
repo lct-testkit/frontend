@@ -182,7 +182,7 @@
 	{/if}
 
 	<FormRow>
-		<NumberField label="Сумма, ₽" value={amount} error={errors.amount} onChange={(v) => (amount = v)} />
+		<NumberField label="Сумма, ₽" min={0} maxInt={12} decimals={2} value={amount} error={errors.amount} onChange={(v) => (amount = v)} />
 		<DateField label="Плановая дата закрытия" warnPast="Дата уже прошла" value={closeDate} onChange={(v) => (closeDate = v)} />
 	</FormRow>
 
@@ -194,7 +194,7 @@
 	<FormSection collapsible>
 		<FormRow>
 			<Pick label="Приоритет" items={priorityItems} value={priority} onChange={(v) => v && (priority = v)} />
-			{#if type === 'b2b'}<NumberField integer label="Обучающихся" value={students} onChange={(v) => (students = v)} />{/if}
+			{#if type === 'b2b'}<NumberField integer min={0} label="Обучающихся" value={students} onChange={(v) => (students = v)} />{/if}
 		</FormRow>
 		<MultiPick label="Продукты" placeholder="Не выбраны" items={productItems} bind:value={picked} emptyText="Продуктов пока нет" />
 	</FormSection>

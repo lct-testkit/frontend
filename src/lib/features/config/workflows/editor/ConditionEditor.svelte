@@ -81,7 +81,7 @@
 	{:else if field?.options}
 		<Pick items={field.options.map((o) => ({ key: o.key, value: o.value }))} value={typeof leaf.value === 'string' ? leaf.value : null} {disabled} placeholder="Значение" onChange={(v) => setLeaf(path, { ...leaf, value: v ?? '' })} />
 	{:else if field?.kind === 'money' || field?.kind === 'number'}
-		<NumberField value={typeof leaf.value === 'number' ? leaf.value : leaf.value === '' || leaf.value === undefined ? null : Number(leaf.value)} {disabled} placeholder="Число" onChange={(n) => setLeaf(path, { ...leaf, value: n ?? '' })} />
+		<NumberField allowNegative value={typeof leaf.value === 'number' ? leaf.value : leaf.value === '' || leaf.value === undefined ? null : Number(leaf.value)} {disabled} placeholder="Число" onChange={(n) => setLeaf(path, { ...leaf, value: n ?? '' })} />
 	{:else if field?.kind === 'date' || DATE_OPERATORS.has(leaf.op)}
 		<DateField value={typeof leaf.value === 'string' && /^\d{4}-/.test(leaf.value) ? leaf.value : null} {disabled} onChange={(v) => setLeaf(path, { ...leaf, value: v ?? '' })} />
 	{:else}

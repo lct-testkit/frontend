@@ -122,9 +122,9 @@
 				</div>
 				<div class="grid grid-cols-4 gap-2 max-md:grid-cols-2">
 					<NumberField label="Количество" integer min={1} value={row.quantity} onChange={(v) => update(i, { quantity: v ?? 1 })} />
-					<NumberField label="Цена, ₽" value={row.price} onChange={(v) => update(i, { price: v })} />
-					<NumberField label="Скидка, %" min={0} max={100} value={row.discount_pct} onChange={(v) => update(i, { discount_pct: v ?? 0 })} />
-					<NumberField label="Поток" integer value={row.stream_number} onChange={(v) => update(i, { stream_number: v })} />
+					<NumberField label="Цена, ₽" min={0} maxInt={12} decimals={2} value={row.price} onChange={(v) => update(i, { price: v })} />
+					<NumberField label="Скидка, %" min={0} max={100} decimals={2} value={row.discount_pct} onChange={(v) => update(i, { discount_pct: v ?? 0 })} />
+					<NumberField label="Поток" integer min={0} value={row.stream_number} onChange={(v) => update(i, { stream_number: v })} />
 				</div>
 			</div>
 		{/each}
