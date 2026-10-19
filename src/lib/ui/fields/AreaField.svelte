@@ -3,6 +3,7 @@
 	// Ctrl/⌘+Enter → `onSubmit`. `ref` is the <textarea> itself (to insert text at the cursor).
 	import { TextArea } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
+	import { useFreshError } from './fresh-error.svelte';
 
 	interface Props {
 		value?: string;
@@ -40,6 +41,9 @@
 		onSubmit
 	}: Props = $props();
 
+	// the message of a mistake goes away when the field is edited (see fresh-error)
+	const fresh = useFreshError(() => error, () => value);
+
 	const bp = useBreakpoint();
 </script>
 
@@ -48,7 +52,7 @@
 	size={bp.isMobile ? 'l' : 'm'}
 	{label}
 	{placeholder}
-	{error}
+	error={fresh.error}
 	hintPrefix={hint}
 	{value}
 	{disabled}

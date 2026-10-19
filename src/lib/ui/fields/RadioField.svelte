@@ -1,6 +1,7 @@
 <script lang="ts">
 	// A group of radio buttons with a caption above it and an optional hint under each option: `bind:value` or `value` + `onChange`.
 	import { RadioButton, RadioGroup } from '@lct-testkit/rt-ui';
+	import { useFreshError } from './fresh-error.svelte';
 
 	export interface RadioItem {
 		key: string;
@@ -25,6 +26,9 @@
 	}
 
 	let { value = $bindable(null), items, label, required = false, error, disabled = false, columns = 1, class: className = '', onChange }: Props = $props();
+
+	// the message of a mistake goes away when the field is edited (see fresh-error)
+	const fresh = useFreshError(() => error, () => value);
 </script>
 
 <div class={['flex min-w-0 flex-col gap-2', className]}>
@@ -46,5 +50,5 @@
 			</div>
 		{/each}
 	</RadioGroup>
-	{#if error}<p class="t-desc-m text-danger">{error}</p>{/if}
+	{#if fresh.error}<p class="t-desc-m text-danger">{fresh.error}</p>{/if}
 </div>

@@ -7,6 +7,7 @@
 	import { watchDirty } from './form-dirty';
 	import { useBackGuard } from './leave-guard.svelte';
 	import { provideFieldValidity } from './fields/field-validity';
+	import { provideSubmitCounter } from './fields/fresh-error.svelte';
 
 	interface Props {
 		open: boolean;
@@ -44,6 +45,18 @@
 	const formId = `fm-${Math.random().toString(36).slice(2, 8)}`;
 
 	const validity = provideFieldValidity();
+	const submits = provideSubmitCounter();
+
+	// the message about the whole form («Не удалось сохранить…») belongs to the values that were sent: editing a field takes it away, a new attempt brings it back
+	let errorStale = $state(false);
+	$effect(() => {
+		void formError;
+		errorStale = false;
+	});
+	$effect(() => {
+		if (saving) errorStale = false;
+	});
+	const shownError = $derived(errorStale ? null : formError);
 
 	let autoDirty = $state(false);
 	const isDirty = $derived(dirty ?? autoDirty);
@@ -61,10 +74,11 @@
 	<form
 		id={formId}
 		novalidate
-		use:watchDirty={{ open, onChange: (d) => (autoDirty = d) }}
+		use:watchDirty={{ open, onChange: (d) => (autoDirty = d), onEdit: () => (errorStale = true) }}
 		class="flex flex-col gap-4"
 		onsubmit={(e) => {
 			e.preventDefault();
+			submits.bump();
 			if (validity.blocked()) return validity.reveal(e.currentTarget as HTMLElement);
 			if (canSave && !saving) onSave();
 		}}
@@ -72,6 +86,6 @@
 		{@render children()}
 	</form>
 	{#snippet footer()}
-		<FormFooter {formId} {saveLabel} {cancelLabel} {saving} {canSave} {showSave} {danger} {saveTestId} {formError} {conflict} {conflictText} {reloadLabel} cancelVariant="secondary" onCancel={close} {onReload} {extra} />
+		<FormFooter {formId} {saveLabel} {cancelLabel} {saving} {canSave} {showSave} {danger} {saveTestId} formError={shownError} {conflict} {conflictText} {reloadLabel} cancelVariant="secondary" onCancel={close} {onReload} {extra} />
 	{/snippet}
 </AppModal>

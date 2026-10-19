@@ -15,6 +15,7 @@
 	import { Select } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { inFilterRow } from '../filter-row';
+	import { useFreshError } from './fresh-error.svelte';
 
 	interface Props {
 		value?: string | null;
@@ -50,6 +51,9 @@
 		onChange
 	}: Props = $props();
 
+	// the message of a mistake goes away when the field is edited (see fresh-error)
+	const fresh = useFreshError(() => error, () => value);
+
 	const bp = useBreakpoint();
 	// in the one-line filter row a field has no caption above it: the label is its placeholder
 	const bare = inFilterRow();
@@ -65,7 +69,7 @@
 	placeholder={bare ? (label ?? placeholder) : placeholder}
 	aria-label={bare ? label : undefined}
 	title={tooltip}
-	{error}
+	error={fresh.error}
 	{hint}
 	{disabled}
 	{required}

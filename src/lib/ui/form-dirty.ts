@@ -57,6 +57,8 @@ export interface WatchParams {
 	/** the form is on screen; a new opening starts a new comparison */
 	open: boolean;
 	onChange: (dirty: boolean) => void;
+	/** the person changed a value (not a form that fills up by itself): messages about an earlier attempt are stale */
+	onEdit?: () => void;
 }
 
 /** Svelte action for the <form> of FormDrawer / FormModal: reports `dirty` (see createDirtyTracker) */
@@ -70,11 +72,20 @@ export function watchDirty(form: HTMLElement, params: WatchParams) {
 			p.onChange(reported);
 		}
 	};
+	let lastSignature: string | null = null;
+	let lastUser = Number.NEGATIVE_INFINITY;
 	const sample = () => {
-		tracker.sample(formSignature(form), performance.now());
+		const now = performance.now();
+		const signature = formSignature(form);
+		if (lastSignature !== null && signature !== lastSignature && now - lastUser <= TRUST_MS) p.onEdit?.();
+		lastSignature = signature;
+		tracker.sample(signature, now);
 		report();
 	};
-	const user = () => tracker.userAction(performance.now());
+	const user = () => {
+		lastUser = performance.now();
+		tracker.userAction(lastUser);
+	};
 	const typed = () => {
 		user();
 		sample();

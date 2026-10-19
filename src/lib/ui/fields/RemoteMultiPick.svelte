@@ -6,6 +6,7 @@
 	import { Multiselect } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { RemoteList, type RemoteItem, type RemoteSearch } from './remote-list.svelte';
+	import { useFreshError } from './fresh-error.svelte';
 
 	interface Props {
 		value?: string[];
@@ -30,6 +31,9 @@
 	}
 
 	let { value = $bindable([]), search, resolve, label, placeholder, hint, error, disabled = false, required = false, emptyText = 'Ничего не найдено', note, noteAt, class: className = '', onKnown, onChange }: Props = $props();
+
+	// the message of a mistake goes away when the field is edited (see fresh-error)
+	const fresh = useFreshError(() => error, () => value);
 
 	const bp = useBreakpoint();
 	// svelte-ignore state_referenced_locally
@@ -73,8 +77,8 @@
 	size={bp.isMobile ? 'l' : 'm'}
 	{label}
 	placeholder={value.length ? undefined : placeholder}
-	error={error}
-	hintPrefix={error ? undefined : hint}
+	error={fresh.error}
+	hintPrefix={fresh.error ? undefined : hint}
 	{disabled}
 	{required}
 	emptyText={empty}
