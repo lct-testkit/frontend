@@ -27,6 +27,16 @@
 		{"name": "integrations-outbox", "file": "static/help/integrations-outbox.png", "sources": ["src/lib/features/config/integrations/"]},
 		{"name": "admin-health", "file": "static/help/admin-health.png", "sources": ["src/lib/features/config/integrations/"]},
 		{"name": "security", "file": "static/help/security.png", "sources": ["src/lib/features/identity/PasswordPanel.svelte", "src/lib/features/identity/password.ts"]},
-		{"name": "workflow-graph", "file": "static/help/workflow-graph.png", "sources": ["src/lib/features/config/workflows/editor/"]}
+		{"name": "workflow-graph", "file": "static/help/workflow-graph.png", "sources": ["src/lib/features/config/workflows/editor/"]},
+		{"name": "new-report-form", "file": "static/help/new-report-form.png", "sources": ["src/lib/features/config/reports/", "src/routes/(app)/reports/"]},
+		{"name": "new-import-template", "file": "static/help/new-import-template.png", "sources": ["src/lib/features/config/imports/"]},
+		{"name": "new-import-dryrun", "file": "static/help/new-import-dryrun.png", "sources": ["src/lib/features/config/imports/"]},
+		{"name": "new-access-request", "file": "static/help/new-access-request.png", "sources": ["src/lib/features/crm/access/"]},
+		{"name": "new-incident-form", "file": "static/help/new-incident-form.png", "sources": ["src/lib/features/identity/incidents/"]},
+		{"name": "new-security-state", "file": "static/help/new-security-state.png", "sources": ["src/lib/features/identity/security/", "src/routes/(app)/admin/security/"]},
+		{"name": "new-api-keys", "file": "static/help/new-api-keys.png", "sources": ["src/lib/features/config/integrations/"]},
+		{"name": "new-user-menu", "file": "static/help/new-user-menu.png", "sources": ["src/lib/ui/AppShell.svelte"]},
+		{"name": "new-mail-list", "file": "static/help/new-mail-list.png", "sources": ["static/config.json"]},
+		{"name": "new-mail-html", "file": "static/help/new-mail-html.png", "sources": ["static/config.json"]}
 	]
 }

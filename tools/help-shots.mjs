@@ -12,7 +12,9 @@
 // Кадры с кодом подтверждения и ссылкой-приглашением (single) грузят страницу один раз: повторный запрос упирается в лимит частоты.
 // Сценарии берут не «первую попавшуюся» сделку, а подходящую: воронка B2B по умолчанию (14 шагов), шаг из середины воронки, организация, сумма, позиции.
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { BASE, accessToken, findB2bWorkflow, graphSteps, newBrowser, newPage } from './lib.mjs';
 
 const WIDTH = 900;
@@ -99,6 +101,26 @@ const dashboardOverview = () =>
 	once('dash', async () => {
 		const list = items(await api('admin', '/api/dashboards?limit=100'));
 		return list.find((d) => d.name === 'Обзор воронки') ?? list[0] ?? null;
+	});
+
+/** Вуз, который ведёт другой менеджер: КАМ получает на него 404 и видит экран «Нет доступа». */
+const foreignOrg = () =>
+	once('foreign-org', async () => {
+		for (const o of items(await api('admin', '/api/organizations?limit=100'))) {
+			tokens.kam ??= await accessToken('kam');
+			const res = await fetch(`${BASE}/api/organizations/${o.id}`, { headers: { Authorization: `Bearer ${tokens.kam}` } });
+			if (res.status === 404 || res.status === 403) return o.id;
+		}
+		throw new Error('нет вуза, закреплённого за другим менеджером');
+	});
+
+/** Первое письмо в почте стенда (/mail/): нужно приглашение или сброс пароля, отправленные стендом. */
+const firstMailId = () =>
+	once('mail-id', async () => {
+		const res = await fetch(`${BASE}/mail/api/v1/messages?limit=1`);
+		const list = await res.json();
+		if (!list.messages?.length) throw new Error('в почте стенда нет писем: создайте приглашение пользователя от администратора');
+		return list.messages[0].ID;
 	});
 
 // ---------------------------------------------------------------- подготовка страниц
@@ -394,6 +416,166 @@ export const SHOTS = [
 				if (field) field.value = 'https://crm.example.ru/invite/Qm4x7Vh2kLw9PzTn3RbYc8Ds5GfJe1Aa';
 			});
 			await wait(500);
+		}
+	},
+	// ---------------------------------------------------------------- глава «Что нового» (v0.6.0–v0.6.1)
+	{
+		name: 'new-report-form',
+		chapter: '24-whats-new',
+		who: 'head',
+		url: '/reports',
+		viewport: [1440, 720],
+		// шаблон «Подписание по периодам» (новый в 0.6): параметры, а не фиксированный набор; панель справа, без скруглённого угла
+		clip: { x: 874, y: 0, width: 548, height: 720 },
+		before: async (p) => {
+			await p.getByText('Подписание по периодам').first().click();
+			await p.getByRole('dialog').getByText('Последних месяцев').waitFor({ timeout: 15000 });
+			await wait(600);
+		}
+	},
+	{
+		name: 'new-import-template',
+		chapter: '24-whats-new',
+		who: 'admin',
+		url: '/imports/new?entity=license',
+		viewport: [1440, 1100],
+		// тип «Лицензии»: какие колонки ждёт файл и шаблоны для скачивания
+		clip: { x: 270, y: 215, width: 1140, height: 760 },
+		before: async (p) => {
+			await p.getByText('Какие колонки ждёт файл').click();
+			await p.getByTestId('import-template-xlsx').waitFor({ timeout: 15000 });
+			await wait(500);
+		}
+	},
+	{
+		name: 'new-import-dryrun',
+		chapter: '24-whats-new',
+		who: 'admin',
+		url: '/imports/new?entity=license',
+		viewport: [1440, 1200],
+		// проверка без записи: сводка «будет создано» и строки с замечаниями; файл не применяется, лицензии не создаются
+		selector: ['[data-testid=check-summary]'],
+		single: true,
+		pad: 16,
+		before: async (p) => {
+			const dir = await mkdtemp(join(tmpdir(), 'help-whatsnew-'));
+			const file = join(dir, 'licenses-demo.csv');
+			const head = 'Название ВУЗа,Вендор,ПО,Номер договора,Подписание лицензии,Срок действия лицензии (год),Статус по передаче,ФИО Менеджера,Ответственные от ВУЗа,Комментарий';
+			const rows = [
+				'Пермский политехнический университет,1С,1С:Предприятие 8.3,Л-2026/101,да,2027,в работе,,,',
+				'Казанский государственный технологический университет,Ред Софт,РЕД ОС,Л-2026/102,12.03.2026,3 года,передано,,,',
+				'Уфимский авиационно-технический университет,Лаборатория Касперского,Kaspersky Endpoint Security,Л-2026/103,нет,бессрочно,не начато,,,',
+				'Институт имени Тестова (нет в справочнике),Astra Linux,Astra Linux Special Edition,Л-2026/104,да,2028,в работе,,,',
+				'Самарский университет телекоммуникаций и информатики,Базис,Брест,Л-2026/105,да,скоро,в работе,,,'
+			];
+			await writeFile(file, `﻿${[head, ...rows].join('\n')}\n`, 'utf8');
+			await p.locator('input[type=file]').setInputFiles(file);
+			await p.getByRole('button', { name: 'Загрузить и продолжить' }).click();
+			await p.getByText('Параметры чтения файла').waitFor({ timeout: 30000 });
+			await p.getByRole('button', { name: 'Далее', exact: true }).click();
+			await p.getByTestId('check-summary').waitFor({ timeout: 60000 });
+			await wait(800);
+		}
+	},
+	{
+		name: 'new-access-request',
+		chapter: '24-whats-new',
+		who: 'kam',
+		// вуз, который ведёт другой менеджер: сервер его скрывает, человеку предлагают запросить доступ
+		url: async () => `/organizations/${await foreignOrg()}`,
+		viewport: [1440, 900],
+		selector: '[role=dialog]',
+		pad: -2,
+		before: async (p) => {
+			await p.getByTestId('org-request-access').click();
+			await p.getByRole('dialog').getByText('Зачем нужен доступ').waitFor({ timeout: 10000 });
+			await wait(500);
+		}
+	},
+	{
+		name: 'new-incident-form',
+		chapter: '24-whats-new',
+		who: 'admin',
+		url: '/admin/incidents',
+		viewport: [1440, 900],
+		selector: '[role=dialog]',
+		pad: -2,
+		before: async (p) => {
+			await p.getByRole('button', { name: 'Завести инцидент' }).click();
+			await p.getByRole('dialog').getByText('Что случилось').waitFor({ timeout: 10000 });
+			await wait(500);
+		}
+	},
+	{
+		name: 'new-security-state',
+		chapter: '24-whats-new',
+		who: 'admin',
+		url: '/admin/security',
+		viewport: [1440, 1000],
+		clip: { x: 270, y: 70, width: 1140, height: 498 },
+		before: async (p) => {
+			await p.getByRole('tab', { name: 'Состояние защиты' }).click();
+			await wait(3500);
+		}
+	},
+	{
+		name: 'new-api-keys',
+		chapter: '24-whats-new',
+		who: 'admin',
+		url: '/admin/integrations',
+		viewport: [1440, 1000],
+		clip: { x: 270, y: 70, width: 1140, height: 680 },
+		before: async (p) => {
+			await p.getByRole('tab', { name: 'Ключи API' }).click();
+			await p.getByText('Ключей нет').waitFor({ timeout: 15000 }).catch(() => {});
+			await wait(600);
+		}
+	},
+	{
+		name: 'new-user-menu',
+		chapter: '24-whats-new',
+		who: 'kam',
+		url: '/access-requests',
+		viewport: [1440, 700],
+		// меню пользователя: пункт «Почта стенда» (только демо-стенд, где задан адрес почты)
+		clip: { x: 1110, y: 0, width: 330, height: 250 },
+		before: async (p) => {
+			await p.getByText('Иван Тесткитович').first().click();
+			await p.getByText('Почта стенда').waitFor({ timeout: 8000 });
+			await wait(500);
+		}
+	},
+	{
+		name: 'new-mail-list',
+		chapter: '24-whats-new',
+		who: null,
+		url: '/mail/',
+		viewport: [1440, 900],
+		// Mailpit по адресу /mail/: все письма стенда, без входа, только чтение
+		clip: { x: 0, y: 0, width: 1440, height: 340 },
+		before: async (p) => {
+			await p.getByText('Вас пригласили в RTK School CRM').first().waitFor({ timeout: 20000 });
+			await wait(600);
+		}
+	},
+	{
+		name: 'new-mail-html',
+		chapter: '24-whats-new',
+		who: null,
+		url: async () => `/mail/view/${await firstMailId()}`,
+		viewport: [1440, 960],
+		// HTML-письмо-приглашение: логотип, одна главная кнопка, текстовая версия рядом
+		clip: { x: 0, y: 0, width: 1440, height: 920 },
+		before: async (p) => {
+			await p.frameLocator('#preview-html').getByText('Задать пароль').first().waitFor({ timeout: 20000 });
+			// живая ссылка со своим токеном в картинку не попадает: подставлен образец адреса
+			await p.frameLocator('#preview-html').locator('a[href*="/invite/"]').evaluateAll((links) => {
+				for (const a of links) {
+					a.href = 'https://crm.example.ru/invite/Qm4x7Vh2kLw9PzTn3RbYc8Ds5GfJe1Aa';
+					if (a.textContent.includes('/invite/')) a.textContent = a.href;
+				}
+			});
+			await wait(800);
 		}
 	},
 	{ name: 'grafana-api', chapter: 'admin/10', who: 'admin', url: '/grafana', mode: 'manual', howto: 'Стенд с профилем monitoring, дашборд «API» в Grafana.' }
