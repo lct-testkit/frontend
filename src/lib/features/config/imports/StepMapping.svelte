@@ -11,6 +11,7 @@
 	import type { ImportFlow } from './flow.svelte';
 	import { duplicateHeaders, duplicateHeadersText } from './check';
 	import { ENTITY_KEYS, presetKey, sampleValues } from './mapping';
+	import { fieldLabel } from './hints';
 
 	let { flow }: { flow: ImportFlow } = $props();
 
@@ -21,7 +22,7 @@
 	}
 
 	// Поля типа приходят с сервера (`GET /api/imports/entity-types`): у каждого своя подпись и признак «обязательное».
-	const items = $derived((flow.entityType?.fields ?? []).map((f) => ({ key: f.target, value: f.label, hint: f.required ? 'обязательное' : undefined })));
+	const items = $derived((flow.entityType?.fields ?? []).map((f) => ({ key: f.target, value: fieldLabel(f.label), hint: f.required ? 'обязательное' : undefined })));
 	const rows = $derived<MapRow[]>(flow.headers.map((h, i) => ({ id: i, header: h, samples: sampleValues(flow.profile?.sample_rows ?? [], i, 3) })));
 	const duplicate = (target: string | undefined) => Boolean(target) && flow.check.duplicateTargets.includes(target as string);
 	const samplesOf = (r: MapRow) => r.samples.join(' · ');
