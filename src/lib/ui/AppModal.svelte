@@ -3,6 +3,7 @@
 	// the DS recipes). Forms use FormModal, which fills the footer.
 	// Sizes: s 420 (confirmations, short forms) · m 560 (forms) · l 760 · xl 980. On phones it takes the window width.
 	// `centered` for short dialogs; long forms start near the top and scroll inside.
+	import { escapeClosedPopup } from './esc-popup';
 	import type { Snippet } from 'svelte';
 	import { Modal } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
@@ -54,7 +55,7 @@
 	modalClassName="overflow-hidden rounded-lg"
 	modalStyle={{ maxHeight: `calc(100dvh - ${margin * 2}px)` }}
 	onClickOverlay={close}
-	onEsc={close}
+	onEsc={() => !escapeClosedPopup() && close()}
 >
 	<div class="flex max-h-[inherit] min-h-0 w-full flex-col" use:dialogA11y={{ label: title || label }}>
 		{#if header}

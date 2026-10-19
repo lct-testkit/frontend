@@ -2,6 +2,7 @@
 	// Side panel for viewing/editing an entity without leaving the list. Right side, full height; full screen on phones.
 	// Same anatomy as AppModal: header (title + close), scrolling body, sticky footer. The footer is left-aligned with the MAIN button first (the DS recipes; a phone:
 	// one under another, the main one at the bottom, at the thumb). Forms use FormDrawer, which fills the footer.
+	import { escapeClosedPopup } from './esc-popup';
 	import type { Snippet } from 'svelte';
 	import { Drawer } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
@@ -48,7 +49,7 @@
 	}
 </script>
 
-<Drawer fullHeight {position} {dimension} isOpened={open} drawerClassName="p-0! max-md:rounded-none!" onClickOverlay={closeUnlessConfirming} onEsc={closeUnlessConfirming}>
+<Drawer fullHeight {position} {dimension} isOpened={open} drawerClassName="p-0! max-md:rounded-none!" onClickOverlay={closeUnlessConfirming} onEsc={() => !escapeClosedPopup() && closeUnlessConfirming()}>
 	<div class="flex h-full min-h-0 flex-col" use:dialogA11y={{ label: title || label }}>
 		{#if header}
 			{@render header()}
