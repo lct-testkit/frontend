@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LEARNER_SECTIONS, displayValue, fieldRows, filledFields } from './learnerProfile';
+import { DATE_KEYS, LEARNER_SECTIONS, digitFieldWidth, digitsError, displayValue, fieldRows, filledFields, isDigitField, maskDigits, validateProfileValues } from './learnerProfile';
 
 describe('профиль учащегося', () => {
 	it('пол показывается словами', () => {
@@ -56,5 +56,44 @@ describe('правка профиля', () => {
 	it('пустая форма — пустое тело', async () => {
 		const { buildProfilePatch } = await import('./learnerProfile');
 		expect(buildProfilePatch({ snils: '  ' })).toEqual({});
+	});
+});
+
+describe('ввод цифровых полей анкеты (LP-1)', () => {
+	it('СНИЛС и код подразделения расставляют разделители сами', () => {
+		expect(maskDigits('snils', '12345678901')).toBe('123-456-789 01');
+		expect(maskDigits('snils', '1234')).toBe('123-4');
+		expect(maskDigits('snils', '123')).toBe('123');
+		expect(maskDigits('snils', '123-456-789 01 99')).toBe('123-456-789 01');
+		expect(maskDigits('passport_dept_code', '123456')).toBe('123-456');
+		expect(maskDigits('passport_dept_code', '12a3')).toBe('123');
+	});
+	it('серия, номер, индекс — только цифры нужной длины', () => {
+		expect(maskDigits('passport_series', '45 12')).toBe('4512');
+		expect(maskDigits('passport_series', '451267')).toBe('4512');
+		expect(maskDigits('passport_number', 'ab123456789')).toBe('123456');
+		expect(maskDigits('reg_zip', '420-111')).toBe('420111');
+		expect(maskDigits('reg_city', 'Казань 1')).toBe('Казань 1');
+	});
+	it('ширина поля с разделителями', () => {
+		expect(digitFieldWidth('snils')).toBe(14);
+		expect(digitFieldWidth('passport_dept_code')).toBe(7);
+		expect(digitFieldWidth('passport_series')).toBe(4);
+		expect(digitFieldWidth('reg_city')).toBeUndefined();
+	});
+	it('ошибка длины под полем; пустое поле — не ошибка', () => {
+		expect(digitsError('passport_series', '45')).toBe('Серия паспорта: 4 цифры');
+		expect(digitsError('passport_number', '12345')).toBe('Номер паспорта: 6 цифр');
+		expect(digitsError('snils', '123-456-789')).toBe('СНИЛС: 11 цифр');
+		expect(digitsError('snils', '')).toBeNull();
+		expect(digitsError('snils', '123-456-789 01')).toBeNull();
+		expect(validateProfileValues({ passport_series: '45', reg_zip: '420111', reg_city: 'Казань' })).toEqual({ passport_series: 'Серия паспорта: 4 цифры' });
+	});
+	it('даты — календарь, цифровые — не даты', () => {
+		expect([...DATE_KEYS].sort()).toEqual(['birth_date', 'diploma_issued_at', 'passport_issued_at']);
+		expect(isDigitField('snils')).toBe(true);
+		expect(isDigitField('birth_date')).toBe(false);
+		const keys = LEARNER_SECTIONS.flatMap((x) => x.fields.map((fld) => fld.key));
+		for (const key of DATE_KEYS) expect(keys).toContain(key);
 	});
 });

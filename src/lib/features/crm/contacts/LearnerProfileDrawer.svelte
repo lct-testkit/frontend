@@ -5,11 +5,12 @@
 	import { untrack } from 'svelte';
 	import { api, unwrap } from '$lib/api';
 	import { FormDrawer, FormRow, FormSection, toast } from '$lib/ui';
+	import DateField from '$lib/ui/fields/DateField.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import TextField from '$lib/ui/fields/TextField.svelte';
 	import { toFormFailure } from '$lib/features/config/shared/form-errors';
 	import type { LearnerProfile } from '../types';
-	import { EDUCATION_OPTIONS, LEARNER_SECTIONS, SEX_OPTIONS, buildProfilePatch, fieldRows, requestKey, type LearnerFieldDef } from './learnerProfile';
+	import { DATE_KEYS, EDUCATION_OPTIONS, LEARNER_SECTIONS, SEX_OPTIONS, buildProfilePatch, digitFieldWidth, fieldRows, isDigitField, maskDigits, requestKey, validateProfileValues, type LearnerFieldDef } from './learnerProfile';
 
 	interface Props {
 		open: boolean;
@@ -39,9 +40,17 @@
 	const current = (key: string): string => String((profile as Record<string, unknown> | null)?.[key] ?? '');
 	const allKeys = LEARNER_SECTIONS.flatMap((s) => s.fields.map((f) => requestKey(f.key)));
 
+	/** даты раньше сегодняшнего дня (рождения, выдачи документов) */
+	const today = new Date();
+
 	async function save() {
 		const body = buildProfilePatch(values);
 		if (!Object.keys(body).length) return onClose();
+		const mistakes = validateProfileValues(values);
+		if (Object.keys(mistakes).length) {
+			errors = mistakes;
+			return;
+		}
 		saving = true;
 		formError = null;
 		try {
@@ -65,6 +74,10 @@
 		<Pick label={f.label} value={values.sex ?? null} items={SEX_OPTIONS} clearable error={errors.sex} onChange={(v) => (values = { ...values, sex: v ?? '' })} />
 	{:else if key === 'education'}
 		<Pick label={f.label} value={values.education ?? null} items={EDUCATION_OPTIONS} clearable error={errors.education} hint={profile?.education_label ? `Сейчас: ${profile.education_label}` : undefined} onChange={(v) => (values = { ...values, education: v ?? '' })} />
+	{:else if DATE_KEYS.includes(key)}
+		<DateField label={f.label} value={values[key] || null} maxDate={today} hint={current(key) ? `Сейчас записан год: ${current(key)}` : f.format} error={errors[key]} disabled={saving} onChange={(v) => (values = { ...values, [key]: v ?? '' })} />
+	{:else if isDigitField(key)}
+		<TextField label={f.label} value={values[key] ?? ''} placeholder={current(key)} hint={f.format} error={errors[key]} inputmode="numeric" maxlength={digitFieldWidth(key)} transform={(raw) => maskDigits(key, raw)} disabled={saving} onInput={(v) => (values = { ...values, [key]: v })} />
 	{:else}
 		<TextField label={f.label} value={values[key] ?? ''} placeholder={current(key)} hint={f.format} error={errors[key]} disabled={saving} onInput={(v) => (values = { ...values, [key]: v })} />
 	{/if}
