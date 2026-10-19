@@ -6,12 +6,12 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Print } from '@lct-testkit/rt-ui/icons';
-	import { session } from '$lib/auth/session.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 	import { Btn, EmptyState, ErrorState, Page, Skeleton } from '$lib/ui';
 	import { renderMarkdown } from '$lib/utils/markdown';
 	import { GUIDE_TITLES, chapterTitle, parseGuide, printPlan, printToc, stripTitle, type PrintGuide } from './print';
-	import { loadPrintText, printChapters } from './source';
+	import { CHAPTERS } from '$lib/features/help/chapters';
+	import { loadChapter } from '$lib/features/help/loader';
 	import './print.css';
 
 	interface Doc {
@@ -22,8 +22,6 @@
 	}
 
 	const guide = $derived<PrintGuide>(parseGuide(page.url.searchParams.get('guide')));
-	const isAdmin = $derived(session.can('settings:write'));
-	const denied = $derived(guide === 'admin' && !isAdmin);
 	const autoPrint = $derived(page.url.searchParams.get('print') === '1');
 
 	let docs = $state<Doc[]>([]);
@@ -38,11 +36,11 @@
 		ready = false;
 		error = null;
 		try {
-			const visible = (c: { needs?: string[] }) => !c.needs?.length || session.canAny(...c.needs);
-			const plan = denied ? [] : printPlan(printChapters(), guide, visible);
+			// справка открыта любой роли, руководство администратора тоже: печатается тот же набор глав, что и на экране
+			const plan = printPlan(CHAPTERS, guide);
 			docs = await Promise.all(
 				plan.map(async (c) => {
-					const text = await loadPrintText(c);
+					const text = await loadChapter(c);
 					return { slug: c.slug, title: chapterTitle(text, c.slug), sections: printToc(text), html: renderMarkdown(stripTitle(text), { allowImages: true }) };
 				})
 			);
@@ -87,7 +85,7 @@
 	const choose = (next: PrintGuide) => void goto(`/help/print?guide=${next}`, { replaceState: true, keepFocus: true, noScroll: true });
 	const today = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 	const GUIDE_SHORT: Record<PrintGuide, string> = { user: 'Пользователь', admin: 'Администратор', all: 'Все руководства' };
-	const GUIDES: PrintGuide[] = $derived(isAdmin ? ['user', 'admin', 'all'] : ['user']);
+	const GUIDES: PrintGuide[] = ['user', 'admin', 'all'];
 </script>
 
 <svelte:head><title>{GUIDE_TITLES[guide]} · печать · RTK School</title></svelte:head>
@@ -101,14 +99,12 @@
 		<Btn class="ml-auto" label="Печать" icon={Print} disabled={!ready || !docs.length} onclick={() => window.print()} data-testid="help-print" />
 	</div>
 
-	{#if denied}
-		<EmptyState title="Руководство администратора доступно только администратору" />
-	{:else if error}
+	{#if error}
 		<ErrorState {error} onRetry={load} />
 	{:else if loading}
 		<Skeleton kind="lines" rows={8} />
 	{:else if !docs.length}
-		<EmptyState title="Нет глав для печати" hint="Для вашей роли в этом руководстве ничего нет." />
+		<EmptyState title="Нет глав для печати" hint="В этом руководстве пока нет глав." />
 	{:else}
 		<main bind:this={root} data-print-ready={ready ? 'true' : 'false'} class="flex flex-col gap-8 print:block">
 			<header class="flex flex-col gap-3 break-after-page print:min-h-[240mm] print:justify-center">

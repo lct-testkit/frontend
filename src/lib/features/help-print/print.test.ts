@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CHAPTERS } from '../help/chapters';
 import { GUIDE_TITLES, chapterTitle, parseGuide, printPlan, printToc, stripTitle } from './print';
 
 const chapters = [
@@ -47,5 +48,21 @@ describe('текст главы', () => {
 
 	it('оглавление: заголовки второго уровня без разметки, якорей и блоков кода', () => {
 		expect(printToc(md)).toEqual(['Карточка сделки', 'Файлы', 'Подписание и статусы']);
+	});
+});
+
+describe('печать по индексу глав справки', () => {
+	it('руководство администратора — вся группа admin, доступно любой роли (без отбора по правам)', () => {
+		const admin = printPlan(CHAPTERS, 'admin');
+		expect(admin.length).toBeGreaterThan(10);
+		expect(admin.every((c) => c.group === 'admin')).toBe(true);
+	});
+
+	it('user и admin не пересекаются, вместе дают все главы', () => {
+		const user = printPlan(CHAPTERS, 'user');
+		const admin = printPlan(CHAPTERS, 'admin');
+		expect(user.some((c) => admin.includes(c))).toBe(false);
+		expect(printPlan(CHAPTERS, 'all')).toHaveLength(CHAPTERS.length);
+		expect(user.length + admin.length).toBe(CHAPTERS.length);
 	});
 });
