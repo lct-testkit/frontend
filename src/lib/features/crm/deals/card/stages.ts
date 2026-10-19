@@ -58,10 +58,16 @@ export function stageEvidence(item: Pick<StageItem, 'evidence'>): StageEvidence 
 }
 
 /** Короткая сводка над таблицей: пройдено из скольких, просрочки. */
-export function stagesSummary(data: Pick<DealStages, 'summary' | 'items'>): string {
+/**
+ * `commentsTotal` — сколько комментариев в сделке всего (вкладка «Обсуждение»): столбец «Комм.» считает только оставленные на этапах, остальные
+ * (например, до первого перехода или на шаге, где сделки уже нет) в нём не видны, и без пояснения цифры расходятся (ST-2).
+ */
+export function stagesSummary(data: Pick<DealStages, 'summary' | 'items'>, commentsTotal?: number | null): string {
 	const { done, skipped, sla_breached } = data.summary;
 	const parts = [`Пройдено ${done} из ${data.items.length}`];
 	if (skipped) parts.push(`пропущено ${skipped}`);
 	parts.push(sla_breached ? `просрочено по сроку: ${sla_breached}` : 'просрочек нет');
+	const onStages = data.items.reduce((sum, i) => sum + i.comments_count, 0);
+	if (commentsTotal != null && commentsTotal > onStages) parts.push(`комментарии на этапах: ${onStages} из ${commentsTotal}, остальные — во вкладке «Обсуждение»`);
 	return parts.join(' · ');
 }

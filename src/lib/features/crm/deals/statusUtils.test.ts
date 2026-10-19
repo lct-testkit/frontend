@@ -178,6 +178,11 @@ describe('воронка из 14 шагов', () => {
 			expect(res.slice(6, 8)).toEqual(['earlier', 'earlier']);
 			expect(res[at(9)]).toBe('future');
 		});
+		it('шаг 5 не обязательный, но шаги 2 и 3 тоже не посещены: пропущены все три, как на вкладке «Этапы» (ST-1)', () => {
+			const res = stepStates(list, at(6), new Set(['s1', 's4', 's6']), optional, false);
+			expect([2, 3, 5].map((n) => res[at(n)])).toEqual(['skipped', 'skipped', 'skipped']);
+			expect([1, 4].map((n) => res[at(n)])).toEqual(['done', 'done']);
+		});
 		it('перенос на другую воронку: пропусков нет', () => {
 			const res = stepStates(list, at(8), new Set(['s8']), optional, false, true);
 			expect(res[at(5)]).toBe('done');
