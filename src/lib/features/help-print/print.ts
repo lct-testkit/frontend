@@ -10,7 +10,7 @@ export const GUIDE_TITLES: Record<PrintGuide, string> = {
 };
 
 /** Группа глав, что принадлежит руководству администратора; остальные — пользовательские (начало работы, роли, справочник). */
-export const ADMIN_GROUP = 'admin';
+const ADMIN_GROUP = 'admin';
 
 /** Неизвестное значение `?guide=` даёт руководство пользователя. */
 export function parseGuide(value: string | null | undefined): PrintGuide {
