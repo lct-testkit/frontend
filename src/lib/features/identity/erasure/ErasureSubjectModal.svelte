@@ -17,33 +17,46 @@
 
 	let type = $state<ErasureSubjectType>('contact');
 	let id = $state<string | null>(null);
+	let error = $state<string | undefined>();
 
 	// каждое открытие — с чистого листа
 	$effect(() => {
 		if (open) {
 			type = 'contact';
 			id = null;
+			error = undefined;
 		}
 	});
+
+	const pick = (v: string | null) => ((id = v), (error = undefined));
+	/** «Далее» без выбора не молчит и не заблокирована: говорит, чего не хватает */
+	function next() {
+		if (!id) {
+			error = 'Выберите, чьи данные удалить';
+			return;
+		}
+		onPick({ type, id, name: subjectName(type, id) });
+	}
 
 	const types = Object.keys(ERASURE_SUBJECT_LABEL) as ErasureSubjectType[];
 	const typeItems = types.map((t) => ({ key: t, label: ERASURE_SUBJECT_LABEL[t] }));
 </script>
 
-<FormModal {open} title="Чьи данные удалить" size="m" saveLabel="Далее" saveTestId="erasure-subject-next" canSave={!!id} onSave={() => id && onPick({ type, id, name: subjectName(type, id) })} {onClose}>
+<FormModal {open} title="Чьи данные удалить" size="m" saveLabel="Далее" saveTestId="erasure-subject-next" onSave={next} {onClose}>
 	<RadioField
 		items={typeItems}
 		value={type}
 		onChange={(v) => {
 			type = v as ErasureSubjectType;
 			id = null;
+			error = undefined;
 		}}
 	/>
 	{#if type === 'user'}
-		<UserPicker label="Сотрудник" required value={id} onChange={(v) => (id = v)} />
+		<UserPicker label="Сотрудник" required value={id} {error} onChange={pick} />
 	{:else if type === 'contact'}
-		<ContactPicker required value={id} onChange={(v) => (id = v)} />
+		<ContactPicker required value={id} {error} onChange={pick} />
 	{:else}
-		<OrgPicker label="ИП" required value={id} onChange={(v) => (id = v)} />
+		<OrgPicker label="ИП" required value={id} {error} onChange={pick} />
 	{/if}
 </FormModal>
