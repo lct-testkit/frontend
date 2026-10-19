@@ -12,6 +12,7 @@
 	import type { CustomFieldDef } from '../../types';
 	import type { DealCardState } from './dealCard.svelte';
 	import { isStatusField, statusGroup, STATUS_GROUP_TITLES } from './dealSections';
+	import { lineTotal } from './dealTotals';
 	import DealParticipants from './DealParticipants.svelte';
 	import EditProductsDrawer from './EditProductsDrawer.svelte';
 
@@ -42,12 +43,6 @@
 	const extraDefs = $derived(defs.filter((d) => !statusDefs.includes(d)));
 	const lossReason = $derived(deal.loss_reason_id ? (lossReasons.value?.find((r) => r.id === deal.loss_reason_id)?.name ?? '—') : null);
 	const productName = (id: string) => products.value?.find((p) => p.id === id)?.name ?? '…';
-	/** итог строки: с бэкенда может прийти null (создано без `total`) — считаем сами: цена × количество − скидка */
-	const lineTotal = (p: { quantity: number; price?: string | null; discount_pct: string; total?: string | null }): string | null => {
-		if (p.total !== null && p.total !== undefined) return p.total;
-		if (p.price === null || p.price === undefined) return null;
-		return String(Number(p.price) * p.quantity * (1 - Number(p.discount_pct || 0) / 100));
-	};
 
 	function customText(def: CustomFieldDef, value: unknown): string {
 		if (value === null || value === undefined || value === '') return '—';

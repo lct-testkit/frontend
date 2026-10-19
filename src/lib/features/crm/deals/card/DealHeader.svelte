@@ -20,6 +20,7 @@
 	import { classifyTransitions, deniedText, roleHint, steps, statusName, type ClassifiedTransition } from '../statusUtils';
 	import { workflows } from '../workflows.svelte';
 	import type { DealCardState } from './dealCard.svelte';
+	import { totalMismatch } from './dealTotals';
 
 	interface Props {
 		card: DealCardState;
@@ -32,6 +33,8 @@
 
 	const bp = useBreakpoint();
 	const deal = $derived(card.deal!);
+	/** итог по продуктам, если он не равен сумме сделки (сумма вводится вручную и не пересчитывается) */
+	const productsMismatch = $derived(totalMismatch(deal.amount, card.products));
 	const stepList = $derived(steps(card.graph));
 	const buttons = $derived(classifyTransitions(card.transitions, (id) => workflows.status(id), card.status, { steps: stepList, stoppedAt: card.stoppedAt }));
 	const canUpdate = $derived(session.can('deal:update') && card.writable);
@@ -100,7 +103,14 @@
 							<UserName id={deal.owner_id} />
 						</span>
 					</KeyValue>
-					<KeyValue label="Сумма"><span class="t-h3 leading-6"><Money value={deal.amount} currency={deal.currency} /></span></KeyValue>
+					<KeyValue label="Сумма">
+						<span class="flex flex-col gap-0.5">
+							<span class="t-h3 leading-6"><Money value={deal.amount} currency={deal.currency} /></span>
+							{#if productsMismatch !== null}
+								<span class="t-desc-l text-warning" data-testid="deal-products-total" title="Сумма сделки задаётся вручную и по продуктам не пересчитывается">Итого по продуктам: <Money value={String(productsMismatch)} currency={deal.currency} /></span>
+							{/if}
+						</span>
+					</KeyValue>
 					{#if deal.organization_id}
 						<KeyValue label="Организация">
 							<a class="relative inline-flex min-h-6 items-center gap-1.5 text-fg after:absolute after:inset-x-0 after:-inset-y-4 after:content-['']" href="/organizations/{deal.organization_id}"><span class="inline-flex size-5 shrink-0 items-center justify-center"><Ico icon={Government} tone="soft" size={16} /></span>{orgLabel(deal.organization_id)}</a>
