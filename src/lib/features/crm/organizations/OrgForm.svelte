@@ -69,9 +69,9 @@
 
 <div class="flex flex-col gap-6">
 	<FormSection title="Организация">
-		<TextField label={marked('Полное название', 'name')} value={values.name} error={err('name')} {disabled} onInput={(v) => (values.name = v)} onEnter={onEnter} />
+		<TextField label={marked('Полное название', 'name')} maxlength={512} value={values.name} error={err('name')} {disabled} onInput={(v) => (values.name = v)} onEnter={onEnter} />
 		<FormRow>
-			<TextField label={marked('Краткое название', 'short_name')} value={values.short_name} {disabled} onInput={(v) => (values.short_name = v)} onEnter={onEnter} />
+			<TextField label={marked('Краткое название', 'short_name')} maxlength={255} value={values.short_name} {disabled} onInput={(v) => (values.short_name = v)} onEnter={onEnter} />
 			<Pick label="Тип" items={typeItems} value={values.org_type} {disabled} onChange={(v) => v && (values.org_type = v)} />
 		</FormRow>
 		<FormRow>

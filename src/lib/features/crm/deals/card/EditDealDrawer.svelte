@@ -168,7 +168,7 @@
 	{onClose}
 >
 	<FormSection title="Сделка">
-		<TextField label="Название" required autofocus value={v.title} error={errors.title} onInput={(x) => ((v.title = x), (errors.title = ''))} />
+		<TextField label="Название" required autofocus maxlength={255} value={v.title} error={errors.title} onInput={(x) => ((v.title = x), (errors.title = ''))} />
 		{#if card.deal?.deal_type === 'b2b'}
 			<OrgPicker required value={v.org} error={errors.organization_id} onChange={(id) => ((v.org = id), (v.contact = null))} />
 		{/if}
