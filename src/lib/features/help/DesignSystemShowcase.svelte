@@ -163,7 +163,7 @@
 	<div class="grid grid-cols-2 items-start gap-x-3 gap-y-4 max-md:grid-cols-1">
 		<TextField label="Название сделки" bind:value={name} hint="Подсказка живёт под полем" />
 		<TextField label="E-mail" bind:value={email} error={email.includes('@') && email.split('@')[1] ? undefined : 'Введите корректный e-mail'} />
-		<NumberField label="Сумма, ₽" bind:value={amount} />
+		<NumberField label="Сумма, ₽" min={0} maxInt={12} decimals={2} bind:value={amount} />
 		<DateField label="Плановая дата закрытия" bind:value={when} />
 		<Pick label="Статус" items={STATUSES} bind:value={status} placeholder="Не выбран" clearable />
 		<Pick label="Организация" items={ORGS} bind:value={org} search />

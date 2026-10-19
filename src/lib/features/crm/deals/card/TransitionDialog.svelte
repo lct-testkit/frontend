@@ -412,9 +412,9 @@
 {#snippet fieldInput(field: TransitionFormField)}
 	{@const error = errors[field.key] || undefined}
 	{#if field.input === 'money'}
-		<NumberField label={field.label} required={field.required} value={asNumber(values[field.key])} {error} onChange={(v) => setValue(field.key, v)} />
+		<NumberField label={field.label} min={0} maxInt={12} decimals={2} required={field.required} value={asNumber(values[field.key])} {error} onChange={(v) => setValue(field.key, v)} />
 	{:else if field.input === 'number'}
-		<NumberField integer label={field.label} required={field.required} value={asNumber(values[field.key])} {error} onChange={(v) => setValue(field.key, v)} />
+		<NumberField integer min={0} label={field.label} required={field.required} value={asNumber(values[field.key])} {error} onChange={(v) => setValue(field.key, v)} />
 	{:else if field.input === 'date'}
 		<DateField label={field.label} required={field.required} value={asString(values[field.key]) || null} {error} onChange={(v) => setValue(field.key, v)} />
 	{:else if field.input === 'currency'}

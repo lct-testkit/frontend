@@ -194,7 +194,7 @@
 	<OrgPicker label="Вендор" value={vendorId} error={errors.vendor_id} hint="Компания — правообладатель продукта" onChange={(id) => (vendorId = id)} />
 	<FormRow>
 		<Pick label="Формат" bind:value={format} items={PRODUCT_FORMATS.map((f) => ({ key: f.key, value: f.value }))} clearable error={errors.format} />
-		<NumberField label="Цена, ₽" bind:value={price} error={errors.base_price} />
+		<NumberField label="Цена, ₽" min={0} maxInt={12} decimals={2} bind:value={price} error={errors.base_price} />
 	</FormRow>
 	<Toggle label="Активен" bind:checked={isActive} />
 	{#if item}
@@ -203,7 +203,7 @@
 	<FormSection collapsible open={!!(description || duration || validFrom || validTo)}>
 		<AreaField label="Описание" bind:value={description} />
 		<FormRow>
-			<NumberField label="Длительность, ч" bind:value={duration} integer error={errors.duration_hours} />
+			<NumberField label="Длительность, ч" bind:value={duration} integer min={0} error={errors.duration_hours} />
 			<TextField label="Валюта" required bind:value={currency} error={errors.currency} maxlength={3} />
 		</FormRow>
 		<FormRow>

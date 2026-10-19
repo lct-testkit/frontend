@@ -175,13 +175,13 @@
 		<ContactPicker value={v.contact} organizationId={v.org} onChange={(id) => (v.contact = id)} />
 		<FormRow>
 			<Pick label="Источник" items={sourceItems} clearable value={v.source} placeholder="Не указан" onChange={(x) => (v.source = x)} />
-			<NumberField integer label="Обучающихся" value={v.students} onChange={(x) => (v.students = x)} />
+			<NumberField integer min={0} label="Обучающихся" value={v.students} onChange={(x) => (v.students = x)} />
 		</FormRow>
 	</FormSection>
 
 	<FormSection title="Стоимость и сроки" class="mt-2">
 		<FormRow>
-			<NumberField label="Сумма, ₽" value={v.amount} error={errors.amount} onChange={(x) => (v.amount = x)} />
+			<NumberField label="Сумма, ₽" min={0} maxInt={12} decimals={2} value={v.amount} error={errors.amount} onChange={(x) => (v.amount = x)} />
 			<DateField label="Плановая дата закрытия" warnPast={v.close !== base.close ? 'Дата уже прошла' : undefined} value={v.close} error={errors.expected_close_date} onChange={(x) => (v.close = x)} />
 		</FormRow>
 	</FormSection>
@@ -198,7 +198,7 @@
 				{#if def.field_type === 'bool'}
 					<CheckField label={def.label} required={def.is_required} checked={value === true} onChange={(x) => setCustom(def.code, x)} />
 				{:else if def.field_type === 'number'}
-					<NumberField label={def.label} required={def.is_required} value={typeof value === 'number' ? value : value ? Number(value) : null} error={err} onChange={(x) => setCustom(def.code, x)} />
+					<NumberField allowNegative label={def.label} required={def.is_required} value={typeof value === 'number' ? value : value ? Number(value) : null} error={err} onChange={(x) => setCustom(def.code, x)} />
 				{:else if def.field_type === 'date'}
 					<DateField label={def.label} required={def.is_required} value={typeof value === 'string' ? value : null} error={err} onChange={(x) => setCustom(def.code, x)} />
 				{:else if def.field_type === 'select' && options(def).length}

@@ -203,11 +203,11 @@
 		</div>
 	{:else if type === 'number'}
 		<div class="grid grid-cols-2 gap-3 max-md:grid-cols-1">
-			<NumberField label="Минимум" bind:value={min} />
-			<NumberField label="Максимум" bind:value={max} error={errors.max} />
+			<NumberField allowNegative label="Минимум" bind:value={min} />
+			<NumberField allowNegative label="Максимум" bind:value={max} error={errors.max} />
 		</div>
 	{:else if type === 'string'}
-		<NumberField label="Максимальная длина" bind:value={maxLength} integer />
+		<NumberField label="Максимальная длина" bind:value={maxLength} integer min={0} />
 		<TextField label="Шаблон (регулярное выражение)" bind:value={pattern} error={errors.pattern} placeholder="^[0-9]{6}$" />
 	{/if}
 
