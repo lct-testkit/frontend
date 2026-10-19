@@ -27,6 +27,8 @@ export class HomeData {
 	tasks = $state<Task[]>([]);
 	signatures = $state<SignRequest[]>([]);
 	statuses = $state<Record<string, Status>>({});
+	/** published workflows (id, name, type, default flag): the funnel card shows ONE workflow — statuses of two funnels in one list mean nothing */
+	workflows = $state<{ id: string; name: string; deal_type: string; is_default: boolean }[]>([]);
 
 	#ctrl: AbortController | null = null;
 
@@ -62,10 +64,20 @@ export class HomeData {
 		return this.signatures.filter((s) => OPEN_SIGN.has(s.status));
 	}
 
-	/** active deals per status of one deal type, in workflow order */
+	/** the workflow the funnel card shows for a deal type: the default one, or — when it has no active deals — the one with the most of them */
+	funnelFlow(type: string): { id: string; name: string } | null {
+		const flows = this.workflows.filter((w) => w.deal_type === type);
+		const count = (id: string) => this.active.filter((d) => d.workflow_id === id).length;
+		const def = flows.find((w) => w.is_default);
+		if (def && count(def.id) > 0) return def;
+		return [...flows].sort((a, b) => count(b.id) - count(a.id)).find((w) => count(w.id) > 0) ?? def ?? null;
+	}
+
+	/** active deals per status of the workflow `funnelFlow(type)`, in workflow order */
 	funnel(type: string): { status: Status; count: number }[] {
+		const flow = this.funnelFlow(type);
 		const counts = new Map<string, number>();
-		for (const d of this.active) if (d.deal_type === type) counts.set(d.status_id, (counts.get(d.status_id) ?? 0) + 1);
+		for (const d of this.active) if (d.deal_type === type && (!flow || d.workflow_id === flow.id)) counts.set(d.status_id, (counts.get(d.status_id) ?? 0) + 1);
 		return [...counts.entries()]
 			.map(([id, count]) => ({ status: this.statuses[id], count }))
 			.filter((row): row is { status: Status; count: number } => !!row.status)
@@ -107,6 +119,7 @@ export class HomeData {
 			for (const g of graphs) for (const s of g.statuses) statuses[s.id] = s;
 			if (signal.aborted) return;
 			this.statuses = statuses;
+			this.workflows = published.map((w) => ({ id: w.id, name: w.name, deal_type: w.deal_type, is_default: !!w.is_default }));
 		} catch (e) {
 			if (!signal.aborted) this.error = e;
 		} finally {
