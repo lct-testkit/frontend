@@ -59,7 +59,7 @@ export function signedCurl(o: CurlOptions): string {
 }
 
 /** Адрес внешней системы: только http(s) со своим хостом. Пустое значение допустимо у выключенного источника (см. `sourceFormErrors`). */
-export function validateBaseUrl(value: string): string | null {
+function validateBaseUrl(value: string): string | null {
 	const v = value.trim();
 	if (!v) return null;
 	try {

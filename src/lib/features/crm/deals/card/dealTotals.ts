@@ -15,7 +15,7 @@ export function lineTotal(p: Line): string | null {
 }
 
 /** сумма строк; `null` — продуктов нет или хотя бы у одной нет цены (итог неизвестен, расхождение не утверждаем) */
-export function productsTotal(lines: readonly Line[]): number | null {
+function productsTotal(lines: readonly Line[]): number | null {
 	if (!lines.length) return null;
 	let sum = 0;
 	for (const l of lines) {

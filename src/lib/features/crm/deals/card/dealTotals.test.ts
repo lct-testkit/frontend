@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lineTotal, productsTotal, totalMismatch } from './dealTotals';
+import { lineTotal, totalMismatch } from './dealTotals';
 
 const line = (quantity: number, price: string | null, discount_pct = '0', total: string | null = null) => ({ quantity, price, discount_pct, total });
 
@@ -9,10 +9,10 @@ describe('dealTotals', () => {
 		expect(Number(lineTotal(line(8, '4500', '10')))).toBeCloseTo(32400);
 		expect(lineTotal(line(1, null))).toBeNull();
 	});
-	it('сумма строк; без продуктов или без цены — null', () => {
-		expect(productsTotal([])).toBeNull();
-		expect(productsTotal([line(1, '10'), line(2, '5')])).toBe(20);
-		expect(productsTotal([line(1, '10'), line(2, null)])).toBeNull();
+	it('сумма строк; без продуктов или без цены итог неизвестен — расхождения нет', () => {
+		expect(totalMismatch('5', [line(1, '10'), line(2, '5')])).toBe(20);
+		expect(totalMismatch('5', [])).toBeNull();
+		expect(totalMismatch('5', [line(1, '10'), line(2, null)])).toBeNull();
 	});
 	it('расхождение: D-2026-000004 — 2 100 000 против 32 400', () => {
 		expect(totalMismatch('2100000.00', [line(8, '4500', '10')])).toBeCloseTo(32400);
