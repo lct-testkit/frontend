@@ -6,6 +6,7 @@
 	import { mayClose } from './form-close';
 	import { watchDirty } from './form-dirty';
 	import { useBackGuard } from './leave-guard.svelte';
+	import { provideFieldValidity } from './fields/field-validity';
 
 	interface Props {
 		open: boolean;
@@ -42,6 +43,8 @@
 
 	const formId = `fm-${Math.random().toString(36).slice(2, 8)}`;
 
+	const validity = provideFieldValidity();
+
 	let autoDirty = $state(false);
 	const isDirty = $derived(dirty ?? autoDirty);
 
@@ -62,6 +65,7 @@
 		class="flex flex-col gap-4"
 		onsubmit={(e) => {
 			e.preventDefault();
+			if (validity.blocked()) return validity.reveal(e.currentTarget as HTMLElement);
 			if (canSave && !saving) onSave();
 		}}
 	>

@@ -103,7 +103,7 @@
 	<AreaField label="Описание" rows={3} value={description} onInput={(v) => (description = v)} />
 	<UserPicker label="Исполнитель" required roles={['KAM', 'HEAD']} value={assignee} error={errors.assignee_id} clearable={false} onChange={(id) => ((assignee = id), (errors.assignee_id = ''))} />
 	<FormRow>
-		<DateField label="Срок" value={due} onChange={(v) => (due = v)} />
+		<DateField label="Срок" warnPast={!task || due !== (task.due_at ? toLocalDate(task.due_at) : null) ? 'Срок уже прошёл' : undefined} value={due} onChange={(v) => (due = v)} />
 		<Pick label="Приоритет" items={priorityItems} value={priority} onChange={(v) => v && (priority = v)} />
 	</FormRow>
 	{#if task}<Pick label="Статус" items={statusItems} value={status} onChange={(v) => v && (status = v)} />{/if}
