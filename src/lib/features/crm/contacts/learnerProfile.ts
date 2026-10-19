@@ -35,8 +35,8 @@ export const LEARNER_SECTIONS: readonly LearnerSection[] = [
 			f('passport_number', 'Номер', { format: '6 цифр' }),
 			f('passport_issued_by', 'Кем выдан', { wide: true }),
 			f('passport_issued_at', 'Дата выдачи', { format: DATE }),
-			f('passport_dept_code', 'Код подразделения', { format: '6 цифр' }),
-			f('snils', 'СНИЛС', { format: '11 цифр, дефисы можно', wide: true })
+			f('passport_dept_code', 'Код подразделения', { format: '6 цифр: ХХХ-ХХХ' }),
+			f('snils', 'СНИЛС', { format: '11 цифр: ХХХ-ХХХ-ХХХ ХХ', wide: true })
 		]
 	},
 	{
@@ -138,4 +138,70 @@ export function buildProfilePatch(values: Record<string, string>): Record<string
 		if (value) body[requestKey(key)] = value;
 	}
 	return body;
+}
+
+// --- Ввод: даты и цифровые поля ---------------------------------------------------------------------------------------------------
+
+/** Поля-даты: календарь и ввод `дд.мм.гггг` (сервер принимает и `ГГГГ-ММ-ДД`); раньше сегодняшнего дня. */
+export const DATE_KEYS: readonly string[] = ['birth_date', 'passport_issued_at', 'diploma_issued_at'];
+
+interface DigitSpec {
+	/** сколько цифр */
+	length: number;
+	/** как цифры делятся на группы и чем разделены: СНИЛС `123-456-789 01`, код подразделения `123-456` */
+	groups?: readonly number[];
+	separators?: readonly string[];
+	/** «Серия паспорта» в тексте ошибки */
+	what: string;
+}
+
+const DIGIT_FIELDS: Record<string, DigitSpec> = {
+	passport_series: { length: 4, what: 'Серия паспорта' },
+	passport_number: { length: 6, what: 'Номер паспорта' },
+	passport_dept_code: { length: 6, groups: [3, 3], separators: ['-'], what: 'Код подразделения' },
+	snils: { length: 11, groups: [3, 3, 3, 2], separators: ['-', '-', ' '], what: 'СНИЛС' },
+	reg_zip: { length: 6, what: 'Индекс' }
+};
+
+export const isDigitField = (key: string): boolean => key in DIGIT_FIELDS;
+
+/** Сколько знаков занимает поле вместе с разделителями (для `maxlength`). */
+export function digitFieldWidth(key: string): number | undefined {
+	const spec = DIGIT_FIELDS[key];
+	return spec ? spec.length + (spec.separators?.length ?? 0) : undefined;
+}
+
+/** Только цифры нужной длины, разделители расставляются сами: `12345678901` → `123-456-789 01` (разделитель появляется, когда за ним есть цифра). */
+export function maskDigits(key: string, raw: string): string {
+	const spec = DIGIT_FIELDS[key];
+	if (!spec) return raw;
+	const digits = raw.replace(/\D/g, '').slice(0, spec.length);
+	if (!spec.groups || !spec.separators) return digits;
+	let out = '';
+	let at = 0;
+	spec.groups.forEach((size, i) => {
+		const part = digits.slice(at, at + size);
+		if (!part) return;
+		out += (i > 0 ? spec.separators![i - 1] : '') + part;
+		at += size;
+	});
+	return out;
+}
+
+/** «Серия паспорта: 4 цифры»; `null` — поле пустое (необязательное) или цифр хватает. */
+export function digitsError(key: string, value: string): string | null {
+	const spec = DIGIT_FIELDS[key];
+	const digits = value.replace(/\D/g, '');
+	if (!spec || !digits) return null;
+	return digits.length === spec.length ? null : `${spec.what}: ${spec.length} цифр${spec.length === 4 ? 'ы' : ''}`;
+}
+
+/** Проверка до отправки (контрольную сумму СНИЛС и смысл дат проверяет сервер): только длина цифровых полей. */
+export function validateProfileValues(values: Record<string, string>): Record<string, string> {
+	const errors: Record<string, string> = {};
+	for (const key of Object.keys(DIGIT_FIELDS)) {
+		const error = digitsError(key, values[key] ?? '');
+		if (error) errors[key] = error;
+	}
+	return errors;
 }
