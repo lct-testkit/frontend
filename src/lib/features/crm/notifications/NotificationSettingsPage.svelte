@@ -96,7 +96,7 @@
 
 <svelte:head><title>Настройки уведомлений · RTK School</title></svelte:head>
 
-<Page narrow class="pb-24">
+<Page class="pb-24">
 	<PageHeader title="Настройки уведомлений" back="/notifications" />
 
 	{#if loading}

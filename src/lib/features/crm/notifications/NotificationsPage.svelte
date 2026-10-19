@@ -67,7 +67,7 @@
 	<Pick label="Объект" items={entityItems} clearable value={entity || null} placeholder="Любой" onChange={(v) => setQuery({ entity: v })} />
 {/snippet}
 
-<Page narrow>
+<Page>
 	<PageHeader title="Уведомления">
 		{#snippet tabs(underline)}
 			<TabsBar items={chips} value={view} {underline} onChange={(k) => setQuery({ view: k === 'unread' ? null : k })} label="Какие уведомления показывать" />
