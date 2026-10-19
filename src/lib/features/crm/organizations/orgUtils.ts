@@ -1,6 +1,7 @@
 // Организации: значения формы ↔ тела запросов, расхождения реквизитов с ЕГРЮЛ, догадка о типе по названию.
 import type { components } from '$lib/api';
 import { ORG_FIELD_LABELS, REGISTRY_STATUS_LABELS } from '../shared/labels';
+import { emailError, phoneError, websiteError } from '../shared/contactFields';
 import type { OrgDetails, Organization } from '../types';
 
 type S = components['schemas'];
@@ -125,6 +126,37 @@ export function toPatchBody(original: OrgFormValues, next: OrgFormValues): S['Or
 		body[key] = typeof b === 'string' ? (b.trim() ? b.trim() : null) : b;
 	}
 	return body as S['OrganizationUpdateRequest'];
+}
+
+/**
+ * Проверка телефона, почты, сайта и числа студентов до отправки (как у контакта; окончательно проверяет сервер). При правке (`base`) проверяются только изменённые поля:
+ * старая запись с неудачным адресом не должна мешать сохранить другое.
+ */
+export function validateOrgFields(v: OrgFormValues, base?: OrgFormValues): Record<string, string> {
+	const errors: Record<string, string> = {};
+	const changed = (key: keyof OrgFormValues) => !base || base[key] !== v[key];
+	const check = (key: 'main_email' | 'main_phone' | 'website', rule: (value: string) => string | null) => {
+		const error = changed(key) ? rule(v[key]) : null;
+		if (error) errors[key] = error;
+	};
+	check('main_email', emailError);
+	check('main_phone', phoneError);
+	check('website', websiteError);
+	if (changed('students_count') && v.students_count !== null && (!Number.isInteger(v.students_count) || v.students_count < 0)) errors.students_count = 'Число студентов: целое, не меньше 0';
+	return errors;
+}
+
+/**
+ * После правки поля его ошибка уходит: «Введите название или ИНН» не висит над заполненным названием, а ошибка ИНН — над исправленным ИНН.
+ * Ошибка названия снимается и правкой ИНН (достаточно любого из двух).
+ */
+export function dropEditedErrors(errors: Record<string, string>, prev: OrgFormValues, next: OrgFormValues): Record<string, string> {
+	const out = { ...errors };
+	for (const key of Object.keys(out)) {
+		const related = key === 'name' ? ['name', 'inn'] : [key];
+		if (related.some((k) => prev[k as keyof OrgFormValues] !== next[k as keyof OrgFormValues])) delete out[key];
+	}
+	return out;
 }
 
 export interface DriftEntry {

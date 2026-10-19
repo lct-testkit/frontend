@@ -1,6 +1,7 @@
 // Контакты: значения формы ↔ тела запросов. E-mail и телефон в ответах API всегда маскированы (`+7 (9**) ***-**-67`, `i***@…`),
 // поэтому при правке шлём только то, что пользователь изменил, а маску не отправляем никогда.
 import { ApiError, type components } from '$lib/api';
+import { emailError, phoneError } from '../shared/contactFields';
 import type { Contact } from '../types';
 
 type S = components['schemas'];
@@ -85,10 +86,10 @@ export function validateContact(v: ContactFormValues): Record<string, string> {
 	const errors: Record<string, string> = {};
 	if (!v.last_name.trim()) errors.last_name = 'Введите фамилию';
 	if (!v.first_name.trim()) errors.first_name = 'Введите имя';
-	const email = v.email.trim();
-	if (email && !isMasked(email) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Проверьте адрес почты';
-	const phone = v.phone.trim();
-	if (phone && !isMasked(phone) && phone.replace(/\D/g, '').length < 10) errors.phone = 'Слишком короткий номер';
+	const email = emailError(v.email);
+	if (email) errors.email = email;
+	const phone = phoneError(v.phone);
+	if (phone) errors.phone = phone;
 	return errors;
 }
 
