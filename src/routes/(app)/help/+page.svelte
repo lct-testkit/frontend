@@ -11,6 +11,7 @@
 	import HelpNav from '$lib/features/help/HelpNav.svelte';
 	import HelpResults from '$lib/features/help/HelpResults.svelte';
 	import HelpToc from '$lib/features/help/HelpToc.svelte';
+	import PrintLink from '$lib/features/help-print/PrintLink.svelte';
 	import { CHAPTERS, GROUPS } from '$lib/features/help/chapters';
 	import { loadAll, loadChapter } from '$lib/features/help/loader';
 	import { searchChapters, type SearchResult } from '$lib/features/help/search';
@@ -180,7 +181,11 @@
 			{/if}
 		</div>
 
-		<div class="flex min-w-0 flex-col gap-3">
+		<div class="flex min-w-0 flex-col gap-3 md:gap-4">
+			<!-- в одном ряду с полем поиска: отдельной строки над содержимым нет -->
+			<div class="flex min-h-9 items-center justify-end max-md:min-h-12">
+				<PrintLink guide={current?.group === 'admin' ? 'admin' : 'user'} />
+			</div>
 			{#if query}
 				<Card title="Результаты поиска">
 					<HelpResults {query} {results} loading={!texts} />
