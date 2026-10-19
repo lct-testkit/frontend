@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deliveryErrorText, disabledReasonText, eventTitle, parseFilters, pingText, urlLabel, validateSubscription } from './subscriptions';
+import { deliveryErrorText, disabledReasonText, eventTitle, outboxEventTitle, parseFilters, pingText, urlLabel, validateSubscription } from './subscriptions';
 
 const base = { name: 'Учётная система', url: 'https://hooks.example.edu/crm', events: ['DEAL_CREATED'], filtersText: '' };
 
@@ -35,6 +35,15 @@ describe('parseFilters', () => {
 		expect(parseFilters('5').error).toBeTruthy();
 		const many = JSON.stringify(Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`k${i}`, 1])));
 		expect(parseFilters(many).error).toBeTruthy();
+	});
+});
+
+describe('outboxEventTitle — журнал исходящих без сырых кодов', () => {
+	it('события подписок и служебные подписаны по-русски, незнакомый код остаётся как есть', () => {
+		expect(outboxEventTitle('DEAL_STATUS_CHANGED')).toBe('Статус сделки изменён');
+		expect(outboxEventTitle('LEARNING_ENROLLMENT_SENT')).toBe('Зачисление в LMS отправлено');
+		expect(outboxEventTitle('ERASURE_REQUESTED')).toBe('Запрошено удаление данных');
+		expect(outboxEventTitle('SOMETHING_NEW')).toBe('SOMETHING_NEW');
 	});
 });
 

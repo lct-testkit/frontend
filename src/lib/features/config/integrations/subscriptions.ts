@@ -11,6 +11,10 @@ export const WEBHOOK_EVENTS: readonly { key: string; value: string }[] = [
 
 export const eventTitle = (code: string): string => WEBHOOK_EVENTS.find((e) => e.key === code)?.value ?? code;
 
+/** События журнала исходящих: те же, что у подписок, плюс служебные (запрос на удаление данных уходит в журнал, но подписаться на него нельзя). Код остаётся в подсказке. */
+const OUTBOX_ONLY: Record<string, string> = { ERASURE_REQUESTED: 'Запрошено удаление данных' };
+export const outboxEventTitle = (code: string): string => OUTBOX_ONLY[code] ?? eventTitle(code);
+
 /** Адрес для списка: хост и путь, без логина, пароля, query и фрагмента. Не адрес — как есть. */
 export function urlLabel(raw: string): string {
 	try {
