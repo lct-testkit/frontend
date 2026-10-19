@@ -32,9 +32,13 @@
 		filtered?: boolean;
 		onReset?: () => void;
 		onCreate?: () => void;
+		/** название воронки доски и воронки, где сделки есть: пустая доска называет воронку и предлагает перейти туда, где сделки */
+		flowName?: string;
+		otherFlows?: { id: string; name: string; count: number }[];
+		onPickFlow?: (id: string) => void;
 	}
 
-	let { workflowId, query, collapse = false, onChange, filtered = false, onReset, onCreate }: Props = $props();
+	let { workflowId, query, collapse = false, onChange, filtered = false, onReset, onCreate, flowName, otherFlows = [], onPickFlow }: Props = $props();
 
 	const PARALLEL = 6;
 	let cols = $state<Record<string, BoardColumn>>({});
@@ -306,9 +310,21 @@
 {:else if !graph}
 	<EmptyState title="Воронка не найдена" compact />
 {:else if allEmpty}
-	<EmptyState title={filtered ? 'Сделок по этим условиям нет' : 'В этой воронке пока нет сделок'} compact>
+	<EmptyState
+		title={filtered ? 'Сделок по этим условиям нет' : flowName ? `В воронке «${flowName}» сделок нет` : 'В этой воронке пока нет сделок'}
+		hint={!filtered && otherFlows.length && onPickFlow ? 'Доска показывает одну воронку. Сделки есть в других — откройте нужную:' : undefined}
+		compact
+	>
 		{#snippet action()}
-			{#if filtered && onReset}<Btn label="Сбросить фильтры" variant="outline" colorScheme="neutral" onclick={onReset} />{:else if onCreate}<Btn label="Новая сделка" icon={AddLarge} variant="outline" colorScheme="neutral" onclick={onCreate} />{/if}
+			{#if filtered && onReset}
+				<Btn label="Сбросить фильтры" variant="outline" colorScheme="neutral" onclick={onReset} />
+			{:else if otherFlows.length && onPickFlow}
+				<div class="flex flex-wrap justify-center gap-2">
+					{#each otherFlows as flow (flow.id)}<Btn label="{flow.name} · {flow.count}" variant="outline" colorScheme="neutral" onclick={() => onPickFlow(flow.id)} />{/each}
+				</div>
+			{:else if onCreate}
+				<Btn label="Новая сделка" icon={AddLarge} variant="outline" colorScheme="neutral" onclick={onCreate} />
+			{/if}
 		{/snippet}
 	</EmptyState>
 {:else}
