@@ -1,5 +1,6 @@
 // Data of the home screen: everything comes from list endpoints (the backend already scopes them by role).
-// Aggregates are computed over the newest 100 visible deals; `partial` tells the UI to show «100+».
+// Counters come from `total` of the server lists (the whole set, not the loaded page); the amount and the funnel are computed over the newest 100 active deals,
+// `partial` tells the UI to show «+» next to the amount.
 import { myRequests } from '$lib/features/signing/api';
 import { api, unwrap, type components } from '$lib/api';
 import { session } from '$lib/auth/session.svelte';
@@ -15,8 +16,13 @@ export class HomeData {
 	loading = $state(true);
 	error = $state<unknown>(null);
 	deals = $state<Deal[]>([]);
-	/** more deals exist than were loaded */
+	/** more active deals exist than were loaded */
 	partial = $state(false);
+	/** active deals in total (all pages) */
+	activeTotal = $state(0);
+	/** deals with a breached / nearly breached SLA in total (all pages); `attention` holds only the newest of them for the list */
+	breachedTotal = $state(0);
+	warningTotal = $state(0);
 	attention = $state<Deal[]>([]);
 	tasks = $state<Task[]>([]);
 	signatures = $state<SignRequest[]>([]);
@@ -77,7 +83,7 @@ export class HomeData {
 		const canSign = session.can('signature:sign');
 		try {
 			const [deals, breached, warning, tasks, signatures, workflows] = await Promise.all([
-				canDeals ? unwrap(api.GET('/api/deals', { params: { query: { limit: 100 } }, signal })) : null,
+				canDeals ? unwrap(api.GET('/api/deals', { params: { query: { is_closed: false, limit: 100 } }, signal })) : null,
 				canDeals ? unwrap(api.GET('/api/deals', { params: { query: { sla_state: 'breached', limit: 10 } }, signal })) : null,
 				canDeals ? unwrap(api.GET('/api/deals', { params: { query: { sla_state: 'warning', limit: 10 } }, signal })) : null,
 				canDeals && me ? unwrap(api.GET('/api/tasks', { params: { query: { assignee_id: me, limit: 50 } }, signal })) : null,
@@ -88,6 +94,9 @@ export class HomeData {
 
 			this.deals = deals?.items ?? [];
 			this.partial = !!deals?.next_cursor;
+			this.activeTotal = deals?.total ?? deals?.items.length ?? 0;
+			this.breachedTotal = breached?.total ?? breached?.items.length ?? 0;
+			this.warningTotal = warning?.total ?? warning?.items.length ?? 0;
 			this.attention = [...(breached?.items ?? []), ...(warning?.items ?? [])];
 			this.tasks = tasks?.items ?? [];
 			this.signatures = signatures ?? [];

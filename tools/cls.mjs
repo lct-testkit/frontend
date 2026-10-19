@@ -1,5 +1,5 @@
 // Cumulative Layout Shift (PerformanceObserver 'layout-shift', без сдвигов от ввода) на загрузке и при переключениях. Цель ≤ 0.1.
-//   APP_URL=http://localhost:5275 node tools/cls.mjs [--only deal,board,org,dash] [--size phone]
+//   APP_URL=http://localhost:5275 node tools/cls.mjs [--only home,deals,deal,board,org,dash] [--sizes phone,phone-s] [--as admin|kam]
 // Источники сдвигов печатаются (элемент, значение), чтобы было видно, что чинить.
 import { BASE, SIZES, newBrowser, newPage } from './lib.mjs';
 import { routesFor } from './routes.mjs';
@@ -23,7 +23,10 @@ const OBSERVE = () => {
 	}).observe({ type: 'layout-shift', buffered: true });
 };
 
+const who = arg('--as') ?? 'admin';
 const SCENARIOS = {
+	home: { path: '/', steps: async () => {} },
+	deals: { path: '/deals', steps: async () => {} },
 	deal: { path: deal, steps: async () => {} },
 	org: { path: org, steps: async () => {} },
 	board: { path: '/deals', steps: async (p) => { await p.waitForTimeout(1500); await p.evaluate(() => (window.__cls = { total: 0, items: [] }, 0)); await p.getByRole('button', { name: /Доска/ }).first().click().catch(() => p.getByText('Доска').first().click()); await p.waitForTimeout(2500); } },
@@ -36,7 +39,7 @@ for (const size of sizes) {
 	const [width, height] = SIZES[size];
 	for (const [name, sc] of Object.entries(SCENARIOS)) {
 		if (only && !only.includes(name)) continue;
-		const page = await newPage(browser, { who: 'admin', width, height });
+		const page = await newPage(browser, { who, width, height });
 		await page.addInitScript(OBSERVE);
 		await page.goto(BASE + sc.path, { waitUntil: 'load' });
 		await page.waitForTimeout(2500);

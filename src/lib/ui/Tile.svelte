@@ -16,9 +16,11 @@
 		href?: string;
 		tone?: Tone;
 		loading?: boolean;
+		/** the line under the number is kept (empty) when there is no hint, so a hint that arrives with the data does not push the page down */
+		reserveHint?: boolean;
 	}
 
-	let { label, value, hint, tip, href, tone = 'neutral', loading = false }: Props = $props();
+	let { label, value, hint, tip, href, tone = 'neutral', loading = false, reserveHint = false }: Props = $props();
 
 	const TONE: Record<Tone, string> = { neutral: 'text-fg', danger: 'text-danger', warning: 'text-warning', success: 'text-success' };
 	const BASE = 'flex min-w-0 flex-col gap-1 rounded-lg border border-line bg-surface p-[15px] text-left';
@@ -36,7 +38,7 @@
 	{:else}
 		<span class={['t-h1 tabular-nums', TONE[tone]]}>{value}</span>
 	{/if}
-	{#if hint}<span class="t-desc-l truncate text-soft">{hint}</span>{/if}
+	{#if hint && !loading}<span class="t-desc-l truncate text-soft">{hint}</span>{:else if reserveHint}<span class="t-desc-l min-h-[1lh]" aria-hidden="true"></span>{/if}
 {/snippet}
 
 {#if href}
