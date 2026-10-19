@@ -253,8 +253,9 @@ export function ensureAuditEntities(items: readonly { entity_type?: string | nul
 	const ids = (type: string) => items.filter((i) => i.entity_type === type && i.entity_id).map((i) => i.entity_id as string);
 	// сделки — только тем, кто их видит (Аудитору сделки недоступны: каждый запрос был бы 403), и списком, а не по одной (удалённые не дают 404)
 	if (session.can('deal:read')) void preloadDeals(ids('deal')).catch(() => {});
-	orgCache.ensure(ids('organization'));
-	contactCache.ensure(ids('contact'));
+	// организации и контакты — только тем, кто их читает (Аудитору каждый запрос был бы 403 красной ошибкой в консоли; у него запасной путь из `changes`)
+	if (session.can('organization:read')) orgCache.ensure(ids('organization'));
+	if (session.can('contact:read')) contactCache.ensure(ids('contact'));
 	people.ensure(ids('user'));
 	for (const [type, resolver] of Object.entries(RESOLVERS)) {
 		const list = ids(type);
@@ -269,9 +270,9 @@ export function entityLabel(type: string | null | undefined, id: string | null |
 		case 'deal':
 			return session.can('deal:read') ? dealLabel(id) : null;
 		case 'organization':
-			return orgLabel(id);
+			return session.can('organization:read') ? orgLabel(id) : labelFromChanges(entry);
 		case 'contact':
-			return contactLabel(id);
+			return session.can('contact:read') ? contactLabel(id) : labelFromChanges(entry);
 		case 'user':
 			return people.name(id);
 		default: {
