@@ -123,7 +123,7 @@ describe('makeCode', () => {
 
 describe('layoutByLevels', () => {
 	it('линейная воронка — уровни слева направо, терминальные в последнем столбце, архивные правее', () => {
-		const positions = layoutByLevels(fromServer(SERVER), { colGap: 100, rowGap: 50 });
+		const positions = layoutByLevels(fromServer(SERVER), { colGap: 100, rowGap: 50, maxColumns: 4 });
 		expect(positions.s1.x).toBe(0);
 		expect(positions.s2.x).toBe(100);
 		expect(positions.won.x).toBe(200);
@@ -132,7 +132,7 @@ describe('layoutByLevels', () => {
 
 	it('недостижимые статусы попадают в столбец перед терминальными', () => {
 		const draft = draftOf([status('a', 'initial'), status('b'), status('orphan'), status('won', 'won')], [transition('a', 'b'), transition('b', 'won')]);
-		const positions = layoutByLevels(draft, { colGap: 100, rowGap: 50 });
+		const positions = layoutByLevels(draft, { colGap: 100, rowGap: 50, maxColumns: 4 });
 		expect(positions.orphan.x).toBe(200);
 		expect(positions.won.x).toBe(300);
 	});
@@ -142,6 +142,16 @@ describe('layoutByLevels', () => {
 		const positions = layoutByLevels(draft, { colGap: 100, rowGap: 50 });
 		expect([positions.b.y, positions.c.y].sort((x, y) => x - y)).toEqual([-25, 25]);
 		expect(positions.a.y).toBe(0);
+	});
+});
+
+describe('layoutByLevels — ширина по умолчанию (QA2 Н16)', () => {
+	it('по умолчанию не больше трёх столбцов по 290 px: воронка из 11 статусов помещается в холст рядом с панелью шага в разумном масштабе', () => {
+		const steps = Array.from({ length: 7 }, (_, i) => status(`s${i}`, i === 0 ? 'initial' : 'intermediate'));
+		const transitions = steps.slice(1).map((_, i) => transition(`s${i}`, `s${i + 1}`));
+		const positions = layoutByLevels(draftOf([...steps, status('won', 'won')], [...transitions, transition('s6', 'won')]));
+		const xs = Object.values(positions).map((p) => p.x);
+		expect(Math.max(...xs)).toBe(2 * 290);
 	});
 });
 

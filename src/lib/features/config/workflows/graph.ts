@@ -671,7 +671,7 @@ export function autoLayout(draft: GraphDraft): Positions {
 export interface LayoutOptions {
 	colGap?: number;
 	rowGap?: number;
-	/** столбцов в строке, дальше перенос на следующую строку (по умолчанию 4) */
+	/** столбцов в строке, дальше перенос на следующую строку (по умолчанию 3) */
 	maxColumns?: number;
 }
 
@@ -680,7 +680,8 @@ export interface LayoutOptions {
  * Завершающие статусы — в последнем столбце, недостижимые — в столбце перед ними, архивные — правее всех.
  */
 export function layoutByLevels(draft: GraphDraft, options: LayoutOptions = {}): Positions {
-	const colGap = options.colGap ?? 340;
+	// узел 232 px + 58 px под подпись перехода; в столбце холст рядом с панелью шага — 720 px, раньше (4 столбца по 340) воронка из 11 статусов вставала в масштабе 0,52 и шрифт карточек был 6 px
+	const colGap = options.colGap ?? NODE_WIDTH + 58;
 	const rowGap = options.rowGap ?? 120;
 	const live = draft.statuses.filter((s) => !s.is_archived);
 	const archived = draft.statuses.filter((s) => s.is_archived);
@@ -730,7 +731,7 @@ export function layoutByLevels(draft: GraphDraft, options: LayoutOptions = {}): 
 		columns.set(l, [...(columns.get(l) ?? []), s]);
 	}
 	// Длинная цепочка не растягивается в одну строку: после `maxColumns` столбцов раскладка переходит на новую строку.
-	const maxColumns = options.maxColumns ?? 4;
+	const maxColumns = options.maxColumns ?? 3;
 	const levelList = [...columns.keys()].sort((a, b) => a - b);
 	const rows = Math.ceil(levelList.length / maxColumns);
 	const positions: Positions = {};
