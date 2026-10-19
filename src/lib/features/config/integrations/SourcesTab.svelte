@@ -2,6 +2,7 @@
 	// Источники интеграции (сайт, LMS, Bitrix24): карточка с переключателем «Активен» (выключение — с подтверждением), заборoм и настройкой в панели.
 	import { onMount } from 'svelte';
 	import { api, unwrap } from '$lib/api';
+	import { coalesce } from '$lib/api/coalesce';
 	import { EmptyState, ErrorState, Skeleton, confirm, toast } from '$lib/ui';
 	import type { IntegrationSource } from '../types';
 	import { createResource } from '../shared/resource.svelte';
@@ -9,7 +10,14 @@
 	import SourceDrawer from './SourceDrawer.svelte';
 	import { disableMessage } from './sourceState';
 
-	const list = createResource((signal) => unwrap(api.GET('/api/admin/integrations/sources', { signal })).then((r) => r as IntegrationSource[]));
+	// плашка состояния над вкладками просит тот же список: первая загрузка делит с ней один запрос, обновления после правок — свежие
+	let first = true;
+	const list = createResource((signal) => {
+		const load = () => unwrap(api.GET('/api/admin/integrations/sources', { signal })).then((r) => r as IntegrationSource[]);
+		if (!first) return load();
+		first = false;
+		return coalesce('admin-integration-sources', load);
+	});
 	onMount(() => void list.reload());
 
 	let editing = $state<IntegrationSource | null>(null);
