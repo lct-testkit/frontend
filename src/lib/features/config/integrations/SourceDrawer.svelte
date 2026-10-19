@@ -12,7 +12,7 @@
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
 	import Toggle from '$lib/ui/fields/Toggle.svelte';
 	import { toFormFailure } from '../shared/form-errors';
-	import { REF_MAX, mergeConfig, signedCurl, splitConfig, validateRef } from './sourceForm';
+	import { REF_MAX, mergeConfig, signedCurl, sourceAccessErrors, splitConfig, validateRef } from './sourceForm';
 
 	interface Props {
 		open: boolean;
@@ -60,6 +60,8 @@
 	});
 
 	const pullable = $derived(source?.code === 'cms' || source?.code === 'lms');
+	/** включённому источнику (карточка → переключатель, или забор по расписанию) нужны адрес и способ входа */
+	const needsAccess = $derived(!!source?.is_active || (pullable && pullEnabled));
 	const passport = $derived(source ? WEBHOOK_PASSPORTS[source.code] : undefined);
 	const url = $derived(passport ? `${location.origin}${passport.path}` : '');
 	const secretVar = $derived(signingRef.trim() || credentialsRef.trim() || passport?.secretVar || 'WEBHOOK_SECRET');
@@ -69,6 +71,7 @@
 		if (!source) return;
 		const next: Record<string, string> = {};
 		if (!name.trim()) next.name = 'Укажите название';
+		Object.assign(next, sourceAccessErrors({ baseUrl, authType, enabled: needsAccess }));
 		if (pullable && pullEnabled && (pullMinutes === null || pullMinutes < 1 || pullMinutes > 1440)) next.pull_interval_seconds = 'От 1 минуты до 24 часов (1440)';
 		const refError = validateRef(credentialsRef);
 		if (refError) next.credentials_ref = refError;
@@ -109,8 +112,8 @@
 
 <FormDrawer {open} title={source?.name ?? 'Источник'} width={560} {saving} {formError} onSave={save} {onClose}>
 	<TextField label="Название" required bind:value={name} error={errors.name} maxlength={255} autofocus />
-	<TextField label="Адрес системы" bind:value={baseUrl} error={errors.base_url} placeholder="https://…" />
-	<Pick label="Способ входа" bind:value={authType} clearable placeholder="Не выбран" hint="Как эта система подтверждает свои запросы" items={AUTH_TYPES.map((a) => ({ key: a.key, value: a.value }))} />
+	<TextField label="Адрес системы" required={needsAccess} bind:value={baseUrl} error={errors.base_url} placeholder="https://…" />
+	<Pick label="Способ входа" required={needsAccess} error={errors.auth_type} bind:value={authType} clearable placeholder="Не выбран" hint="Как эта система подтверждает свои запросы" items={AUTH_TYPES.map((a) => ({ key: a.key, value: a.value }))} />
 	<TextField label="Секрет: имя переменной" bind:value={credentialsRef} error={errors.credentials_ref ?? validateRef(credentialsRef) ?? undefined} placeholder="Имя переменной" maxlength={REF_MAX} hint="Например: CMS_WEBHOOK_SECRET. Это имя переменной окружения на сервере, сам секрет здесь не хранится" />
 	{#if pullable}
 		<FormSection title="Забор по расписанию">

@@ -46,10 +46,18 @@
 		list.set((list.data ?? []).map((x) => (x.id === saved.id ? saved : x)));
 	}
 
+	/** Что будет после удаления: встроенного текста у бэкенда нет, к нему откат не происходит (G-2). */
+	function deleteMessage(t: NotificationTemplate): string {
+		const another = (list.data ?? []).some((x) => x.id !== t.id && x.code === t.code && x.channel === t.channel && x.is_active);
+		if (another) return 'Для этого события и канала есть другой активный шаблон: он и будет использоваться.';
+		const after = t.channel === 'in_app' ? 'Уведомление всё равно появится в ленте, но без готового текста: только название события и служебные данные.' : 'Уведомления этого события по такому каналу отправляться не будут.';
+		return `Это единственный активный шаблон события по этому каналу. Встроенного текста нет, шаблон насовсем не вернётся — его придётся создать заново. ${after}`;
+	}
+
 	/** Можно всегда (это текст, не бизнес-сущность с историей) — но если шаблон был единственным активным для своей пары
 	 * code+channel, ответ несёт `detail` с предупреждением, что уведомления этого типа перестанут отправляться по каналу. */
 	async function remove(t: NotificationTemplate) {
-		if (!(await confirm({ title: `Удалить шаблон «${eventName(t.code) || t.code}» (${labelOf(NOTIFICATION_CHANNELS, t.channel)})?`, confirmLabel: 'Удалить', danger: true }))) return;
+		if (!(await confirm({ title: `Удалить шаблон «${eventName(t.code) || t.code}» (${labelOf(NOTIFICATION_CHANNELS, t.channel)})?`, message: deleteMessage(t), confirmLabel: 'Удалить', danger: true }))) return;
 		try {
 			const res = await unwrap(api.DELETE('/api/admin/notification-templates/{template_id}', { params: { path: { template_id: t.id } } }));
 			if (res.detail) toast.info(res.detail);
@@ -78,7 +86,7 @@
 {#snippet subjectCell(t: NotificationTemplate)}<TableCell><span class="t-body-s line-clamp-2 text-muted">{t.subject_template ?? '—'}</span></TableCell>{/snippet}
 {#snippet updatedCell(t: NotificationTemplate)}<TableCell><span class="t-body-s"><DateText value={t.updated_at} /></span></TableCell>{/snippet}
 {#snippet activeCell(t: NotificationTemplate)}<TableCell><SwitchCell checked={t.is_active} label={t.is_active ? 'Отключить шаблон' : 'Включить шаблон'} onToggle={(next) => toggle(t, next)} /></TableCell>{/snippet}
-{#snippet deleteCell(t: NotificationTemplate)}<TableCell><IconBtn icon={Trash} label="Удалить шаблон" danger onclick={() => remove(t)} /></TableCell>{/snippet}
+{#snippet deleteCell(t: NotificationTemplate)}<TableCell><IconBtn icon={Trash} label="Удалить шаблон" danger onclick={(e) => (e.stopPropagation(), void remove(t))} /></TableCell>{/snippet}
 
 {#snippet card(t: NotificationTemplate)}
 	<div class="flex min-w-0 flex-col gap-1.5">

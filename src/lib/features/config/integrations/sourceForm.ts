@@ -57,3 +57,35 @@ export function signedCurl(o: CurlOptions): string {
 	head.push(`-H 'Idempotency-Key: ${o.idempotencyKey}'`, `-d "$BODY"`);
 	return `${lines.join('\n')}\n${head.join(' \\\n  ')}`;
 }
+
+/** Адрес внешней системы: только http(s) со своим хостом. Пустое значение допустимо у выключенного источника (см. `sourceFormErrors`). */
+export function validateBaseUrl(value: string): string | null {
+	const v = value.trim();
+	if (!v) return null;
+	try {
+		const url = new URL(v);
+		if ((url.protocol !== 'http:' && url.protocol !== 'https:') || !url.hostname) throw new Error('scheme');
+		return null;
+	} catch {
+		return 'Адрес должен начинаться с http:// или https://, например https://crm.example.ru';
+	}
+}
+
+export interface SourceAccess {
+	baseUrl: string;
+	authType: string | null;
+	/** источник включён (или включён забор по расписанию): без адреса и способа входа он работать не может */
+	enabled: boolean;
+}
+
+/** Ошибки полей «Адрес системы» и «Способ входа». Выключенному источнику можно оставить поля пустыми, но не заполнять мусором. */
+export function sourceAccessErrors({ baseUrl, authType, enabled }: SourceAccess): { base_url?: string; auth_type?: string } {
+	const out: { base_url?: string; auth_type?: string } = {};
+	if (enabled && !baseUrl.trim()) out.base_url = 'Укажите адрес системы: источник включён';
+	else {
+		const invalid = validateBaseUrl(baseUrl);
+		if (invalid) out.base_url = invalid;
+	}
+	if (enabled && !authType) out.auth_type = 'Выберите способ входа: источник включён';
+	return out;
+}

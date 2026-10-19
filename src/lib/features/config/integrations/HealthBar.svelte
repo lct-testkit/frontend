@@ -4,6 +4,7 @@
 	import { Loader } from '@lct-testkit/rt-ui';
 	import { Refresh } from '@lct-testkit/rt-ui/icons';
 	import { IconBtn, StatusChip } from '$lib/ui';
+	import { formatTime } from '$lib/utils/format';
 	import { HEALTH_DEPENDENCY_LABELS, HEALTH_STATUSES, labelOf } from '../labels';
 	import type { HealthReport } from '../types';
 	import { createPoller } from '../shared/polling.svelte';
@@ -15,6 +16,8 @@
 	let report = $state<HealthReport | null>(null);
 	let loading = $state(true);
 	let sources = $state<SourcesSummary | null>(null);
+	/** когда плашка получила данные в последний раз: кнопка перечитывает состояние, а не проверяет каждую внешнюю систему (такой ручки у бэкенда нет) */
+	let updatedAt = $state<Date | null>(null);
 
 	async function load() {
 		loading = true;
@@ -23,6 +26,7 @@
 			sources = await coalesce('admin-integration-sources', () => unwrap(api.GET('/api/admin/integrations/sources'))).then(sourcesSummary).catch(() => null);
 		} finally {
 			loading = false;
+			updatedAt = new Date();
 		}
 	}
 	const poller = createPoller(async () => (await load(), true), { interval: 30_000 });
@@ -53,5 +57,8 @@
 	{:else}
 		<span class="t-body-s inline-flex items-center gap-2 text-muted" role="status"><Loader size="2xs" />Проверяем…</span>
 	{/if}
-	<IconBtn icon={Refresh} label="Проверить сейчас" disabled={loading} onclick={load} class="ml-auto" />
+	<span class="ml-auto flex items-center gap-1">
+		{#if updatedAt}<span class="t-desc-l text-muted" data-testid="health-updated">Обновлено в {formatTime(updatedAt)}</span>{/if}
+		<IconBtn icon={Refresh} label="Обновить" disabled={loading} onclick={load} />
+	</span>
 </section>
