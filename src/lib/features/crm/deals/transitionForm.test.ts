@@ -182,7 +182,7 @@ describe('buildTransitionForm', () => {
 			deal: emptyDeal
 		});
 		expect(form.fields[0].input).toBe('date');
-		expect(form.fields[1]).toMatchObject({ input: 'text', expected: true, label: 'contact verified' });
+		expect(form.fields[1]).toMatchObject({ input: 'bool', expected: true, label: 'Контакт подтверждён' });
 	});
 
 	it('подпись ИЛИ вложение без права на файлы: подсказки вместо полей, отправка заблокирована', () => {

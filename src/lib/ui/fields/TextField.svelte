@@ -1,7 +1,8 @@
 <script lang="ts">
 	// The text field of a form: on a desktop the DS `m` field (36 px) with its label ABOVE the box, hint or error UNDER it; on a phone the `l` field (48 px, touch
 	// target) with the label inside. A DS field WITHOUT a `size` is `l` (48 px, label inside) — never use one in a form: it is taller than its neighbours.
-	// `bind:value` or `value` + `onInput`. Enter → `onEnter`.
+	// `bind:value` or `value` + `onInput`. Enter → `onEnter`. `transform` filters every keystroke and paste (digits only…) through the DS `transformationRule`:
+	// the cleaned text is written back into the <input> itself, so a rejected letter never stays on screen.
 	import { Input } from '@lct-testkit/rt-ui';
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import type { Snippet } from 'svelte';
@@ -31,6 +32,8 @@
 		iconSuffix?: Snippet;
 		onClickIconSuffix?: () => void;
 		class?: string;
+		/** cleans the typed / pasted text before it reaches the field (e.g. keep digits only) */
+		transform?: (raw: string) => string;
 		onInput?: (value: string) => void;
 		onEnter?: () => void;
 		onBlur?: () => void;
@@ -57,12 +60,14 @@
 		iconSuffix,
 		onClickIconSuffix,
 		class: className = '',
+		transform,
 		onInput,
 		onEnter,
 		onBlur
 	}: Props = $props();
 
 	const bp = useBreakpoint();
+	const transformationRule = $derived(transform ? { transform: (raw = '') => transform(raw) } : undefined);
 </script>
 
 <Input
@@ -86,6 +91,7 @@
 	{name}
 	{iconSuffix}
 	{onClickIconSuffix}
+	{transformationRule}
 	onChange={(e: Event) => {
 		value = (e.target as HTMLInputElement).value;
 		onInput?.(value);

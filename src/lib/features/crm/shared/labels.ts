@@ -109,6 +109,15 @@ export const DEAL_FIELD_LABELS: Record<string, string> = {
 	signature_status: 'Статус подписи'
 };
 
+/** Пользовательские поля, на которые ссылаются условия встроенных воронок (backend workflow/seed.py), когда своего определения поля в справочнике нет:
+ *  без словаря диалог перехода показывал код поля («contact verified»). */
+export const BUILTIN_CUSTOM_FIELD_LABELS: Record<string, string> = {
+	contact_verified: 'Контакт подтверждён',
+	payment_confirmed: 'Оплата подтверждена',
+	park_reason: 'Причина заморозки',
+	resume_at: 'Когда вернуться к сделке'
+};
+
 export const ATTACHMENT_CATEGORY_LABELS: Record<string, string> = {
 	contract: 'Договор',
 	presentation: 'Презентация',

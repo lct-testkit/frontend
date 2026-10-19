@@ -9,7 +9,7 @@
 // Белый список полей, которые бэкенд принимает через `fields` (crm/service.py `_TRANSITION_DIRECT_FIELDS`
 // + `custom_fields.*`), зашит здесь: остальное правится через PATCH до перехода.
 
-import { ATTACHMENT_CATEGORY_LABELS, DEAL_FIELD_LABELS } from '../shared/labels';
+import { ATTACHMENT_CATEGORY_LABELS, BUILTIN_CUSTOM_FIELD_LABELS, DEAL_FIELD_LABELS } from '../shared/labels';
 
 export interface ConditionLeaf {
 	field: string;
@@ -287,7 +287,7 @@ function customOptions(def: CustomFieldDefLike | undefined): Array<{ key: string
 	});
 }
 
-function inputFor(field: string, op: string, def: CustomFieldDefLike | undefined): FormFieldInput {
+function inputFor(field: string, op: string, def: CustomFieldDefLike | undefined, expected?: unknown): FormFieldInput {
 	if (field in DIRECT_FIELDS) return DIRECT_FIELDS[field];
 	switch (def?.field_type) {
 		case 'number':
@@ -305,7 +305,8 @@ function inputFor(field: string, op: string, def: CustomFieldDefLike | undefined
 		default:
 			break;
 	}
-	// Определения нет: угадываем по оператору и имени поля.
+	// Определения нет: угадываем по оператору, ожидаемому значению и имени поля.
+	if ((op === 'eq' || op === 'neq') && typeof expected === 'boolean') return 'bool';
 	if (op === 'date_before' || op === 'date_after' || /(_at|_date|date_)/.test(field)) return 'date';
 	if (op === 'gt' || op === 'gte' || op === 'lt' || op === 'lte') return 'number';
 	return 'text';
@@ -314,7 +315,10 @@ function inputFor(field: string, op: string, def: CustomFieldDefLike | undefined
 function labelFor(field: string, def: CustomFieldDefLike | undefined): string {
 	if (def) return def.label;
 	if (field in DEAL_FIELD_LABELS) return DEAL_FIELD_LABELS[field];
-	if (field.startsWith(CUSTOM_PREFIX)) return field.slice(CUSTOM_PREFIX.length).replace(/_/g, ' ');
+	if (field.startsWith(CUSTOM_PREFIX)) {
+		const code = field.slice(CUSTOM_PREFIX.length);
+		return BUILTIN_CUSTOM_FIELD_LABELS[code] ?? code.replace(/_/g, ' ');
+	}
 	return field;
 }
 
@@ -376,7 +380,7 @@ export function buildTransitionForm({ transition, conditionTree, targetStatus, d
 		fields.set(key, {
 			key,
 			label: labelFor(key, def),
-			input: inputFor(key, op, def),
+			input: inputFor(key, op, def, expected),
 			// поле из группы «одно из» не обязательно само по себе: хватит любого поля группы
 			required: source === 'required_field' || !alternatives.some((g) => g.includes(key)),
 			alternative: source === 'condition' && alternatives.some((g) => g.includes(key)) ? true : undefined,

@@ -47,6 +47,7 @@ export { default as FormSection } from './FormSection.svelte';
 export { default as TextField } from './fields/TextField.svelte';
 export { default as AreaField } from './fields/AreaField.svelte';
 export { default as NumberField } from './fields/NumberField.svelte';
+export { sanitizeNumber } from './fields/number-input';
 export { default as DateField } from './fields/DateField.svelte';
 export { default as RangeField } from './fields/RangeField.svelte';
 export { default as Pick, type PickItem } from './fields/Pick.svelte';
