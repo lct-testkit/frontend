@@ -24,7 +24,7 @@
 	import DealsBoard from './list/DealsBoard.svelte';
 	import { defaultCollapse } from './list/boardColumns';
 	import DealsTable from './list/DealsTable.svelte';
-	import { formatTabCount, loadTabCounts, tabQueries, type TabCounts, type TabKey } from './list/dealCounts';
+	import { formatTabCount, loadFlowCounts, loadTabCounts, tabQueries, type TabCounts, type TabKey } from './list/dealCounts';
 	import { activeCount, readFilters, sortToState, stateToSort, toQuery } from './list/dealFilters';
 	import { statusName, steps, terminals } from './statusUtils';
 	import NewDealDrawer from './new/NewDealDrawer.svelte';
@@ -89,14 +89,38 @@
 		if (f.view === 'table' && canRead) untrack(() => ((selected = []), void pager.reload()));
 	});
 
-	// доске нужна воронка: берём основную для выбранного типа
+	/** воронка, которую доска выбрала сама (её никто не выбирал): при возврате в таблицу она снимается, иначе таблица внезапно отфильтрована */
+	let autoFlow: string | null = null;
+	/** смена вида: таблица ↔ доска; автоматически выбранная доской воронка в таблицу не переходит */
+	function switchView(board: boolean) {
+		const dropFlow = !board && autoFlow !== null && f.workflow === autoFlow;
+		autoFlow = null;
+		setQuery({ view: board ? 'board' : null, ...(dropFlow ? { workflow: null, status: null } : {}) });
+	}
+
+	/** сколько сделок в каждой опубликованной воронке: число видно в выборе воронки, пустая доска предлагает воронки со сделками */
+	let flowCounts = $state<Record<string, number> | null>(null);
+	$effect(() => {
+		const list = workflows.published.value;
+		void countsTick;
+		if (!list?.length || !canRead) return;
+		const ctl = new AbortController();
+		void loadFlowCounts(list.map((w) => w.id), ctl.signal).then((c) => (flowCounts = c));
+		return () => ctl.abort();
+	});
+
+	// доске нужна воронка: основная для выбранного типа, а если в ней нет сделок — воронка этого типа, где их больше всего
 	$effect(() => {
 		if (f.view !== 'board' || f.workflow) return;
 		const list = workflows.published.value;
 		if (!list?.length) return;
 		const wanted = f.type || 'b2b';
 		const def = list.find((w) => w.is_default && w.deal_type === wanted) ?? list.find((w) => w.is_default) ?? list[0];
-		void setQuery({ workflow: def.id });
+		const counts = flowCounts;
+		if (!counts) return; // ждём числа: иначе доска откроет пустую основную воронку, хотя сделки лежат в другой
+		const fuller = list.filter((w) => w.deal_type === def.deal_type).sort((a, b) => (counts[b.id] ?? 0) - (counts[a.id] ?? 0))[0];
+		autoFlow = (counts[def.id] ?? 0) === 0 && fuller && (counts[fuller.id] ?? 0) > 0 ? fuller.id : def.id;
+		void setQuery({ workflow: autoFlow });
 	});
 
 	const set = (patch: Record<string, string | string[] | null>) => setQuery(patch);
@@ -111,7 +135,17 @@
 
 	const publishedList = $derived(workflows.published.value ?? []);
 	const boardFlowName = $derived(publishedList.find((w) => w.id === f.workflow)?.name ?? '…');
-	const flowItems = $derived(publishedList.map((w) => ({ key: w.id, value: w.name, hint: DEAL_TYPE_LABELS[w.deal_type] })));
+	const flowItems = $derived(
+		publishedList.map((w) => ({ key: w.id, value: w.name, hint: [DEAL_TYPE_LABELS[w.deal_type], flowCounts?.[w.id] !== undefined ? `сделок: ${flowCounts[w.id]}` : ''].filter(Boolean).join(' · ') }))
+	);
+	/** воронки, где сделки есть, — для пустой доски: «В этой воронке сделок нет, они есть в …» */
+	const fullerFlows = $derived(
+		publishedList
+			.filter((w) => w.id !== f.workflow && (flowCounts?.[w.id] ?? 0) > 0)
+			.sort((a, b) => (flowCounts?.[b.id] ?? 0) - (flowCounts?.[a.id] ?? 0))
+			.slice(0, 3)
+			.map((w) => ({ id: w.id, name: w.name, count: flowCounts?.[w.id] ?? 0 }))
+	);
 	const statusItems = $derived.by(() => {
 		const list = f.workflow ? publishedList.filter((w) => w.id === f.workflow) : f.type ? publishedList.filter((w) => w.deal_type === f.type) : publishedList;
 		return list.flatMap((w) =>
@@ -184,7 +218,7 @@
 
 <!-- «Обновить» и «Недавние» стоят в конце ряда фильтров: рядом с вкладками, которые теперь несут числа, им уже не хватает места -->
 {#snippet viewSwitch()}
-	<SegmentedControl value={f.view} size="m" onChange={(v) => setQuery({ view: v === 'board' ? 'board' : null })} aria-label="Вид списка">
+	<SegmentedControl value={f.view} size="m" onChange={(v) => switchView(v === 'board')} aria-label="Вид списка">
 		<Segment index="table" label={bp.isMobile ? undefined : 'Таблица'} icon={tableIcon} aria-label="Таблица" />
 		<Segment index="board" label={bp.isMobile ? undefined : 'Доска'} icon={boardIcon} aria-label="Доска" />
 	</SegmentedControl>
@@ -193,7 +227,7 @@
 {#snippet trailing()}
 	<!-- a phone: the header row belongs to the tabs (all five must be seen), so the view is one button in the filter row: it shows what a tap switches to -->
 	{#if bp.isMobile && canRead}
-		<IconBtn icon={f.view === 'board' ? Table : GridColumns3} label={f.view === 'board' ? 'Показать таблицей' : 'Показать доской'} variant="secondary" onclick={() => setQuery({ view: f.view === 'board' ? null : 'board' })} data-testid="view-toggle" />
+		<IconBtn icon={f.view === 'board' ? Table : GridColumns3} label={f.view === 'board' ? 'Показать таблицей' : 'Показать доской'} variant="secondary" onclick={() => switchView(f.view !== 'board')} data-testid="view-toggle" />
 	{/if}
 	{#if f.view === 'board' && f.workflow}
 		<IconBtn icon={collapse ? Unfold : Fold} label={collapse ? 'Показать пустые столбцы' : 'Свернуть пустые столбцы'} variant={collapse ? 'secondary' : 'ghost'} aria-pressed={collapse} onclick={() => (collapseChoice = !collapse)} data-testid="board-collapse" />
@@ -214,7 +248,7 @@
 	<OrgPicker label="Вуз" value={f.organization || null} onChange={(id) => set({ organization: id })} />
 	<Pick label="Направление" items={directionOpts} clearable search value={f.direction || null} placeholder="Все" onChange={setDirection} />
 	{#if f.view === 'board'}
-		<Pick label="Воронка" items={flowItems} clearable value={f.workflow || null} placeholder="Все" onChange={(v) => set({ workflow: v, status: null })} />
+		<Pick label="Воронка" items={flowItems} clearable value={f.workflow || null} placeholder="Все" onChange={(v) => ((autoFlow = null), set({ workflow: v, status: null }))} />
 	{:else}
 		<MultiPick label="Статус" items={statusItems} value={f.statuses} placeholder="Все" onChange={(v) => set({ status: v })} />
 	{/if}
@@ -222,7 +256,7 @@
 
 {#snippet more()}
 	{#if f.view === 'table'}
-		<Pick label="Воронка" items={flowItems} clearable value={f.workflow || null} placeholder="Все" onChange={(v) => set({ workflow: v, status: null })} />
+		<Pick label="Воронка" items={flowItems} clearable value={f.workflow || null} placeholder="Все" onChange={(v) => ((autoFlow = null), set({ workflow: v, status: null }))} />
 	{/if}
 	<Pick label="Продукт" items={productItems} clearable search value={f.product || null} placeholder="Все" onChange={(v) => set({ product: v })} />
 	{#if showOwner}
@@ -254,7 +288,7 @@
 		{#if f.view === 'board'}
 			{#if f.workflow}
 				<p class="t-desc-l m-0 -mt-1 text-muted">Доска показывает одну воронку — «{boardFlowName}», числа на вкладках считаются по ней. Другую выберите в фильтре «Воронка».</p>
-				<DealsBoard bind:this={board} workflowId={f.workflow} {query} {collapse} onChange={recount} filtered={filterCount > 0 || !!f.q || f.quick !== 'all'} onReset={() => setQuery({ q: null, quick: null, ...cleared, workflow: f.workflow })} onCreate={canCreate ? openCreate : undefined} />
+				<DealsBoard bind:this={board} workflowId={f.workflow} {query} {collapse} onChange={recount} filtered={filterCount > 0 || !!f.q || f.quick !== 'all'} onReset={() => setQuery({ q: null, quick: null, ...cleared, workflow: f.workflow })} onCreate={canCreate ? openCreate : undefined} flowName={boardFlowName} otherFlows={fullerFlows} onPickFlow={(id) => ((autoFlow = null), set({ workflow: id, status: null }))} />
 			{/if}
 		{:else}
 			<DealsTable
