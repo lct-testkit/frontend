@@ -313,6 +313,7 @@
 <BulkReassignModal
 	open={bulkOpen}
 	dealIds={selected}
+	ownerIds={pager.items.filter((d) => selected.includes(d.id)).map((d) => d.owner_id)}
 	onClose={() => (bulkOpen = false)}
 	onDone={() => {
 		bulkOpen = false;
