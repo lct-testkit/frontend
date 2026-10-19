@@ -189,7 +189,7 @@ export function maskDigits(key: string, raw: string): string {
 }
 
 /** «Серия паспорта: 4 цифры»; `null` — поле пустое (необязательное) или цифр хватает. */
-export function digitsError(key: string, value: string): string | null {
+function digitsError(key: string, value: string): string | null {
 	const spec = DIGIT_FIELDS[key];
 	const digits = value.replace(/\D/g, '');
 	if (!spec || !digits) return null;

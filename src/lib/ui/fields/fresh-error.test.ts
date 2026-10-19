@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nextSnap, visibleError } from './fresh-error.svelte';
+import { nextSnap, visibleError } from './fresh-error';
 
 describe('сообщение под полем живёт, пока значение то, для которого оно появилось', () => {
 	it('показывается, пока значение не менялось, и уходит после правки', () => {

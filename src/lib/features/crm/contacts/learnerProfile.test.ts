@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DATE_KEYS, LEARNER_SECTIONS, digitFieldWidth, digitsError, displayValue, fieldRows, filledFields, isDigitField, maskDigits, validateProfileValues } from './learnerProfile';
+import { DATE_KEYS, LEARNER_SECTIONS, digitFieldWidth, displayValue, fieldRows, filledFields, isDigitField, maskDigits, validateProfileValues } from './learnerProfile';
 
 describe('профиль учащегося', () => {
 	it('пол показывается словами', () => {
@@ -82,11 +82,11 @@ describe('ввод цифровых полей анкеты (LP-1)', () => {
 		expect(digitFieldWidth('reg_city')).toBeUndefined();
 	});
 	it('ошибка длины под полем; пустое поле — не ошибка', () => {
-		expect(digitsError('passport_series', '45')).toBe('Серия паспорта: 4 цифры');
-		expect(digitsError('passport_number', '12345')).toBe('Номер паспорта: 6 цифр');
-		expect(digitsError('snils', '123-456-789')).toBe('СНИЛС: 11 цифр');
-		expect(digitsError('snils', '')).toBeNull();
-		expect(digitsError('snils', '123-456-789 01')).toBeNull();
+		expect(validateProfileValues({ passport_series: '45' }).passport_series).toBe('Серия паспорта: 4 цифры');
+		expect(validateProfileValues({ passport_number: '12345' }).passport_number).toBe('Номер паспорта: 6 цифр');
+		expect(validateProfileValues({ snils: '123-456-789' }).snils).toBe('СНИЛС: 11 цифр');
+		expect(validateProfileValues({ snils: '' }).snils).toBeUndefined();
+		expect(validateProfileValues({ snils: '123-456-789 01' }).snils).toBeUndefined();
 		expect(validateProfileValues({ passport_series: '45', reg_zip: '420111', reg_city: 'Казань' })).toEqual({ passport_series: 'Серия паспорта: 4 цифры' });
 	});
 	it('даты — календарь, цифровые — не даты', () => {
