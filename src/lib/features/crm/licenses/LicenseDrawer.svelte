@@ -10,8 +10,8 @@
 	import DateField from '$lib/ui/fields/DateField.svelte';
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
+	import RadioField from '$lib/ui/fields/RadioField.svelte';
 	import TextField from '$lib/ui/fields/TextField.svelte';
-	import Toggle from '$lib/ui/fields/Toggle.svelte';
 	import { toFormFailure } from '$lib/features/config/shared/form-errors';
 	import OrgPicker from '../shared/pickers/OrgPicker.svelte';
 	import { TRANSFER_STATUS_LABELS } from '../shared/labels';
@@ -20,7 +20,7 @@
 	import { softwareOf } from './licenseCatalog';
 	import { softwareCatalog, vendorsOf } from './licenseCatalog.svelte';
 	import { getLicense } from './licenseApi';
-	import { EMPTY_VALUES, MAX_LEN, TERM_YEARS, isChanged, toCreateBody, toPatchBody, validateLicense, valuesFrom, type LicenseErrors, type LicenseValues } from './licenseForm';
+	import { EMPTY_VALUES, MAX_LEN, TERM_MODES, TERM_YEARS, isChanged, termModeOf, toCreateBody, toPatchBody, validateLicense, valuesFrom, withTermMode, type LicenseErrors, type LicenseValues, type TermMode } from './licenseForm';
 	import SuggestField from './SuggestField.svelte';
 
 	interface Props {
@@ -49,6 +49,12 @@
 	const canReveal = $derived(session.can('contact:reveal'));
 	const isNew = $derived(item === null);
 	const readOnly = $derived(isNew ? !access.create : !access.edit);
+	// the term is one of four ways, chosen first: the fields of the other ways are cleared, so «бессрочная» + a date cannot be filled together
+	let termMode = $state<TermMode>('none');
+	const setTermMode = (mode: string) => {
+		termMode = mode as TermMode;
+		v = withTermMode(v, termMode);
+	};
 	const maskedHint = 'Скрыто правами доступа к персональным данным';
 	const piiLocked = $derived(!isNew && !canReveal);
 
@@ -60,6 +66,7 @@
 		if (!open) return;
 		untrack(() => {
 			v = valuesFrom(item, orgId);
+			termMode = termModeOf(v);
 			version = item?.version ?? 0;
 			errors = {};
 			formError = null;
@@ -159,14 +166,11 @@
 		<Pick label="Подписание лицензии" items={signedItems} clearable value={v.signedState || null} placeholder="Не задано" disabled={readOnly} onChange={(s) => (v.signedState = (s ?? '') as LicenseValues['signedState'])} />
 		<DateField label="Дата подписания" bind:value={v.signedAt} error={errors.license_signed_at} disabled={readOnly} />
 	</FormRow>
-	<Toggle label="Бессрочная" bind:checked={v.perpetual} disabled={readOnly} />
-	{#if !v.perpetual}
-		<FormRow>
-			<DateField label="Действует до" bind:value={v.validUntil} error={errors.license_valid_until} hint="Последний день действия лицензии" disabled={readOnly} />
-			<NumberField label="Срок, лет" bind:value={v.termYears} integer min={TERM_YEARS.min} max={TERM_YEARS.max} error={errors.license_term_years} hint="Если в договоре срок в годах, а не дата окончания" disabled={readOnly} />
-		</FormRow>
-	{:else if errors.license_valid_until}
-		<p class="m-0 text-sm text-danger">{errors.license_valid_until}</p>
+	<RadioField label="Срок действия" columns={2} items={TERM_MODES.map((m) => ({ key: m.key, label: m.label }))} value={termMode} disabled={readOnly} onChange={setTermMode} />
+	{#if termMode === 'until'}
+		<DateField label="Действует до" bind:value={v.validUntil} error={errors.license_valid_until} hint="Последний день действия лицензии" disabled={readOnly} />
+	{:else if termMode === 'years'}
+		<NumberField label="Срок, лет" bind:value={v.termYears} integer min={TERM_YEARS.min} max={TERM_YEARS.max} error={errors.license_term_years} hint="Срок из договора; дата окончания не указывается" disabled={readOnly} />
 	{/if}
 	<TextField label="ФИО менеджера" bind:value={v.manager} error={errors.manager_full_name} maxlength={MAX_LEN.manager} disabled={readOnly || piiLocked} hint={piiLocked ? maskedHint : undefined} />
 	<AreaField label="Ответственные от вуза" bind:value={v.responsible} disabled={readOnly || piiLocked} hint={piiLocked ? maskedHint : undefined} />

@@ -42,6 +42,34 @@ export const EMPTY_VALUES: LicenseValues = {
 	comment: ''
 };
 
+/** «Срок» лицензии — один из способов, а не три поля, которые можно заполнить вместе: не указан, до даты, в годах или бессрочная. */
+export type TermMode = 'none' | 'until' | 'years' | 'perpetual';
+
+export const TERM_MODES: readonly { key: TermMode; label: string }[] = [
+	{ key: 'none', label: 'Не указан' },
+	{ key: 'until', label: 'До даты' },
+	{ key: 'years', label: 'В годах' },
+	{ key: 'perpetual', label: 'Бессрочная' }
+];
+
+/** Какой способ уже выбран значениями (бессрочная важнее даты, дата — важнее срока в годах: так читает карточка). */
+export function termModeOf(v: Pick<LicenseValues, 'perpetual' | 'validUntil' | 'termYears'>): TermMode {
+	if (v.perpetual) return 'perpetual';
+	if (v.validUntil) return 'until';
+	if (v.termYears !== null) return 'years';
+	return 'none';
+}
+
+/** Значения при смене способа: всё, что к новому способу не относится, очищается — противоречивых сочетаний не остаётся. */
+export function withTermMode(v: LicenseValues, mode: TermMode): LicenseValues {
+	return {
+		...v,
+		perpetual: mode === 'perpetual',
+		validUntil: mode === 'until' ? v.validUntil : null,
+		termYears: mode === 'years' ? v.termYears : null
+	};
+}
+
 export const MAX_LEN = { vendor: 255, product: 255, contract: 128, manager: 255 } as const;
 export const TERM_YEARS = { min: 1, max: 50 } as const;
 

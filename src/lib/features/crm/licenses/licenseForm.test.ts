@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_VALUES, isChanged, toCreateBody, toPatchBody, validateLicense, valuesFrom, type LicenseValues } from './licenseForm';
+import { EMPTY_VALUES, isChanged, termModeOf, toCreateBody, toPatchBody, validateLicense, valuesFrom, withTermMode, type LicenseValues } from './licenseForm';
 import { makeLicense } from './testing';
 
 const ORG = '01a14ec0-0000-7000-8000-000000000001';
@@ -113,5 +113,30 @@ describe('valuesFrom', () => {
 		expect(valuesFrom(makeLicense({ is_signed: null, license_signed_at: '2025-01-01' })).signedState).toBe('yes');
 		expect(valuesFrom(makeLicense({ is_signed: false, license_signed_at: null })).signedState).toBe('no');
 		expect(valuesFrom(makeLicense({ is_signed: null, license_signed_at: null })).signedState).toBe('');
+	});
+});
+
+describe('срок лицензии — один способ (L-6)', () => {
+	const v = (over: Partial<LicenseValues> = {}): LicenseValues => ({ ...EMPTY_VALUES, ...over });
+	it('способ определяется значениями: бессрочная, дата, годы, не указан', () => {
+		expect(termModeOf(v())).toBe('none');
+		expect(termModeOf(v({ perpetual: true }))).toBe('perpetual');
+		expect(termModeOf(v({ validUntil: '2027-05-01' }))).toBe('until');
+		expect(termModeOf(v({ termYears: 3 }))).toBe('years');
+		expect(termModeOf(v({ validUntil: '2027-05-01', termYears: 3 }))).toBe('until');
+		expect(termModeOf(v({ perpetual: true, validUntil: '2027-05-01' }))).toBe('perpetual');
+	});
+	it('смена способа очищает чужие поля — противоречия не остаётся', () => {
+		const start = v({ validUntil: '2027-05-01', termYears: 3 });
+		expect(withTermMode(start, 'years')).toMatchObject({ perpetual: false, validUntil: null, termYears: 3 });
+		expect(withTermMode(start, 'until')).toMatchObject({ perpetual: false, validUntil: '2027-05-01', termYears: null });
+		expect(withTermMode(start, 'perpetual')).toMatchObject({ perpetual: true, validUntil: null, termYears: null });
+		expect(withTermMode(start, 'none')).toMatchObject({ perpetual: false, validUntil: null, termYears: null });
+	});
+	it('результат любого способа проходит проверку «бессрочная + дата»', () => {
+		for (const mode of ['none', 'until', 'years', 'perpetual'] as const) {
+			const next = withTermMode(v({ vendor: 'А', product: 'Б', orgId: ORG, perpetual: true, validUntil: '2027-05-01', termYears: 3 }), mode);
+			expect(validateLicense(next, { isNew: true }).license_valid_until, mode).toBeUndefined();
+		}
 	});
 });
