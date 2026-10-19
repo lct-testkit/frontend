@@ -64,6 +64,6 @@
 	<TextField label="Номер или ссылка подачи" required bind:value={reference} error={errors.reference} maxlength={255} placeholder="Номер обращения на портале РКН" autofocus />
 	<div class="grid grid-cols-[minmax(0,1fr)_120px] items-start gap-3 max-md:grid-cols-1">
 		<DateField label="Когда подано" required bind:value={date} error={errors.sent} maxDate={new Date()} />
-		<TextField label="Время" required bind:value={time} placeholder="ЧЧ:ММ" maxlength={5} inputmode="numeric" />
+		<TextField label="Время" required bind:value={time} placeholder="ЧЧ:ММ" maxlength={5} inputmode="numeric" transform={(v) => v.replace(/[^0-9:]/g, '')} />
 	</div>
 </FormModal>

@@ -82,7 +82,7 @@
 	<Notice class="shrink-0" tone="warning">После подтверждения начинается отсчёт: 24 часа на уведомление РКН и 72 часа на итоги расследования. Сроки считаются от времени выявления.</Notice>
 	<div class="grid grid-cols-[minmax(0,1fr)_120px] items-start gap-3 max-md:grid-cols-1">
 		<DateField label="Когда выявили" required bind:value={date} error={errors.detected} maxDate={new Date()} />
-		<TextField label="Время" required bind:value={time} placeholder="ЧЧ:ММ" maxlength={5} inputmode="numeric" />
+		<TextField label="Время" required bind:value={time} placeholder="ЧЧ:ММ" maxlength={5} inputmode="numeric" transform={(v) => v.replace(/[^0-9:]/g, '')} />
 	</div>
 	<UserPicker label="Ответственный" value={responsible} roles={['ADMIN', 'HEAD']} onChange={(id) => (responsible = id)} hint="Кто ведёт расследование и подаёт уведомление" />
 	<MultiPick label="Какие данные затронуты" bind:value={categories} items={[...DATA_CATEGORIES, ...extra].map((c) => ({ key: c, value: c }))} placeholder="Пока неизвестно" error={errors.data_categories} />

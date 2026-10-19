@@ -65,7 +65,7 @@
 	{#if !category}
 		<Pick label="Категория" items={categoryItems} value={picked} onChange={(v) => v && (picked = v)} />
 	{/if}
-	<FileDrop {queue} {onPick} compact label="Выбрать файл" testid={`${testid}-drop`} hint={category ? undefined : 'файл останется во вкладке «Файлы»'} />
+	<FileDrop {queue} {onPick} compact label="Выбрать файл" testid={`${testid}-drop`} hint={category ? undefined : 'сохранится в сделке, во вкладке «Файлы»'} />
 	{#if mine.length}
 		<ul class="m-0 flex list-none flex-col gap-1 p-0" data-testid={`${testid}-list`}>
 			{#each mine as file (file.attachmentId)}

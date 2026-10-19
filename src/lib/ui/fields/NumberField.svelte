@@ -1,8 +1,9 @@
 <script lang="ts">
-	// The number or amount field of a form: `bind:value` or `value` + `onChange` (number | null). Keeps digits, «,» / «.» and «−» (only digits for `integer`);
-	// an empty field is null. `min` / `max` become the hint «От 1 до 36» when there is no hint of its own.
+	// The number or amount field of a form: `bind:value` or `value` + `onChange` (number | null). Letters never get in: every keystroke and paste is cleaned to
+	// digits, one «,» / «.» (none for `integer`) and a leading minus (only when `min` allows a negative number); an empty field is null. `min` / `max` become the hint «От 1 до 36» when there is no hint of its own.
 	import { untrack } from 'svelte';
 	import TextField from './TextField.svelte';
+	import { sanitizeNumber } from './number-input';
 
 	interface Props {
 		value?: number | null;
@@ -40,8 +41,10 @@
 		return Number.isFinite(n) ? n : null;
 	}
 
+	const sanitize = (raw: string) => sanitizeNumber(raw, { integer, negative: min === undefined || min < 0 });
+
 	function input(raw: string) {
-		const cleaned = raw.replace(integer ? /[^0-9-]/g : /[^0-9.,-]/g, '');
+		const cleaned = sanitize(raw);
 		text = cleaned;
 		let n = parse(cleaned);
 		if (n !== null && integer) n = Math.trunc(n);
@@ -52,4 +55,4 @@
 	const hintText = $derived(hint ?? (min !== undefined && max !== undefined ? `От ${min} до ${max}` : undefined));
 </script>
 
-<TextField class={className} value={text} {label} {placeholder} {error} hint={hintText} {disabled} {required} {autofocus} {onEnter} inputmode={integer ? 'numeric' : 'decimal'} onInput={input} />
+<TextField class={className} value={text} {label} {placeholder} {error} hint={hintText} {disabled} {required} {autofocus} {onEnter} inputmode={integer ? 'numeric' : 'decimal'} transform={sanitize} onInput={input} />

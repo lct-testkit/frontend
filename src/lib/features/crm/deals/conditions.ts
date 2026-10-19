@@ -1,6 +1,6 @@
 // Человекочитаемые условия переходов для чек-листа диалога (значения приходят из `available-transitions` и `extra.unmet`).
 import { formatDate, formatMoney, formatNumber } from '$lib/utils/format';
-import { ATTACHMENT_CATEGORY_LABELS, DEAL_FIELD_LABELS, PRIORITY_LABELS, SIGNATURE_STATUS_LABELS } from '../shared/labels';
+import { ATTACHMENT_CATEGORY_LABELS, BUILTIN_CUSTOM_FIELD_LABELS, DEAL_FIELD_LABELS, PRIORITY_LABELS, SIGNATURE_STATUS_LABELS } from '../shared/labels';
 import type { CustomFieldDef } from '../types';
 
 export interface ConditionLike {
@@ -17,7 +17,7 @@ const CUSTOM = 'custom_fields.';
 export function fieldLabel(field: string, defs: CustomFieldDef[] = []): string {
 	if (field.startsWith(CUSTOM)) {
 		const code = field.slice(CUSTOM.length);
-		return defs.find((d) => d.code === code)?.label ?? code.replace(/_/g, ' ');
+		return defs.find((d) => d.code === code)?.label ?? BUILTIN_CUSTOM_FIELD_LABELS[code] ?? code.replace(/_/g, ' ');
 	}
 	if (field.startsWith('step_attachments.')) {
 		const category = field.slice('step_attachments.'.length);
@@ -63,6 +63,12 @@ export function describeCondition(leaf: ConditionLike, defs: CustomFieldDef[] = 
 			if (leaf.field.startsWith('step_attachments.')) return `Приложен ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
 			return leaf.field.startsWith('attachments.') ? `Прикреплён ${label.charAt(0).toLowerCase()}${label.slice(1)}` : `${label}: есть`;
 		case 'eq':
+			// флажок «да/нет»: выполненное — само утверждение («Контакт подтверждён»), невыполненное — просьба отметить поле ниже
+			if (typeof expected === 'boolean') {
+				const lower = `${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+				if (leaf.satisfied === false) return expected ? `Отметьте «${label}» — флажок ниже` : `Снимите отметку «${label}»`;
+				return expected ? label : `Не ${lower}`;
+			}
 			return `${label}: ${formatValue(leaf.field, expected)}`;
 		case 'neq':
 			return `${label}: не ${formatValue(leaf.field, expected)}`;
@@ -93,5 +99,7 @@ export function describeCondition(leaf: ConditionLike, defs: CustomFieldDef[] = 
 export function currentText(leaf: ConditionLike): string {
 	if (leaf.satisfied) return '';
 	if (leaf.op === 'not_null' || leaf.op === 'exists') return '';
+	// у флажка «сейчас: не указано» ничего не добавляет к просьбе «Отметьте …»
+	if (typeof leaf.expected === 'boolean') return '';
 	return `сейчас: ${formatValue(leaf.field, leaf.actual)}`;
 }
