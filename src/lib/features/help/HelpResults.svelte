@@ -22,7 +22,7 @@
 		{#each results as r (r.slug)}
 			<li class="border-b border-line py-3 first:pt-0 last:border-b-0 last:pb-0">
 				<a href={`?s=${r.slug}${r.anchor ? `#${r.anchor}` : ''}`} class="flex flex-col gap-1 no-underline hover:no-underline" data-testid="help-result">
-					<span class="t-body-m-strong text-fg">{r.title}</span>
+					<span class="t-body-m-strong text-fg">{r.title}{#if r.heading}<span class="font-normal text-muted"> › {r.heading}</span>{/if}</span>
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -- the snippet is built by search.ts: the text is escaped, then the found words are wrapped in <mark> -->
 					<span class="t-body-m text-muted [&_mark]:rounded-sm [&_mark]:bg-accent-soft [&_mark]:text-fg">{@html r.snippet}</span>
 				</a>

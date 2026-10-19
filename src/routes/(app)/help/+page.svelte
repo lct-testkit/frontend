@@ -78,8 +78,12 @@
 		const hash = page.url.hash.slice(1);
 		void tick().then(() => {
 			const target = hash ? document.getElementById(hash) : null;
-			if (target) target.scrollIntoView({ block: 'start' });
-			else scroller()?.scrollTo({ top: 0 });
+			if (target) {
+				target.scrollIntoView({ block: 'start' });
+				// глава короче окна — раздел остаётся ниже верха экрана: подсвечиваем заголовок, чтобы глаз сразу нашёл, куда привела ссылка
+				target.classList.add('bg-accent-soft', 'rounded-sm', 'transition-colors', 'duration-700');
+				setTimeout(() => target.classList.remove('bg-accent-soft'), 2400);
+			} else scroller()?.scrollTo({ top: 0 });
 			activeId = hash || toc[0]?.id || null;
 		});
 	});
