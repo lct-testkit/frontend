@@ -6,6 +6,7 @@
 	import { onMount } from 'svelte';
 	import { Checkbox, Switch } from '@lct-testkit/rt-ui';
 	import { api, unwrap } from '$lib/api';
+	import { session } from '$lib/auth/session.svelte';
 	import { Btn, ErrorState, Notice, Page, PageHeader, Skeleton, toast } from '$lib/ui';
 	import Card from '$lib/ui/Card.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
@@ -82,6 +83,7 @@
 		const map = new Map<EventGroup, { info: EventCodeInfo; row: Row }[]>();
 		for (const row of rows) {
 			const info = eventCodeInfo(row.code);
+			if (info.needs && !session.can(info.needs)) continue;
 			map.set(info.group, [...(map.get(info.group) ?? []), { info, row }]);
 		}
 		return (['deals', 'organizations', 'signing', 'account', 'other'] as EventGroup[]).filter((g) => map.has(g)).map((g) => ({ group: g, list: map.get(g)! }));

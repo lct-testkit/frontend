@@ -9,7 +9,7 @@ const BACKEND_CODES = [
 	'ORG_OWNER_ASSIGNED', 'ORG_OWNER_REMOVED', 'ORG_REQUISITES_DRIFT_DETECTED', 'SIGNATURE_AUTO_ADVANCED', 'SIGNATURE_DEADLINE_REMINDER',
 	'SIGNATURE_DOCUMENT_EXPIRED', 'SIGNATURE_DOCUMENT_REJECTED', 'SIGNATURE_DOCUMENT_SIGNED', 'SIGNATURE_OTP_LOCKED',
 	'SIGNATURE_REMINDER_MANUAL', 'SIGNATURE_REQUESTED', 'USER_ACCOUNT_BLOCKED', 'USER_ACCOUNT_UNBLOCKED', 'USER_INVITE_EXPIRED',
-	'USER_OFFBOARD_SUCCESSOR', 'USER_PASSWORD_CHANGED', 'USER_PASSWORD_RESET', 'USER_ROLE_CHANGED'
+	'SECURITY_INCIDENT_CANDIDATE', 'SECURITY_INCIDENT_DEADLINE', 'USER_OFFBOARD_SUCCESSOR', 'USER_PASSWORD_CHANGED', 'USER_PASSWORD_RESET', 'USER_ROLE_CHANGED'
 ];
 
 describe('eventCodeInfo', () => {
@@ -17,6 +17,12 @@ describe('eventCodeInfo', () => {
 		const info = eventCodeInfo(code);
 		expect(info.label).not.toBe(code);
 		expect(info.group).not.toBe('other');
+	});
+
+	it('события об инцидентах безопасности приходят только тем, у кого есть право на инциденты: у остальных строки скрыты', () => {
+		expect(eventCodeInfo('SECURITY_INCIDENT_CANDIDATE').needs).toBe('incident:manage');
+		expect(eventCodeInfo('SECURITY_INCIDENT_DEADLINE').needs).toBe('incident:manage');
+		expect(eventCodeInfo('DEAL_EVENT').needs).toBeUndefined();
 	});
 
 	it('неизвестный код показывается как есть', () => {
