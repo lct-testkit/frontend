@@ -62,7 +62,7 @@
 		{ key: 'attempts', title: 'Попыток', align: 'right', drop: 2, render: attemptsCell },
 		{ key: 'when', title: 'Создано', render: whenCell },
 		{ key: 'err', title: 'Ошибка', width: 'minmax(180px, 1.4fr)', drop: 1, render: errorCell },
-		{ key: 'act', title: '', width: 128, align: 'right', render: actionCell }
+		{ key: 'act', title: '', width: 152, align: 'right', render: actionCell }
 	];
 </script>
 
@@ -102,6 +102,6 @@
 {/snippet}
 {#snippet trailing()}<IconBtn icon={Refresh} label="Обновить" onclick={() => list.reload()} />{/snippet}
 
-<Notice class="shrink-0" tone="info">Журнал сообщений, которые система отправляет во внешние системы. События здесь не редактируются; если доставка не удалась, устраните причину и нажмите «Повторить доставку».</Notice>
+<Notice class="shrink-0" tone="info">Журнал сообщений, которые система отправляет во внешние системы. События здесь не редактируются; если доставка не удалась, устраните причину и нажмите «Повторить» в строке события.</Notice>
 <FilterBar active={status ? 1 : 0} onReset={() => setQuery({ status: null })} {filters} {trailing} />
 <CatalogList rows={list.items} {columns} {card} loading={list.loading} error={list.error} onRetry={() => list.reload()} filtered={Boolean(status)} hasMore={list.hasMore} loadingMore={list.loadingMore} onLoadMore={() => list.loadMore()} emptyText="Исходящих событий нет" ariaLabel="Исходящие события" />
