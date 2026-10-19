@@ -3,27 +3,35 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { Loader } from '@lct-testkit/rt-ui';
 	import { Refresh } from '@lct-testkit/rt-ui/icons';
-	import { IconBtn, StatusChip } from '$lib/ui';
+	import { Btn, IconBtn, StatusChip } from '$lib/ui';
 	import { formatTime } from '$lib/utils/format';
 	import { HEALTH_DEPENDENCY_LABELS, HEALTH_STATUSES, labelOf } from '../labels';
 	import type { HealthReport } from '../types';
 	import { createPoller } from '../shared/polling.svelte';
 	import { api, unwrap } from '$lib/api';
 	import { coalesce } from '$lib/api/coalesce';
+	import { SourceChecks } from './check.svelte';
 	import { fetchHealth, healthTone } from './health';
 	import { sourcesSummary, type SourcesSummary } from './sourceState';
 
 	let report = $state<HealthReport | null>(null);
 	let loading = $state(true);
 	let sources = $state<SourcesSummary | null>(null);
-	/** когда плашка получила данные в последний раз: кнопка перечитывает состояние, а не проверяет каждую внешнюю систему (такой ручки у бэкенда нет) */
+	let sourceList = $state<{ code: string; name: string; is_active: boolean; last_error: string | null }[]>([]);
+	const checks = new SourceChecks();
+	const hasActive = $derived(sourceList.some((s) => s.is_active));
+	/** когда плашка получила данные в последний раз («Обновить» перечитывает состояние; живая проверка внешних систем — «Проверить сейчас») */
 	let updatedAt = $state<Date | null>(null);
 
 	async function load() {
 		loading = true;
 		try {
 			report = await fetchHealth();
-			sources = await coalesce('admin-integration-sources', () => unwrap(api.GET('/api/admin/integrations/sources'))).then(sourcesSummary).catch(() => null);
+			const list = await coalesce('admin-integration-sources', () => unwrap(api.GET('/api/admin/integrations/sources'))).catch(() => null);
+			sourceList = list ?? [];
+			sources = list ? sourcesSummary(list) : null;
+			// включили или выключили источник — прежний итог проверки уже не про них
+			if (checks.summary && !sourceList.some((s) => s.is_active)) checks.clear();
 		} finally {
 			loading = false;
 			updatedAt = new Date();
@@ -57,8 +65,18 @@
 	{:else}
 		<span class="t-body-s inline-flex items-center gap-2 text-muted" role="status"><Loader size="2xs" />Проверяем…</span>
 	{/if}
-	<span class="ml-auto flex items-center gap-1">
+	<span class="ml-auto flex items-center gap-2">
 		{#if updatedAt}<span class="t-desc-l text-muted" data-testid="health-updated">Обновлено в {formatTime(updatedAt)}</span>{/if}
 		<IconBtn icon={Refresh} label="Обновить" disabled={loading} onclick={load} />
+		{#if hasActive}<Btn label="Проверить сейчас" variant="outline" colorScheme="neutral" size="s" loading={checks.running} onclick={() => checks.run(sourceList)} data-testid="check-sources" />{/if}
 	</span>
+	{#if checks.summary}
+		<!-- итог живой проверки: кто из включённых источников ответил; у неответивших — причина (бэкенд отдаёт её по-русски) -->
+		<div class="flex basis-full flex-col gap-1" data-testid="check-result" role="status">
+			<span class="flex flex-wrap items-center gap-2"><StatusChip label={checks.summary.text} tone={checks.summary.allOk ? 'success' : 'error'} /></span>
+			{#each checks.summary.failed as r (r.code)}
+				<span class="t-desc-l text-danger"><span class="font-medium">{r.name}:</span> {r.message}</span>
+			{/each}
+		</div>
+	{/if}
 </section>
