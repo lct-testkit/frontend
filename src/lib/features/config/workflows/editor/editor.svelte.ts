@@ -61,6 +61,8 @@ export class WorkflowEditor {
 	conflict = $state(false);
 	selection = $state<Selection | null>(null);
 	serverIssues = $state.raw<GraphIssue[]>([]);
+	/** последняя проверка на сервере не состоялась (сеть, 5xx): старое «Замечаний нет» после неё вводило бы в заблуждение (W-3) */
+	serverCheckFailed = $state(false);
 	customFields = $state.raw<CustomFieldDef[]>([]);
 	/** запрос «показать узел / ребро на холсте» (клик по проблеме); `n` меняется на каждый запрос */
 	focus = $state<{ keys: string[]; n: number } | null>(null);
@@ -149,6 +151,7 @@ export class WorkflowEditor {
 		this.positions = positions;
 		this.#baseline = payloadKey(draft);
 		this.serverIssues = [];
+		this.serverCheckFailed = false;
 		this.selection = selection;
 		this.persistPositions();
 	}
@@ -157,6 +160,7 @@ export class WorkflowEditor {
 
 	private commit(next: GraphDraft): void {
 		this.draft = next;
+		this.serverCheckFailed = false;
 		if (this.serverIssues.length) this.serverIssues = [];
 	}
 
@@ -395,11 +399,14 @@ export class WorkflowEditor {
 	/** Проверка сохранённого графа на сервере (пишет запись аудита — только по кнопке и перед публикацией). */
 	async validateOnServer(): Promise<{ ok: boolean; warnings: string[] } | null> {
 		this.validating = true;
+		this.serverCheckFailed = false;
 		try {
 			const res = await unwrap(api.POST('/api/workflows/{workflow_id}/validate', { params: { path: { workflow_id: this.id } } }));
 			this.serverIssues = parseServerIssues(res, this.draft, this.clientIssues);
 			return { ok: res.ok, warnings: res.warnings ?? [] };
 		} catch (e) {
+			this.serverIssues = [];
+			this.serverCheckFailed = true;
 			toast.error(e, 'Не удалось проверить воронку');
 			return null;
 		} finally {

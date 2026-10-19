@@ -101,7 +101,8 @@
 		nodesDraggable={editable}
 		nodesConnectable={editable}
 		elementsSelectable
-		deleteKey={null}
+		nodesDeletable={false}
+		edgesDeletable={false}
 		defaultMarkerColor={null}
 		defaultEdgeOptions={{ markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 } }}
 		isValidConnection={valid}
