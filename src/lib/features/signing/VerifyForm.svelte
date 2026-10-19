@@ -22,6 +22,10 @@
 
 	function submit() {
 		const id = value.trim();
+		if (!id) {
+			error = 'Введите идентификатор подписи';
+			return;
+		}
 		if (!isUuid(id)) {
 			error = 'Идентификатор выглядит так: 0192a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b';
 			return;
@@ -54,6 +58,7 @@
 <section class="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5 max-md:p-4">
 	<h1 class="t-h3 m-0">Проверка подписи</h1>
 	<form
+		novalidate
 		class="flex flex-col gap-3"
 		onsubmit={(e) => {
 			e.preventDefault();
