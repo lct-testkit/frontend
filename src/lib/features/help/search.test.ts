@@ -22,6 +22,12 @@ describe('searchChapters', () => {
 		expect(r[1].anchor).toBe('h-smena-parolya');
 	});
 
+	it('результат несёт название раздела — «хлебную крошку» под названием главы (QA2 Н20)', () => {
+		const r = searchChapters(CHAPTERS, TEXTS, 'пароль');
+		expect(r.find((x) => x.slug === 'security')?.heading).toBe('Смена пароля');
+		expect(r.find((x) => x.slug === 'profile')?.heading).toBeNull();
+	});
+
 	it('слово находит свои формы: пароль → пароля', () => {
 		const texts = { ...TEXTS, profile: '# Профиль\n\nСмена пароля.' };
 		expect(searchChapters(CHAPTERS, texts, 'пароль').map((r) => r.slug)).toContain('profile');

@@ -9,6 +9,8 @@ export interface SearchResult {
 	title: string;
 	/** `h-…` лучшего раздела или `null` — начало главы */
 	anchor: string | null;
+	/** название раздела, на который ведёт ссылка («хлебная крошка» под названием главы); `null` — начало главы */
+	heading: string | null;
 	/** безопасный HTML: текст экранирован, найденные слова в `<mark>` */
 	snippet: string;
 	score: number;
@@ -149,7 +151,7 @@ export function searchChapters(chapters: Chapter[], texts: Record<string, string
 		// все слова в названии главы — открываем её с начала; иначе — на лучшем разделе
 		const titleHit = words.every((w) => title.includes(w));
 		const text = best && !titleHit ? [best.section.heading, best.section.body].filter(Boolean).join('. ') : (sections.find((s) => s.body)?.body ?? chapter.title);
-		out.push({ slug: chapter.slug, title: chapter.title, anchor: titleHit ? null : (best?.section.anchor ?? null), snippet: makeSnippet(text, words), score });
+		out.push({ slug: chapter.slug, title: chapter.title, anchor: titleHit ? null : (best?.section.anchor ?? null), heading: titleHit ? null : (best?.section.heading ?? null), snippet: makeSnippet(text, words), score });
 	}
 	return out.sort((a, b) => b.score - a.score);
 }
