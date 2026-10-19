@@ -3,6 +3,7 @@
 	// плюс шаблон для скачивания (xlsx и xls с сервера: заголовки, учебные строки, лист «Инструкция»). Список приходит с сервера — копий в интерфейсе нет.
 	import { Download } from '@lct-testkit/rt-ui/icons';
 	import { Btn, FormSection, StatusChip, toast } from '$lib/ui';
+	import { plural } from '$lib/utils/format';
 	import { fieldFormatHint } from './hints';
 	import { downloadImportTemplate, type TemplateFormat } from './job';
 	import { entityInfo, type ImportEntityType } from './mapping';
@@ -23,7 +24,7 @@
 	}
 </script>
 
-<FormSection collapsible title="Какие колонки ждёт файл" summary={`${type.fields.length}`}>
+<FormSection collapsible title="Какие колонки ждёт файл" summary={`${type.fields.length} ${plural(type.fields.length, ['колонка', 'колонки', 'колонок'])}`}>
 	<p class="t-desc-l m-0 text-muted">Первая строка файла — названия колонок. Лишние колонки можно оставить: на следующем шаге их можно не загружать.</p>
 	<ul class="m-0 flex list-none flex-col gap-2 p-0" aria-label="Колонки файла «{entityInfo(type).label}»">
 		{#each type.fields as field (field.target)}

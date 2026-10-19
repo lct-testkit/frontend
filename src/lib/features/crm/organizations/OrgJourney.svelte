@@ -125,7 +125,7 @@
 	{:else if error}
 		<ErrorState {error} onRetry={load} compact />
 	{:else if deals.length === 0}
-		<EmptyState title="У вуза пока нет сделок" compact />
+		<EmptyState title="У организации пока нет сделок" hint="Здесь появится путь организации по продуктам: лента шагов каждой сделки и общая хронология переходов. Как только заведёте сделку, она будет видна." compact />
 	{:else}
 		<FilterBar active={filterCount} onReset={reset} {filters} />
 
