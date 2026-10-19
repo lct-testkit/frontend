@@ -16,6 +16,8 @@ export interface AppConfig {
 	appName: string;
 	keycloak: { path: string; realm: string; clientId: string; clientSecret?: string };
 	demoAccounts: DemoAccount[];
+	/** mail trap of the stand (Mailpit, read-only), e.g. `/mail/`; absent when the stand has none */
+	mailUrl?: string;
 }
 
 const DEFAULT: AppConfig = {
@@ -43,7 +45,9 @@ export async function loadConfig(fetchFn: typeof fetch = fetch): Promise<AppConf
 				mode,
 				keycloak: { ...DEFAULT.keycloak, ...raw.keycloak },
 				// demo accounts (with passwords) are never kept in prod mode, whatever the file says
-				demoAccounts: mode === 'demo' ? (raw.demoAccounts ?? []) : []
+				demoAccounts: mode === 'demo' ? (raw.demoAccounts ?? []) : [],
+				// same-site path only: the link never leads off the stand
+				mailUrl: typeof raw.mailUrl === 'string' && raw.mailUrl.startsWith('/') && !raw.mailUrl.startsWith('//') ? raw.mailUrl : undefined
 			};
 		}
 	} catch {

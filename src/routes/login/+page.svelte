@@ -26,6 +26,9 @@
 	let busy = $state<string | null>(null);
 	let failure = $state<string | null>(null);
 
+	/** paths Caddy serves next to the SPA: reached by a full page load, not the client router */
+	const OUTSIDE_SPA = ['/mail/', '/grafana/'];
+
 	/** only same-site relative paths: never redirect off-site */
 	const next = $derived.by(() => {
 		const raw = page.url.searchParams.get('next');
@@ -37,7 +40,10 @@
 	});
 
 	$effect(() => {
-		if (session.status === 'authenticated') void goto(next ?? landingFor((p) => session.can(p)), { replaceState: true });
+		if (session.status !== 'authenticated') return;
+		// /mail/ and other pages served next to the SPA (not its routes) need a full page load
+		if (next && OUTSIDE_SPA.some((p) => next.startsWith(p))) location.replace(next);
+		else void goto(next ?? landingFor((p) => session.can(p)), { replaceState: true });
 	});
 
 	async function pick(account: DemoAccount) {
@@ -103,6 +109,9 @@
 					{/each}
 				</ul>
 				{#if failure}<Notice class="shrink-0" tone="error">{failure}</Notice>{/if}
+				{#if cfg.mailUrl}
+					<p class="t-desc-l m-0 text-muted">Письма стенда (приглашения, сброс пароля, ссылки на подпись) — в <a href={cfg.mailUrl} target="_blank" rel="noopener" data-testid="mail-link">почте стенда</a>, вход не нужен.</p>
+				{/if}
 			{:else}
 				<Btn label="Войти" icon={SignIn} size="l" block onclick={() => session.loginOidc(next ?? '/')} data-testid="oidc-login" />
 			{/if}
