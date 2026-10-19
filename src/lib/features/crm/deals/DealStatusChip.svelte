@@ -13,5 +13,6 @@
 {#if status}
 	<StatusChip label={statusName(status.name)} color={status.color} tone={statusTone(status.type)} hint={statusTypeHint(status.type)} />
 {:else}
-	<span class="text-soft">…</span>
+	<!-- серая плашка высоты настоящей (24 px), пока граф воронки не пришёл: иначе строка карточки подрастает на 3 px и всё ниже сдвигается -->
+	<span class="inline-flex h-6 w-24 animate-pulse rounded-full bg-surface-3" role="img" aria-label="Статус загружается"></span>
 {/if}

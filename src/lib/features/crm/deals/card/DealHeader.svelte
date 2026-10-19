@@ -136,6 +136,9 @@
 				<DropdownMenu class="w-auto flex-none" items={menuItems} isOpened={menuOpen} placement="bottomRight" onClose={() => (menuOpen = false)} onClickItem={onMenuItem}>
 					<IconBtn icon={MenuKebab} label="Ещё" onclick={() => (menuOpen = !menuOpen)} aria-expanded={menuOpen} data-testid="deal-more" />
 				</DropdownMenu>
+			{:else if bp.isMobile && !card.transitionsLoaded}
+				<!-- место под «Ещё», пока не пришли переходы: иначе кнопка появляется позже и название в шапке переносится на вторую строку -->
+				<span class="size-9 flex-none pointer-coarse:size-11" aria-hidden="true"></span>
 			{/if}
 			{#if buttons.primary && !bp.isMobile}
 				<Btn class="max-w-80" title={label(buttons.primary)} label={label(buttons.primary)} icon={ArrowRight} onclick={() => onTransition(buttons.primary!.transition)} data-testid="deal-primary-transition" />

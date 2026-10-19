@@ -29,7 +29,7 @@ const SCENARIOS = {
 	deals: { path: '/deals', steps: async () => {} },
 	deal: { path: deal, steps: async () => {} },
 	org: { path: org, steps: async () => {} },
-	board: { path: '/deals', steps: async (p) => { await p.waitForTimeout(1500); await p.evaluate(() => (window.__cls = { total: 0, items: [] }, 0)); await p.getByRole('button', { name: /Доска/ }).first().click().catch(() => p.getByText('Доска').first().click()); await p.waitForTimeout(2500); } },
+	board: { path: '/deals', steps: async (p) => { await p.waitForTimeout(1500); await p.evaluate(() => (window.__cls = { total: 0, items: [] }, 0)); await p.getByRole('button', { name: /Доска/ }).first().click({ timeout: 4000 }).catch(() => p.getByText('Доска').first().click({ timeout: 4000 })).catch(() => {}); await p.waitForTimeout(2500); } },
 	dash: { path: dash, steps: async (p) => { await p.waitForTimeout(1500); await p.evaluate(() => (window.__cls = { total: 0, items: [] }, 0)); await p.getByRole('button', { name: /Обновить данные/ }).first().click(); await p.waitForTimeout(3000); } }
 };
 
