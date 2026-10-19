@@ -764,6 +764,26 @@ export type paths = {
         patch: operations["update_source_api_admin_integrations_sources__code__patch"];
         trace?: never;
     };
+    "/api/admin/integrations/sources/{code}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Проверить соединение с источником
+         * @description Один безопасный запрос к внешней системе (чтение одной записи; у Bitrix24 — `server.time`) тем же способом, каким её опрашивают рабочие задачи. Отвечает 200, если проверка состоялась: `ok=true` — система ответила и приняла запрос, `ok=false` — причина в `message` по-русски (таймаут, нет соединения, отказ в доступе, неверный адрес), `duration_ms` — время проверки, `http_status` — ответ системы, если он был. Адрес и секрет в ответ не попадают. Ничего не меняет у источника и в журнале синхронизации. Источник выключен — 409 (CRM-1703), источника с таким кодом нет — 404 (CRM-9004). Лимит 20 проверок в минуту на пользователя. Роль: ADMIN.
+         */
+        post: operations["check_source_api_admin_integrations_sources__code__check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/integrations/sources/{code}/mapping": {
         parameters: {
             query?: never;
@@ -10501,6 +10521,43 @@ export type components = {
             warn_threshold_pct: number;
         };
         /**
+         * SourceCheckOut
+         * @description Итог проверки соединения с источником («Проверить сейчас»).
+         */
+        SourceCheckOut: {
+            /**
+             * Checked At
+             * Format: date-time
+             * @description Когда проверено (UTC).
+             */
+            checked_at: string;
+            /**
+             * Code
+             * @description Код источника (`cms`, `lms`, `bitrix24`).
+             */
+            code: string;
+            /**
+             * Duration Ms
+             * @description Сколько заняла проверка, мс.
+             */
+            duration_ms: number;
+            /**
+             * Http Status
+             * @description HTTP-статус ответа системы; пусто, если ответа не было.
+             */
+            http_status?: number | null;
+            /**
+             * Message
+             * @description Что произошло, по-русски: «Отвечает» или причина отказа.
+             */
+            message: string;
+            /**
+             * Ok
+             * @description Система ответила и приняла запрос.
+             */
+            ok: boolean;
+        };
+        /**
          * StageEvidenceOut
          * @description Чек-лист вложений перехода «вперёд» с этого этапа (условия `step_attachments.*`).
          */
@@ -13290,6 +13347,38 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    check_source_api_admin_integrations_sources__code__check_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceCheckOut"];
+                };
+            };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];

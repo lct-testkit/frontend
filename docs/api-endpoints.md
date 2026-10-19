@@ -1,4 +1,4 @@
-# Эндпоинты бэкенда (284)
+# Эндпоинты бэкенда (285)
 
 _Сгенерировано tools/gen-api.mjs._
 
@@ -222,6 +222,7 @@ _Сгенерировано tools/gen-api.mjs._
 | POST | `/api/admin/integrations/outbox-events/{event_id}/retry` | Повторить доставку события |
 | GET | `/api/admin/integrations/sources` | Список источников интеграций |
 | PATCH | `/api/admin/integrations/sources/{code}` | Изменить источник интеграции |
+| POST | `/api/admin/integrations/sources/{code}/check` | Проверить соединение с источником |
 | GET | `/api/admin/integrations/sources/{code}/mapping` | Текущий маппинг полей и каталог целей |
 | PUT | `/api/admin/integrations/sources/{code}/mapping` | Сохранить маппинг полей |
 | DELETE | `/api/admin/integrations/sources/{code}/mapping` | Вернуть прежнее поведение (без маппинга) |
