@@ -137,7 +137,7 @@
 			<span class="t-body-s-strong flex-none">{caption}</span>
 			{#if hereName}<span class="t-body-s min-w-0 flex-1 truncate text-muted max-md:hidden" title={hereName}>{hereName}</span>{/if}
 			{#if here && hereName}<span class="flex-none max-md:hidden">{@render here()}</span>{/if}
-			<span class="ml-auto flex flex-none items-center gap-2">
+			<span class="ml-auto flex flex-none items-center gap-2 [&:not(:has(*))]:hidden">
 				{#if end}{@render end()}{/if}
 				{#if scrolls}
 					<span class="flex items-center">
