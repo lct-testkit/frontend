@@ -8,6 +8,7 @@
 	import type { HealthReport } from '../types';
 	import { createPoller } from '../shared/polling.svelte';
 	import { api, unwrap } from '$lib/api';
+	import { coalesce } from '$lib/api/coalesce';
 	import { fetchHealth, healthTone } from './health';
 	import { sourcesSummary, type SourcesSummary } from './sourceState';
 
@@ -19,7 +20,7 @@
 		loading = true;
 		try {
 			report = await fetchHealth();
-			sources = await unwrap(api.GET('/api/admin/integrations/sources')).then(sourcesSummary).catch(() => null);
+			sources = await coalesce('admin-integration-sources', () => unwrap(api.GET('/api/admin/integrations/sources'))).then(sourcesSummary).catch(() => null);
 		} finally {
 			loading = false;
 		}
