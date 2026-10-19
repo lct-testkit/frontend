@@ -9,7 +9,7 @@
 // Белый список полей, которые бэкенд принимает через `fields` (crm/service.py `_TRANSITION_DIRECT_FIELDS`
 // + `custom_fields.*`), зашит здесь: остальное правится через PATCH до перехода.
 
-import { ATTACHMENT_CATEGORY_LABELS, BUILTIN_CUSTOM_FIELD_LABELS, DEAL_FIELD_LABELS, SIGNATURE_STATUS_LABELS } from '../shared/labels';
+import { ATTACHMENT_CATEGORY_LABELS, BUILTIN_CUSTOM_FIELD_LABELS, DEAL_FIELD_LABELS, LOSS_REASON_CATEGORY_LABELS, SIGNATURE_STATUS_LABELS } from '../shared/labels';
 
 export interface ConditionLeaf {
 	field: string;
@@ -478,4 +478,11 @@ export function isOtherReason(name: string | null | undefined, category?: string
 	// у причины отказа есть категория — ей и верим («Другой поставщик» — это категория competitor, а не «другая причина»)
 	if (category) return category === 'other';
 	return /^\s*(друг(ая|ое|ие)|ин(ая|ое|ые)|проч(ая|ее|ие)|other)(\s+причин[а-яё]*)?\s*$/i.test(name ?? '');
+}
+
+/** Подпись под названием причины отказа в списке: категория, но только если она говорит что-то новое («Нет бюджета / Нет бюджета» — повтор). */
+export function lossReasonHint(name: string, category: string): string | undefined {
+	const label = LOSS_REASON_CATEGORY_LABELS[category] ?? category;
+	const same = (a: string, b: string) => a.trim().toLowerCase().replace(/ё/g, 'е') === b.trim().toLowerCase().replace(/ё/g, 'е');
+	return same(label, name) ? undefined : label;
 }
