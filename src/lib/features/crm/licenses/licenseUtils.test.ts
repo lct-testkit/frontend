@@ -69,7 +69,7 @@ describe('licenseSignedText', () => {
 	it('без даты: да, нет, не указано', () => {
 		expect(licenseSignedText({ is_signed: true, license_signed_at: null })).toBe('Подписана');
 		expect(licenseSignedText({ is_signed: false, license_signed_at: null })).toBe('Не подписана');
-		expect(licenseSignedText({ is_signed: null, license_signed_at: null })).toBe('Не указано');
+		expect(licenseSignedText({ is_signed: null, license_signed_at: null })).toBe('Нет данных');
 	});
 });
 

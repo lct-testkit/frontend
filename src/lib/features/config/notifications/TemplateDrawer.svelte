@@ -154,7 +154,7 @@
 	}
 </script>
 
-<FormDrawer {open} title={isNew ? 'Новый шаблон' : (NOTIFICATION_EVENT_CODES.find((e) => e.key === item?.code)?.value ?? item?.code ?? 'Шаблон')} width={520} {saving} {formError} {conflict} saveLabel={isNew ? 'Создать' : 'Сохранить'} onSave={save} {onClose} onReload={reloadVersion}>
+<FormDrawer {open} title={isNew ? 'Новый шаблон' : (NOTIFICATION_EVENT_CODES.find((e) => e.key === item?.code)?.value ?? item?.code ?? 'Шаблон')} width={560} {saving} {formError} {conflict} saveLabel={isNew ? 'Создать' : 'Сохранить'} onSave={save} {onClose} onReload={reloadVersion}>
 	{#if isNew}
 		<Pick label="Событие" required search bind:value={eventKey} items={eventItems} error={errors.code} />
 		{#if eventKey === CUSTOM}<TextField label="Код события" required bind:value={customCode} placeholder="DEAL_CUSTOM_EVENT" hint="Заглавные латинские буквы и «_»: код должен совпадать с кодом в действии перехода" />{/if}

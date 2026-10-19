@@ -91,7 +91,7 @@
 	}
 </script>
 
-<FormDrawer {open} title={isNew ? 'Новая дата' : name || 'Дата календаря'} width={420} {saving} {formError} {conflict} onSave={save} {onClose} onReload={reload}>
+<FormDrawer {open} title={isNew ? 'Новая дата' : name || 'Дата календаря'} width={480} {saving} {formError} {conflict} onSave={save} {onClose} onReload={reload}>
 	<DateField label="Дата" required bind:value={date} error={errors.date} />
 	<TextField label="Название" required bind:value={name} error={errors.name} maxlength={255} placeholder="Например, День народного единства" autofocus />
 	<Toggle label="Рабочий день" bind:checked={working} hint="Перенос: выходной становится рабочим днём" />

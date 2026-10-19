@@ -64,7 +64,7 @@
 	}
 </script>
 
-<FormDrawer {open} title="Загрузить выгрузку" width={460} {saving} {formError} saveLabel="Загрузить" canSave={file !== null} dirty={file !== null} onSave={save} {onClose}>
+<FormDrawer {open} title="Загрузить выгрузку" width={480} {saving} {formError} saveLabel="Загрузить" canSave={file !== null} dirty={file !== null} onSave={save} {onClose}>
 	<Pick
 		label="Источник"
 		value={source}

@@ -107,7 +107,7 @@
 	}
 </script>
 
-<FormDrawer {open} title={source?.name ?? 'Источник'} width={520} {saving} {formError} onSave={save} {onClose}>
+<FormDrawer {open} title={source?.name ?? 'Источник'} width={560} {saving} {formError} onSave={save} {onClose}>
 	<TextField label="Название" required bind:value={name} error={errors.name} maxlength={255} autofocus />
 	<TextField label="Адрес системы" bind:value={baseUrl} error={errors.base_url} placeholder="https://…" />
 	<Pick label="Способ входа" bind:value={authType} clearable placeholder="Не выбран" hint="Как эта система подтверждает свои запросы" items={AUTH_TYPES.map((a) => ({ key: a.key, value: a.value }))} />
