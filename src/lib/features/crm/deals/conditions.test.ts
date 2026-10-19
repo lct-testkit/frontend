@@ -17,8 +17,8 @@ describe('describeCondition', () => {
 	it('подпись и заполненность', () => {
 		expect(describeCondition({ field: 'signature_status', op: 'eq', expected: 'signed' })).toBe('Документ подписан');
 		expect(describeCondition({ field: 'loss_reason_id', op: 'not_null' })).toBe('Причина отказа: заполнено');
-		expect(describeCondition({ field: 'loss_reason_id', op: 'not_null', satisfied: false })).toBe('Заполните: причина отказа');
-		expect(describeCondition({ field: 'attachments.contract', op: 'exists' })).toBe('Прикреплён файл «Договор»');
+		expect(describeCondition({ field: 'loss_reason_id', op: 'not_null', satisfied: false })).toBe('Заполните «Причина отказа»');
+		expect(describeCondition({ field: 'attachments.contract', op: 'exists' })).toBe('Приложен файл «Договор»');
 		expect(describeCondition({ field: 'custom_fields.contact_verified', op: 'eq', expected: true })).toBe('Контакт подтверждён');
 		expect(describeCondition({ field: 'custom_fields.contact_verified', op: 'eq', expected: true, satisfied: false })).toBe('Отметьте «Контакт подтверждён» — флажок ниже');
 		expect(currentText({ field: 'custom_fields.contact_verified', op: 'eq', expected: true, actual: null, satisfied: false })).toBe('');
