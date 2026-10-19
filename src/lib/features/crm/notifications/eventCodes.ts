@@ -13,6 +13,8 @@ export interface EventCodeInfo {
 	group: EventGroup;
 	/** Уведомление системное — отключать нельзя (о безопасности учётной записи). */
 	locked?: boolean;
+	/** Право, без которого событие роли не приходит: строки настроек для остальных не показываются (коды с бэкенда общие для всех ролей). */
+	needs?: string;
 }
 
 export const EVENT_GROUP_LABELS: Record<EventGroup, string> = {
@@ -49,6 +51,8 @@ const EVENT_CODE_LABELS: EventCodeInfo[] = [
 	{ code: 'SIGNATURE_REMINDER_MANUAL', label: 'Напоминание о подписании', group: 'signing' },
 	{ code: 'SIGNATURE_OTP_LOCKED', label: 'Запрос на подпись заблокирован (неверный код)', group: 'signing' },
 	{ code: 'EDM_AGREEMENT_MISSING', label: 'Нет соглашения об ЭДО', group: 'signing' },
+	{ code: 'SECURITY_INCIDENT_CANDIDATE', label: 'Новый кандидат в инциденты безопасности', group: 'account', needs: 'incident:manage' },
+	{ code: 'SECURITY_INCIDENT_DEADLINE', label: 'Срок уведомления об инциденте истекает', group: 'account', needs: 'incident:manage' },
 	{ code: 'USER_PASSWORD_CHANGED', label: 'Пароль изменён', group: 'account', locked: true },
 	{ code: 'USER_PASSWORD_RESET', label: 'Пароль сброшен администратором', group: 'account', locked: true },
 	{ code: 'USER_ACCOUNT_BLOCKED', label: 'Учётная запись заблокирована', group: 'account', locked: true },
