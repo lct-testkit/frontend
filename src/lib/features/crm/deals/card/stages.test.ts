@@ -35,6 +35,11 @@ describe('этапы сделки', () => {
 		const data = { summary: { done: 8, current: 1, skipped: 1, pending: 4, sla_breached: 0 }, items: new Array(14) as StageItem[] };
 		expect(stagesSummary(data)).toBe('Пройдено 8 из 14 · пропущено 1 · просрочек нет');
 		expect(stagesSummary({ ...data, summary: { ...data.summary, skipped: 0, sla_breached: 2 } })).toBe('Пройдено 8 из 14 · просрочено по сроку: 2');
+		// ST-2: «Обсуждение (4)» против суммы столбца «Комм.»
+		const onStages = data.items.reduce((n, i) => n + i.comments_count, 0);
+		expect(stagesSummary(data, onStages + 3)).toContain(`комментарии на этапах: ${onStages} из ${onStages + 3}`);
+		expect(stagesSummary(data, onStages)).toBe('Пройдено 8 из 14 · пропущено 1 · просрочек нет');
+		expect(stagesSummary(data, null)).toBe('Пройдено 8 из 14 · пропущено 1 · просрочек нет');
 		expect(STAGE_STATES.current.label).toBe('Сейчас');
 	});
 });

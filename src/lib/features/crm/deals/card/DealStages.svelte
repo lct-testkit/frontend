@@ -8,7 +8,8 @@
 	import { statusName } from '../statusUtils';
 	import { STAGE_STATES, stageEvidence, stageSla, stageTime, stageVisitsNote, stagesSummary } from './stages';
 
-	let { dealId, refreshKey = 0 }: { dealId: string; refreshKey?: number } = $props();
+	/** `commentsTotal` — число во вкладке «Обсуждение»: столбец «Комм.» его не покрывает, сводка объясняет разницу */
+	let { dealId, refreshKey = 0, commentsTotal = null }: { dealId: string; refreshKey?: number; commentsTotal?: number | null } = $props();
 
 	let data = $state<DealStages | null>(null);
 	let loading = $state(true);
@@ -43,7 +44,7 @@
 		{ key: 'state', title: 'Состояние', render: stateCell },
 		{ key: 'time', title: 'Время', hint: 'Сколько сделка пробыла на этапе', render: timeCell },
 		{ key: 'sla', title: 'Срок', width: 'minmax(150px, 1fr)', render: slaCell },
-		{ key: 'comments', title: 'Комм.', hint: 'Комментарии на этапе', align: 'right', render: commentsCell, drop: 2 },
+		{ key: 'comments', title: 'Комм.', hint: 'Комментарии, оставленные на этапе (все комментарии сделки — во вкладке «Обсуждение»)', align: 'right', render: commentsCell, drop: 2 },
 		{ key: 'files', title: 'Файлы', hint: 'Файлы, приложенные на этапе', align: 'right', render: filesCell, drop: 1 },
 		{ key: 'evidence', title: 'Вложения', hint: 'Вложения, нужные для перехода вперёд', width: 'minmax(150px, 1.4fr)', render: evidenceCell }
 	];
@@ -105,6 +106,6 @@
 {/snippet}
 
 <Card title="Исполнение этапов" flush>
-	{#if data}<p class="t-desc-l m-0 px-[15px] pb-2 text-muted" data-testid="stages-summary">{stagesSummary(data)}</p>{/if}
+	{#if data}<p class="t-desc-l m-0 px-[15px] pb-2 text-muted" data-testid="stages-summary">{stagesSummary(data, commentsTotal)}</p>{/if}
 	<DataTable id="deal-stages" {rows} {columns} {card} {loading} {error} onRetry={load} embedded noFooter ariaLabel="Этапы сделки" emptyText="В воронке нет этапов" />
 </Card>

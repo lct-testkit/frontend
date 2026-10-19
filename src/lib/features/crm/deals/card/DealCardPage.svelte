@@ -127,7 +127,7 @@
 		{#if tab === 'overview'}
 			<DealOverview {card} />
 		{:else if tab === 'stages'}
-			<DealStages dealId={deal.id} refreshKey={card.epoch} />
+			<DealStages dealId={deal.id} refreshKey={card.epoch} commentsTotal={comments} />
 		{:else if tab === 'comments'}
 			<DealComments dealId={deal.id} canWrite={session.can('deal:update') && card.writable} refreshKey={card.epoch} onCount={(n) => (commentCount = n)} />
 		{:else if tab === 'files'}

@@ -111,7 +111,8 @@ export function classifyTransitions(
 export type StepState = 'done' | 'skipped' | 'current' | 'earlier' | 'future' | 'stopped';
 
 /**
- * Состояния шагов ленты. Слева от текущего: `skipped` — необязательный и сделка там не бывала, иначе `done`; справа: `earlier` — сделка там уже
+ * Состояния шагов ленты. Слева от текущего: `skipped` — сделка там не бывала по истории переходов (так же считает вкладка «Этапы»: «Пропущен» =
+ * ни одного захода), иначе `done`. Пока истории нет (не загрузилась или пуста), пропуском считается только необязательный шаг; справа: `earlier` — сделка там уже
  * была (после возврата), иначе `future`. Остановленная (заморозка, отказ) — `stopped` на шаге остановки. После переноса на другую воронку
  * (`migrated`) пропусков нет: шаги нового графа сделка не проходила.
  */
@@ -126,7 +127,7 @@ export function stepStates(
 	return list.map((step, i) => {
 		if (currentIndex < 0) return 'future';
 		if (i === currentIndex) return stopped ? 'stopped' : 'current';
-		if (i < currentIndex) return !migrated && optional.has(step.id) && !visited.has(step.id) ? 'skipped' : 'done';
+		if (i < currentIndex) return !migrated && !visited.has(step.id) && (visited.size > 0 || optional.has(step.id)) ? 'skipped' : 'done';
 		return visited.has(step.id) && !migrated ? 'earlier' : 'future';
 	});
 }
