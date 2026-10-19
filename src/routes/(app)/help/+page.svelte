@@ -167,7 +167,8 @@
 	<PageHeader title="Справка" />
 
 	<div class={['grid items-start gap-4 max-md:gap-3', bp.isDesktop ? 'grid-cols-[19rem_minmax(0,1fr)]' : 'grid-cols-1']}>
-		<div class="flex min-w-0 flex-col gap-3 md:gap-4 lg:sticky lg:top-6" onfocusin={ensureTexts}>
+		<!-- колонка липнет к верху и не выше экрана: меню из 39 глав длиннее окна и прокручивается само, иначе его низ был недостижим, пока не докрутишь статью -->
+		<div class="flex min-w-0 flex-col gap-3 md:gap-4 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-7rem)]" onfocusin={ensureTexts}>
 			{@render search()}
 			{#if !bp.isDesktop && !query}
 				<Select
@@ -181,7 +182,7 @@
 					aria-label="Глава справки"
 				/>
 			{:else if bp.isDesktop && !query}
-				<HelpNav chapters={visible} current={current?.slug} onOpen={open} />
+				<div class="min-h-0 overflow-y-auto overscroll-contain rounded-lg"><HelpNav chapters={visible} current={current?.slug} onOpen={open} /></div>
 			{/if}
 		</div>
 
