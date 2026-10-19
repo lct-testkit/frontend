@@ -9,6 +9,7 @@ import {
 	flattenLeaves,
 	isFillableField,
 	isOtherReason,
+	lossReasonHint,
 	serializeTransitionFields,
 	topLevelGroups,
 	treeSatisfiable,
@@ -357,5 +358,19 @@ describe('файлы в диалоге перехода', () => {
 		const none = [{ field: 'signature_status', op: 'eq', actual: 'none', satisfied: false }, unmet('step_attachments.contract')];
 		expect(missingFileFields(none, ANY_CONTRACT_OR_SIGNED, new Set())).toEqual(['step_attachments.contract']);
 		expect(missingFileFields(none, ANY_CONTRACT_OR_SIGNED, new Set(['contract']))).toEqual([]);
+	});
+});
+
+describe('lossReasonHint (T-3)', () => {
+	it('категория, совпадающая с названием, не повторяется', () => {
+		expect(lossReasonHint('Нет бюджета', 'no_budget')).toBeUndefined();
+		expect(lossReasonHint('нет потребности', 'no_need')).toBeUndefined();
+	});
+	it('иная категория показывается', () => {
+		expect(lossReasonHint('Выбрали другого поставщика', 'competitor')).toBe('Конкурент');
+		expect(lossReasonHint('Дорого', 'price')).toBe('Цена');
+	});
+	it('неизвестная категория — как есть', () => {
+		expect(lossReasonHint('Что-то', 'weird')).toBe('weird');
 	});
 });

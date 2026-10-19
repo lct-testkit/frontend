@@ -6,7 +6,7 @@
 	import { CheckSmall, CloseSmall } from '@lct-testkit/rt-ui/icons';
 	import { ApiError, api, errorTextWithCode, ifMatch, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
-	import { CheckField, FormModal, Notice, StatusChip, toast } from '$lib/ui';
+	import { CheckField, FormModal, Notice, toast } from '$lib/ui';
 	import AreaField from '$lib/ui/fields/AreaField.svelte';
 	import DateField from '$lib/ui/fields/DateField.svelte';
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
@@ -14,13 +14,12 @@
 	import TextField from '$lib/ui/fields/TextField.svelte';
 	import Ico from '../../shared/Ico.svelte';
 	import { dealFieldDefs, lossReasons } from '../../shared/refs.svelte';
-	import { LOSS_REASON_CATEGORY_LABELS } from '../../shared/labels';
-	import { formatDate } from '$lib/utils/format';
+		import { formatDate } from '$lib/utils/format';
 	import { ATTACHMENT_CATEGORY_LABELS } from '../../shared/labels';
 	import type { Attachment, AvailableTransition, Deal, WorkflowGraph } from '../../types';
 	import { currentText, describeCondition, type ConditionLike } from '../conditions';
 	import { roleHint, roleList, statusName, statusTone, transitionKind } from '../statusUtils';
-	import { buildTransitionForm, fileLeaf, fileRequirements, isOtherReason, missingFileFields, serializeTransitionFields, unmetAlternatives, type TransitionFormField } from '../transitionForm';
+	import { buildTransitionForm, fileLeaf, fileRequirements, isOtherReason, lossReasonHint, missingFileFields, serializeTransitionFields, unmetAlternatives, type TransitionFormField } from '../transitionForm';
 	import TransitionFileZone from './TransitionFileZone.svelte';
 	import { clearDraft, draftKey, getDraft, setDraft, type DraftFile } from './transitionDrafts';
 
@@ -66,6 +65,7 @@
 		})
 	);
 	const commentRequired = $derived(form.needsComment || otherReason);
+	const commentNeedText = $derived(otherReason ? 'Опишите причину в комментарии' : 'Укажите комментарий');
 
 	// черновик (комментарий, поля, файлы) восстанавливается по паре «сделка + переход»; пишется при вводе, стирается после перехода и отмены
 	const key = $derived(draftKey(deal.id, transition.id));
@@ -148,9 +148,7 @@
 		});
 	});
 
-	const lossItems = $derived(
-		(lossReasons.value ?? []).map((r) => ({ key: r.id, value: r.name, hint: LOSS_REASON_CATEGORY_LABELS[r.category] ?? r.category }))
-	);
+	const lossItems = $derived((lossReasons.value ?? []).map((r) => ({ key: r.id, value: r.name, hint: lossReasonHint(r.name, r.category) })));
 	const CURRENCIES = [
 		{ key: 'RUB', value: 'Рубли, ₽' },
 		{ key: 'USD', value: 'Доллары, $' },
@@ -182,6 +180,9 @@
 				: banner.text
 			: null
 	);
+
+	/** цвет точки у шага без своего цвета — по типу шага (как у плашки статуса) */
+	const TONE_DOT: Record<string, string> = { error: 'var(--atmr-error-default)', success: 'var(--atmr-success-default)', warning: 'var(--atmr-warning-default)', info: 'var(--atmr-info-default)', accent: 'var(--atmr-info-default)', neutral: 'var(--atmr-neutral-default)' };
 
 	const title = $derived(transition.name);
 	const danger = $derived(kind === 'lost');
@@ -313,6 +314,13 @@
 
 </script>
 
+{#snippet routeStatus(status: { name: string; color?: string | null; type: string })}
+	<!-- названия шагов 14-шаговой воронки длинные: у плашки DS текст обрезается многоточием, здесь он переносится целиком; точка висит слева, по центру первой строки -->
+	<span class="t-body-m relative block min-w-0 pl-4 font-medium break-words" title={statusName(status.name)}>
+		<span class="absolute top-[calc((1lh-0.5rem)/2)] left-0 size-2 rounded-full" style:background={status.color || TONE_DOT[statusTone(status.type)]}></span>{statusName(status.name)}
+	</span>
+{/snippet}
+
 {#snippet leafText(leaf: ConditionLike)}
 	{describeCondition(leaf, defs)}
 	{#if !leaf.satisfied && currentText(leaf)}<span class="text-muted"> · {currentText(leaf)}</span>{/if}
@@ -347,18 +355,18 @@
 
 <FormModal {open} size="m" {title} saveLabel={actionLabel} {danger} saveTestId="transition-submit" saving={busy} canSave={!form.blocked && missingFiles.length === 0} dirty={open && inputDirty} {formError} conflict={!!banner?.conflict} conflictText={banner?.text} reloadLabel="Обновить" onReload={refresh} onSave={submit} onClose={close}>
 	<!-- откуда и куда — двумя строками: названия шагов длинные, рядом они переносились и один чип оказывался на новой строке -->
-	<div class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5" data-testid="transition-route">
+	<div class="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-2 gap-y-1.5" data-testid="transition-route">
 		{#if current}
 			<span class="t-desc-l text-muted">Из</span>
-			<span class="flex min-w-0"><StatusChip label={statusName(current.name)} color={current.color} tone={statusTone(current.type)} title={statusName(current.name)} /></span>
+			{@render routeStatus(current)}
 		{/if}
 		{#if target}
 			<span class="t-desc-l text-muted">В</span>
-			<span class="flex min-w-0"><StatusChip label={statusName(target.name)} color={target.color} tone={statusTone(target.type)} title={statusName(target.name)} /></span>
+			{@render routeStatus(target)}
 		{/if}
 	</div>
 
-	{#if groups.length}
+	{#if groups.length || commentRequired}
 		<div class="flex flex-col gap-2" data-testid="conditions">
 			{#each groups as group, gi (gi)}
 				<div class="flex flex-col gap-1.5">
@@ -370,6 +378,22 @@
 					</ul>
 				</div>
 			{/each}
+			<!-- комментарий обязателен по правилу перехода (или выбрана «другая причина»): это такое же условие, как остальные, — в списке и со звёздочкой у поля -->
+			{#if commentRequired}
+				<div class="flex flex-col gap-1.5" data-testid="comment-requirement">
+					{#if groups.length}<span class="t-desc-l text-muted">Ещё нужно</span>{/if}
+					<ul class="m-0 flex list-none flex-col gap-1.5 p-0">
+						{#if comment.trim()}
+							<li class="flex items-start gap-2">
+								<Ico icon={CheckSmall} tone="success" size={20} class="mt-px" />
+								<span class="t-body-m min-w-0 flex-1 break-words text-muted">{commentNeedText}: заполнено</span>
+							</li>
+						{:else}
+							<li><Notice class="shrink-0" tone="warning">{commentNeedText}</Notice></li>
+						{/if}
+					</ul>
+				</div>
+			{/if}
 		</div>
 	{/if}
 
