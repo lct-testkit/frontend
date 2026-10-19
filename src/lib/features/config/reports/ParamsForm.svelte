@@ -69,7 +69,7 @@
 
 {#each defs as def (def.key)}
 	{#if def.group === 'scope'}
-		{#if def.key === scopeDefs[0]?.key}<ReportScopeFields defs={scopeDefs} bind:values {errors} {widget} bind:period />{/if}
+		{#if def.key === scopeDefs[0]?.key}<ReportScopeFields defs={scopeDefs} bind:values {errors} {widget} bind:period monthsBased={defs.some((d) => d.key === 'months')} />{/if}
 	{:else if def.kind === 'deal_type'}
 		<Pick
 			label={def.label}

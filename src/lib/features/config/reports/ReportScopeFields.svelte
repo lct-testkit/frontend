@@ -19,9 +19,11 @@
 		/** виджет дашборда: быстрый период хранится пресетом */
 		widget?: boolean;
 		period?: PeriodPreset;
+		/** отчёт сам считает срок «последних N месяцев» (поле выше): без своего периода работает это число, «Всё время» тут не бывает */
+		monthsBased?: boolean;
 	}
 
-	let { defs, values = $bindable({}), errors = {}, widget = false, period = $bindable() }: Props = $props();
+	let { defs, values = $bindable({}), errors = {}, widget = false, period = $bindable(), monthsBased = false }: Props = $props();
 
 	const def = (key: string) => defs.find((d) => d.key === key);
 	const dateFieldDef = $derived(def('date_field'));
@@ -40,7 +42,10 @@
 		const p = periodFor(picked, today);
 		return p ? p.date_from === shown.date_from && p.date_to === shown.date_to : !shown.date_from && !shown.date_to;
 	});
-	const activePreset = $derived(widget && period ? period : pickedStill ? picked : presetOf(shown.date_from, shown.date_to, today));
+	const noDates = $derived(!shown.date_from && !shown.date_to);
+	// отчёт «за N месяцев» без своих дат: период задаёт число месяцев, а не пресет — ни одна кнопка не подсвечена
+	const activePreset = $derived(monthsBased && noDates ? null : widget && period ? period : pickedStill ? picked : presetOf(shown.date_from, shown.date_to, today));
+	const presets = $derived(monthsBased ? PERIOD_PRESETS.filter((p) => p !== 'all') : PERIOD_PRESETS);
 
 	function applyPreset(preset: PeriodPreset) {
 		const range = periodFor(preset, today);
@@ -90,7 +95,7 @@
 			<RangeField label={periodTitle} from={shown.date_from ?? ''} to={shown.date_to ?? ''} onChange={setRange} />
 			{#if errors.date_to}<p class="t-desc-l text-danger" role="alert">{errors.date_to}</p>{/if}
 			<div class="flex flex-wrap gap-1.5" role="group" aria-label="Быстрый выбор периода">
-				{#each PERIOD_PRESETS as preset (preset)}
+				{#each presets as preset (preset)}
 					<Btn
 						label={PERIOD_PRESET_LABELS[preset]}
 						size="s"
@@ -145,7 +150,7 @@
 	{/if}
 	{#if fromDef || facets.length}
 		<div class="flex min-h-9 items-center justify-between gap-3">
-			<span class="t-desc-l text-muted">{filled ? `Фильтров: ${filled}.` : 'Фильтров нет.'} Пустое поле — без ограничения.</span>
+			<span class="t-desc-l text-muted">{filled ? `Фильтров: ${filled}.` : 'Фильтров нет.'} Пусто — без ограничения.</span>
 			{#if filled}<Btn label="Сбросить" size="s" variant="ghost" colorScheme="neutral" onclick={reset} />{/if}
 		</div>
 	{/if}

@@ -206,22 +206,20 @@ export const REPORT_SPECS: Record<string, ReportSpec> = {
 			},
 			{ key: 'top', label: 'Показать первые', kind: 'int', min: 1, max: 100, default: 20, required: true }
 		],
-		hint: 'Индекс — среднее долей заявок, обучающихся и потоков в выборке'
 	},
 	license_register: {
 		scope: { period: ['license_signed_at', 'created_at'], organizations: true, directions: false, products: false, owners: false },
 		extra: [],
 		tail: [
-			{ key: 'vendors', label: GLOSSARY.vendor.plural, kind: 'text_list', hint: 'Названия через запятую. Пусто — все' },
-			{ key: 'transfer_statuses', label: 'Статус по передаче', kind: 'enum_multi', hint: 'Отмеченные статусы складываются: подойдёт лицензия с любым из них. Пусто — любой статус', options: Object.entries(TRANSFER_STATUS_LABELS).map(([key, value]) => ({ key, value })) },
-			{ key: 'valid_year', label: 'Год окончания', kind: 'int', min: 2000, max: 2100, hint: 'Пусто — любой' },
+			{ key: 'vendors', label: GLOSSARY.vendor.plural, kind: 'text_list', hint: 'Названия через запятую. Пусто — без ограничения' },
+			{ key: 'transfer_statuses', label: 'Статус по передаче', kind: 'enum_multi', hint: 'Отмеченные статусы складываются: подойдёт лицензия с любым из них. Пусто — без ограничения', options: Object.entries(TRANSFER_STATUS_LABELS).map(([key, value]) => ({ key, value })) },
+			{ key: 'valid_year', label: 'Год окончания', kind: 'int', min: 2000, max: 2100, hint: 'Пусто — без ограничения' },
 			{ key: 'expired', label: 'Только с истёкшим сроком', kind: 'bool' },
 			limitDef(1000)
 		],
 		columns: true,
 		tzColumns: ['organization', 'vendor', 'product_name', 'contract_number', 'is_signed', 'license_valid_year', 'transfer_status', 'manager_full_name', 'responsible_contacts', 'comment'],
-		personalData: true,
-		hint: 'Фамилии менеджеров и ответственных без права просмотра контактов скрыты'
+		personalData: true
 	},
 	signing_periods: {
 		// месяц считается по дате создания документа внутри отчёта: выбора даты периода нет (как у «Динамики по месяцам»)
@@ -244,12 +242,11 @@ export const REPORT_SPECS: Record<string, ReportSpec> = {
 		]
 	},
 	lms_users_upload: {
-		scope: { period: null, organizations: false, directions: false, products: false, owners: false },
+		// период по дате создания сделки — тот же общий блок (с быстрыми периодами), что у остальных отчётов
+		scope: { period: ['created_at'], organizations: false, directions: false, products: false, owners: false },
 		extra: [
-			{ key: 'product_id', label: 'Курс', kind: 'product', hint: 'Продукт из справочника. Пусто — все курсы' },
-			{ key: 'stream_number', label: 'Номер потока', kind: 'int', min: 1, max: 1000, hint: 'Пусто — все потоки' },
-			{ key: 'date_from', label: 'Сделки с', kind: 'date' },
-			{ key: 'date_to', label: 'Сделки по', kind: 'date' }
+			{ key: 'product_id', label: 'Курс', kind: 'product', hint: 'Продукт из справочника. Пусто — без ограничения' },
+			{ key: 'stream_number', label: 'Номер потока', kind: 'int', min: 1, max: 1000, hint: 'Пусто — без ограничения' }
 		],
 		personalData: true,
 		hint: 'Статусы сделок берутся автоматически: оплата и зачисление в LMS'
@@ -263,7 +260,8 @@ export function describeTemplate(description: string): string {
 		.replace(/без права\s+`?contact:reveal`?/giu, 'без права просмотра персональных данных')
 		.replace(/источник\s+lms/giu, 'источник LMS')
 		.replace(/\s*\(signature_documents\)/giu, '')
-		.replace(/индекс как среднее доле каждого показателя/giu, 'индекс — среднее из долей каждого показателя')
+		.replace(/\s+[—-]\s+индекс как среднее доле каждого показателя/giu, '. Индекс — среднее из долей каждого показателя')
+		.replace(/Лицензии\/договоры вуз-вендор-ПО:/giu, 'Лицензии и договоры:')
 		.replace(/Пусто и без пометки «не реализована», если источник LMS не присылал данных\.?/giu, 'Пусто, если LMS не присылала данные.')
 		.replace(/—\s*листинг, не агрегат/giu, '— список сделок, а не сводка')
 		.replace(/содержит ПДн/giu, 'содержит персональные данные')
