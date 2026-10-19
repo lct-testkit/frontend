@@ -134,7 +134,32 @@ export interface AuditEntryLike {
 const teamCache = new EntityCache<{ id: string; name: string }>((id) => unwrap(api.GET('/api/admin/teams/{team_id}', { params: { path: { team_id: id } } })), 6);
 const workflowCache = new EntityCache<{ id: string; name: string }>((id) => unwrap(api.GET('/api/workflows/{workflow_id}', { params: { path: { workflow_id: id } } })).then((g) => g.workflow), 6);
 const dashboardCache = new EntityCache<{ id: string; name: string }>((id) => unwrap(api.GET('/api/dashboards/{dashboard_id}', { params: { path: { dashboard_id: id } } })), 6);
-const reportCache = new EntityCache<{ id: string; format: string; created_at: string }>((id) => unwrap(api.GET('/api/reports/{report_id}', { params: { path: { report_id: id } } })), 6);
+
+// Отчёты — страницами списка (по 100, не больше 5 страниц), а не по одному `GET /api/reports/{id}`: журнал на странице показывает десятки отчётов, одиночные запросы
+// шли десятками (часть повторялась), а у руководителя чужие отчёты отвечали 403 красными ошибками в консоли. Список отдаёт ровно то, что роль видит (у администратора все).
+const reportMap = new SvelteMap<string, { format: string; created_at: string }>();
+let reportCursor: string | null | undefined;
+let reportPages = 0;
+let reportChain: Promise<void> = Promise.resolve();
+const REPORT_PAGES_MAX = 5;
+async function loadReportPages(want: string[]): Promise<void> {
+	while (reportCursor !== null && reportPages < REPORT_PAGES_MAX && want.some((id) => !reportMap.has(id))) {
+		const page = await unwrap(api.GET('/api/reports', { params: { query: { limit: 100, cursor: reportCursor ?? undefined } } }));
+		for (const r of page.items) reportMap.set(r.id, { format: r.format, created_at: r.created_at });
+		reportCursor = page.next_cursor ?? null;
+		reportPages++;
+	}
+}
+const reportResolver: Resolver = {
+	roles: ['KAM', 'HEAD', 'ADMIN'],
+	ensure: (ids) => {
+		reportChain = reportChain.then(() => loadReportPages(ids)).catch(() => {});
+	},
+	label: (id) => {
+		const r = reportMap.get(id);
+		return r ? `${r.format.toUpperCase()} от ${formatDate(r.created_at)}` : null;
+	}
+};
 const importCache = new EntityCache<{ id: string; entity_type: string; created_at: string }>((id) => unwrap(api.GET('/api/imports/{job_id}', { params: { path: { job_id: id } } })), 6);
 const licenseCache = new EntityCache<{ id: string; contract_number?: string | null; product_name: string }>((id) => unwrap(api.GET('/api/organization-licenses/{license_id}', { params: { path: { license_id: id } } })), 6);
 
@@ -189,7 +214,7 @@ const RESOLVERS: Record<string, Resolver> = {
 	team: byCache(teamCache, ['ADMIN'], (t) => t.name),
 	workflow: byCache(workflowCache, null, (w) => w.name),
 	dashboard: byCache(dashboardCache, STAFF, (d) => d.name),
-	report_job: byCache(reportCache, STAFF, (r) => `${r.format.toUpperCase()} от ${formatDate(r.created_at)}`),
+	report_job: reportResolver,
 	import_job: byCache(importCache, ['HEAD', 'ADMIN'], (j) => `${IMPORT_OF[j.entity_type] ? `${IMPORT_OF[j.entity_type]} ` : ''}от ${formatDate(j.created_at)}`),
 	organization_license: byCache(licenseCache, STAFF, (l) => l.contract_number || l.product_name),
 	notification_template: byList(templateList, ['ADMIN'], (t) => `${NOTIFICATION_EVENT_CODES.find((e) => e.key === t.code)?.value ?? t.code} · ${labelOf(NOTIFICATION_CHANNELS, t.channel)}`),
