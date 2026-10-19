@@ -90,19 +90,19 @@
 	<div class="flex flex-none items-center gap-1 border-b border-line px-3 py-1">
 		<span class="t-desc-l text-muted tabular-nums">{status === 'ready' ? `Стр. ${current} из ${pages.length}` : 'Документ'}</span>
 		<span class="ml-auto"></span>
-		<IconBtn icon={ZoomOut} label="Уменьшить" size="s" disabled={status !== 'ready' || zoom <= ZOOM_MIN} onclick={() => (zoom = zoomOut(zoom))} />
+		<IconBtn icon={ZoomOut} label="Уменьшить" size="s" class="max-md:min-h-11 max-md:min-w-11" disabled={status !== 'ready' || zoom <= ZOOM_MIN} onclick={() => (zoom = zoomOut(zoom))} />
 		<Btn
 			label={`${Math.round(zoom * 100)}%`}
 			size="s"
 			variant="ghost"
 			colorScheme="neutral"
-			class="min-w-14 tabular-nums"
+			class="min-w-14 tabular-nums max-md:min-h-11 pointer-coarse:min-h-11"
 			aria-label="Сбросить масштаб"
 			title="Сбросить масштаб"
 			disabled={status !== 'ready'}
 			onclick={() => (zoom = 1)}
 		/>
-		<IconBtn icon={ZoomIn} label="Увеличить" size="s" disabled={status !== 'ready' || zoom >= ZOOM_MAX} onclick={() => (zoom = zoomIn(zoom))} />
+		<IconBtn icon={ZoomIn} label="Увеличить" size="s" class="max-md:min-h-11 max-md:min-w-11" disabled={status !== 'ready' || zoom >= ZOOM_MAX} onclick={() => (zoom = zoomIn(zoom))} />
 	</div>
 
 	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
