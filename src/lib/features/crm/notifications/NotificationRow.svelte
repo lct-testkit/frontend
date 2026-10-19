@@ -1,11 +1,12 @@
 <script lang="ts">
 	// Одна запись уведомления на ListRow: заголовок (у непрочитанного жирный, справа точка), текст, сделка, время; у важных — метка приоритета.
 	// Клик по строке ведёт к объекту и отмечает прочитанным; кнопка «Прочитано» — только отметить.
+	import { session } from '$lib/auth/session.svelte';
 	import { Btn, DateText, ListRow, StatusChip } from '$lib/ui';
 	import { dealLabel } from '../shared/entityCache.svelte';
 	import { NOTIFICATION_PRIORITY_LABELS } from '../shared/labels';
 	import type { NotificationItem } from '../types';
-	import { entityHref } from './eventCodes';
+	import { notificationHref } from './eventCodes';
 	import { notificationBody, notificationTitle } from './notifications.svelte';
 
 	interface Props {
@@ -16,7 +17,7 @@
 
 	let { item, onOpen, onRead }: Props = $props();
 
-	const href = $derived(entityHref(item.entity_type, item.entity_id));
+	const href = $derived(notificationHref(item, { meId: session.me?.id, can: (p) => session.can(p) }));
 	const body = $derived(notificationBody(item));
 </script>
 

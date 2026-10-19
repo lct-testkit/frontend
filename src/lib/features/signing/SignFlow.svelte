@@ -6,6 +6,7 @@
 	import { errorTextWithCode } from '$lib/api';
 	import { AreaField, FormModal } from '$lib/ui';
 	import Btn from '$lib/ui/Btn.svelte';
+	import Notice from '$lib/ui/Notice.svelte';
 	import CopyButton from '$lib/ui/CopyButton.svelte';
 	import ErrorState from '$lib/ui/ErrorState.svelte';
 	import Skeleton from '$lib/ui/Skeleton.svelte';
@@ -86,8 +87,13 @@
 			{/if}
 		</header>
 
+		{#if session.viewPending}
+			<Notice tone="warning" data-testid="view-pending">Отметка «Ознакомлен» не записалась, документ открыт для чтения. Она запишется заново, когда вы нажмёте «Подписать».</Notice>
+		{/if}
+
 		<PdfViewer load={loadPdf} />
 
+		{#if page.signers.length}
 		<section class="flex flex-col rounded-lg border border-line bg-surface px-4 py-2 max-md:px-3" aria-label="Подписанты">
 			<div class="flex items-baseline gap-2 py-1">
 				<h2 class="t-body-m-strong m-0">Подписанты</h2>
@@ -95,18 +101,23 @@
 			</div>
 			<SignerList signers={page.signers} />
 		</section>
+		{/if}
 
+		{#if page.agreement_text || page.document.content_hash}
 		<details open class="rounded-lg border border-line bg-surface px-4 py-3 max-md:px-3">
 			<summary class="t-body-m cursor-pointer text-muted select-none">Условия подписания</summary>
 			<div class="mt-3 flex flex-col gap-3">
-				<p class="t-body-s m-0 whitespace-pre-line text-muted">{page.agreement_text}</p>
-				<div class="flex items-center gap-2 border-t border-line pt-3">
-					<span class="t-desc-l text-muted">SHA-256</span>
-					<code class="t-desc-l min-w-0 flex-1 truncate" title={page.document.content_hash}>{shortHash(page.document.content_hash, 12, 8)}</code>
-					<CopyButton value={page.document.content_hash} label="Копировать хэш" />
-				</div>
+				{#if page.agreement_text}<p class="t-body-s m-0 whitespace-pre-line text-muted">{page.agreement_text}</p>{/if}
+				{#if page.document.content_hash}
+					<div class={['flex items-center gap-2', page.agreement_text && 'border-t border-line pt-3']}>
+						<span class="t-desc-l text-muted">SHA-256</span>
+						<code class="t-desc-l min-w-0 flex-1 truncate" title={page.document.content_hash}>{shortHash(page.document.content_hash, 12, 8)}</code>
+						<CopyButton value={page.document.content_hash} label="Копировать хэш" />
+					</div>
+				{/if}
 			</div>
 		</details>
+		{/if}
 
 		{#if session.phase === 'otp'}
 			<div bind:this={panel} class="max-md:sticky max-md:bottom-0 max-md:z-10 max-md:-mx-3 max-md:-mb-3"><OtpPanel {session} /></div>

@@ -70,7 +70,7 @@ export function eventCodeInfo(code: string): EventCodeInfo {
 	return BY_CODE.get(code) ?? { code, label: code, group: 'other' };
 }
 
-/** Куда вести из уведомления (`entity_type` → маршрут). Подпись — маршруты агента C: запрос `/signing/requests/{id}`, документ `/signing/{id}`. */
+/** Куда вести по типу объекта уведомления. Подпись — маршруты агента C: запрос `/signing/requests/{id}`, документ `/signing/{id}`. */
 export function entityHref(entityType: string | null | undefined, entityId: string | null | undefined): string | null {
 	if (!entityType || !entityId) return null;
 	switch (entityType) {
@@ -88,7 +88,59 @@ export function entityHref(entityType: string | null | undefined, entityId: stri
 			return `/signing/requests/${entityId}`;
 		case 'signature_document':
 			return `/signing/${entityId}`;
+		case 'security_incident':
+			return `/admin/incidents/${entityId}`;
+		case 'data_erasure_request':
+			return `/admin/erasure/${entityId}`;
 		default:
 			return null;
 	}
+}
+
+export interface NotificationLinkSource {
+	template_code: string;
+	entity_type: string | null;
+	entity_id: string | null;
+	payload?: Record<string, unknown> | null;
+}
+
+export interface NotificationLinkContext {
+	/** кто смотрит: уведомление про собственную учётную запись ведёт в профиль */
+	meId?: string | null;
+	can?: (permission: string) => boolean;
+}
+
+/**
+ * Куда вести из уведомления. Решает код события, а не только тип объекта: у одного и того же `organization` запрос доступа ведёт во «Входящие»
+ * (решение принимается там, не в карточке вуза), а у `signature_request` напоминание инициатору — не на экран подписи чужого запроса.
+ * Не нашлось, куда вести, — `null` (строка только отмечается прочитанной).
+ */
+export function notificationHref(n: NotificationLinkSource, ctx: NotificationLinkContext = {}): string | null {
+	switch (n.template_code) {
+		// решение принимает владелец вуза/руководитель — во входящих запросах, а не в карточке вуза
+		case 'ACCESS_REQUEST_CREATED':
+			return '/access-requests?box=inbox';
+		case 'ACCESS_REQUEST_REJECTED':
+			return '/access-requests?box=mine';
+		// кандидатов может быть несколько — открываем список кандидатов; по сроку — карточку инцидента
+		case 'SECURITY_INCIDENT_CANDIDATE':
+			return '/admin/incidents?status=candidate';
+		// эти уведомления получает инициатор, а `entity_id` — запрос подписанта: «Подписать» ему не открыть (404), ведём к документам
+		case 'SIGNATURE_OTP_LOCKED':
+		case 'SIGNATURE_REMINDER_MANUAL':
+			return '/signing?tab=docs';
+		case 'EDM_AGREEMENT_MISSING': {
+			const doc = n.payload?.document_id;
+			return n.entity_id ? entityHref(n.entity_type, n.entity_id) : typeof doc === 'string' ? `/signing/${doc}` : '/signing?tab=docs';
+		}
+		// массовая передача: объекта нет, но есть список «моих»
+		case 'USER_OFFBOARD_SUCCESSOR':
+			return '/deals';
+	}
+	if (n.entity_type === 'user' && n.entity_id) {
+		if (n.entity_id === ctx.meId) return '/profile';
+		return ctx.can?.('user:read') ? `/admin/users/${n.entity_id}` : null;
+	}
+	if (!n.entity_id && n.template_code === 'ORG_OWNER_ASSIGNED') return '/organizations';
+	return entityHref(n.entity_type, n.entity_id);
 }
