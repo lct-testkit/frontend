@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { Lock } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap, errorMessage, type components } from '$lib/api';
-	import { AreaField, DataTable, DateText, ErrorState, FormDrawer, Skeleton, TableCell, TextField, Toggle, toast, type Col } from '$lib/ui';
+	import { AreaField, DataTable, DateText, ErrorState, FormDrawer, Skeleton, sanitizeNumber, TableCell, TextField, Toggle, toast, type Col } from '$lib/ui';
 	import { PDN_POLICY_KEY, isSecretPlaceholder, parseSettingValue, settingKind, stringifySettingValue } from '../settings';
 
 	type Setting = components['schemas']['SystemSettingOut'] & { id: string };
@@ -142,7 +142,7 @@
 				<TextField type="password" autocomplete="new-password" label="Новое значение секрета" bind:value={text} />
 				<p class="t-desc-l text-muted">Текущее значение не показывается. Чтобы оставить его прежним, просто закройте окно.</p>
 			{:else if kind === 'number'}
-				<TextField label="Значение" inputmode="decimal" bind:value={text} />
+				<TextField label="Значение" inputmode="decimal" transform={(v) => sanitizeNumber(v)} bind:value={text} />
 			{:else}
 				<AreaField label="Значение" rows={kind === 'json' ? 10 : 3} maxRows={16} bind:value={text} />
 			{/if}

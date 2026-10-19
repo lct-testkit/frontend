@@ -19,7 +19,9 @@ describe('describeCondition', () => {
 		expect(describeCondition({ field: 'loss_reason_id', op: 'not_null' })).toBe('Причина отказа: заполнено');
 		expect(describeCondition({ field: 'loss_reason_id', op: 'not_null', satisfied: false })).toBe('Заполните: причина отказа');
 		expect(describeCondition({ field: 'attachments.contract', op: 'exists' })).toBe('Прикреплён файл «Договор»');
-		expect(describeCondition({ field: 'custom_fields.contact_verified', op: 'eq', expected: true })).toBe('contact verified: да');
+		expect(describeCondition({ field: 'custom_fields.contact_verified', op: 'eq', expected: true })).toBe('Контакт подтверждён');
+		expect(describeCondition({ field: 'custom_fields.contact_verified', op: 'eq', expected: true, satisfied: false })).toBe('Отметьте «Контакт подтверждён» — флажок ниже');
+		expect(currentText({ field: 'custom_fields.contact_verified', op: 'eq', expected: true, actual: null, satisfied: false })).toBe('');
 	});
 	it('сравнения', () => {
 		expect(describeCondition({ field: 'tasks.open_count', op: 'eq', expected: 0 })).toBe('Открытые задачи: 0');

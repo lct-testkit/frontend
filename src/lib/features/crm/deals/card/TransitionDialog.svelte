@@ -190,6 +190,8 @@
 	/** подсказка-ссылка к строке условия (файлы, подпись, задачи) — показываем прямо в чек-листе */
 	const hintOf = (leaf: ConditionLike) => missingHints.find((h) => h.field === leaf.field);
 	/** подсказки без строки в чек-листе (обязательные поля статуса, роль) */
+	/** невыполненное условие-флажок («Контакт подтверждён») закрывается галочкой в форме ниже — отдельная плашка над ней только дублирует */
+	const boolFieldOf = (leaf: ConditionLike) => form.fields.some((f) => f.key === leaf.field && f.input === 'bool');
 	const looseHints = $derived(missingHints.filter((h) => !tr.conditions.some((c) => c.field === h.field)));
 
 	function validate(): boolean {
@@ -338,7 +340,7 @@
 				{@render leafText(leaf)}{#if req && describeExisting(req)}<span> · уже приложен: {describeExisting(req)}</span>{/if}
 			</span>
 		</li>
-	{:else}
+	{:else if !boolFieldOf(leaf)}
 		<li><Notice class="shrink-0" tone="warning" actions={navActions(hintOf(leaf)?.kind)}>{@render leafText(leaf)}</Notice></li>
 	{/if}
 {/snippet}
@@ -373,12 +375,6 @@
 
 	{#if errors.files}<p class="t-desc-l m-0 text-danger" role="alert">{errors.files}</p>{/if}
 
-	{#if showOtherFiles}
-		<div class="flex flex-col gap-2" data-testid="other-files">
-			<span class="t-body-s-strong text-muted">Другие файлы к этому статусу</span>
-			<TransitionFileZone dealId={deal.id} files={otherFiles} onAdd={addFile} onRemove={removeFile} testid="tr-files-other" />
-		</div>
-	{/if}
 
 	{#if looseHints.length}
 		<div class="flex flex-col gap-2">
@@ -391,6 +387,13 @@
 	{#each form.fields as field (field.key)}
 		{@render fieldInput(field)}
 	{/each}
+
+	{#if showOtherFiles}
+		<div class="flex flex-col gap-2" data-testid="other-files">
+			<span class="t-body-s-strong text-muted">Ещё файлы к переходу — по желанию</span>
+			<TransitionFileZone dealId={deal.id} files={otherFiles} onAdd={addFile} onRemove={removeFile} testid="tr-files-other" />
+		</div>
+	{/if}
 
 	<AreaField
 		label={otherReason ? 'Опишите причину' : 'Комментарий'}

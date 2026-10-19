@@ -85,9 +85,9 @@
 
 	<FormSection title="Реквизиты">
 		<FormRow cols={3}>
-			<TextField label="ИНН" hint="Налоговый номер: 10 цифр, у ИП 12" value={values.inn} error={err('inn')} readonly={innReadonly} disabled={disabled} inputmode="numeric" maxlength={12} onInput={(v) => (values.inn = v)} onBlur={() => !innReadonly && verify('inn', values.inn)} onEnter={onEnter} />
-			<TextField label={marked('КПП', 'kpp')} hint="Код причины постановки на учёт: 9 цифр" value={values.kpp} error={err('kpp')} {disabled} inputmode="numeric" maxlength={9} onInput={(v) => (values.kpp = v)} onBlur={() => verify('kpp', values.kpp)} onEnter={onEnter} />
-			<TextField label={marked(orgTypeIp ? 'ОГРНИП' : 'ОГРН', 'ogrn')} hint="Регистрационный номер: 13 цифр, у ИП 15" value={values.ogrn} error={err('ogrn')} {disabled} inputmode="numeric" maxlength={15} onInput={(v) => (values.ogrn = v)} onBlur={() => verify('ogrn', values.ogrn)} onEnter={onEnter} />
+			<TextField label="ИНН" hint="Налоговый номер: 10 цифр, у ИП 12" value={values.inn} error={err('inn')} readonly={innReadonly} disabled={disabled} transform={(v) => v.replace(/\D/g, '')} inputmode="numeric" maxlength={12} onInput={(v) => (values.inn = v)} onBlur={() => !innReadonly && verify('inn', values.inn)} onEnter={onEnter} />
+			<TextField label={marked('КПП', 'kpp')} hint="Код причины постановки на учёт: 9 цифр" value={values.kpp} error={err('kpp')} {disabled} transform={(v) => v.replace(/\D/g, '')} inputmode="numeric" maxlength={9} onInput={(v) => (values.kpp = v)} onBlur={() => verify('kpp', values.kpp)} onEnter={onEnter} />
+			<TextField label={marked(orgTypeIp ? 'ОГРНИП' : 'ОГРН', 'ogrn')} hint="Регистрационный номер: 13 цифр, у ИП 15" value={values.ogrn} error={err('ogrn')} {disabled} transform={(v) => v.replace(/\D/g, '')} inputmode="numeric" maxlength={15} onInput={(v) => (values.ogrn = v)} onBlur={() => verify('ogrn', values.ogrn)} onEnter={onEnter} />
 		</FormRow>
 		<AreaField label={marked('Юридический адрес', 'legal_address')} rows={2} maxRows={4} value={values.legal_address} {disabled} onInput={(v) => (values.legal_address = v)} />
 		<TextField label="Фактический адрес" value={values.actual_address} {disabled} onInput={(v) => (values.actual_address = v)} onEnter={onEnter} />
