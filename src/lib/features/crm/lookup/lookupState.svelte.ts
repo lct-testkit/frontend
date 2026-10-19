@@ -25,6 +25,8 @@ export interface OrgLookupEntry {
 }
 
 const MIN_CHARS = 2;
+/** длиннее сервер (`GET /api/org-lookup/suggest`, `q`) отвечает 422: поле не пускает больше, а вставленное длинное обрезается */
+export const MAX_QUERY = 255;
 
 export class OrgLookupState {
 	query = $state('');
@@ -63,7 +65,7 @@ export class OrgLookupState {
 	}
 
 	async #search(raw: string): Promise<void> {
-		const text = raw.trim();
+		const text = raw.trim().slice(0, MAX_QUERY);
 		if (text.length < MIN_CHARS) return;
 		const mine = ++this.#seq;
 		const digits = normalizeRequisite(text);
