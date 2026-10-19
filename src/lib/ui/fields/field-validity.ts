@@ -31,8 +31,8 @@ export function createFieldValidity(): FieldValidity {
 }
 
 /** In a container of a form: fields below report into it. */
-export function provideFieldValidity(): FieldValidity {
-	return setContext(KEY, createFieldValidity());
+export function provideFieldValidity(validity: FieldValidity): FieldValidity {
+	return setContext(KEY, validity);
 }
 
 /** In a field: a reporter bound to this field (does nothing outside of a form container). */

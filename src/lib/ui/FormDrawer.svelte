@@ -11,7 +11,7 @@
 	import { mayClose } from './form-close';
 	import { watchDirty } from './form-dirty';
 	import { useBackGuard } from './leave-guard.svelte';
-	import { provideFieldValidity } from './fields/field-validity';
+	import { createFieldValidity, provideFieldValidity } from './fields/field-validity';
 	import { provideSubmitCounter } from './fields/fresh-error.svelte';
 
 	interface Props {
@@ -51,7 +51,7 @@
 
 	const formId = `fd-${Math.random().toString(36).slice(2, 8)}`;
 
-	const validity = provideFieldValidity();
+	const validity = provideFieldValidity(createFieldValidity());
 	const submits = provideSubmitCounter();
 
 	// the message about the whole form («Не удалось сохранить…») belongs to the values that were sent: editing a field takes it away, a new attempt brings it back
