@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuid } from '$lib/uuid';
 	// Причина отказа: код (при создании), название, категория, «Активна». Порядок внутри категории меняется стрелками в списке.
 	import { untrack } from 'svelte';
 	import { api, unwrap, idem, ifMatch } from '$lib/api';
@@ -34,7 +35,7 @@
 	let formError = $state<string | null>(null);
 	let conflict = $state(false);
 	let saving = $state(false);
-	let idemKey = crypto.randomUUID();
+	let idemKey = uuid();
 
 	const isNew = $derived(item === null);
 
@@ -49,7 +50,7 @@
 			errors = {};
 			formError = null;
 			conflict = false;
-			idemKey = crypto.randomUUID();
+			idemKey = uuid();
 		});
 	});
 

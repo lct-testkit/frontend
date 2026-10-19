@@ -68,3 +68,17 @@ describe('errorMessage — экран ошибки без внутренност
 		expect(errorMessage(new ApiError({ status: 422, errors: [{ field: 'x', reason: 'weird english' }] }))).toBe('Недопустимое значение.');
 	});
 });
+
+describe('ApiError.fieldErrors — английские тексты бэкенда переводятся', () => {
+	it('«value is not a valid email address» → русская подсказка, русский текст бэкенда без изменений', () => {
+		const e = new ApiError({
+			status: 422,
+			errors: [
+				{ field: 'email', reason: 'value is not a valid email address: An email address must have an @-sign.' },
+				{ field: 'name', reason: 'Укажите ФИО' }
+			]
+		});
+		expect(e.fieldErrors()).toEqual({ email: 'Некорректный адрес почты.', name: 'Укажите ФИО' });
+		expect(e.fieldError('email')).toBe('Некорректный адрес почты.');
+	});
+});

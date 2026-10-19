@@ -109,6 +109,7 @@
 					{/each}
 				</ul>
 				{#if failure}<Notice class="shrink-0" tone="error">{failure}</Notice>{/if}
+				<Btn label="Войти по логину и паролю" icon={SignIn} variant="outline" colorScheme="neutral" size="l" block disabled={busy !== null} onclick={() => session.loginOidc(next ?? '/')} data-testid="oidc-login" />
 				{#if cfg.mailUrl}
 					<p class="t-desc-l m-0 text-muted">Письма стенда (приглашения, сброс пароля, ссылки на подпись) — в <a href={cfg.mailUrl} target="_blank" rel="noopener" data-testid="mail-link">почте стенда</a>, вход не нужен.</p>
 				{/if}

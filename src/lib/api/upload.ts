@@ -1,3 +1,4 @@
+import { uuid } from '$lib/uuid';
 // File upload never goes through the API worker (new_spec §3.7):
 //   1. POST /api/files/upload-intent  → presigned PUT url
 //   2. PUT  <url> (straight to S3/SeaweedFS, progress via XHR)
@@ -61,7 +62,7 @@ function put(url: string, file: Blob, headers: Record<string, string>, onProgres
 export async function uploadFile(file: File, options: UploadOptions = {}): Promise<UploadedFile> {
 	let fileId = options.resumeFileId;
 	if (!fileId) {
-		const key = crypto.randomUUID();
+		const key = uuid();
 		const intent = await unwrap(
 			api.POST('/api/files/upload-intent', {
 				body: {

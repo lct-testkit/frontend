@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuid } from '$lib/uuid';
 	// Новая сделка: минимум полей (название, тип, организация или клиент, сумма и срок), остальное — в «Дополнительно» и в карточке.
 	// Enter отправляет, Esc закрывает; создание защищено Idempotency-Key (новый ключ — при изменении данных).
 	import { untrack } from 'svelte';
@@ -46,7 +47,7 @@
 	let busy = $state(false);
 	let orgDrawer = $state(false);
 	let contactDrawer = $state(false);
-	let key = crypto.randomUUID();
+	let key = uuid();
 	let keySig = '';
 
 	$effect(() => {
@@ -65,7 +66,7 @@
 			picked = [];
 			errors = {};
 			failure = null;
-			key = crypto.randomUUID();
+			key = uuid();
 			keySig = '';
 		});
 		void workflows.published.ensure().catch(() => {});
@@ -115,7 +116,7 @@
 		};
 		const sig = JSON.stringify(body);
 		if (sig !== keySig) {
-			key = crypto.randomUUID();
+			key = uuid();
 			keySig = sig;
 		}
 		busy = true;

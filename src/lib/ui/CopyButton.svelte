@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Copies `value` to the clipboard and confirms with a short toast. Icon-only.
+	import { copyText } from '$lib/utils/clipboard';
 	import { Copy } from '@lct-testkit/rt-ui/icons';
 	import IconBtn from './IconBtn.svelte';
 	import { toast } from './toast.svelte';
@@ -8,7 +9,7 @@
 
 	async function copy() {
 		try {
-			await navigator.clipboard.writeText(value);
+			await copyText(value);
 			toast.success(done);
 		} catch {
 			toast.error('Не удалось скопировать');

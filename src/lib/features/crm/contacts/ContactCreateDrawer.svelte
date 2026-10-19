@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuid } from '$lib/uuid';
 	// Новый контакт: ФИО, должность, организация, e-mail, телефон, ЛПР, каналы связи. Idempotency-Key на время попытки.
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -24,7 +25,7 @@
 	/** сервер нашёл такого человека (совпал email или телефон): вместо второй карточки предлагаем открыть первую */
 	let duplicates = $state<DuplicateCandidate[] | null>(null);
 	let busy = $state(false);
-	let key = crypto.randomUUID();
+	let key = uuid();
 	let keySig = '';
 
 	$effect(() => {
@@ -34,7 +35,7 @@
 			errors = {};
 			failure = null;
 			duplicates = null;
-			key = crypto.randomUUID();
+			key = uuid();
 			keySig = '';
 		});
 	});
@@ -48,7 +49,7 @@
 		const body = toCreateBody(values);
 		const sig = JSON.stringify(body);
 		if (sig !== keySig) {
-			key = crypto.randomUUID();
+			key = uuid();
 			keySig = sig;
 		}
 		busy = true;

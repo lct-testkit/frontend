@@ -68,11 +68,7 @@ class Session {
 	async load(): Promise<void> {
 		this.start();
 		this.error = null;
-		if (this.mode === 'demo' && !hasTokens()) {
-			this.status = 'anonymous';
-			this.me = null;
-			return;
-		}
+		// demo без токенов: вход мог быть через Keycloak и BFF (приглашённый пользователь) — тогда есть cookie-сессия, пробуем её
 		try {
 			const me = await unwrap(api.GET('/api/me'));
 			this.me = me;
@@ -107,7 +103,7 @@ class Session {
 
 	async logout(): Promise<void> {
 		try {
-			if (this.mode === 'demo') await demoLogout();
+			if (this.mode === 'demo' && hasTokens()) await demoLogout();
 			else await api.POST('/api/auth/logout', { body: { local_only: false } });
 		} catch {
 			// the local state is cleared regardless

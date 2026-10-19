@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuid } from '$lib/uuid';
 	// Дата производственного календаря: праздник (нерабочий день) или перенос (рабочий день на выходной).
 	import { untrack } from 'svelte';
 	import { api, unwrap, idem, ifMatch } from '$lib/api';
@@ -29,7 +30,7 @@
 	let formError = $state<string | null>(null);
 	let conflict = $state(false);
 	let saving = $state(false);
-	let idemKey = crypto.randomUUID();
+	let idemKey = uuid();
 
 	const isNew = $derived(item === null);
 
@@ -43,7 +44,7 @@
 			errors = {};
 			formError = null;
 			conflict = false;
-			idemKey = crypto.randomUUID();
+			idemKey = uuid();
 		});
 	});
 

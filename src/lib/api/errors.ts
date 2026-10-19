@@ -116,11 +116,11 @@ export class ApiError extends Error {
 		return this.status === 401;
 	}
 
-	/** `{ email: 'reason', 'contact.phone': 'reason' }` — feed straight into form fields. */
+	/** `{ email: 'reason', 'contact.phone': 'reason' }` — feed straight into form fields; английские тексты pydantic переведены (`reasonText`). */
 	fieldErrors(): Record<string, string> {
 		const out: Record<string, string> = {};
 		for (const issue of this.errors) {
-			if (!(issue.field in out)) out[issue.field] = issue.reason;
+			if (!(issue.field in out)) out[issue.field] = reasonText(issue.reason);
 		}
 		return out;
 	}

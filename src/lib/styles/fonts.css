@@ -1,22 +1,29 @@
 /* Rostelecom Basis — the font is licensed by Rostelecom and lives in static/fonts (git-ignored, provided by the customer).
-   Fallback stack (--atmr-font-family-body) keeps the UI readable without it. */
+   Без файлов шрифта (лицензионные woff не поставлены) в `src` идёт запасной системный sans: токены rt-ui `font: 400 16px/24px 'Rostelecom Basis'`
+   не содержат запасных семейств, и без этого браузер рисовал бы интерфейс с засечками. Токены rt-ui не переопределяются. */
 @font-face {
 	font-family: 'Rostelecom Basis';
-	src: url('/fonts/RostelecomBasis-Regular.woff') format('woff');
+	src:
+		url('/fonts/RostelecomBasis-Regular.woff') format('woff'),
+		local('Segoe UI'), local('Roboto'), local('Helvetica Neue'), local('Noto Sans'), local('DejaVu Sans'), local('Liberation Sans'), local('Arial');
 	font-style: normal;
 	font-weight: 400;
 	font-display: swap;
 }
 @font-face {
 	font-family: 'Rostelecom Basis';
-	src: url('/fonts/RostelecomBasis-Medium.woff') format('woff');
+	src:
+		url('/fonts/RostelecomBasis-Medium.woff') format('woff'),
+		local('Segoe UI Semibold'), local('Roboto Medium'), local('Helvetica Neue Medium'), local('Noto Sans Medium'), local('DejaVu Sans'), local('Liberation Sans'), local('Arial');
 	font-style: normal;
 	font-weight: 500;
 	font-display: swap;
 }
 @font-face {
 	font-family: 'Rostelecom Basis';
-	src: url('/fonts/RostelecomBasis-Bold.woff') format('woff');
+	src:
+		url('/fonts/RostelecomBasis-Bold.woff') format('woff'),
+		local('Segoe UI Bold'), local('Roboto Bold'), local('Helvetica Neue Bold'), local('Noto Sans Bold'), local('DejaVu Sans Bold'), local('Liberation Sans Bold'), local('Arial Bold');
 	font-style: normal;
 	font-weight: 700;
 	font-display: swap;

@@ -157,6 +157,14 @@
 	}
 }
 
+/* Запасной стек корня: в rt-ui 0.1.1 --atmr-font-family-base без системных семейств, а без лицензионного woff браузер берёт serif.
+   Слой components выше rtui; токены rt-ui не трогаем (шрифт самих компонентов закрывает запасной src в @font-face, см. styles/fonts.css). */
+@layer components {
+	body {
+		font-family: 'Rostelecom Basis', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+	}
+}
+
 @layer base {
 	*,
 	*::before,

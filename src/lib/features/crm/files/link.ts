@@ -1,5 +1,6 @@
 // Привязка загруженного файла к сущности (`POST /api/attachments`). Сразу после commit файл может быть ещё на проверке
 // (422 «Файл ещё не прошёл проверку») — тогда привязку повторяем с паузой, как в signing/send-draft.svelte.ts.
+import { uuid } from '$lib/uuid';
 import { api, idem, unwrap } from '$lib/api';
 import { ApiError } from '$lib/api/errors';
 import type { AttachmentCategory } from '$lib/api/upload';
@@ -22,7 +23,7 @@ export interface LinkParams {
 
 export async function linkAttachment(p: LinkParams, pause: number = LINK_PAUSE_MS): Promise<Attachment> {
 	// один ключ на всю цепочку попыток: повтор после обрыва сети не создаёт второе вложение
-	const key = crypto.randomUUID();
+	const key = uuid();
 	for (let attempt = 1; ; attempt += 1) {
 		try {
 			return await unwrap(

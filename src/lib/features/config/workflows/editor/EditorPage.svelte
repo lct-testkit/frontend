@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Редактор воронки: холст (десктоп) + панель свойств; на телефоне и планшете — просмотр холста и списки. Черновик → проверка → публикация.
+	import { copyText } from '$lib/utils/clipboard';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -98,7 +99,7 @@
 
 	async function copyJson() {
 		try {
-			await navigator.clipboard.writeText(JSON.stringify(toServer(editor.draft), null, 2));
+			await copyText(JSON.stringify(toServer(editor.draft), null, 2));
 			toast.success('Схема воронки скопирована');
 		} catch {
 			toast.error('Не удалось скопировать');

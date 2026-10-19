@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuid } from '$lib/uuid';
 	// Панель лицензии: создать или изменить договор вуз–вендор–ПО, не уходя со списка. Права, `Idempotency-Key`, `If-Match`, плашка конфликта версий —
 	// как у остальных форм (образец — ProductDrawer). ФИО менеджера и ответственные без права `contact:reveal` приходят маской: показываются, но не правятся.
 	import { onMount, untrack } from 'svelte';
@@ -42,7 +43,7 @@
 	let formError = $state<string | null>(null);
 	let conflict = $state(false);
 	let saving = $state(false);
-	let idemKey = crypto.randomUUID();
+	let idemKey = uuid();
 
 	const access = $derived(licenseAccess((p) => session.can(p)));
 	const canReveal = $derived(session.can('contact:reveal'));
@@ -63,7 +64,7 @@
 			errors = {};
 			formError = null;
 			conflict = false;
-			idemKey = crypto.randomUUID();
+			idemKey = uuid();
 		});
 	});
 

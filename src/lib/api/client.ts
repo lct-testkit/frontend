@@ -1,3 +1,4 @@
+import { uuid } from '$lib/uuid';
 import createClient, { type Middleware } from 'openapi-fetch';
 import type { paths } from './schema';
 import { ApiError } from './errors';
@@ -28,12 +29,17 @@ const middleware: Middleware = {
 			if (isApi(request)) {
 				const token = await getAccessToken();
 				if (token) request.headers.set('Authorization', `Bearer ${token}`);
+				else if (!SAFE.has(request.method.toUpperCase())) {
+					// demo, но вход через Keycloak (BFF-cookie): как в prod, нужен CSRF-токен
+					const csrf = csrfToken();
+					if (csrf) request.headers.set(CSRF_HEADER, csrf);
+				}
 			}
 		} else if (!SAFE.has(request.method.toUpperCase())) {
 			const csrf = csrfToken();
 			if (csrf) request.headers.set(CSRF_HEADER, csrf);
 		}
-		if (!request.headers.has('X-Request-Id')) request.headers.set('X-Request-Id', crypto.randomUUID());
+		if (!request.headers.has('X-Request-Id')) request.headers.set('X-Request-Id', uuid());
 		if (getConfig().mode === 'demo' && isApi(request)) replay.set(request, request.clone());
 		return request;
 	},
@@ -91,7 +97,7 @@ export async function unwrap<T extends Settled>(promise: Promise<T>): Promise<Da
 }
 
 /** `Idempotency-Key`: create ONE key per logical submit (per form instance) so a retry after a network failure reuses it. */
-export function idem(key: string = crypto.randomUUID()): { 'Idempotency-Key': string } {
+export function idem(key: string = uuid()): { 'Idempotency-Key': string } {
 	return { 'Idempotency-Key': key };
 }
 

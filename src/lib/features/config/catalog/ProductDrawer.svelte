@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuid } from '$lib/uuid';
 	// Продукт: минимум полей сверху (код, название, направление, формат, цена), остальное — в «Дополнительно».
 	import { untrack } from 'svelte';
 	import { api, unwrap, idem, ifMatch } from '$lib/api';
@@ -54,7 +55,7 @@
 	let formError = $state<string | null>(null);
 	let conflict = $state(false);
 	let saving = $state(false);
-	let idemKey = crypto.randomUUID();
+	let idemKey = uuid();
 
 	const isNew = $derived(item === null);
 	const dirItems = $derived(directionOptions(directions.data ?? []));
@@ -83,7 +84,7 @@
 			errors = {};
 			formError = null;
 			conflict = false;
-			idemKey = crypto.randomUUID();
+			idemKey = uuid();
 			void loadDefs();
 		});
 	});

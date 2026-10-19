@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuid } from '$lib/uuid';
 	// Новая организация: «ИНН или название» → выбор из реестра → форма с подставленными данными → создание.
 	// Дубли по ИНН/названию проверяются по мере ввода; создание защищено Idempotency-Key.
 	import AccessRequestModal from '../access/AccessRequestModal.svelte';
@@ -35,7 +36,7 @@
 	/** гонка: другой пользователь успел создать организацию с этим ИНН (409 CRM-1302) */
 	let conflict = $state<{ id: string; deleted: boolean } | null>(null);
 	let lookupKey = $state(0);
-	let key = crypto.randomUUID();
+	let key = uuid();
 	let keySig = '';
 
 	$effect(() => {
@@ -49,7 +50,7 @@
 			duplicates = [];
 			conflict = null;
 			lookupKey += 1;
-			key = crypto.randomUUID();
+			key = uuid();
 			keySig = '';
 		});
 	});
@@ -113,7 +114,7 @@
 		const body = toCreateBody(values);
 		const sig = JSON.stringify(body);
 		if (sig !== keySig) {
-			key = crypto.randomUUID();
+			key = uuid();
 			keySig = sig;
 		}
 		busy = true;

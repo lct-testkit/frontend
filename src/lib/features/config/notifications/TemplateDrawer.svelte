@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuid } from '$lib/uuid';
 	// Шаблон уведомления: событие и канал (при создании), тема (email), текст с подсказкой переменных, «Активен».
 	// Предпросмотр рендера — POST .../preview с образцом значений переменных (заглушки вида «[имя]», не настоящие данные).
 	import { untrack } from 'svelte';
@@ -41,7 +42,7 @@
 	let formError = $state<string | null>(null);
 	let conflict = $state(false);
 	let saving = $state(false);
-	let idemKey = crypto.randomUUID();
+	let idemKey = uuid();
 	let preview = $state<Preview | null>(null);
 	let previewing = $state(false);
 
@@ -67,7 +68,7 @@
 			errors = {};
 			formError = null;
 			conflict = false;
-			idemKey = crypto.randomUUID();
+			idemKey = uuid();
 			preview = null;
 		});
 	});
