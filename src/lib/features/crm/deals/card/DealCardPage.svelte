@@ -1,15 +1,17 @@
 <script lang="ts">
 	// Карточка сделки: шапка с действиями, лента шагов воронки, вкладки (обзор, этапы, обсуждение, файлы, задачи, история, подписание).
 	// Вкладка — в адресе (`?tab=`), так ссылки из уведомлений и кнопка «Назад» ведут туда, куда нужно.
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/state';
-			import { session } from '$lib/auth/session.svelte';
+	import { session } from '$lib/auth/session.svelte';
+	import { people } from '$lib/api/people.svelte';
 	import { EmptyState, ErrorState, Notice, Page, Skeleton, TabsBar } from '$lib/ui';
 	import { setQuery } from '$lib/utils/query-state.svelte';
 	import DealSignatures from '$lib/features/signing/DealSignatures.svelte';
 	import DealComments from '../../comments/DealComments.svelte';
 	import Attachments from '../../files/Attachments.svelte';
 	import DealTasks from '../../tasks/DealTasks.svelte';
+	import { contactCache, orgCache } from '../../shared/entityCache.svelte';
 	import type { AvailableTransition } from '../../types';
 	import DealHeader from './DealHeader.svelte';
 	import DealHistory from './DealHistory.svelte';
@@ -27,6 +29,25 @@
 	const card = new DealCardState(id);
 
 	onMount(() => void card.load());
+
+	// Шапка показывается, когда пришли названия организации, контакта и ответственного: иначе «…» меняется на длинное название, оно переносится на вторую
+	// строку и всё ниже сдвигается (CLS на телефоне). Ждём не дольше 800 мс — медленный ответ не должен держать карточку пустой.
+	let namesWaited = $state(false);
+	const dealKey = $derived(card.deal?.id);
+	$effect(() => {
+		const d = untrack(() => card.deal);
+		if (!dealKey || !d) return;
+		orgCache.ensure([d.organization_id]);
+		contactCache.ensure([d.contact_id]);
+		people.ensure([d.owner_id]);
+		const timer = setTimeout(() => (namesWaited = true), 800);
+		return () => clearTimeout(timer);
+	});
+	const namesReady = $derived.by(() => {
+		const d = card.deal;
+		if (!d || namesWaited) return true;
+		return (!d.organization_id || orgCache.get(d.organization_id) !== undefined) && (!d.contact_id || contactCache.get(d.contact_id) !== undefined) && (!d.owner_id || people.get(d.owner_id) !== undefined);
+	});
 
 	const TABS = ['overview', 'stages', 'comments', 'files', 'tasks', 'history', 'signing'] as const;
 	type Tab = (typeof TABS)[number];
@@ -84,7 +105,7 @@
 <svelte:head><title>{card.deal ? `${card.deal.number} · ${card.deal.title}` : 'Сделка'} · RTK School</title></svelte:head>
 
 <Page>
-	{#if card.loading && !card.deal}
+	{#if (card.loading && !card.deal) || (card.deal && !namesReady)}
 		<Skeleton kind="rows" rows={2} />
 		<Skeleton rows={1} height={44} radius={22} />
 		<Skeleton kind="rows" rows={6} />
