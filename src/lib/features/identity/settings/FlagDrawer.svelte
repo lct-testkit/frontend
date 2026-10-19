@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuid } from '$lib/uuid';
 	// Новый флаг функциональности: код (латиница, snake_case), описание, включён ли сразу. Код после создания не меняется.
 	import { untrack } from 'svelte';
 	import { api, unwrap, idem, type components } from '$lib/api';
@@ -23,7 +24,7 @@
 	let errors = $state<Record<string, string>>({});
 	let formError = $state<string | null>(null);
 	let saving = $state(false);
-	let idemKey = crypto.randomUUID();
+	let idemKey = uuid();
 
 	$effect(() => {
 		if (!open) return;
@@ -33,7 +34,7 @@
 			enabled = false;
 			errors = {};
 			formError = null;
-			idemKey = crypto.randomUUID();
+			idemKey = uuid();
 		});
 	});
 

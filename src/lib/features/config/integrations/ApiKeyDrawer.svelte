@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuid } from '$lib/uuid';
 	// Новый API-ключ: название, служебная учётка роли «Интеграция», срок. Сам ключ приходит в `onCreated` и показывается снаружи один раз.
 	import { untrack } from 'svelte';
 	import { api, unwrap } from '$lib/api';
@@ -35,7 +36,7 @@
 	let errors = $state<Record<string, string>>({});
 	let formError = $state<string | null>(null);
 	let saving = $state(false);
-	let idemKey = crypto.randomUUID();
+	let idemKey = uuid();
 
 	$effect(() => {
 		if (!open) return;
@@ -45,7 +46,7 @@
 			days = DEFAULT_EXPIRES_DAYS;
 			errors = {};
 			formError = null;
-			idemKey = crypto.randomUUID();
+			idemKey = uuid();
 		});
 	});
 	// единственная учётка — выбрана сразу

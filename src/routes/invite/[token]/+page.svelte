@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { session } from '$lib/auth/session.svelte';
 	import { getConfig } from '$lib/config';
 	import { InviteFlow } from '$lib/features/identity/invite.svelte';
 	import InviteCard from '$lib/features/identity/InviteCard.svelte';
@@ -17,7 +18,9 @@
 	onMount(() => void flow.load(page.params.token ?? ''));
 
 	function proceed() {
-		if (getConfig().mode === 'demo' || !flow.loginUrl) void goto('/login');
+		// demo: приглашённый входит по логину и паролю тем же OIDC-входом, что и в prod (плитки демо-ролей ему не нужны)
+		if (getConfig().mode === 'demo') session.loginOidc('/');
+		else if (!flow.loginUrl) void goto('/login');
 		else location.assign(flow.loginUrl);
 	}
 </script>

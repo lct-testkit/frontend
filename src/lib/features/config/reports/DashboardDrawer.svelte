@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuid } from '$lib/uuid';
 	// Создание и правка дашборда: название и «Общий» (виден всем сотрудникам с доступом к отчётам).
 	import { untrack } from 'svelte';
 	import { api, unwrap, idem, ifMatch } from '$lib/api';
@@ -25,7 +26,7 @@
 	let conflict = $state(false);
 	let saving = $state(false);
 	let version = $state(0);
-	let idemKey = crypto.randomUUID();
+	let idemKey = uuid();
 
 	$effect(() => {
 		if (!open) return;
@@ -36,7 +37,7 @@
 			errors = {};
 			formError = null;
 			conflict = false;
-			idemKey = crypto.randomUUID();
+			idemKey = uuid();
 		});
 	});
 

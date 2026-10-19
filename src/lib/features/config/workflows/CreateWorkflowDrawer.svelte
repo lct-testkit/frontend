@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuid } from '$lib/uuid';
 	// Создание воронки: название, код (по названию), тип сделки, «по умолчанию». Остальное — в редакторе.
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -27,7 +28,7 @@
 	let errors = $state<Record<string, string>>({});
 	let formError = $state<string | null>(null);
 	let saving = $state(false);
-	let idemKey = crypto.randomUUID();
+	let idemKey = uuid();
 
 	$effect(() => {
 		if (!open) return;
@@ -39,7 +40,7 @@
 			isDefault = false;
 			errors = {};
 			formError = null;
-			idemKey = crypto.randomUUID();
+			idemKey = uuid();
 		});
 	});
 

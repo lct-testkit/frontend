@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuid } from '$lib/uuid';
 	// Пользовательское поле: код и тип задаются при создании; форма подстраивается под тип (варианты для списков, границы для чисел, длина и шаблон для текста).
 	import { untrack } from 'svelte';
 	import { TagGroup } from '@lct-testkit/rt-ui';
@@ -50,7 +51,7 @@
 	let formError = $state<string | null>(null);
 	let conflict = $state(false);
 	let saving = $state(false);
-	let idemKey = crypto.randomUUID();
+	let idemKey = uuid();
 
 	const isNew = $derived(item === null);
 	const listType = $derived(type === 'select' || type === 'multiselect');
@@ -75,7 +76,7 @@
 			errors = {};
 			formError = null;
 			conflict = false;
-			idemKey = crypto.randomUUID();
+			idemKey = uuid();
 		});
 	});
 

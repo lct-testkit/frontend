@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuid } from '$lib/uuid';
 	// Подписка на исходящие события: название, адрес, события, фильтры по содержимому. У существующей — ещё секрет (смена, показывается один раз), тестовая отправка,
 	// журнал доставок и «Как принять» (заголовки, подпись, примеры проверки, правила повторов). Секрет при создании приходит в `onCreated` и показывается снаружи.
 	import { untrack } from 'svelte';
@@ -50,7 +51,7 @@
 	let ping = $state<PingResult | null>(null);
 	let rotating = $state(false);
 	let deleting = $state(false);
-	let idemKey = crypto.randomUUID();
+	let idemKey = uuid();
 
 	const isNew = $derived(subscription === null);
 	const prod = $derived(getConfig().mode === 'prod');
@@ -70,7 +71,7 @@
 			errors = {};
 			formError = null;
 			ping = null;
-			idemKey = crypto.randomUUID();
+			idemKey = uuid();
 		});
 	});
 

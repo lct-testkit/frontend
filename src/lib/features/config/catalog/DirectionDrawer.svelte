@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuid } from '$lib/uuid';
 	// Направление: код (только при создании), название, родитель. Из родителей исключены само направление и его потомки.
 	import { untrack } from 'svelte';
 	import { AddLarge } from '@lct-testkit/rt-ui/icons';
@@ -32,7 +33,7 @@
 	let formError = $state<string | null>(null);
 	let conflict = $state(false);
 	let saving = $state(false);
-	let idemKey = crypto.randomUUID();
+	let idemKey = uuid();
 
 	const isNew = $derived(item === null);
 	const parents = $derived(directionOptions(all, item ? selfAndDescendants(all, item.id) : undefined));
@@ -48,7 +49,7 @@
 			errors = {};
 			formError = null;
 			conflict = false;
-			idemKey = crypto.randomUUID();
+			idemKey = uuid();
 		});
 	});
 
