@@ -153,7 +153,7 @@ src/lib/api/                client.ts (openapi-fetch + middleware), errors.ts (R
 src/lib/auth/               session.svelte.ts (профиль, session.can), tokens.ts (только demo), events.ts (401, согласие, смена пароля, блокировка)
 src/lib/config.ts, nav.ts   runtime-конфиг /config.json; меню, заголовки и посадочная страница по правам
 src/lib/features/<область>/ crm · config · identity · signing · home: логика (*.ts, *.svelte.ts, тесты рядом) и разметка экранов
-src/lib/ui/                 57 общих компонентов (AppShell, TopBar, SideNav, Page, PageHeader, FilterBar, DataTable …) и ui/fields — 12 полей форм
+src/lib/ui/                 59 общих компонентов (AppShell, TopBar, SideNav, Page, PageHeader, FilterBar, DataTable …) и ui/fields — 13 полей форм
 src/lib/stores/             theme.svelte.ts: четыре темы, класс Theme_root_<тема> на <body>; help-attention.svelte.ts: точка «загляните» у справки, пока её не открыли
 src/lib/utils/              format, markdown (marked + DOMPurify), query-state (фильтры в адресной строке), debounce, platform
 src/lib/styles/             fonts.css: Rostelecom Basis и запасная гарнитура
@@ -164,7 +164,7 @@ tools/                      инструменты проверки, сеялк�
 docs/                       документация клиента; docs/img — картинки этого файла
 ```
 
-Около 300 файлов `.svelte` и 170 файлов `.ts` в `src`. Области `src/lib/features`:
+Около 350 файлов `.svelte` и 360 файлов `.ts` в `src`. Области `src/lib/features`:
 
 | Область | Что внутри |
 |---|---|
@@ -456,7 +456,7 @@ pnpm gen:api
 
 ### Сценарии `tools/scenarios/`
 
-Запуск — `node tools/scenarios/<имя>.mjs` из папки `frontend`; нужны бэкенд и dev-сервер (или `APP_URL`). Сценарии работают на живых данных и создают записи, а удаления у многих сущностей в бэкенде нет, поэтому часть не идемпотентна. Из 40 файлов `a-lib.mjs` — библиотека помощников.
+Запуск — `node tools/scenarios/<имя>.mjs` из папки `frontend`; нужны бэкенд и dev-сервер (или `APP_URL`). Сценарии работают на живых данных и создают записи, а удаления у многих сущностей в бэкенде нет, поэтому часть не идемпотентна. Из 77 файлов `a-lib.mjs` — библиотека помощников (в таблице ниже — основные).
 
 | Сценарий | Что проверяет | Побочные эффекты |
 |---|---|---|
@@ -491,7 +491,7 @@ docker build -t rtk-crm-web .
 * **Ограничения бэкенда** ([`docs/backend-issues.md`](docs/backend-issues.md)): в демо остались тестовые записи прогонов сценариев — `DELETE`-ручками ещё не почищены.
 * **Ловушки rt-ui**, на которые пришлось обходить ([`docs/REBUILD-PLAN.md`](docs/REBUILD-PLAN.md), §6): `Popover` с `showCloseButton` по умолчанию ничего не рисует; списки `Select` и `InputDate` внутри `Drawer` открываются под ним (обход — одна переменная в `Pick.svelte`); у `Accordion` нет `<button>` в заголовке; кнопки `InlineNotification` всегда «тихие».
 * **Нет анимаций окон и колец фокуса**, если в Windows отключены эффекты анимации: браузер сообщает `prefers-reduced-motion`, и дизайн-система отключает движение — так задумано.
-* **Справка `/help`** — 13 глав: 8 пользовательских со скриншотами реального интерфейса, задачи и уведомления, интеграции (со скриншотами), клавиатура и темы, «О проекте» и глава «Дизайн-система» с живыми компонентами rt-ui ([`src/lib/content/help`](src/lib/content/help), [`static/help`](static/help)). Иконка «?» в шапке и пункт меню «Справка» несут акцентную точку, пока справку не открыли после обновления глав (`HELP_REV` в `stores/help-attention.svelte.ts`).
+* **Справка `/help`** — 23 главы пользователя (по ролям КАМ, руководитель, администратор, аудитор; сделки, организации, подписание, импорт, лицензии, отчёты, файлы, воронка, интеграции, коды ошибок, клавиатура и темы, «О проекте», «Дизайн-система» с живыми компонентами rt-ui) и 15 глав руководства администратора, со скриншотами реального интерфейса и версией для печати ([`src/lib/content/help`](src/lib/content/help), [`static/help`](static/help); как обновлять — [`docs/HELP.md`](docs/HELP.md)). Иконка «?» в шапке и пункт меню «Справка» несут акцентную точку, пока справку не открыли после обновления глав (`HELP_REV` в `stores/help-attention.svelte.ts`).
 
 ## Шрифт и лицензия
 
@@ -503,5 +503,5 @@ Rostelecom Basis и пакет `@lct-testkit/rt-ui` — материалы Ро�
 | [`docs/REBUILD-PLAN.md`](docs/REBUILD-PLAN.md) | замечания заказчика, блоки B1–B15 и критерии приёмки, правила раскладки (§9), что принято |
 | [`docs/USERFLOWS.md`](docs/USERFLOWS.md) | пользовательские потоки по ролям: задача, экраны, блоки, обязательные состояния |
 | [`docs/backend-issues.md`](docs/backend-issues.md) | проблемы и несоответствия бэкенда, обходы (в том числе про сиды отчётов, уведомлений и интеграций) |
-| [`docs/openapi.json`](docs/openapi.json), [`docs/api-endpoints.md`](docs/api-endpoints.md) | схема и индекс 249 операций; генерируются `pnpm gen:api` |
+| [`docs/openapi.json`](docs/openapi.json), [`docs/api-endpoints.md`](docs/api-endpoints.md) | схема и индекс операций (284 на 19.10.2026); генерируются `pnpm gen:api` |
 | [`../README.md`](https://github.com/lct-testkit/.github#readme) · [`../backend/README.md`](https://github.com/lct-testkit/backend#readme) · [`../rt-ui/README.md`](https://github.com/lct-testkit/rt-ui#readme) | продукт целиком и стенд · бэкенд · дизайн-система |
