@@ -7,7 +7,7 @@
 	import { Settings, Synchronization } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { Btn, CopyButton, DateText, IconBtn, Notice, Skeleton, StatusChip, Tip, toast } from '$lib/ui';
-	import { AUTH_TYPES, labelOf } from '../labels';
+	import { AUTH_TYPES, INTEGRATION_SOURCES, labelOf } from '../labels';
 	import type { IntegrationSource, SourceStatus } from '../types';
 	import MappingDrawer from './MappingDrawer.svelte';
 	import RoutingDrawer from './RoutingDrawer.svelte';
@@ -108,7 +108,7 @@
 	<header class="flex items-start gap-2">
 		<div class="flex min-w-0 flex-1 flex-col gap-1">
 			<h3 class="t-body-l-strong wrap-anywhere">{source.name}</h3>
-			<span class="flex items-center gap-2"><StatusChip label={source.is_active ? 'Активен' : 'Отключён'} tone={source.is_active ? 'success' : 'neutral'} /><span class="t-desc-m font-mono text-soft">{source.code}</span></span>
+			<span class="flex items-center gap-2"><StatusChip label={source.is_active ? 'Активен' : 'Отключён'} tone={source.is_active ? 'success' : 'neutral'} /><span class="t-desc-m text-soft" title={source.code}>{labelOf(INTEGRATION_SOURCES, source.code)}</span></span>
 		</div>
 		<Switch checked={source.is_active} disabled={busy} aria-label={source.is_active ? `Отключить «${source.name}»` : `Включить «${source.name}»`} onChange={(v: boolean) => onToggle(v)} />
 	</header>

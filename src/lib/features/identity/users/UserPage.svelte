@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Карточка сотрудника: данные, безопасность и действия по статусу (блокировка, пароль, приглашение, передача дел, удаление ПДн).
+	import { timezoneLabel } from '../timezones';
 	import { onMount, untrack } from 'svelte';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { goto } from '$app/navigation';
@@ -128,7 +129,7 @@
 					['Роль', roleLabel(user.role)],
 					['Команда', teams.name(user.team_id)],
 					['Руководитель', user.manager_id ? people.name(user.manager_id) : '—'],
-					['Часовой пояс', user.timezone]
+					['Часовой пояс', timezoneLabel(user.timezone)]
 				]
 			: []
 	);

@@ -6,7 +6,7 @@
 	import { confirm, DateText, ErrorState, IconBtn, Notice, Page, PageHeader, StatusChip, TableCell, toast, type Col } from '$lib/ui';
 	import { session } from '$lib/auth/session.svelte';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
-	import { NOTIFICATION_CHANNELS, NOTIFICATION_EVENT_CODES, labelOf } from '../labels';
+	import { NOTIFICATION_CHANNELS, labelOf, notificationEventName } from '../labels';
 	import type { NotificationTemplate } from '../types';
 	import CatalogList from '../catalog/CatalogList.svelte';
 	import FilterBar from '$lib/ui/FilterBar.svelte';
@@ -30,7 +30,7 @@
 	const allowed = $derived(session.can('notification_template:manage'));
 	const q = $derived(readQuery('q').trim().toLowerCase());
 	const channel = $derived(readQuery('channel') || null);
-	const eventName = (code: string) => NOTIFICATION_EVENT_CODES.find((e) => e.key === code)?.value ?? '';
+	const eventName = notificationEventName;
 	const rows = $derived(
 		(list.data ?? [])
 			.filter((t) => (!channel || t.channel === channel) && (!q || `${t.code} ${eventName(t.code)} ${t.subject_template ?? ''} ${t.body_template}`.toLowerCase().includes(q)))
@@ -72,7 +72,7 @@
 </script>
 
 {#snippet codeCell(t: NotificationTemplate)}
-	<TableCell><span class="flex min-w-0 flex-col py-2"><span class="t-body-m-strong wrap-anywhere">{eventName(t.code) || t.code}</span><span class="t-desc-m font-mono text-soft">{t.code}</span></span></TableCell>
+	<TableCell><span class="flex min-w-0 flex-col py-2"><span class="t-body-m-strong wrap-anywhere">{eventName(t.code) || t.code}</span>{#if eventName(t.code)}<span class="t-desc-m font-mono text-soft">{t.code}</span>{/if}</span></TableCell>
 {/snippet}
 {#snippet channelCell(t: NotificationTemplate)}<TableCell><StatusChip label={labelOf(NOTIFICATION_CHANNELS, t.channel)} tone={t.channel === 'email' ? 'info' : t.channel === 'telegram' ? 'accent' : 'neutral'} /></TableCell>{/snippet}
 {#snippet subjectCell(t: NotificationTemplate)}<TableCell><span class="t-body-s line-clamp-2 text-muted">{t.subject_template ?? '—'}</span></TableCell>{/snippet}
@@ -86,7 +86,7 @@
 			<span class="t-body-m-strong min-w-0 wrap-anywhere">{eventName(t.code) || t.code}</span>
 			<SwitchCell checked={t.is_active} label={t.is_active ? 'Отключить шаблон' : 'Включить шаблон'} onToggle={(next) => toggle(t, next)} />
 		</div>
-		<span class="t-desc-l flex flex-wrap items-center gap-x-2 gap-y-1 text-muted"><span class="font-mono">{t.code}</span><StatusChip label={labelOf(NOTIFICATION_CHANNELS, t.channel)} tone="neutral" /></span>
+		<span class="t-desc-l flex flex-wrap items-center gap-x-2 gap-y-1 text-muted">{#if eventName(t.code)}<span class="font-mono">{t.code}</span>{/if}<StatusChip label={labelOf(NOTIFICATION_CHANNELS, t.channel)} tone="neutral" /></span>
 		{#if t.subject_template}<span class="t-desc-l line-clamp-2 text-soft">{t.subject_template}</span>{/if}
 	</div>
 {/snippet}

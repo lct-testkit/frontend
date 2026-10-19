@@ -1,4 +1,5 @@
 // Русские подписи перечислений области «Настройка и данные» (значения — из схем бэкенда).
+import { eventCodeInfo } from '$lib/features/crm/notifications/eventCodes';
 
 export interface Option<K extends string = string> {
 	key: K;
@@ -102,9 +103,9 @@ export const SYNC_DIRECTIONS: readonly Option[] = [
 ];
 
 export const HEALTH_STATUSES: readonly Option[] = [
-	{ key: 'ok', value: 'Все системы работают' },
-	{ key: 'degraded', value: 'Частичная деградация' },
-	{ key: 'unavailable', value: 'Недоступно' }
+	{ key: 'ok', value: 'Сервер работает' },
+	{ key: 'degraded', value: 'Сервер работает частично' },
+	{ key: 'unavailable', value: 'Сервер недоступен' }
 ];
 
 export const HEALTH_DEPENDENCY_LABELS: Record<string, string> = {
@@ -160,6 +161,14 @@ export const NOTIFICATION_CHANNELS: readonly Option[] = [
 	{ key: 'telegram', value: 'Telegram' }
 ];
 
+/** Название события по коду: сначала список шаблонов ниже (его пополняют вместе с seed.py), затем справочник подписей уведомлений CRM (в нём есть события доступа, подписи, инциденты). Нет нигде — пустая строка. */
+export function notificationEventName(code: string): string {
+	const own = NOTIFICATION_EVENT_CODES.find((e) => e.key === code)?.value;
+	if (own) return own;
+	const info = eventCodeInfo(code);
+	return info.label === code ? '' : info.label;
+}
+
 /** Известные коды событий и переменные их шаблонов (из notification/seed.py). */
 export const NOTIFICATION_EVENT_CODES: readonly { key: string; value: string; variables: string[] }[] = [
 	{ key: 'USER_PASSWORD_CHANGED', value: 'Пароль изменён', variables: ['changed_at', 'ip'] },
@@ -181,7 +190,20 @@ export const NOTIFICATION_EVENT_CODES: readonly { key: string; value: string; va
 	{ key: 'ORG_LIQUIDATION_DETECTED', value: 'Контрагент ликвидируется', variables: [] },
 	{ key: 'DEAL_SLA_WARNING', value: 'SLA: истекает срок', variables: [] },
 	{ key: 'DEAL_SLA_BREACHED', value: 'SLA нарушен', variables: [] },
-	{ key: 'DEAL_REASSIGNED', value: 'Назначена сделка', variables: [] },
+	{ key: 'DEAL_REASSIGNED', value: 'Назначена сделка', variables: ['count'] },
+	{ key: 'DEAL_DELETED', value: 'Сделка удалена', variables: [] },
+	{ key: 'USER_INVITE_EXPIRED', value: 'Приглашение не принято за 30 дней', variables: ['email', 'full_name'] },
+	{ key: 'ERASURE_ACT_NO_SIGNER', value: 'Для акта удаления данных нет подписанта', variables: [] },
+	{ key: 'SIGNATURE_AUTO_ADVANCED', value: 'Сделка переведена после подписания', variables: [] },
+	{ key: 'SIGNATURE_DEADLINE_REMINDER', value: 'Скоро истекает срок подписания', variables: ['deadline_at', 'title'] },
+	{ key: 'SIGNATURE_REMINDER_MANUAL', value: 'Напоминание о подписании', variables: ['title'] },
+	{ key: 'ORG_OWNER_ASSIGNED', value: 'Назначен ответственный за вуз', variables: ['count'] },
+	{ key: 'ORG_OWNER_REMOVED', value: 'Снят ответственный за вуз', variables: ['count'] },
+	{ key: 'ACCESS_REQUEST_CREATED', value: 'Запрошен доступ к вузу', variables: [] },
+	{ key: 'ACCESS_REQUEST_APPROVED', value: 'Доступ к вузу одобрен', variables: [] },
+	{ key: 'ACCESS_REQUEST_REJECTED', value: 'Доступ к вузу отклонён', variables: [] },
+	{ key: 'SECURITY_INCIDENT_CANDIDATE', value: 'Новый кандидат в инциденты безопасности', variables: ['event_type', 'number'] },
+	{ key: 'SECURITY_INCIDENT_DEADLINE', value: 'Срок уведомления об инциденте истекает', variables: ['due_at', 'number', 'overdue', 'stage'] },
 	{ key: 'DEAL_MENTION', value: 'Упоминание в комментарии', variables: [] },
 	{ key: 'DEAL_EVENT', value: 'Событие по сделке', variables: [] }
 ];
