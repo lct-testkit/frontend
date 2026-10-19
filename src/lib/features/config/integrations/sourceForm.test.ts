@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeConfig, signedCurl, sourceAccessErrors, splitConfig, validateBaseUrl, validateRef } from './sourceForm';
+import { mergeConfig, signedCurl, sourceAccessErrors, splitConfig, validateRef } from './sourceForm';
 
 describe('validateRef', () => {
 	it('принимает CMS_WEBHOOK_SECRET и пустое значение; отклоняет «1ABC» и строку с пробелом', () => {
@@ -48,12 +48,12 @@ describe('signedCurl', () => {
 
 describe('адрес и способ входа источника (G-3)', () => {
 	it('валидный адрес и пустой у выключенного — без ошибок', () => {
-		expect(validateBaseUrl('https://crm.example.ru/api')).toBeNull();
-		expect(validateBaseUrl('  ')).toBeNull();
+		expect(sourceAccessErrors({ baseUrl: 'https://crm.example.ru/api', authType: null, enabled: false })).toEqual({});
+		expect(sourceAccessErrors({ baseUrl: '  ', authType: null, enabled: false })).toEqual({});
 		expect(sourceAccessErrors({ baseUrl: '', authType: null, enabled: false })).toEqual({});
 	});
 	it('«сайт», ftp и адрес без хоста — ошибка', () => {
-		for (const bad of ['сайт', 'example.ru', 'ftp://example.ru', 'https://', 'javascript:alert(1)']) expect(validateBaseUrl(bad), bad).not.toBeNull();
+		for (const bad of ['сайт', 'example.ru', 'ftp://example.ru', 'https://', 'javascript:alert(1)']) expect(sourceAccessErrors({ baseUrl: bad, authType: null, enabled: false }).base_url, bad).toBeDefined();
 	});
 	it('у включённого источника адрес и способ входа обязательны', () => {
 		expect(Object.keys(sourceAccessErrors({ baseUrl: '', authType: null, enabled: true })).sort()).toEqual(['auth_type', 'base_url']);
