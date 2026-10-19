@@ -9,7 +9,7 @@
 // Белый список полей, которые бэкенд принимает через `fields` (crm/service.py `_TRANSITION_DIRECT_FIELDS`
 // + `custom_fields.*`), зашит здесь: остальное правится через PATCH до перехода.
 
-import { ATTACHMENT_CATEGORY_LABELS, BUILTIN_CUSTOM_FIELD_LABELS, DEAL_FIELD_LABELS } from '../shared/labels';
+import { ATTACHMENT_CATEGORY_LABELS, BUILTIN_CUSTOM_FIELD_LABELS, DEAL_FIELD_LABELS, SIGNATURE_STATUS_LABELS } from '../shared/labels';
 
 export interface ConditionLeaf {
 	field: string;
@@ -333,7 +333,7 @@ function hintFor(leaf: ConditionLeaf): TransitionHint | null {
 			satisfied,
 			category: file.category,
 			stepScoped: file.stepScoped,
-			text: file.stepScoped ? `Приложите файл «${label}» на этом шаге` : `Прикрепите файл категории «${label}»`
+			text: file.stepScoped ? `Приложите файл «${label}» на этом шаге` : `Приложите файл «${label}»`
 		};
 	}
 	if (field === 'signature_status') {
@@ -342,7 +342,7 @@ function hintFor(leaf: ConditionLeaf): TransitionHint | null {
 			kind: 'signature',
 			field,
 			satisfied,
-			text: expected === 'signed' ? 'Требуется подписанный документ — вкладка «Подписание»' : `Статус подписи должен быть «${expected}»`
+			text: expected === 'signed' ? 'Требуется подписанный документ — вкладка «Подписание»' : `Статус подписи должен быть «${SIGNATURE_STATUS_LABELS[String(expected)] ?? expected}»`
 		};
 	}
 	if (field === 'tasks.open_count') {

@@ -153,7 +153,7 @@
 	<OrgPicker label="Вуз" required value={v.orgId} error={errors.organization_id} disabled={!isNew || !!orgId || readOnly} onChange={(id) => (v.orgId = id)} />
 	<SuggestField label="Вендор" required value={v.vendor} pickedId={v.vendorId} items={vendorSuggestions} error={errors.vendor} maxlength={MAX_LEN.vendor} disabled={readOnly} onChange={(text, id) => ((v.vendor = text), (v.vendorId = id))} />
 	<SuggestField label="ПО" required value={v.product} pickedId={v.productId} items={softwareSuggestions} error={errors.product_name} hint="Программное обеспечение по договору" maxlength={MAX_LEN.product} disabled={readOnly} onChange={(text, id) => ((v.product = text), (v.productId = id))} />
-	<TextField label="Номер договора" bind:value={v.contract} error={errors.contract_number} maxlength={MAX_LEN.contract} hint="Можно оставить пустым" disabled={readOnly} />
+	<TextField label="Номер договора" bind:value={v.contract} error={errors.contract_number} maxlength={MAX_LEN.contract} disabled={readOnly} />
 	<Pick label="Статус по передаче" items={statusItems} clearable value={v.status} placeholder="Не задано" disabled={readOnly} onChange={(s) => (v.status = s)} />
 	<FormRow>
 		<Pick label="Подписание лицензии" items={signedItems} clearable value={v.signedState || null} placeholder="Не задано" disabled={readOnly} onChange={(s) => (v.signedState = (s ?? '') as LicenseValues['signedState'])} />
@@ -162,8 +162,8 @@
 	<Toggle label="Бессрочная" bind:checked={v.perpetual} disabled={readOnly} />
 	{#if !v.perpetual}
 		<FormRow>
-			<DateField label="Действует до" bind:value={v.validUntil} error={errors.license_valid_until} hint="Год показывается в колонке «Срок»" disabled={readOnly} />
-			<NumberField label="Срок, лет" bind:value={v.termYears} integer min={TERM_YEARS.min} max={TERM_YEARS.max} error={errors.license_term_years} hint="Если даты окончания нет" disabled={readOnly} />
+			<DateField label="Действует до" bind:value={v.validUntil} error={errors.license_valid_until} hint="Последний день действия лицензии" disabled={readOnly} />
+			<NumberField label="Срок, лет" bind:value={v.termYears} integer min={TERM_YEARS.min} max={TERM_YEARS.max} error={errors.license_term_years} hint="Если в договоре срок в годах, а не дата окончания" disabled={readOnly} />
 		</FormRow>
 	{:else if errors.license_valid_until}
 		<p class="m-0 text-sm text-danger">{errors.license_valid_until}</p>

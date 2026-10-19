@@ -191,7 +191,7 @@
 	<TextField label="Название" required bind:value={name} error={errors.name} maxlength={255} autofocus={!isNew} />
 	<Pick label="Вид" required value={kind} items={PRODUCT_KINDS.map((k) => ({ key: k.key, value: k.value }))} hint={PRODUCT_KINDS.find((k) => k.key === kind)?.hint} error={errors.kind} onChange={(v) => v && (kind = v as 'course' | 'software')} />
 	<Pick label={GLOSSARY.direction.label} hint={GLOSSARY.direction.hint} bind:value={directionId} items={dirItems} error={errors.direction_id} clearable search emptyText={directions.loading ? 'Загрузка…' : 'Направлений нет'} />
-	<OrgPicker label="Вендор" value={vendorId} error={errors.vendor_id} hint="Компания, чей это продукт" onChange={(id) => (vendorId = id)} />
+	<OrgPicker label="Вендор" value={vendorId} error={errors.vendor_id} hint="Компания — правообладатель продукта" onChange={(id) => (vendorId = id)} />
 	<FormRow>
 		<Pick label="Формат" bind:value={format} items={PRODUCT_FORMATS.map((f) => ({ key: f.key, value: f.value }))} clearable error={errors.format} />
 		<NumberField label="Цена, ₽" bind:value={price} error={errors.base_price} />

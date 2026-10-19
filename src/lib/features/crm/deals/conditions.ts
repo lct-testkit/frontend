@@ -51,17 +51,20 @@ export function describeCondition(leaf: ConditionLike, defs: CustomFieldDef[] = 
 	const label = fieldLabel(leaf.field, defs);
 	const { op, expected } = leaf;
 	if (leaf.field === 'signature_status' && op === 'eq') {
-		return expected === 'signed' ? 'Документ подписан' : `Статус подписи: ${formatValue(leaf.field, expected)}`;
+		if (expected === 'signed') return leaf.satisfied === false ? 'Нужен подписанный документ' : 'Документ подписан';
+		return `Статус подписи: ${formatValue(leaf.field, expected)}`;
 	}
 	switch (op) {
 		case 'not_null':
 			// невыполненное условие — просьба, а не описание состояния: «Причина отказа: заполнено» у пустого поля читалось как «уже заполнено»
-			return leaf.satisfied === false ? `Заполните: ${label.charAt(0).toLowerCase()}${label.slice(1)}` : `${label}: заполнено`;
+			return leaf.satisfied === false ? `Заполните «${label}»` : `${label}: заполнено`;
 		case 'is_null':
 			return `${label}: не заполнено`;
 		case 'exists':
+			// невыполненное — просьба («Приложите файл «Акт» на этом шаге»): «Приложен файл…» у пустого условия читалось как уже сделанное
+			if (leaf.satisfied === false && (leaf.field.startsWith('step_attachments.') || leaf.field.startsWith('attachments.'))) return `Приложите ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
 			if (leaf.field.startsWith('step_attachments.')) return `Приложен ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
-			return leaf.field.startsWith('attachments.') ? `Прикреплён ${label.charAt(0).toLowerCase()}${label.slice(1)}` : `${label}: есть`;
+			return leaf.field.startsWith('attachments.') ? `Приложен ${label.charAt(0).toLowerCase()}${label.slice(1)}` : `${label}: есть`;
 		case 'eq':
 			// флажок «да/нет»: выполненное — само утверждение («Контакт подтверждён»), невыполненное — просьба отметить поле ниже
 			if (typeof expected === 'boolean') {
@@ -99,7 +102,8 @@ export function describeCondition(leaf: ConditionLike, defs: CustomFieldDef[] = 
 export function currentText(leaf: ConditionLike): string {
 	if (leaf.satisfied) return '';
 	if (leaf.op === 'not_null' || leaf.op === 'exists') return '';
-	// у флажка «сейчас: не указано» ничего не добавляет к просьбе «Отметьте …»
+	// у флажка «сейчас: не указано» ничего не добавляет к просьбе «Отметьте …»; у подписи без документа — тоже
 	if (typeof leaf.expected === 'boolean') return '';
+	if (leaf.actual === null || leaf.actual === undefined || leaf.actual === '') return '';
 	return `сейчас: ${formatValue(leaf.field, leaf.actual)}`;
 }
