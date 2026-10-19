@@ -54,8 +54,11 @@
 					{/if}
 				</dl>
 
+				{#if editor.serverCheckFailed}
+					<Notice class="shrink-0" tone="warning" role="alert">Проверка на сервере не состоялась, результат неизвестен. Нажмите «Проверить воронку» ещё раз.</Notice>
+				{/if}
 				{#if editor.issues.length === 0}
-					<Notice class="shrink-0" tone="success">Замечаний нет</Notice>
+					{#if !editor.serverCheckFailed}<Notice class="shrink-0" tone="success">Замечаний нет</Notice>{/if}
 				{:else}
 					<section class="flex flex-col gap-2">
 						<h3 class="t-body-m-strong">Проблемы · {editor.issues.length}</h3>
