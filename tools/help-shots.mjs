@@ -368,7 +368,7 @@ export const SHOTS = [
 		clip: { x: 270, y: 70, width: 1140, height: 658 },
 		before: async (p) => {
 			await p.getByRole('tab', { name: 'Исходящие' }).click();
-			await p.getByText('DEAL_CREATED').first().waitFor({ timeout: 15000 });
+			await p.getByText('Сделка создана').first().waitFor({ timeout: 15000 });
 			await wait(600);
 		}
 	},
