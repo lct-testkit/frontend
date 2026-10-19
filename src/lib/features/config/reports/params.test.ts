@@ -174,7 +174,7 @@ describe('форматы отчёта', () => {
 
 describe('описание шаблона', () => {
 	it('служебный перечень параметров из описания убирается, остальное остаётся', () => {
-		expect(describeTemplate('Реестр сделок. Параметры: date_from/date_to, limit. Только xlsx; содержит ПДн.')).toBe('Реестр сделок. Только xlsx; содержит ПДн.');
+		expect(describeTemplate('Реестр сделок. Параметры: date_from/date_to, limit. Только xlsx; содержит ПДн.')).toBe('Реестр сделок. Только xlsx; содержит персональные данные.');
 		expect(describeTemplate('Реестр сделок. Параметры: date_from, columns, limit.')).toBe('Реестр сделок.');
 		expect(describeTemplate('Документы на подпись (signature_documents) помесячно: число документов. Параметры: months, doc_type.')).toBe('Документы на подпись помесячно: число документов.');
 		expect(describeTemplate('Конверсия и среднее время.')).toBe('Конверсия и среднее время.');
@@ -251,5 +251,13 @@ describe('выгрузка учащихся в LMS (lms_users_upload)', () => {
 	it('номер потока — целое от 1', () => {
 		expect(validateParams(defs, { stream_number: 0 }).stream_number).toBeTruthy();
 		expect(validateParams(defs, { stream_number: 1.5 }).stream_number).toBeTruthy();
+	});
+});
+
+describe('describeTemplate — остатки внутренних слов (QA2 Н22)', () => {
+	it('правит грамматику и убирает «листинг», «агрегат» и «ПДн» из описаний сервера', () => {
+		expect(describeTemplate('Ранжирование продуктов — индекс как среднее доле каждого показателя в выборке.')).toBe('Ранжирование продуктов — индекс — среднее из долей каждого показателя в выборке.');
+		expect(describeTemplate('Прогресс учащихся. Пусто и без пометки «не реализована», если источник LMS не присылал данных.')).toBe('Прогресс учащихся. Пусто, если LMS не присылала данные.');
+		expect(describeTemplate('Сделки с нарушенным SLA — листинг, не агрегат.')).toBe('Сделки с нарушенным SLA — список сделок, а не сводка.');
 	});
 });

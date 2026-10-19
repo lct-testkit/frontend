@@ -79,35 +79,40 @@ function realm(p: Posture): PostureCheck[] {
 			title: 'Защита от подбора пароля (Keycloak)',
 			status: yes(r.brute_force_protected),
 			label: r.brute_force_protected === null || r.brute_force_protected === undefined ? 'Нет данных' : r.brute_force_protected ? 'Включена' : 'Не включена',
-			text: r.brute_force_protected ? 'Учётная запись временно блокируется после серии неудачных входов.' : 'Без защиты пароль можно подбирать без ограничений. Включите «Brute force detection» в realm.'
+			text: r.brute_force_protected ? 'Учётная запись временно блокируется после серии неудачных входов.' : 'Без защиты пароль можно подбирать без ограничений. Включите защиту от перебора («Brute Force Detection») в настройках области (realm) Keycloak.'
 		},
 		{
 			key: 'refresh',
-			title: 'Ротация refresh-токенов (Keycloak)',
+			title: 'Одноразовые токены обновления сессии (Keycloak)',
 			status: yes(r.revoke_refresh_token),
 			label: r.revoke_refresh_token === null || r.revoke_refresh_token === undefined ? 'Нет данных' : r.revoke_refresh_token ? 'Включена' : 'Не включена',
-			text: r.revoke_refresh_token ? 'Украденный refresh-токен нельзя использовать повторно.' : 'Refresh-токен можно использовать многократно: украденный токен живёт до истечения. Включите «Revoke Refresh Token» в realm.'
+			text: r.revoke_refresh_token ? 'Токен обновления сессии одноразовый: украденный токен нельзя использовать повторно.' : 'Токен обновления сессии можно использовать многократно: украденный токен живёт до истечения. Включите «Revoke Refresh Token» в настройках области (realm) Keycloak.'
 		},
 		{
 			key: 'events',
 			title: 'События входа в Keycloak',
 			status: yes(r.events_enabled),
 			label: r.events_enabled === null || r.events_enabled === undefined ? 'Нет данных' : r.events_enabled ? 'Записываются' : 'Не записываются',
-			text: r.events_enabled ? 'Неудачные входы и сбои попадают в журнал безопасности.' : 'Keycloak не пишет события входа, поэтому в «Событиях безопасности» не будет неудачных входов. Включите «Save events» в realm.'
+			text: r.events_enabled ? 'Неудачные входы и сбои попадают в журнал безопасности.' : 'Keycloak не пишет события входа, поэтому в «Событиях безопасности» не будет неудачных входов. Включите запись событий («Save events») в настройках области (realm) Keycloak.'
 		},
 		{
 			key: 'ssl',
 			title: 'Обязательность HTTPS в Keycloak',
 			status: sslStatus,
 			label: ssl === null || ssl === undefined ? 'Нет данных' : ssl === 'none' ? 'Не требуется' : ssl === 'external' ? 'Для внешних адресов' : 'Для всех адресов',
-			text: ssl === 'none' ? 'Вход возможен по незащищённому HTTP. В боевом режиме требуйте HTTPS («external» или «all»).' : ssl ? 'Вход по незащищённому соединению не принимается.' : 'Настройка не прочитана.'
+			text: ssl === 'none' ? 'Вход возможен по незащищённому HTTP. В боевом режиме требуйте HTTPS: для внешних адресов или для всех.' : ssl ? 'Вход по незащищённому соединению не принимается.' : 'Настройка не прочитана.'
 		}
 	];
 }
 
 /** Все меры панели в порядке важности. */
 export function postureChecks(p: Posture): PostureCheck[] {
-	return [totp(p), bearer(p), antivirus(p), audit(p), encryption(p), ...realm(p)];
+	// сначала опасное, потом то, что стоит усилить, потом нет данных и в конце то, что в порядке; внутри группы — порядок документации
+	const order: PostureStatus[] = ['bad', 'warn', 'unknown', 'ok'];
+	return [totp(p), bearer(p), antivirus(p), audit(p), encryption(p), ...realm(p)]
+		.map((check, i) => ({ check, i }))
+		.sort((a, b) => order.indexOf(a.check.status) - order.indexOf(b.check.status) || a.i - b.i)
+		.map(({ check }) => check);
 }
 
 export interface PostureSummary {
@@ -127,8 +132,9 @@ export function summarize(checks: readonly PostureCheck[]): PostureSummary {
 export function summaryText(s: PostureSummary): string {
 	if (s.bad === 0 && s.warn === 0) return s.unknown ? `Всё, что удалось проверить, в порядке. Нет данных по ${s.unknown}.` : 'Все меры включены.';
 	const parts: string[] = [];
-	if (s.bad) parts.push(`не включено или опасно: ${s.bad}`);
+	if (s.bad) parts.push(`Не включено или опасно: ${s.bad}`);
 	if (s.warn) parts.push(`стоит усилить: ${s.warn}`);
 	if (s.unknown) parts.push(`нет данных: ${s.unknown}`);
-	return parts.join(' · ');
+	const text = parts.join(', ');
+	return `${text[0].toUpperCase()}${text.slice(1)}.`;
 }

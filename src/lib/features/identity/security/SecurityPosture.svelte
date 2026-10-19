@@ -2,11 +2,10 @@
 	// «Состояние защиты»: фактическое состояние мер безопасности одним экраном — второй фактор у администраторов, Bearer, антивирус, подпись журнала, шифрование,
 	// политика Keycloak. Только чтение (ADMIN и AUDITOR); исправляется в настройках сервера и realm, здесь — что именно и почему важно.
 	import { onMount } from 'svelte';
-	import { Refresh } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { session } from '$lib/auth/session.svelte';
 	import { roleLabel } from '../labels';
-	import { EmptyState, ErrorState, IconBtn, Notice, Skeleton, StatusChip } from '$lib/ui';
+	import { EmptyState, ErrorState, Notice, Skeleton, StatusChip } from '$lib/ui';
 	import { createResource } from '../../config/shared/resource.svelte';
 	import { STATUS_TONE, postureChecks, summarize, summaryText } from './posture';
 
@@ -24,12 +23,7 @@
 {:else if posture.loading || !posture.data}
 	<div class="grid grid-cols-2 gap-3 max-md:grid-cols-1">{#each [0, 1, 2, 3] as i (i)}<Skeleton kind="tile" rows={1} height={120} />{/each}</div>
 {:else}
-	<div class="flex items-center gap-2">
-		<div class="min-w-0 flex-1">
-			<Notice class="shrink-0" tone={summary.bad > 0 ? 'error' : attention ? 'warning' : 'success'} data-testid="posture-summary">{summaryText(summary)}</Notice>
-		</div>
-		<IconBtn icon={Refresh} label="Обновить" disabled={posture.refreshing} onclick={() => posture.reload()} />
-	</div>
+	<Notice class="shrink-0" tone={summary.bad > 0 ? 'error' : attention ? 'warning' : 'success'} actions={[{ label: posture.refreshing ? 'Обновляем…' : 'Обновить', onclick: () => !posture.refreshing && void posture.reload() }]} data-testid="posture-summary">{summaryText(summary)}</Notice>
 	{#if session.mode === 'demo'}
 		<Notice class="shrink-0" tone="info">Демо-режим: часть мер выключена намеренно, чтобы стенд запускался без настройки. В боевом режиме все строки должны быть зелёными.</Notice>
 	{/if}

@@ -59,11 +59,20 @@ describe('postureChecks', () => {
 	});
 });
 
+describe('postureChecks — порядок', () => {
+	it('сначала опасное, потом стоит усилить, потом нет данных, в конце то, что в порядке (QA2 Н18)', () => {
+		const checks = postureChecks({ ...good, audit_hmac_key_set: false, antivirus: { enabled: false, fail_mode: 'open', reachable: null }, realm: null });
+		const rank = { bad: 0, warn: 1, unknown: 2, ok: 3 } as const;
+		const ranks = checks.map((c) => rank[c.status]);
+		expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+	});
+});
+
 describe('summarize / summaryText', () => {
 	it('считает по статусам и пишет, сколько требует внимания', () => {
 		const s = summarize(postureChecks({ ...good, audit_hmac_key_set: false, antivirus: { enabled: false, fail_mode: 'open', reachable: null }, realm: null }));
 		expect(s).toEqual({ bad: 1, warn: 1, unknown: 1, ok: 3 });
-		expect(summaryText(s)).toBe('не включено или опасно: 1 · стоит усилить: 1 · нет данных: 1');
+		expect(summaryText(s)).toBe('Не включено или опасно: 1, стоит усилить: 1, нет данных: 1.');
 	});
 	it('ничего плохого, но есть непроверенное', () => {
 		expect(summaryText({ bad: 0, warn: 0, unknown: 2, ok: 7 })).toBe('Всё, что удалось проверить, в порядке. Нет данных по 2.');
