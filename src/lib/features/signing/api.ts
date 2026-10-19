@@ -19,6 +19,8 @@ export type PdfVariant = 'auto' | 'original' | 'protocol';
 export interface SignAdapter {
 	/** открытие страницы = ознакомление (сервер ставит `viewed`) */
 	load(): Promise<SigningPage>;
+	/** страница без отметки ознакомления: если `load` не прошёл (отметка не записалась), документ всё равно нужно показать; нет у адаптера — нет и запасного пути */
+	loadUnmarked?(): Promise<SigningPage>;
 	/** PDF с origin приложения (`file_url` страницы): без ссылки на хранилище, без CORS; для внутреннего адаптера — с Bearer через клиент `api` */
 	loadPdf(variant: PdfVariant, signal?: AbortSignal): Promise<ArrayBuffer>;
 	challenge(): Promise<ChallengeInfo>;
@@ -46,6 +48,30 @@ export function internalAdapter(requestId: string): SignAdapter {
 	const params = { path: { request_id: requestId } };
 	return {
 		load: () => unwrap(api.POST('/api/signature-requests/{request_id}/view', { params })),
+		loadUnmarked: async () => {
+			// «Мои задачи на подпись» отдают запрос и название документа без отметки; сам PDF — `/file`, он ознакомления не требует
+			const mine = await unwrap(api.GET('/api/me/signature-requests'));
+			const request = mine.find((r) => r.id === requestId);
+			if (!request) throw new Error('Запрос на подпись не найден среди моих');
+			return {
+				agreement_text: '',
+				my_request_id: request.id,
+				my_status: request.status,
+				signers: [],
+				document: {
+					id: request.document_id,
+					title: request.document_title ?? 'Документ',
+					doc_type: '',
+					status: '',
+					content_hash: '',
+					deadline_at: request.deadline_at ?? null,
+					has_protocol: false,
+					is_signed: false,
+					preview_url: '',
+					file_url: `/api/signature-requests/${requestId}/file`
+				}
+			};
+		},
 		loadPdf: (variant, signal) =>
 			unwrap(api.GET('/api/signature-requests/{request_id}/file', { params: { path: { request_id: requestId }, query: { variant } }, parseAs: 'arrayBuffer', signal })) as Promise<ArrayBuffer>,
 		challenge: () => unwrap(api.POST('/api/signature-requests/{request_id}/challenge', { params })),

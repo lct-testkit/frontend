@@ -48,6 +48,8 @@ export class SignSession {
 	/** текст причины закрытия, когда стандартной подписи мало */
 	note = $state<string | null>(null);
 	loadError = $state<unknown>(null);
+	/** Документ открыт, но отметка «Ознакомлен» не записалась (запасной путь `loadUnmarked`). Просмотру она не мешает; «Подписать» сначала повторит отметку. */
+	viewPending = $state(false);
 
 	challenge = $state<ChallengeInfo | null>(null);
 	sentAt = $state<number | null>(null);
@@ -121,28 +123,58 @@ export class SignSession {
 		}
 	}
 
+	#show(page: SigningPage) {
+		this.page = page;
+		const closed = CLOSED_BY_STATUS[page.my_status];
+		if (closed) this.#close(closed);
+		else this.phase = 'ready';
+	}
+
 	async load(): Promise<void> {
 		this.phase = 'loading';
 		this.loadError = null;
+		this.viewPending = false;
 		this.#pdf = null;
 		try {
-			const page = await this.#adapter.load();
-			this.page = page;
-			const closed = CLOSED_BY_STATUS[page.my_status];
-			if (closed) this.#close(closed);
-			else this.phase = 'ready';
+			this.#show(await this.#adapter.load());
 		} catch (e) {
 			if (e instanceof ApiError && e.code === 'CRM-1504') this.#close('invalid');
-			else {
+			else if (!(await this.#openUnmarked(e))) {
 				this.loadError = e;
 				this.phase = 'failed';
 			}
 		}
 	}
 
+	/** Отметка ознакомления не прошла — документ всё равно открываем (чужой запрос, 403/404, так не открывается). */
+	async #openUnmarked(error: unknown): Promise<boolean> {
+		const fallback = this.#adapter.loadUnmarked;
+		if (!fallback || (error instanceof ApiError && (error.isNotFound || error.isForbidden))) return false;
+		try {
+			this.#show(await fallback.call(this.#adapter));
+			this.viewPending = this.phase === 'ready';
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
 	/** «Подписать»: сразу просим код и открываем ввод. */
 	async start(): Promise<void> {
 		if (this.busy) return;
+		if (this.viewPending) {
+			// повторяем отметку; не вышло — подпись это не блокирует, сервер сам решит, можно ли подписывать
+			this.busy = true;
+			try {
+				this.#show(await this.#adapter.load());
+				this.viewPending = false;
+			} catch {
+				// остаётся прежняя страница
+			} finally {
+				this.busy = false;
+			}
+			if (this.phase !== 'ready') return;
+		}
 		this.phase = 'otp';
 		if (!this.challenge) await this.requestCode();
 	}

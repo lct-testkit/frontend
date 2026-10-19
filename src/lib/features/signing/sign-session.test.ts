@@ -59,6 +59,56 @@ describe('SignSession.load', () => {
 	});
 });
 
+describe('SignSession.load: отметка ознакомления не записалась (N-4)', () => {
+	const failed = () => new ApiError({ status: 422, code: 'CRM-9001' });
+
+	it('POST /view упал, запасной путь есть — документ открыт для чтения, viewPending = true', async () => {
+		const loadUnmarked = vi.fn().mockResolvedValue(page('sent'));
+		const s = new SignSession(adapter({ load: vi.fn().mockRejectedValue(failed()), loadUnmarked }));
+		await s.load();
+		expect(s.phase).toBe('ready');
+		expect(s.viewPending).toBe(true);
+		expect(s.loadError).toBeNull();
+	});
+
+	it('чужой запрос (404/403) запасным путём не открывается: ErrorState', async () => {
+		const loadUnmarked = vi.fn().mockResolvedValue(page('sent'));
+		const notMine = new ApiError({ status: 404, code: 'CRM-9004' });
+		const s = new SignSession(adapter({ load: vi.fn().mockRejectedValue(notMine), loadUnmarked }));
+		await s.load();
+		expect(s.phase).toBe('failed');
+		expect(loadUnmarked).not.toHaveBeenCalled();
+	});
+
+	it('запасной путь тоже упал — показывается исходная ошибка', async () => {
+		const first = failed();
+		const s = new SignSession(adapter({ load: vi.fn().mockRejectedValue(first), loadUnmarked: vi.fn().mockRejectedValue(new Error('x')) }));
+		await s.load();
+		expect(s.phase).toBe('failed');
+		expect(s.loadError).toBe(first);
+	});
+
+	it('«Подписать» сначала повторяет отметку, потом просит код', async () => {
+		const load = vi.fn().mockRejectedValueOnce(failed()).mockResolvedValueOnce(page('viewed'));
+		const challenge = vi.fn().mockResolvedValue({ channel: 'sms', expires_in_seconds: 300, sent_to_masked: '+7 *** **12' });
+		const s = new SignSession(adapter({ load, loadUnmarked: vi.fn().mockResolvedValue(page('sent')), challenge }));
+		await s.load();
+		await s.start();
+		expect(load).toHaveBeenCalledTimes(2);
+		expect(s.viewPending).toBe(false);
+		expect(s.phase).toBe('otp');
+	});
+
+	it('повторная отметка снова не прошла — подпись не блокируется', async () => {
+		const challenge = vi.fn().mockResolvedValue({ channel: 'sms', expires_in_seconds: 300, sent_to_masked: '+7 *** **12' });
+		const s = new SignSession(adapter({ load: vi.fn().mockRejectedValue(failed()), loadUnmarked: vi.fn().mockResolvedValue(page('sent')), challenge }));
+		await s.load();
+		await s.start();
+		expect(s.viewPending).toBe(true);
+		expect(s.phase).toBe('otp');
+	});
+});
+
 describe('SignSession.start / back / setOtp', () => {
 	it('start — переходит в otp и запрашивает код, если его ещё нет', async () => {
 		const challenge = vi.fn().mockResolvedValue({ channel: 'sms', expires_in_seconds: 300, sent_to_masked: '+7 *** **12' });
