@@ -87,7 +87,7 @@
 	</div>
 
 	{#if more}
-		<AppDrawer open={drawer} title="Фильтры" width={420} onClose={() => (drawer = false)}>
+		<AppDrawer open={drawer} title="Фильтры" width={480} onClose={() => (drawer = false)}>
 			{@render more()}
 			{#snippet footer()}
 				<Btn label="Готово" onclick={() => (drawer = false)} />

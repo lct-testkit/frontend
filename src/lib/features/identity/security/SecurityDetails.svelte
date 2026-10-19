@@ -24,7 +24,7 @@
 	const rows = $derived(e ? detailRows(e.details) : []);
 </script>
 
-<AppDrawer open={!!entry} title={e ? securityEventLabel(e.event_type) : ''} width={520} {onClose}>
+<AppDrawer open={!!entry} title={e ? securityEventLabel(e.event_type) : ''} width={560} {onClose}>
 	{#if e && sev}
 		<div class="flex flex-wrap items-center gap-2">
 			<StatusChip label={sev.label} tone={sev.tone} />
