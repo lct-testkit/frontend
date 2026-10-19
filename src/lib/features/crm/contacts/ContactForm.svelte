@@ -30,20 +30,20 @@
 </script>
 
 <FormRow>
-	<TextField label="Фамилия" required autofocus={!editing} value={values.last_name} error={errors.last_name} {disabled} onInput={(v) => (values.last_name = v)} />
-	<TextField label="Имя" required value={values.first_name} error={errors.first_name} {disabled} onInput={(v) => (values.first_name = v)} />
-	<TextField label="Отчество" value={values.middle_name} {disabled} onInput={(v) => (values.middle_name = v)} />
-	<TextField label="Должность" value={values.position} {disabled} onInput={(v) => (values.position = v)} />
+	<TextField label="Фамилия" required maxlength={128} autofocus={!editing} value={values.last_name} error={errors.last_name} {disabled} onInput={(v) => (values.last_name = v)} />
+	<TextField label="Имя" required maxlength={128} value={values.first_name} error={errors.first_name} {disabled} onInput={(v) => (values.first_name = v)} />
+	<TextField label="Отчество" maxlength={128} value={values.middle_name} {disabled} onInput={(v) => (values.middle_name = v)} />
+	<TextField label="Должность" maxlength={255} value={values.position} {disabled} onInput={(v) => (values.position = v)} />
 	{#if !organizationLocked}
 		<div class="col-span-2 max-md:col-span-1">
 			<OrgPicker label="Организация" value={values.organization_id} {disabled} onChange={(id) => (values.organization_id = id)} />
 		</div>
 	{/if}
 	<div class="flex items-start gap-1">
-		<TextField class="min-w-0 flex-1" label="Телефон" value={values.phone} error={errors.phone} readonly={isMasked(values.phone)} inputmode="tel" {disabled} onInput={(v) => (values.phone = v)} />
+		<TextField class="min-w-0 flex-1" label="Телефон" maxlength={32} value={values.phone} error={errors.phone} readonly={isMasked(values.phone)} inputmode="tel" {disabled} onInput={(v) => (values.phone = v)} />
 	</div>
 	<div class="flex items-start gap-1">
-		<TextField class="min-w-0 flex-1" label="E-mail" value={values.email} error={errors.email} readonly={isMasked(values.email)} inputmode="email" {disabled} onInput={(v) => (values.email = v)} />
+		<TextField class="min-w-0 flex-1" label="E-mail" maxlength={255} value={values.email} error={errors.email} readonly={isMasked(values.email)} inputmode="email" {disabled} onInput={(v) => (values.email = v)} />
 		{#if editing && masked && onReveal}<IconBtn icon={PasswordShow} label="Показать контакты" class="mt-1" onclick={onReveal} />{/if}
 	</div>
 </FormRow>
@@ -55,7 +55,7 @@
 		{#each values.channels as channel, i (i)}
 			<div class="flex items-start gap-2">
 				<Pick class="w-40 flex-none max-md:w-32" items={channelItems} value={channel.type} {disabled} onChange={(v) => v && (channel.type = v)} />
-				<TextField class="min-w-0 flex-1" placeholder={channel.type === 'telegram' ? '@username' : 'Значение'} value={channel.value} {disabled} onInput={(v) => (channel.value = v)} />
+				<TextField class="min-w-0 flex-1" placeholder={channel.type === 'telegram' ? '@username' : 'Значение'} maxlength={255} value={channel.value} {disabled} onInput={(v) => (channel.value = v)} />
 				<IconBtn icon={CloseSmall} label="Убрать канал" class="mt-1" onclick={() => (values.channels = values.channels.filter((_, j) => j !== i))} />
 			</div>
 		{/each}

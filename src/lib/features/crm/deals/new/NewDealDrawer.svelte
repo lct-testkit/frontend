@@ -159,7 +159,7 @@
 	onSave={submit}
 	{onClose}
 >
-	<TextField label="Название" required autofocus value={title} error={errors.title} onInput={(v) => ((title = v), (errors.title = ''))} />
+	<TextField label="Название" required autofocus maxlength={255} value={title} error={errors.title} onInput={(v) => ((title = v), (errors.title = ''))} />
 
 	<SegmentedControl value={type} size="m" onChange={setType} aria-label="Тип сделки">
 		<Segment index="b2b" label="Организация" />
