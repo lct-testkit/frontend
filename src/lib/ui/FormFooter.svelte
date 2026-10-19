@@ -45,6 +45,6 @@
 	<div class="flex flex-wrap items-center gap-3 max-md:flex-col-reverse max-md:items-stretch max-md:[&_button]:w-full">
 		{#if showSave}<Btn label={saveLabel} type="submit" form={formId} loading={saving} {danger} disabled={!canSave} data-testid={saveTestId} />{/if}
 		<Btn label={cancelLabel} variant={cancelVariant} colorScheme="neutral" disabled={saving} onclick={onCancel} />
-		{#if extra}<div class="ml-auto max-md:ml-0 max-md:w-full">{@render extra()}</div>{/if}
+		{#if extra}<div class="ml-auto flex flex-wrap items-center justify-end gap-3 max-md:ml-0 max-md:w-full max-md:flex-col max-md:items-stretch">{@render extra()}</div>{/if}
 	</div>
 </div>

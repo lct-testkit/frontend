@@ -185,6 +185,6 @@
 	{#snippet extra()}
 		{#if run.phase === 'background' || run.phase === 'limit'}<Btn label="Мои отчёты" variant="outline" colorScheme="neutral" onclick={() => void goto('/reports/history')} />{/if}
 		{#if run.phase === 'done' && run.job && canDownloadJson(run.job)}<Btn label="Скачать JSON" icon={JsonIcon} variant="outline" colorScheme="neutral" onclick={() => void saveJson()} />{/if}
-		{#if run.phase === 'done' && run.job?.row_count === 0}<Btn label="Изменить параметры" variant="outline" colorScheme="neutral" onclick={() => run.reset()} />{/if}
+		{#if run.phase === 'done'}<Btn label="Изменить параметры" variant="outline" colorScheme="neutral" onclick={() => run.reset()} />{/if}
 	{/snippet}
 </FormDrawer>
