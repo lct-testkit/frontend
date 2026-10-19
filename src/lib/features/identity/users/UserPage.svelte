@@ -4,7 +4,7 @@
 	import { onMount, untrack } from 'svelte';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
 	import { goto } from '$app/navigation';
-	import { CheckField, DateField } from '$lib/ui';
+	import { CheckField, DateField, KeyValue, KeyValueList } from '$lib/ui';
 	import { Edit } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { people } from '$lib/api/people.svelte';
@@ -144,6 +144,7 @@
 		<PageHeader title="Пользователь" back="/admin/users" />
 		<ErrorState {error} onRetry={() => load()} />
 	{:else}
+		{@const u = user}
 		<PageHeader title={user.display_name || user.full_name} back="/admin/users">
 			{#snippet meta()}<StatusChip label={statusMeta.label} tone={statusMeta.tone} hint={USER_STATUS_HINTS[user?.status as keyof typeof USER_STATUS_HINTS]} />{/snippet}
 			{#snippet actions()}
@@ -156,36 +157,23 @@
 		<div class="grid grid-cols-[minmax(0,1fr)_320px] items-start gap-4 max-lg:grid-cols-1">
 			<div class="flex min-w-0 flex-col gap-4">
 				<section class="rounded-lg border border-line bg-surface p-4 max-md:p-3" aria-label="Данные">
-					<dl class="m-0 grid grid-cols-[max-content_1fr] gap-x-6 gap-y-3 max-md:grid-cols-1 max-md:gap-y-1">
+					<KeyValueList layout="inline">
 						{#each rows as [label, value] (label)}
-							<dt class="t-desc-l text-muted">{label}</dt>
-							<dd class="t-body-m m-0 mb-2 break-words md:mb-0">{value}</dd>
+							<KeyValue {label} {value} />
 						{/each}
-					</dl>
+					</KeyValueList>
 				</section>
 
 				<section class="rounded-lg border border-line bg-surface p-4 max-md:p-3" aria-label="Безопасность">
 					<h2 class="t-body-m-strong m-0 mb-3">Безопасность</h2>
-					<dl class="m-0 grid grid-cols-[max-content_1fr] gap-x-6 gap-y-3 max-md:grid-cols-1 max-md:gap-y-1">
-						<dt class="t-desc-l text-muted">Последний вход</dt>
-						<dd class="t-body-m m-0 mb-2 md:mb-0"><DateText value={user.last_login_at} time /></dd>
-						{#if user.invited_at}
-							<dt class="t-desc-l text-muted">Приглашён</dt>
-							<dd class="t-body-m m-0 mb-2 md:mb-0"><DateText value={user.invited_at} time /></dd>
-						{/if}
-						{#if user.activated_at}
-							<dt class="t-desc-l text-muted">Активирован</dt>
-							<dd class="t-body-m m-0 mb-2 md:mb-0"><DateText value={user.activated_at} time /></dd>
-						{/if}
-						{#if user.blocked_at}
-							<dt class="t-desc-l text-muted">Заблокирован</dt>
-							<dd class="t-body-m m-0 mb-2 md:mb-0"><DateText value={user.blocked_at} time />{user.status_reason ? `: ${user.status_reason}` : ''}</dd>
-						{/if}
-						<dt class="t-desc-l text-muted">Смена пароля</dt>
-						<dd class="t-body-m m-0 mb-2 md:mb-0">{user.must_change_password ? 'Требуется' : 'Не требуется'}</dd>
-						<dt class="t-desc-l text-muted">Согласие на ПДн</dt>
-						<dd class="t-body-m m-0">{user.consent_version ? `версия ${user.consent_version}` : 'не принято'}</dd>
-					</dl>
+					<KeyValueList layout="inline">
+						<KeyValue label="Последний вход">{#snippet children()}<DateText value={u.last_login_at} time />{/snippet}</KeyValue>
+						{#if u.invited_at}<KeyValue label="Приглашён">{#snippet children()}<DateText value={u.invited_at} time />{/snippet}</KeyValue>{/if}
+						{#if u.activated_at}<KeyValue label="Активирован">{#snippet children()}<DateText value={u.activated_at} time />{/snippet}</KeyValue>{/if}
+						{#if u.blocked_at}<KeyValue label="Заблокирован">{#snippet children()}<DateText value={u.blocked_at} time />{u.status_reason ? `: ${u.status_reason}` : ''}{/snippet}</KeyValue>{/if}
+						<KeyValue label="Смена пароля" value={u.must_change_password ? 'Требуется' : 'Не требуется'} />
+						<KeyValue label="Согласие на ПДн" value={u.consent_version ? `версия ${u.consent_version}` : 'не принято'} />
+					</KeyValueList>
 				</section>
 			</div>
 

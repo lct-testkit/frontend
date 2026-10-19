@@ -11,11 +11,11 @@ export type ImportEntity = components['schemas']['ImportJobCreateRequest']['enti
 
 /** Короткая подпись и подсказка для списка и мастера; для неизвестного серверу типа берётся его собственная подпись. */
 export const IMPORT_ENTITY_INFO: Record<string, { label: string; plural: string; hint: string }> = {
-	organization: { label: 'Организации', plural: 'организаций', hint: 'Вузы и компании; ключ — ИНН' },
-	product: { label: GLOSSARY.product.plural, plural: 'продуктов', hint: `${GLOSSARY.product.hint}; ключ — код продукта` },
-	license: { label: 'Лицензии', plural: 'лицензий', hint: 'Договоры вуз — вендор — программное обеспечение; ключ — вуз, вендор, ПО и номер договора' },
-	vendor_contact: { label: 'Вендоры', plural: 'вендоров', hint: 'Компания, продукты и ответственные — файл «Вендоры»' },
-	payment: { label: 'Оплаты', plural: 'оплат', hint: 'Оплаченные заказы физлиц: заявка, курс, поток — «Данные оплат»' },
+	organization: { label: 'Организации', plural: 'организаций', hint: 'Вузы и компании; одну и ту же организацию система находит по ИНН' },
+	product: { label: GLOSSARY.product.plural, plural: 'продуктов', hint: `${GLOSSARY.product.hint}; продукт находится по коду` },
+	license: { label: 'Лицензии', plural: 'лицензий', hint: 'Договоры вуз — вендор — программное обеспечение; один договор — по вузу, вендору, ПО и номеру договора' },
+	vendor_contact: { label: 'Вендоры', plural: 'вендоров', hint: 'Компания, продукты и ответственные — как в выгрузке «Вендоры»' },
+	payment: { label: 'Оплаты', plural: 'оплат', hint: 'Оплаченные заказы физлиц: заявка, курс, поток — как в выгрузке «Данные оплат»' },
 	learner: { label: 'Учащиеся LMS', plural: 'учащихся', hint: 'Шаблон LMS «Загрузка пользователей» с паспортом и дипломом' },
 	direction: { label: 'Направления', plural: 'направлений', hint: 'ИТ-направления каталога; только администратор' },
 	responsible: { label: 'Ответственные за вуз', plural: 'вузов', hint: 'Кто из менеджеров ведёт вуз (КАМ или руководитель); только администратор' }
