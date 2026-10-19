@@ -113,7 +113,7 @@ if (want('tools')) {
 async function sheet(file, tiles, { cols, tileWidth, tileHeight, gap }) {
 	const datas = await Promise.all(tiles.map(async (f) => (await readFile(f)).toString('base64')));
 	const style = tileWidth ? `width:${tileWidth}px` : `height:${tileHeight}px`;
-	const html = `<body style="margin:0;background:#d9d9de;display:grid;grid-template-columns:repeat(${cols},max-content);gap:${gap}px;padding:${gap}px;width:max-content">${datas
+	const html = `<!doctype html><body style="margin:0;background:#d9d9de;display:grid;grid-template-columns:repeat(${cols},max-content);gap:${gap}px;align-items:start;padding:${gap}px;width:max-content;height:max-content">${datas
 		.map((d) => `<img src="data:image/png;base64,${d}" style="${style};display:block;border-radius:6px">`)
 		.join('')}</body>`;
 	const page = await (await browser.newContext({ deviceScaleFactor: 1 })).newPage();
