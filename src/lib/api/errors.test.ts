@@ -50,3 +50,21 @@ describe('errorMessage', () => {
 		expect(errorMessage(api(503, 'CRM-9503'))).toBe('Сервис временно недоступен. Попробуйте позже.');
 	});
 });
+
+describe('errorMessage — экран ошибки без внутренностей бэкенда (QA2 Н9)', () => {
+	it('«не найден» согласуется по роду и не показывает идентификатор', () => {
+		const id = '00000000-0000-7000-8000-000000000000';
+		expect(errorMessage(api(404, 'CRM-9004', `Сделка не найден: ${id}`))).toMatch(/^Сделка не найдена\. /);
+		expect(errorMessage(api(404, 'CRM-9004', `Контакт не найден: ${id}`))).toMatch(/^Контакт не найден\. /);
+		expect(errorMessage(api(404, 'CRM-9004', `Лицензия не найден: ${id}`))).toMatch(/^Лицензия не найдена\. /);
+		expect(errorMessage(api(404, 'CRM-9004', `Сделка не найден: ${id}`))).not.toMatch(/0000/);
+		expect(errorMessage(new ApiError({ status: 404, detail: 'Not Found' }))).toBe('Страница или запись не найдена. Проверьте адрес.');
+	});
+	it('английская проверка полей бэкенда — по-русски, имя поля из схемы скрыто', () => {
+		const e = new ApiError({ status: 422, errors: [{ field: 'organization_id', reason: 'Input should be a valid UUID, invalid character: found `n` at 1' }] });
+		expect(errorMessage(e)).toBe('Неверная ссылка: идентификатор записи указан с ошибкой.');
+		expect(errorMessage(new ApiError({ status: 422, errors: [{ field: 'q', reason: 'String should have at least 3 characters' }] }))).toBe('Слишком коротко: не меньше 3 символов.');
+		expect(errorMessage(new ApiError({ status: 422, errors: [{ field: 'q', reason: 'Что-то непонятное' }] }))).toBe('Что-то непонятное');
+		expect(errorMessage(new ApiError({ status: 422, errors: [{ field: 'x', reason: 'weird english' }] }))).toBe('Недопустимое значение.');
+	});
+});
