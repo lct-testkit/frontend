@@ -157,7 +157,7 @@ src/lib/ui/                 57 общих компонентов (AppShell, TopB
 src/lib/stores/             theme.svelte.ts: четыре темы, класс Theme_root_<тема> на <body>; help-attention.svelte.ts: точка «загляните» у справки, пока её не открыли
 src/lib/utils/              format, markdown (marked + DOMPurify), query-state (фильтры в адресной строке), debounce, platform
 src/lib/styles/             fonts.css: Rostelecom Basis и запасная гарнитура
-src/lib/content/help/       13 глав справки /help (Markdown)
+src/lib/content/help/       39 глав справки /help (Markdown): 24 для пользователя и 15 для администратора
 static/                     config.json, favicon.svg, logo.svg, robots.txt, fonts/ (не в git)
 deploy/                     Caddyfile.web, docker-entrypoint.sh — образ web
 tools/                      инструменты проверки, сеялка демо-данных, scenarios/ (Playwright)
