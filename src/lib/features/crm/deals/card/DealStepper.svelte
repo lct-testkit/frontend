@@ -5,7 +5,7 @@
 	// метка справа над лентой; на каком шаге сделка остановилась и где бывала, берём из истории в состоянии карточки.
 	import { goto } from '$app/navigation';
 	import { session } from '$lib/auth/session.svelte';
-	import { Btn, StatusChip, StatusSteps, type Step } from '$lib/ui';
+	import { Btn, StatusChip, StatusSteps, Tip, type Step } from '$lib/ui';
 	import { statusTypeHint } from '../../shared/hints';
 	import type { AvailableTransition } from '../../types';
 	import { deniedText, isTerminal, optionalStepIds, roleHint, statusName, statusTone, stepStates, steps } from '../statusUtils';
@@ -62,7 +62,9 @@
 	{#snippet here()}
 		<!-- право переименовывать шаги (Руководитель, Администратор): ссылка в редактор воронки с выбранным шагом -->
 		{#if current && !terminal && session.can('workflow:rename_status')}
-			<Btn label="Переименовать" variant="ghost" colorScheme="neutral" size="s" onclick={() => goto(`/workflows/${deal.workflow_id}?status=${current.id}`)} data-testid="step-rename" />
+			<Tip title="Шаг воронки" text="Откроется редактор воронки. Новое название увидят все сделки этой воронки, не только эта." focusable={false}>
+				<Btn label="Переименовать" variant="ghost" colorScheme="neutral" size="s" onclick={() => goto(`/workflows/${deal.workflow_id}?status=${current.id}`)} data-testid="step-rename" />
+			</Tip>
 		{/if}
 	{/snippet}
 	{#snippet end()}
