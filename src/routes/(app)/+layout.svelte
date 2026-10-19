@@ -29,14 +29,18 @@
 	// A section the side menu would hide (no permission) must say so by a direct link too (USERFLOWS §0.6), instead of rendering its
 	// tabs/buttons and letting every request underneath answer 403 one at a time. Left out: «Главная» redirects a role without its own
 	// permission elsewhere (`landingFor`); «Справочники»/«Воронки» hide their nav item behind the *write* permission on purpose (a KAM/HEAD
-	// without it can still open the page and read — only editing is disabled inline), so gating them here would take that reading away.
-	const NOT_GATED = new Set(['home', 'catalog', 'workflows']);
+	// without it can still open the page and read — only editing is disabled inline), so they are gated by the READ permission, not the write one:
+	// a role that cannot even read them (the auditor) gets the same «section unavailable» text instead of a page whose requests all answer 403.
+	const NOT_GATED = new Set(['home']);
+	const READ_GATE: Record<string, string> = { catalog: 'catalog:read', workflows: 'workflow:read' };
 	const deniedItem = $derived.by(() => {
 		if (session.status !== 'authenticated') return null;
 		for (const section of NAV) {
 			for (const item of section.items) {
 				if (NOT_GATED.has(item.id)) continue;
-				if (isActive(item, page.url.pathname) && !isVisible(item, (p) => session.can(p))) return item;
+				if (!isActive(item, page.url.pathname)) continue;
+				const readOnly = READ_GATE[item.id];
+				if (readOnly ? !session.can(readOnly) : !isVisible(item, (p) => session.can(p))) return item;
 			}
 		}
 		return null;
