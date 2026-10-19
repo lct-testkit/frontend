@@ -3700,6 +3700,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/reports/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Сколько строк будет в отчёте
+         * @description Считает строки отчёта с этими параметрами, ничего не создавая: ни задания, ни файла. Форма запуска показывает число до нажатия «Запустить». Проверки параметров — как у `POST /reports` (422 на неизвестный параметр); у тяжёлого отчёта `exact=false` — это оценка. Не чаще 120 раз в минуту на сотрудника (429). Роль: создание отчётов.
+         */
+        post: operations["preview_report_api_reports_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reports/{report_id}": {
         parameters: {
             query?: never;
@@ -9778,6 +9798,39 @@ export type components = {
              * @enum {string}
              */
             status: "queued" | "processing" | "completed" | "failed";
+            /** Template Code */
+            template_code: string;
+        };
+        /** ReportPreviewOut */
+        ReportPreviewOut: {
+            /**
+             * Exact
+             * @description true — строки посчитаны тем же запросом, что строит отчёт; false — у тяжёлого отчёта это оценка (сам отчёт строится в очереди).
+             */
+            exact: boolean;
+            /**
+             * Row Count
+             * @description Сколько строк будет в отчёте с этими параметрами (до лимита `limit`).
+             */
+            row_count: number;
+        };
+        /**
+         * ReportPreviewRequest
+         * @example {
+         *       "params": {
+         *         "date_from": "2026-10-01"
+         *       },
+         *       "template_code": "license_register"
+         *     }
+         */
+        ReportPreviewRequest: {
+            /**
+             * Params
+             * @description Те же параметры, что у `POST /reports`, поверх `default_params` шаблона.
+             */
+            params?: {
+                [key: string]: unknown;
+            };
             /** Template Code */
             template_code: string;
         };
@@ -19716,6 +19769,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReportJobOut"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    preview_report_api_reports_preview_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportPreviewOut"];
                 };
             };
             400: components["responses"]["BadRequest"];

@@ -33,6 +33,11 @@ export async function countUnfinished(): Promise<number> {
 	return res.items.filter((j) => isReportBusy(j.status)).length;
 }
 
+/** Сколько строк даст отчёт с параметрами — до запуска (`exact=false` — оценка тяжёлого отчёта). */
+export async function previewReport(templateCode: string, params: Record<string, unknown>, signal?: AbortSignal): Promise<{ row_count: number; exact: boolean }> {
+	return unwrap(api.POST('/api/reports/preview', { body: { template_code: templateCode, params }, signal }));
+}
+
 export async function startReport(templateCode: string, format: ReportFormat, params: Record<string, unknown>): Promise<ReportJob> {
 	return unwrap(api.POST('/api/reports', { body: { template_code: templateCode, format: format as ReportJob['format'], params }, headers: idem() }));
 }

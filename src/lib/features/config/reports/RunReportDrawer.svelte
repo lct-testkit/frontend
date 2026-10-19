@@ -14,7 +14,7 @@
 	import ParamsForm from './ParamsForm.svelte';
 	import { WorkflowList } from './workflows.svelte';
 	import { REPORT_SPECS, canDownloadJson, defaultFormat, describeTemplate, formatHint, formatLabel, formatsFor, normalizeParams, paramsFor, validateParams } from './params';
-	import { downloadReportJson } from './api';
+	import { downloadReportJson, previewReport } from './api';
 	import { cleanSelection } from './columns';
 	import { columnsKey, formatKey, recall, recallStrings, remember } from './memory';
 	import { jobNoteInput, reportNotes } from './notes';
@@ -117,6 +117,30 @@
 	}
 
 	const inForm = $derived(run.phase === 'form' || run.phase === 'failed');
+
+	/** число строк до запуска: пересчитывается через полсекунды после правки параметров; ошибка проверки — молчим, её покажет «Запустить» */
+	let preview = $state<{ row_count: number; exact: boolean } | null>(null);
+	let previewing = $state(false);
+	$effect(() => {
+		const code = template?.code;
+		if (!code || !inForm) return;
+		const body = normalizeParams(defs, $state.snapshot(values) as Record<string, unknown>);
+		const ctl = new AbortController();
+		previewing = true;
+		const timer = setTimeout(() => {
+			previewReport(code, body, ctl.signal)
+				.then((p) => (preview = p))
+				.catch(() => (preview = null))
+				.finally(() => {
+					if (!ctl.signal.aborted) previewing = false;
+				});
+		}, 500);
+		return () => {
+			clearTimeout(timer);
+			ctl.abort();
+		};
+	});
+
 	const queued = $derived(run.jobStatus === 'queued');
 </script>
 
@@ -148,6 +172,13 @@
 					</div>
 				{/if}
 				<ParamsForm {defs} bind:values {errors} workflows={workflows.items} workflowsFailed={workflows.failed} onRetryWorkflows={() => void workflows.load()} />
+				{#if preview && preview.row_count === 0}
+					<Notice class="shrink-0" tone="warning">Под эти условия не подходит ни одной записи — отчёт будет пустым. Расширьте период или уберите фильтры.</Notice>
+				{:else if preview}
+					<p class={['t-desc-l m-0 text-muted', previewing && 'opacity-60']} aria-live="polite" data-testid="report-preview">
+						{preview.exact ? 'В отчёт попадёт' : 'В отчёт попадёт около'} {count(preview.row_count, ['строка', 'строки', 'строк'])}
+					</p>
+				{/if}
 				{#if run.phase === 'failed'}<Notice class="shrink-0" tone="error" title="Не удалось сформировать отчёт">{run.message}</Notice>{/if}
 			</div>
 		{:else if run.phase === 'running'}
