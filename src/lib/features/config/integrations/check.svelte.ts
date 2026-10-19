@@ -36,7 +36,7 @@ const liveDeps: CheckDeps = {
 };
 
 /** Понятный текст, когда проверка не состоялась: лимит 20 в минуту, источник уже выключили, сеть. */
-export function checkFailure(e: unknown): string {
+function checkFailure(e: unknown): string {
 	if (e instanceof ApiError) {
 		if (e.status === 429) return 'Слишком много проверок подряд. Подождите минуту и повторите.';
 		if (e.code === 'CRM-1703' || e.status === 409) return 'Источник выключен: проверять нечего.';
@@ -46,7 +46,7 @@ export function checkFailure(e: unknown): string {
 
 const word = (n: number): string => (n === 1 ? 'отвечает' : 'отвечают');
 
-export function summarize(results: readonly CheckResult[], at: Date): CheckSummary {
+function summarize(results: readonly CheckResult[], at: Date): CheckSummary {
 	const ok = results.filter((r) => r.ok).length;
 	return {
 		text: `Проверено в ${formatTime(at)}: ${ok} из ${results.length} ${word(results.length)}`,
