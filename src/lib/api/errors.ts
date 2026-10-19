@@ -134,13 +134,50 @@ export class ApiError extends Error {
 	}
 }
 
+const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+const HAS_CYRILLIC = /[А-Яа-яЁё]/;
+
+/** «Сделка не найден: 0000…» (текст бэкенда: род не согласован, в конце идентификатор) → «Сделка не найдена. Возможно, …». Идентификатор человеку не показываем. */
+export function notFoundText(detail: string): string {
+	const clean = detail.replace(UUID_RE, '').replace(/[:\s]+$/, '').trim();
+	const m = clean.match(/^(\S+)\s+не\s+найден(?:а|о|ы)?$/i);
+	if (!m) return HAS_CYRILLIC.test(clean) ? (/[.!?]$/.test(clean) ? clean : `${clean}.`) : 'Страница или запись не найдена. Проверьте адрес.';
+	const noun = m[1];
+	const ending = /[ая]$/i.test(noun) ? 'а' : /[ое]$/i.test(noun) ? 'о' : /[ыи]$/i.test(noun) ? 'ы' : '';
+	return `${noun} не найден${ending}. Возможно, запись удалена, ссылка устарела или у вас нет к ней доступа.`;
+}
+
+// Тексты проверки полей, которые бэкенд (pydantic) отдаёт по-английски: человеку — по-русски. Русский текст бэкенда (свои правила) проходит как есть.
+const REASONS: [RegExp, (m: RegExpMatchArray) => string][] = [
+	[/valid UUID/i, () => 'Неверная ссылка: идентификатор записи указан с ошибкой.'],
+	[/field required|missing/i, () => 'Не заполнено обязательное поле.'],
+	[/valid (integer|number)/i, () => 'Нужно число.'],
+	[/valid e-?mail/i, () => 'Некорректный адрес почты.'],
+	[/valid (date|datetime)/i, () => 'Некорректная дата.'],
+	[/at least (\d+) character/i, (m) => `Слишком коротко: не меньше ${m[1]} символов.`],
+	[/at most (\d+) character/i, (m) => `Слишком длинно: не больше ${m[1]} символов.`],
+	[/greater than( or equal to)? (-?\d+)/i, (m) => `Значение должно быть не меньше ${m[2]}.`],
+	[/less than( or equal to)? (-?\d+)/i, (m) => `Значение должно быть не больше ${m[2]}.`]
+];
+export function reasonText(reason: string): string {
+	if (HAS_CYRILLIC.test(reason)) return reason;
+	for (const [re, text] of REASONS) {
+		const m = reason.match(re);
+		if (m) return text(m);
+	}
+	return 'Недопустимое значение.';
+}
+
 /** One user-facing sentence for any thrown value. */
 export function errorMessage(e: unknown): string {
 	if (e instanceof ApiError) {
 		if (e.code && MESSAGES[e.code] && e.code !== 'CRM-1001') return MESSAGES[e.code];
+		if (e.status === 404) return notFoundText(e.detail);
 		if (e.status === 422 && e.errors.length) {
 			const first = e.errors[0];
-			return first.field && first.field !== '__root__' ? `${first.field}: ${first.reason}` : first.reason;
+			const text = reasonText(first.reason);
+			// имя поля из схемы бэкенда («organization_id») человеку ничего не говорит — показываем его, только если оно уже по-русски
+			return first.field && first.field !== '__root__' && HAS_CYRILLIC.test(first.field) ? `${first.field}: ${text}` : text;
 		}
 		return e.detail;
 	}
