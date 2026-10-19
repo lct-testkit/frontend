@@ -138,7 +138,7 @@ const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi
 const HAS_CYRILLIC = /[А-Яа-яЁё]/;
 
 /** «Сделка не найден: 0000…» (текст бэкенда: род не согласован, в конце идентификатор) → «Сделка не найдена. Возможно, …». Идентификатор человеку не показываем. */
-export function notFoundText(detail: string): string {
+function notFoundText(detail: string): string {
 	const clean = detail.replace(UUID_RE, '').replace(/[:\s]+$/, '').trim();
 	const m = clean.match(/^(\S+)\s+не\s+найден(?:а|о|ы)?$/i);
 	if (!m) return HAS_CYRILLIC.test(clean) ? (/[.!?]$/.test(clean) ? clean : `${clean}.`) : 'Страница или запись не найдена. Проверьте адрес.';
