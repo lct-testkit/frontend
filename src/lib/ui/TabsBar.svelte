@@ -25,10 +25,36 @@
 	}
 
 	let { items, value, onChange, label, underline = true }: Props = $props();
+
+	// A row wider than the screen scrolls sideways; a half-cut last tab is the only sign of it, so the right edge fades out while there is more to see (the person reads it as «scrolls»).
+	let wrap = $state<HTMLElement | null>(null);
+	let more = $state(false);
+	$effect(() => {
+		if (!wrap) return;
+		const strip = wrap.querySelector<HTMLElement>('.atmr-tabs-group__tabs');
+		if (!strip) return;
+		const measure = () => (more = strip.scrollWidth - strip.clientWidth - strip.scrollLeft > 4);
+		measure();
+		strip.addEventListener('scroll', measure, { passive: true });
+		const observer = new ResizeObserver(measure);
+		observer.observe(strip);
+		return () => {
+			strip.removeEventListener('scroll', measure);
+			observer.disconnect();
+		};
+	});
+	// the tabs (and their counts) arrive later than the row: measure again when the labels change
+	$effect(() => {
+		void items.map((i) => `${i.label}${i.count ?? ''}`).join();
+		queueMicrotask(() => {
+			const strip = wrap?.querySelector<HTMLElement>('.atmr-tabs-group__tabs');
+			if (strip) more = strip.scrollWidth - strip.clientWidth - strip.scrollLeft > 4;
+		});
+	});
 </script>
 
 <!-- the DS group has `margin: -4px` and `padding: 4px` (room for the focus ring). It is made 8 px wider than the wrapper, so its strip (the underline and the tabs) spans exactly the wrapper = the page axes, and the gaps around it are the page gap -->
-<div class="min-w-0">
+<div class={['min-w-0', more && '[mask-image:linear-gradient(to_right,#000_calc(100%-36px),transparent)]']} bind:this={wrap}>
 <TabsGroup class="w-[calc(100%+8px)]" variant="primary" size="m" border={underline} horizontalFill={false} {value} onChange={(index: string) => onChange(index)} aria-label={label}>
 	{#each items as item (item.key)}
 		<TabsItem index={item.key} label={item.count === undefined ? item.label : `${item.label} (${item.count})`} disabled={item.disabled} dot={item.dot} />

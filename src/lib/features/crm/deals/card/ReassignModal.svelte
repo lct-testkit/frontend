@@ -57,7 +57,7 @@
 	}
 </script>
 
-<FormModal {open} size="s" title="Сменить ответственного" saveLabel="Передать" saving={busy} dirty={open && (!!owner || !!reason.trim())} {conflict} conflictText={error ?? undefined} reloadLabel="Обновить" formError={conflict ? null : error} onSave={submit} onReload={refresh} {onClose}>
+<FormModal {open} size="s" title="Сменить ответственного" saveLabel="Передать" canSave={!!owner && !!reason.trim()} saving={busy} dirty={open && (!!owner || !!reason.trim())} {conflict} conflictText={error ?? undefined} reloadLabel="Обновить" formError={conflict ? null : error} onSave={submit} onReload={refresh} {onClose}>
 	<UserPicker label="Новый ответственный" required roles={['KAM', 'HEAD']} value={owner} exclude={card.deal ? [card.deal.owner_id] : []} clearable={false} onChange={(id) => (owner = id)} />
 	<AreaField label="Причина" required value={reason} rows={2} onInput={(v) => (reason = v)} onSubmit={submit} />
 </FormModal>
