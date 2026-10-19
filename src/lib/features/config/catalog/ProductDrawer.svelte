@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PRODUCT_CODE_HINT, productCodeError } from './productCode';
 	import { uuid } from '$lib/uuid';
 	// Продукт: минимум полей сверху (код, название, направление, формат, цена), остальное — в «Дополнительно».
 	import { untrack } from 'svelte';
@@ -100,7 +101,8 @@
 
 	function validate(): boolean {
 		const next: Record<string, string> = {};
-		if (isNew && !code.trim()) next.code = 'Укажите код';
+		const codeError = isNew ? productCodeError(code) : null;
+		if (codeError) next.code = codeError;
 		if (!name.trim()) next.name = 'Укажите название';
 		if (price !== null && price < 0) next.base_price = 'Цена не может быть отрицательной';
 		if (duration !== null && duration < 0) next.duration_hours = 'Не меньше нуля';
@@ -184,7 +186,7 @@
 
 <FormDrawer {open} title={isNew ? 'Новый продукт' : name || 'Продукт'} {saving} {formError} {conflict} onSave={save} {onClose} onReload={reloadVersion}>
 	{#if isNew}
-		<TextField label="Код" required bind:value={code} error={errors.code} maxlength={64} autofocus />
+		<TextField label="Код" required bind:value={code} error={errors.code} hint={PRODUCT_CODE_HINT} maxlength={64} autofocus />
 	{:else}
 		<TextField label="Код" value={code} readonly hint="Код после создания не меняется" />
 	{/if}
