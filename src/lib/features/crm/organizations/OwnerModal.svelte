@@ -121,7 +121,7 @@
 	}
 </script>
 
-<FormModal {open} size="s" {title} {saveLabel} danger={removing} saving={busy} dirty={open && (!!successor || !!reason.trim())} formError={error} {conflict} conflictText="Организация изменена другим пользователем. Обновите данные — введённое сохранится." reloadLabel="Обновить" onReload={reload} onSave={submit} {onClose}>
+<FormModal {open} size="s" {title} {saveLabel} danger={removing} canSave={(removing || !!successor) && !!reason.trim()} saving={busy} dirty={open && (!!successor || !!reason.trim())} formError={error} {conflict} conflictText="Организация изменена другим пользователем. Обновите данные — введённое сохранится." reloadLabel="Обновить" onReload={reload} onSave={submit} {onClose}>
 	{#if hasOwner}
 		<p class="t-body-m m-0 text-muted">Сейчас ответственный: <span class="text-fg"><UserName id={org.owner_id} /></span></p>
 	{/if}
