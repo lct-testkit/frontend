@@ -9,6 +9,7 @@
 	import { landingFor } from '$lib/nav';
 	import { HomeData } from '$lib/features/home/home.svelte';
 	import RecentList from '$lib/features/crm/recent/RecentList.svelte';
+	import TaskRow from '$lib/features/crm/tasks/TaskRow.svelte';
 	import { formatDateTime, formatMoneyShort, formatNumber } from '$lib/utils/format';
 	import Card from '$lib/ui/Card.svelte';
 	import { slaHint } from '$lib/features/crm/shared/hints';
@@ -42,7 +43,6 @@
 	const attentionHref = $derived(data.breachedTotal > 0 || data.warningTotal === 0 ? '/deals?quick=breached' : '/deals?quick=warning');
 	const attentionTotal = $derived(data.breachedTotal + data.warningTotal);
 	const SLA = { breached: { tone: 'error', label: 'Просрочено' }, warning: { tone: 'warning', label: 'Скоро срок' } } as const;
-	const PRIORITY_DOT: Record<string, string> = { critical: 'bg-danger', high: 'bg-warning', normal: 'bg-soft', low: 'bg-line-strong' };
 	let funnelType = $state<string | null>(null);
 	const bp = useBreakpoint();
 	const activeType = $derived(funnelType ?? data.mainType);
@@ -71,8 +71,8 @@
 		{:else}
 			{#if session.can('deal:read')}
 				<div class="grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-md:gap-2">
-					<Tile label="В работе" value={formatNumber(data.activeTotal)} href="/deals" loading={data.loading} reserveHint />
-					<Tile label="Сумма в работе" value={`${formatMoneyShort(data.activeAmount)}${more}`} href="/deals" loading={data.loading} reserveHint />
+					<Tile label="В работе" value={formatNumber(data.activeTotal)} href="/deals?quick=open" loading={data.loading} reserveHint />
+					<Tile label="Сумма в работе" value={`${formatMoneyShort(data.activeAmount)}${more}`} href="/deals?quick=open" loading={data.loading} reserveHint />
 					<Tile
 						label="SLA просрочен"
 						tip="Сделки, у которых срок пребывания в статусе (SLA) уже вышел. Под числом — сколько сделок скоро выйдут за срок."
@@ -156,13 +156,9 @@
 {:else}
 	<RowList title="Мои задачи" count={data.openTasks.length}>
 		{#snippet action()}<a class="t-body-s -m-3 p-3" href="/tasks">Все</a>{/snippet}
+		<!-- та же строка, что на странице «Задачи»: «Просрочена: …», флажок «выполнено», метка срочности; клик открывает ту же карточку задачи -->
 		{#each data.openTasks.slice(0, 6) as task (task.id)}
-			<ListRow title={task.title} href="/deals/{task.deal_id}">
-				{#snippet description()}
-					{#if task.due_at}<span class={new Date(task.due_at).getTime() < Date.now() ? 'text-danger' : ''}><DateText value={task.due_at} /></span>{/if}
-				{/snippet}
-				{#snippet suffix()}<span class={['size-2 rounded-full', PRIORITY_DOT[task.priority] ?? 'bg-soft']} title="Приоритет" aria-hidden="true"></span>{/snippet}
-			</ListRow>
+			<TaskRow {task} showDeal showAssignee={false} onOpen={(t) => goto(`/tasks?task=${t.id}`)} onChanged={(t) => data.patchTask(t)} />
 		{/each}
 	</RowList>
 {/if}

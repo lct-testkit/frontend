@@ -15,6 +15,7 @@ describe('фильтры сделок в адресе', () => {
 		expect(toQuery(readFilters(params('quick=mine&owner=other')), 'me-1').owner_id).toEqual(['other']);
 		expect(toQuery(readFilters(params('quick=warning')), 'me-1').sla_state).toBe('warning');
 		expect(toQuery(readFilters(params('quick=closed')), 'me-1').is_closed).toBe(true);
+		expect(toQuery(readFilters(params('quick=open')), 'me-1').is_closed).toBe(false);
 	});
 	it('sort — сырой параметр API едет как есть, пустой не уходит в запрос', () => {
 		expect(toQuery(readFilters(params('sort=-amount')), null).sort).toBe('-amount');

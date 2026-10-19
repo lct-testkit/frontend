@@ -3,7 +3,7 @@
 // Здесь — чтение параметров, перевод в query API и подсчёт включённых фильтров.
 
 export type DealView = 'table' | 'board';
-export type QuickFilter = 'all' | 'mine' | 'warning' | 'breached' | 'closed';
+export type QuickFilter = 'all' | 'open' | 'mine' | 'warning' | 'breached' | 'closed';
 
 export interface DealFilters {
 	view: DealView;
@@ -40,7 +40,7 @@ export function stateToSort(state: { key: string; dir: 'asc' | 'desc' } | null):
 	return state ? (state.dir === 'desc' ? `-${state.key}` : state.key) : '';
 }
 
-const QUICK = new Set<string>(['all', 'mine', 'warning', 'breached', 'closed']);
+const QUICK = new Set<string>(['all', 'open', 'mine', 'warning', 'breached', 'closed']);
 
 export function readFilters(params: URLSearchParams): DealFilters {
 	const get = (name: string) => params.get(name) ?? '';
@@ -106,6 +106,7 @@ export function toQuery(f: DealFilters, meId: string | null | undefined): DealQu
 	if (f.quick === 'mine' && !query.owner_id && meId) query.owner_id = [meId];
 	if (f.quick === 'warning') query.sla_state = 'warning';
 	if (f.quick === 'breached') query.sla_state = 'breached';
+	if (f.quick === 'open') query.is_closed = false;
 	if (f.quick === 'closed') query.is_closed = true;
 	return query;
 }

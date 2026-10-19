@@ -3,11 +3,11 @@
 import { api } from '$lib/api';
 import type { DealQuery } from './dealFilters';
 
-export type TabKey = 'all' | 'mine' | 'warning' | 'breached' | 'closed';
+export type TabKey = 'all' | 'open' | 'mine' | 'warning' | 'breached' | 'closed';
 
 export type TabCounts = Partial<Record<TabKey, number>>;
 
-/** Запросы пяти вкладок. Без `meId` вкладка «Мои» не запрашивается (число неизвестно). */
+/** Запросы вкладок. Без `meId` вкладка «Мои» не запрашивается (число неизвестно). */
 export function tabQueries(base: DealQuery, meId: string | null | undefined): Partial<Record<TabKey, DealQuery>> {
 	const { sort: _sort, sla_state: _sla, is_closed: _closed, ...common } = base;
 	void _sort;
@@ -15,6 +15,7 @@ export function tabQueries(base: DealQuery, meId: string | null | undefined): Pa
 	void _closed;
 	const out: Partial<Record<TabKey, DealQuery>> = {
 		all: common,
+		open: { ...common, is_closed: false },
 		warning: { ...common, sla_state: 'warning' },
 		breached: { ...common, sla_state: 'breached' },
 		closed: { ...common, is_closed: true }
