@@ -115,9 +115,9 @@
 			<Card title={EVENT_GROUP_LABELS[g.group]} flush>
 				<ul class="m-0 list-none p-0">
 					{#each g.list as { info, row } (row.code)}
-						<li class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-4 py-3 last:border-b-0">
+						<li class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-4 py-3 last:border-b-0 max-md:gap-y-5">
 							<span class="t-body-m min-w-0 flex-1 basis-56 max-md:order-1">{info.label}</span>
-							<span class="flex flex-wrap items-center gap-x-4 gap-y-1 max-md:order-3 max-md:basis-full">
+							<span class="flex flex-wrap items-center gap-x-4 gap-y-1 max-md:order-3 max-md:basis-full max-md:gap-y-5">
 								{#each CHANNELS as channel (channel)}
 									{@const state = channelState(channel, caps)}
 									{@const checked = row.channels.includes(channel)}

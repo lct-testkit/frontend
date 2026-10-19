@@ -83,7 +83,8 @@
 <CatalogPage active="custom-fields" createLabel="Новое поле" onCreate={() => open(null)}>
 	{#snippet toolbar()}
 		<!-- four labels are wider than a 320 px screen: the control scrolls inside its own strip, the page does not -->
-		<div class="max-w-full min-w-0 self-start overflow-x-auto">
+		<!-- py/-my: запас по высоте под невидимую зону касания сегментов (overflow обрезает её по границе блока) -->
+		<div class="-my-1.5 max-w-full min-w-0 self-start overflow-x-auto py-1.5">
 			<SegmentedControl size="m" value={entity} onChange={(v: string) => setQuery({ entity: v === 'deal' ? null : v })}>
 				{#each CUSTOM_FIELD_ENTITIES as e (e.key)}<Segment index={e.key} label={e.value} />{/each}
 			</SegmentedControl>

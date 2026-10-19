@@ -21,6 +21,7 @@
 	import TopBar from './TopBar.svelte';
 	import TopBarIcon from './TopBarIcon.svelte';
 	import { dialogA11y } from './dialog-a11y';
+	import { fabState } from './fab-state.svelte';
 
 	let { children }: { children?: Snippet } = $props();
 
@@ -135,7 +136,8 @@
 			</div>
 		{/if}
 
-		<main class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto outline-none print:overflow-visible" id="content" tabindex="-1">{@render children?.()}</main>
+		<!-- the floating create-button (fixed, 40 px, 28 px from the bottom) lies over the end of the page: leave room under the last row -->
+		<main class={['min-h-0 flex-1 overflow-x-hidden overflow-y-auto outline-none print:overflow-visible', fabState.visible > 0 && 'pb-[84px]']} id="content" tabindex="-1">{@render children?.()}</main>
 	</div>
 </div>
 

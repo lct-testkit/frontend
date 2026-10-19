@@ -104,7 +104,7 @@
 	<Card title="Требуют внимания" action={mobileRefresh}><EmptyState title="Просроченных сделок нет" compact /></Card>
 {:else}
 	<RowList title="Требуют внимания" count={attentionTotal}>
-		{#snippet action()}{#if attentionTotal > 6}<a class="t-body-s-strong text-accent" href={attentionHref}>Все</a>{/if}{@render mobileRefresh()}{/snippet}
+		{#snippet action()}{#if attentionTotal > 6}<a class="t-body-s-strong -m-3 p-3 text-accent" href={attentionHref}>Все</a>{/if}{@render mobileRefresh()}{/snippet}
 		{#each data.attention.slice(0, 6) as deal (deal.id)}
 			<ListRow title={deal.title} href="/deals/{deal.id}">
 				{#snippet description()}

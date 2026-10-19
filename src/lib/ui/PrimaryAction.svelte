@@ -18,11 +18,18 @@
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { AddLarge } from '@lct-testkit/rt-ui/icons';
 	import Btn from './Btn.svelte';
+	import { fabState } from './fab-state.svelte';
 
 	let { primary }: { primary: Primary } = $props();
 
 	const bp = useBreakpoint();
 	const PrimaryIcon = $derived(primary.icon ?? AddLarge);
+
+	$effect(() => {
+		if (!bp.isMobile) return;
+		fabState.visible++;
+		return () => fabState.visible--;
+	});
 </script>
 
 {#snippet fabIcon()}<PrimaryIcon />{/snippet}
