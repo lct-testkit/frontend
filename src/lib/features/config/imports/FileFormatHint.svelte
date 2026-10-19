@@ -4,7 +4,7 @@
 	import { Download } from '@lct-testkit/rt-ui/icons';
 	import { Btn, FormSection, StatusChip, toast } from '$lib/ui';
 	import { plural } from '$lib/utils/format';
-	import { fieldFormatHint } from './hints';
+	import { fieldFormatHint, fieldLabel } from './hints';
 	import { downloadImportTemplate, type TemplateFormat } from './job';
 	import { entityInfo, type ImportEntityType } from './mapping';
 
@@ -30,10 +30,10 @@
 		{#each type.fields as field (field.target)}
 			<li class="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] items-baseline gap-x-4 gap-y-1 max-md:grid-cols-1">
 				<span class="t-row flex flex-wrap items-center gap-2 font-medium">
-					{field.label}
+					{fieldLabel(field.label)}
 					{#if field.required}<StatusChip label="Обязательная" tone="warning" />{/if}
 				</span>
-				<span class="t-desc-l text-muted">{fieldFormatHint(field.kind)}</span>
+				<span class="t-desc-l text-muted">{fieldFormatHint(field.kind, field.target)}</span>
 			</li>
 		{/each}
 	</ul>

@@ -57,7 +57,43 @@ const FORMAT_HINTS: Record<string, string> = {
 	learner: 'значение из шаблона LMS'
 };
 
-/** Как записать значение поля в файле; для неизвестного вида — «текст». */
-export function fieldFormatHint(kind: string): string {
-	return FORMAT_HINTS[kind] ?? FORMAT_HINTS.text;
+// Поля, у которых одна подсказка на вид не подходит: пример вида «целое число, например 2027» не годится для часов, а у учащихся LMS все 27 колонок — вид `learner`.
+const TARGET_HINTS: Record<string, string> = {
+	duration_hours: 'целое число часов, например 72',
+	// шаблон LMS «Загрузка пользователей»
+	snils: '11 цифр, например 123-456-789 01',
+	passport_series: '4 цифры',
+	passport_number: '6 цифр',
+	passport_issued_by: 'как в паспорте',
+	passport_issued_at: 'ДД.ММ.ГГГГ',
+	passport_dept_code: '6 цифр: ХХХ-ХХХ',
+	sex: 'М или Ж',
+	birth_date: 'ДД.ММ.ГГГГ',
+	reg_region: 'регион регистрации, как в паспорте',
+	reg_city: 'населённый пункт, как в паспорте',
+	reg_street: 'улица, как в паспорте',
+	reg_house: 'дом, как в паспорте',
+	reg_apartment: 'квартира, как в паспорте',
+	reg_zip: '6 цифр',
+	first_name_dative: 'имя в дательном падеже',
+	last_name_dative: 'фамилия в дательном падеже',
+	middle_name_dative: 'отчество в дательном падеже',
+	education: 'уровень образования, как в шаблоне LMS',
+	diploma_profession: 'как в дипломе',
+	diploma_institution: 'как в дипломе',
+	diploma_surname: 'как в дипломе',
+	diploma_number: 'как в дипломе',
+	diploma_series: 'как в дипломе',
+	diploma_reg_number: 'как в дипломе',
+	diploma_issued_at: 'ДД.ММ.ГГГГ'
+};
+
+/** Как записать значение поля в файле: по полю (если оно особое), иначе по виду; для неизвестного вида — «текст». */
+export function fieldFormatHint(kind: string, target?: string): string {
+	return (target ? TARGET_HINTS[target] : undefined) ?? FORMAT_HINTS[kind] ?? FORMAT_HINTS.text;
+}
+
+/** Заголовок колонки из шаблона заказчика приходит без скобки («Отчествопри наличии)», «Имядательный падеж)»): в подсказках мастера — по-человечески. */
+export function fieldLabel(label: string): string {
+	return label.replace(/(?<![( ])(при наличии|дательный падеж)\)$/u, ' ($1)');
 }
