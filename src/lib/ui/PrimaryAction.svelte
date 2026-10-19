@@ -36,6 +36,7 @@
 {#snippet fabIcon()}<PrimaryIcon />{/snippet}
 
 {#if bp.isMobile}
+	{#if fabState.hidden === 0}
 	<FloatingActionButton
 		iconPrefix={fabIcon}
 		aria-label={primary.label}
@@ -44,6 +45,7 @@
 		onclick={primary.onclick}
 		data-testid={primary.testid ?? 'primary-action'}
 	/>
+	{/if}
 {:else}
 	<Btn label={primary.label} icon={primary.icon ?? AddLarge} onclick={primary.onclick} disabled={primary.disabled} loading={primary.loading} data-testid={primary.testid ?? 'primary-action'} />
 {/if}

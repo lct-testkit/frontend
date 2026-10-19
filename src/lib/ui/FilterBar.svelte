@@ -8,6 +8,7 @@
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { Filter } from '@lct-testkit/rt-ui/icons';
 	import AppDrawer from './AppDrawer.svelte';
+	import { fabState } from './fab-state.svelte';
 	import Btn from './Btn.svelte';
 	import FilterRow from './FilterRow.svelte';
 	import PrimaryAction, { type Primary } from './PrimaryAction.svelte';
@@ -40,6 +41,12 @@
 	const bp = useBreakpoint();
 	let panel = $state(false);
 	let drawer = $state(false);
+	// the open panel reaches the bottom of the screen: the floating create-button would sit on its «Готово»
+	$effect(() => {
+		if (!bp.isMobile || !panel) return;
+		untrack(() => fabState.hidden++);
+		return () => untrack(() => fabState.hidden--);
+	});
 	// filters that arrive switched on (a shared link) are visible at once on a phone
 	$effect(() => {
 		if (untrack(() => active) > 0) panel = true;
