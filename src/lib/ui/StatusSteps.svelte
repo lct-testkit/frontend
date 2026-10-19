@@ -149,7 +149,7 @@
 		</div>
 
 		<!-- 7 steps fit the row (3 + current + 3); on a narrow screen a step is at least 8.5 rem wide and fewer are in view -->
-		<ol bind:this={strip} class="relative m-0 flex list-none snap-x gap-3 overflow-x-auto p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" onscroll={measure}>
+		<ol bind:this={strip} class="relative -my-3 flex list-none snap-x gap-3 overflow-x-auto px-0 py-3 mx-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" onscroll={measure}>
 			{#each steps as step, i (step.id)}
 				<li class="max-w-none min-w-0 shrink-0 grow-0 basis-[max(8.5rem,calc((100%-4.5rem)/7))] snap-start" data-here={step.state === 'current' || step.state === 'stopped' ? '' : undefined}>
 					{#if step.onclick}

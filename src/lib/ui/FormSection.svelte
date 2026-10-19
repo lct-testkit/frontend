@@ -30,7 +30,7 @@
 	{#if collapsible}
 		<button
 			type="button"
-			class="t-body-s-strong inline-flex items-center gap-1 self-start rounded-md px-0.5 py-1 text-accent hover:text-accent-hover"
+			class="t-body-s-strong relative inline-flex items-center gap-1 self-start rounded-md px-0.5 py-1 text-accent hover:text-accent-hover after:absolute after:-inset-x-1 after:-inset-y-2 after:content-['']"
 			aria-expanded={shown}
 			aria-controls={id}
 			onclick={() => (shown = !shown)}

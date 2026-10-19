@@ -179,7 +179,7 @@
 			{/each}
 			{#if doc.entity_type === 'deal'}
 				<dt class="t-desc-l text-muted">Сделка</dt>
-				<dd class="t-desc-l m-0"><a href="/deals/{doc.entity_id}">Открыть сделку</a></dd>
+				<dd class="t-desc-l m-0"><a class="relative after:absolute after:-inset-x-1 after:-inset-y-4 after:content-['']" href="/deals/{doc.entity_id}">Открыть сделку</a></dd>
 			{/if}
 		</dl>
 	{/if}
