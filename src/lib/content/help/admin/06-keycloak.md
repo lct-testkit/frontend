@@ -76,7 +76,11 @@ docker compose -p rtk-demo -f compose/docker-compose.yml --env-file /srv/rtk-dem
 - Защита от перебора: после 5 неудачных попыток вход блокируется с ожиданием до 15 минут.
 - Самостоятельная регистрация выключена. Сброс пароля с экрана входа Keycloak включён, но письмо уйдёт только если в Keycloak настроена почта.
 
-<!-- SHOT: admin-keycloak-users.png — консоль Keycloak, список пользователей области crm; admin-users-list.png — «Пользователи» в CRM; admin-user-card.png — карточка пользователя -->
+![Раздел «Пользователи»: сотрудники, роли, команды и статусы](/help/admin-users-list.png)
+
+![Карточка пользователя: данные, безопасность и действия по статусу](/help/admin-user-card.png)
+
+<!-- SHOT: admin-keycloak-users.png — консоль Keycloak, список пользователей области crm (не снят: нужен пароль администратора Keycloak, node tools/help-shots.mjs --keycloak) -->
 
 ## Как проверить
 
