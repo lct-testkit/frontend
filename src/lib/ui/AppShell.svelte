@@ -9,6 +9,7 @@
 	import { DarkTheme, HelpStroke, Menu, Sun } from '@lct-testkit/rt-ui/icons';
 	import { NAV, isActive, isVisible } from '$lib/nav';
 	import { session } from '$lib/auth/session.svelte';
+	import { getConfig } from '$lib/config';
 	import { theme } from '$lib/stores/theme.svelte';
 	import { helpAttention } from '$lib/stores/help-attention.svelte';
 	import NotificationBell from '$lib/features/crm/notifications/NotificationBell.svelte';
@@ -75,12 +76,14 @@
 
 	const userItems = $derived([
 		{ key: 'profile', value: 'Профиль' },
+		...(getConfig().mailUrl ? [{ key: 'mail', value: 'Почта стенда' }] : []),
 		...(session.mode === 'demo' ? [{ key: 'switch', value: 'Сменить учётную запись' }] : []),
 		{ key: 'logout', value: 'Выйти' }
 	]);
 
 	async function onUserItem(key: string) {
 		if (key === 'profile') void goto('/profile');
+		else if (key === 'mail') window.open(getConfig().mailUrl, '_blank', 'noopener');
 		else if (key === 'switch' || key === 'logout') {
 			await session.logout();
 			void goto('/login');

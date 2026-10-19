@@ -23,5 +23,14 @@ else
 	fi
 fi
 
+# Mail trap of the stand (deploy: MAIL_UI_URL=/mail/ when Mailpit is on): the SPA shows a «Почта стенда» link.
+if [ -n "${MAIL_UI_URL:-}" ]; then
+	case "$MAIL_UI_URL" in
+		/*[!A-Za-z0-9/_-]* | //*) echo "web: MAIL_UI_URL must be a plain path like /mail/, ignored" >&2 ;;
+		/*) sed -i "1s#^{\$#{\n\t\"mailUrl\": \"${MAIL_UI_URL}\",#" /srv/config.json ;;
+		*) echo "web: MAIL_UI_URL must be a plain path like /mail/, ignored" >&2 ;;
+	esac
+fi
+
 echo "web: mode=$MODE"
 exec "$@"
