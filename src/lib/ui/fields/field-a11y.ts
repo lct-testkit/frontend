@@ -1,4 +1,4 @@
-// Связывает ошибку поля с самим полем: DS Input рисует подсказку и ошибку, но не ставит aria-invalid и aria-describedby, а кнопку очистки называет «Clear».
+// Связывает подпись и ошибку поля с самим полем: DS Input рисует подпись, подсказку и ошибку, но не ставит aria-labelledby, aria-invalid и aria-describedby, а кнопку очистки называет «Clear».
 // Один наблюдатель на всё приложение (вместо обёртки у каждого поля: обёртка ломала раскладку рядов фильтров, где правила идут по прямым потомкам).
 const ids = new WeakMap<Element, string>();
 let counter = 0;
@@ -8,6 +8,14 @@ function decorate(field: Element) {
 	if (!input) return;
 	const hint = field.querySelector<HTMLElement>('.atmr-input__hint');
 	const error = field.classList.contains('atmr-input--error');
+	// the DS draws the label as a <div> next to the input and does not tie them: name the input by it (a screen reader read the fields without names)
+	const label = field.querySelector<HTMLElement>('.atmr-input__label');
+	if (label && !input.hasAttribute('aria-label') && (!input.hasAttribute('aria-labelledby') || input.getAttribute('aria-labelledby')?.startsWith('field-label-'))) {
+		let id = ids.get(label);
+		if (!id) ids.set(label, (id = `field-label-${++counter}`));
+		if (label.id !== id) label.id = id;
+		if (input.getAttribute('aria-labelledby') !== id) input.setAttribute('aria-labelledby', id);
+	}
 	const clear = field.querySelector('[data-testid="input__suffix__clear"]');
 	if (clear && clear.getAttribute('aria-label') !== 'Очистить') clear.setAttribute('aria-label', 'Очистить');
 	// the DS names the button at the end of the box «Input-right-icon»: for the eye of a password field say what it does
