@@ -7,6 +7,7 @@
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import type { Snippet } from 'svelte';
 	import type { FullAutoFill } from 'svelte/elements';
+	import { useFreshError } from './fresh-error.svelte';
 
 	interface Props {
 		value?: string;
@@ -66,6 +67,9 @@
 		onBlur
 	}: Props = $props();
 
+	// the message of a mistake goes away when the field is edited (see fresh-error)
+	const fresh = useFreshError(() => error, () => value);
+
 	const bp = useBreakpoint();
 	const transformationRule = $derived(transform ? { transform: (raw = '') => transform(raw) } : undefined);
 </script>
@@ -76,7 +80,7 @@
 	aria-label={ariaLabel}
 	{label}
 	{placeholder}
-	{error}
+	error={fresh.error}
 	hintPrefix={hint}
 	{value}
 	{disabled}

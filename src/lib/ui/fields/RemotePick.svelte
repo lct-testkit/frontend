@@ -6,6 +6,7 @@
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { inFilterRow } from '$lib/ui/filter-row';
 	import { debounce } from '$lib/utils/debounce';
+	import { useFreshError } from './fresh-error.svelte';
 
 	export interface RemoteItem {
 		key: string;
@@ -34,6 +35,9 @@
 	}
 
 	let { value = null, search, selected = null, refreshKey, label, placeholder = 'Начните вводить', error, hint, disabled = false, required = false, clearable = true, emptyText = 'Ничего не найдено', lazy = false, onChange }: Props = $props();
+
+	// the message of a mistake goes away when the field is edited (see fresh-error)
+	const fresh = useFreshError(() => error, () => value);
 
 	const bp = useBreakpoint();
 	// in the one-line filter row a field has no caption above it: the label is its placeholder
@@ -85,7 +89,7 @@
 	placeholder={bare ? (label ?? placeholder) : placeholder}
 	aria-label={bare ? label : undefined}
 	title={bare ? label : undefined}
-	{error}
+	error={fresh.error}
 	{hint}
 	{disabled}
 	{required}

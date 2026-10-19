@@ -4,6 +4,7 @@
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { inFilterRow } from '../filter-row';
 	import type { PickItem } from './Pick.svelte';
+	import { useFreshError } from './fresh-error.svelte';
 
 	interface Props {
 		value?: string[];
@@ -24,6 +25,9 @@
 
 	let { value = $bindable([]), items, label, placeholder, error, hint, disabled = false, required = false, search = true, autoHeight = true, emptyText = 'Ничего не найдено', class: className = '', onChange }: Props = $props();
 
+	// the message of a mistake goes away when the field is edited (see fresh-error)
+	const fresh = useFreshError(() => error, () => value);
+
 	const bp = useBreakpoint();
 	// в строке фильтров у поля нет подписи сверху: подпись — его подсказка в пустом поле (как у Pick)
 	const bare = inFilterRow();
@@ -39,7 +43,7 @@
 	aria-label={bare ? label : undefined}
 	title={bare ? label : undefined}
 	placeholder={value.length ? undefined : bare ? (label ?? placeholder) : placeholder}
-	{error}
+	error={fresh.error}
 	hintPrefix={hint}
 	{disabled}
 	{required}

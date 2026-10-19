@@ -4,6 +4,7 @@
 	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { useFieldValidity } from './field-validity';
 	import { isPastDay } from './date-past';
+	import { useFreshError } from './fresh-error.svelte';
 
 	interface Props {
 		value?: string | null;
@@ -21,6 +22,9 @@
 	}
 
 	let { value = $bindable(null), label, error, hint, warnPast, disabled = false, required = false, minDate, maxDate, class: className = '', onChange }: Props = $props();
+
+	// the message of a mistake goes away when the field is edited (see fresh-error)
+	const fresh = useFreshError(() => error, () => value);
 
 	const bp = useBreakpoint();
 	const warning = $derived(warnPast && isPastDay(value) ? warnPast : undefined);
@@ -45,7 +49,7 @@
 	class={`w-full ${className}`}
 	size={bp.isMobile ? 'l' : 'm'}
 	{label}
-	{error}
+	error={fresh.error}
 	hintPrefix={warning ? warnHint : hint}
 	{disabled}
 	{required}

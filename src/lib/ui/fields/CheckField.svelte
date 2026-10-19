@@ -1,6 +1,7 @@
 <script lang="ts">
 	// A checkbox with its label on the right (the label is clickable) and an optional hint under it: `bind:checked` or `checked` + `onChange`.
 	import { Checkbox } from '@lct-testkit/rt-ui';
+	import { useFreshError } from './fresh-error.svelte';
 
 	interface Props {
 		checked?: boolean;
@@ -15,6 +16,9 @@
 	}
 
 	let { checked = $bindable(false), label, hint, error, disabled = false, required = false, class: className = '', onChange }: Props = $props();
+
+	// the message of a mistake goes away when the field is edited (see fresh-error)
+	const fresh = useFreshError(() => error, () => checked);
 </script>
 
 {#snippet labelRequired()}<span class="field-required">{label}</span>{/snippet}
@@ -30,5 +34,5 @@
 			onChange?.(v);
 		}}
 	/>
-	{#if error}<p class="t-desc-m pl-7 text-danger">{error}</p>{:else if hint}<p class="t-desc-m pl-7 text-muted">{hint}</p>{/if}
+	{#if fresh.error}<p class="t-desc-m pl-7 text-danger">{fresh.error}</p>{:else if hint}<p class="t-desc-m pl-7 text-muted">{hint}</p>{/if}
 </div>
