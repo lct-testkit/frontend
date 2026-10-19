@@ -76,7 +76,7 @@
 	}
 </script>
 
-<FormDrawer {open} title="Название и по умолчанию" width={420} {saving} {formError} {conflict} onSave={save} {onClose} onReload={reloadVersion}>
+<FormDrawer {open} title="Название и по умолчанию" width={480} {saving} {formError} {conflict} onSave={save} {onClose} onReload={reloadVersion}>
 	<TextField label="Название" required bind:value={name} error={errors.name} maxlength={255} autofocus />
 	<Toggle
 		label="Воронка по умолчанию"

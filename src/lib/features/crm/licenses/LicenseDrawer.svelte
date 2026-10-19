@@ -153,9 +153,9 @@
 	<SuggestField label="Вендор" required value={v.vendor} pickedId={v.vendorId} items={vendorSuggestions} error={errors.vendor} maxlength={MAX_LEN.vendor} disabled={readOnly} onChange={(text, id) => ((v.vendor = text), (v.vendorId = id))} />
 	<SuggestField label="ПО" required value={v.product} pickedId={v.productId} items={softwareSuggestions} error={errors.product_name} hint="Программное обеспечение по договору" maxlength={MAX_LEN.product} disabled={readOnly} onChange={(text, id) => ((v.product = text), (v.productId = id))} />
 	<TextField label="Номер договора" bind:value={v.contract} error={errors.contract_number} maxlength={MAX_LEN.contract} hint="Можно оставить пустым" disabled={readOnly} />
-	<Pick label="Статус по передаче" items={statusItems} clearable value={v.status} placeholder="Не указан" disabled={readOnly} onChange={(s) => (v.status = s)} />
+	<Pick label="Статус по передаче" items={statusItems} clearable value={v.status} placeholder="Не задано" disabled={readOnly} onChange={(s) => (v.status = s)} />
 	<FormRow>
-		<Pick label="Подписание лицензии" items={signedItems} clearable value={v.signedState || null} placeholder="Не указано" disabled={readOnly} onChange={(s) => (v.signedState = (s ?? '') as LicenseValues['signedState'])} />
+		<Pick label="Подписание лицензии" items={signedItems} clearable value={v.signedState || null} placeholder="Не задано" disabled={readOnly} onChange={(s) => (v.signedState = (s ?? '') as LicenseValues['signedState'])} />
 		<DateField label="Дата подписания" bind:value={v.signedAt} error={errors.license_signed_at} disabled={readOnly} />
 	</FormRow>
 	<Toggle label="Бессрочная" bind:checked={v.perpetual} disabled={readOnly} />

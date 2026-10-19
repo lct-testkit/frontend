@@ -79,7 +79,7 @@ export function licenseSignedText(l: Pick<OrganizationLicense, 'is_signed' | 'li
 	if (l.license_signed_at) return formatDate(l.license_signed_at);
 	if (l.is_signed === true) return 'Подписана';
 	if (l.is_signed === false) return 'Не подписана';
-	return 'Не указано';
+	return 'Нет данных';
 }
 
 /** Подпись статуса передачи; неизвестное или пустое значение — как в остальных перечислениях бэкенда. */

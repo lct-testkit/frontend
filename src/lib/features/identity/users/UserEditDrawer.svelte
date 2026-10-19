@@ -102,7 +102,7 @@
 	}
 </script>
 
-<FormDrawer {open} title="Изменить данные" width={520} saveTestId="user-save" saving={busy} {dirty} canSave={dirty} conflict={stale} conflictText="Карточку изменил другой администратор. Мы обновили данные — проверьте поля и сохраните ещё раз." formError={error} onSave={save} {onClose}>
+<FormDrawer {open} title="Изменить данные" width={560} saveTestId="user-save" saving={busy} {dirty} canSave={dirty} conflict={stale} conflictText="Карточку изменил другой администратор. Мы обновили данные — проверьте поля и сохраните ещё раз." formError={error} onSave={save} {onClose}>
 	<TextField label="Отображаемое имя" value={displayName} maxlength={255} onInput={(v) => (displayName = v)} />
 	<TextField label="Должность" value={position} maxlength={255} onInput={(v) => (position = v)} />
 	<Pick label="Роль" items={roles} value={role} hint={needsApproval ? (approvalId ? 'Подтверждение второго администратора получено' : 'Для роли «Администратор» нужно подтверждение второго администратора') : undefined} onChange={(v) => v && (role = v as Role)} />
