@@ -274,8 +274,8 @@
 			<span class="t-desc-l text-muted">{deal.number}</span>
 			<PriorityChip priority={deal.priority} hideNormal />
 		</span>
-		<span class="t-body-m-strong line-clamp-2 break-words">{deal.title}</span>
-		<span class="t-desc-l truncate text-muted">{party(deal)}</span>
+		<span class="t-body-m-strong line-clamp-2 break-words" title={deal.title}>{deal.title}</span>
+		<span class="t-desc-l truncate text-muted" title={party(deal)}>{party(deal)}</span>
 		{#if productLine(deal)}<span class="t-desc-l line-clamp-1 text-muted" title={productsTitle(deal)}>{productLine(deal)}</span>{/if}
 		<span class="flex min-w-0 items-center justify-between gap-2">
 			<span class="t-body-s-strong min-w-0 truncate"><Money value={deal.amount} currency={deal.currency} short /></span>

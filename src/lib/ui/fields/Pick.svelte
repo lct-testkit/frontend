@@ -53,6 +53,9 @@
 	const bp = useBreakpoint();
 	// in the one-line filter row a field has no caption above it: the label is its placeholder
 	const bare = inFilterRow();
+	// a long chosen value is cut by the field («B2B: взаимоде…»): the native tooltip names it in full
+	const chosen = $derived(value ? items.find((i) => i.key === value && !i.title)?.value : undefined);
+	const tooltip = $derived(bare ? (chosen ? `${label ?? ''}: ${chosen}` : label) : chosen);
 </script>
 
 <Select
@@ -61,7 +64,7 @@
 	label={bare ? undefined : label}
 	placeholder={bare ? (label ?? placeholder) : placeholder}
 	aria-label={bare ? label : undefined}
-	title={bare ? label : undefined}
+	title={tooltip}
 	{error}
 	{hint}
 	{disabled}

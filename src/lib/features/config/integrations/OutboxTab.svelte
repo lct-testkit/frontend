@@ -68,7 +68,7 @@
 
 {#snippet eventCell(e: OutboxEvent)}
 	<TableCell>
-		<span class="flex min-w-0 flex-col"><span class="t-body-m-strong wrap-anywhere" title={e.event_type}>{outboxEventTitle(e.event_type)}</span><span class="t-desc-m text-soft wrap-anywhere">{entityText(e.aggregate_type, e.aggregate_id)}</span></span>
+		<span class="flex min-w-0 flex-col"><span class="t-body-m-strong wrap-anywhere" title={e.event_type}>{outboxEventTitle(e.event_type)}</span><span class="t-desc-m truncate text-soft" title={entityText(e.aggregate_type, e.aggregate_id)}>{entityText(e.aggregate_type, e.aggregate_id)}</span></span>
 	</TableCell>
 {/snippet}
 {#snippet targetCell(e: OutboxEvent)}<TableCell><span class="t-body-s">{e.target ?? '—'}</span></TableCell>{/snippet}

@@ -109,9 +109,9 @@
 
 <FormDrawer {open} title={source?.name ?? 'Источник'} width={520} {saving} {formError} onSave={save} {onClose}>
 	<TextField label="Название" required bind:value={name} error={errors.name} maxlength={255} autofocus />
-	<TextField label="Адрес (base URL)" bind:value={baseUrl} error={errors.base_url} placeholder="https://…" />
-	<Pick label="Авторизация" bind:value={authType} clearable items={AUTH_TYPES.map((a) => ({ key: a.key, value: a.value }))} />
-	<TextField label="Ссылка на секрет" bind:value={credentialsRef} error={errors.credentials_ref ?? validateRef(credentialsRef) ?? undefined} placeholder="Имя переменной" maxlength={REF_MAX} hint="Например: CMS_WEBHOOK_SECRET. Это имя переменной окружения на сервере, сам секрет здесь не хранится" />
+	<TextField label="Адрес системы" bind:value={baseUrl} error={errors.base_url} placeholder="https://…" />
+	<Pick label="Способ входа" bind:value={authType} clearable placeholder="Не выбран" hint="Как эта система подтверждает свои запросы" items={AUTH_TYPES.map((a) => ({ key: a.key, value: a.value }))} />
+	<TextField label="Секрет: имя переменной" bind:value={credentialsRef} error={errors.credentials_ref ?? validateRef(credentialsRef) ?? undefined} placeholder="Имя переменной" maxlength={REF_MAX} hint="Например: CMS_WEBHOOK_SECRET. Это имя переменной окружения на сервере, сам секрет здесь не хранится" />
 	{#if pullable}
 		<FormSection title="Забор по расписанию">
 			<Toggle label="Забирать автоматически" bind:checked={pullEnabled} hint="Иначе данные забираются только кнопкой «Забрать сейчас»" />
@@ -120,12 +120,12 @@
 	{/if}
 	{#if passport}
 		<FormSection title="Подпись входящих запросов">
-			<TextField label="Секрет подписи (имя переменной)" bind:value={signingRef} error={errors.signing_secret_ref ?? validateRef(signingRef) ?? undefined} maxlength={REF_MAX} hint="Если пусто, берётся «Ссылка на секрет»" />
-			<Toggle label="Требовать метку времени X-Timestamp" bind:checked={requireTs} hint="Запрос без метки отклоняется, а перехваченный запрос нельзя повторить позже пяти минут" />
+			<TextField label="Секрет подписи (имя переменной)" bind:value={signingRef} error={errors.signing_secret_ref ?? validateRef(signingRef) ?? undefined} maxlength={REF_MAX} hint="Если пусто, берётся секрет из поля «Секрет: имя переменной» выше" />
+			<Toggle label="Проверять время запроса" bind:checked={requireTs} hint="В запросе должна быть метка времени (заголовок X-Timestamp): запрос без неё отклоняется, а перехваченный нельзя повторить позже пяти минут" />
 		</FormSection>
 	{/if}
-	<FormSection collapsible title="Дополнительно" open={configText.trim() !== '{}'} summary="Прочие ключи настроек">
-		<AreaField label="Прочие настройки (JSON)" bind:value={configText} error={errors.config} rows={4} maxRows={12} hint="Ключи, которые не вынесены в поля выше" />
+	<FormSection collapsible title="Дополнительно" open={configText.trim() !== '{}'} summary="Дополнительные настройки">
+		<AreaField label="Дополнительные настройки (JSON)" bind:value={configText} error={errors.config} rows={4} maxRows={12} hint="Ключи, которые не вынесены в поля выше" />
 	</FormSection>
 
 	{#if passport}

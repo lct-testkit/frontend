@@ -14,6 +14,17 @@
 	}
 
 	let { children, align = 'left', class: className = '' }: Props = $props();
+
+	// A truncated text («Егорова Алина Романов…») says what it is on hover: the native tooltip with the full text is put on the element the pointer is over, when the text really is cut
+	// and the element has no `title` of its own. Done once here, so every table of the product gets it and no cell has to remember.
+	function showFull(event: PointerEvent) {
+		const el = (event.target as HTMLElement | null)?.closest<HTMLElement>('.truncate, [class*="line-clamp"]');
+		if (!el || el.hasAttribute('title')) return;
+		const cut = el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1;
+		const text = el.textContent?.replace(/\s+/g, ' ').trim();
+		if (cut && text) el.setAttribute('title', text);
+	}
 </script>
 
-<div class={['flex h-full min-h-10 min-w-0 items-center gap-2 px-[15px]', align === 'right' && 'justify-end text-right', className]}><NoTabStops>{@render children?.()}</NoTabStops></div>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class={['flex h-full min-h-10 min-w-0 items-center gap-2 px-[15px]', align === 'right' && 'justify-end text-right', className]} onpointerover={showFull}><NoTabStops>{@render children?.()}</NoTabStops></div>

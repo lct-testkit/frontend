@@ -160,7 +160,7 @@
 
 	{#if reason}<Notice class="shrink-0" tone="warning">{reason}. Исправьте причину и включите подписку снова.</Notice>{/if}
 	<TextField label="Название" required bind:value={name} error={errors.name} maxlength={255} autofocus />
-	<TextField label="Адрес" required bind:value={url} error={errors.url} placeholder="https://…" hint={prod ? 'Только https; внутренние адреса сервер отклоняет' : 'Внутренние адреса сервер в боевом режиме отклоняет'} />
+	<TextField label="Адрес" required bind:value={url} error={errors.url} placeholder="https://…" hint={prod ? 'Только https; адреса внутренней сети сервер не принимает' : 'В боевом режиме сервер не принимает адреса внутренней сети'} />
 
 	<fieldset class="m-0 flex min-w-0 flex-col gap-2 border-0 p-0">
 		<legend class="t-body-s-strong mb-2 p-0"><span class="field-required">События</span></legend>
@@ -175,7 +175,7 @@
 
 	{#if subscription}<Toggle label="Подписка активна" bind:checked={isActive} hint="Включение выключенной подписки сбрасывает счётчик неудач" />{/if}
 
-	<FormSection collapsible title="Фильтры по содержимому события" open={filtersText.trim() !== ''} summary={filtersText.trim() ? 'заданы' : 'не заданы'}>
+	<FormSection collapsible title="Отбор событий по содержимому" open={filtersText.trim() !== ''} summary={filtersText.trim() ? 'заданы' : 'не заданы'}>
 		<AreaField label="Фильтры (JSON)" bind:value={filtersText} error={errors.filters} rows={3} maxRows={8} placeholder={'{ "deal_type": "b2c" }'} hint="Подписка получает событие, только если поле нагрузки равно значению. Пусто — любое событие из списка выше" />
 	</FormSection>
 
