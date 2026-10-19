@@ -19,7 +19,7 @@
 
 <svelte:head><title>Профиль · RTK School</title></svelte:head>
 
-<Page narrow>
+<Page>
 	<PageHeader title="Профиль">
 		{#snippet tabs(underline)}
 			<TabsBar items={PROFILE_TABS} value={tab} {underline} onChange={(t) => void setQuery({ tab: t === 'profile' ? null : t })} label="Разделы профиля" />

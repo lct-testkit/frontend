@@ -15,7 +15,7 @@
 
 <svelte:head><title>Настройки · RTK School</title></svelte:head>
 
-<Page narrow>
+<Page>
 	<PageHeader title="Настройки" primary={tab === 'flags' ? { label: 'Новый флаг', onclick: () => (createFlag = true) } : undefined}>
 		{#snippet tabs(underline)}
 			<TabsBar items={[{ key: 'flags', label: 'Флаги' }, { key: 'system', label: 'Система' }]} value={tab} {underline} onChange={open} label="Разделы настроек" />
