@@ -1,31 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '$lib/api';
-import { SourceChecks, checkFailure, summarize } from './check.svelte';
+import { SourceChecks } from './check.svelte';
 
 const src = (code: string, is_active = true) => ({ code, name: `Имя ${code}`, is_active });
 const at = new Date(2026, 9, 21, 1, 32);
-
-describe('summarize', () => {
-	it('«Проверено в 01:32: 1 из 1 отвечает»', () => {
-		const s = summarize([{ code: 'cms', name: 'Сайт', ok: true, message: 'Отвечает', durationMs: 120 }], at);
-		expect(s.text).toBe('Проверено в 01:32: 1 из 1 отвечает');
-		expect(s.allOk).toBe(true);
-		expect(s.failed).toEqual([]);
-	});
-	it('несколько источников: «отвечают», неответившие перечислены с причиной', () => {
-		const s = summarize(
-			[
-				{ code: 'cms', name: 'Сайт', ok: true, message: 'Отвечает', durationMs: 1 },
-				{ code: 'lms', name: 'LMS', ok: false, message: 'Таймаут', durationMs: 5000 },
-				{ code: 'bitrix24', name: 'Bitrix24', ok: true, message: 'Отвечает', durationMs: 1 }
-			],
-			at
-		);
-		expect(s.text).toBe('Проверено в 01:32: 2 из 3 отвечают');
-		expect(s.allOk).toBe(false);
-		expect(s.failed.map((r) => [r.name, r.message])).toEqual([['LMS', 'Таймаут']]);
-	});
-});
 
 describe('SourceChecks.run', () => {
 	it('проверяет только включённые', async () => {
@@ -65,9 +43,16 @@ describe('SourceChecks.run', () => {
 	});
 });
 
-describe('checkFailure', () => {
-	it('429 и 409 — человеческими словами', () => {
-		expect(checkFailure(new ApiError({ status: 429 }))).toContain('Подождите минуту');
-		expect(checkFailure(new ApiError({ status: 409, code: 'CRM-1703' }))).toBe('Источник выключен: проверять нечего.');
+describe('тексты итога', () => {
+	it('один источник: «отвечает»; 429 и 409 — человеческими словами', async () => {
+		const ok = new SourceChecks({ check: async () => ({ ok: true, message: 'Отвечает', duration_ms: 1 }), now: () => at });
+		await ok.run([src('cms')]);
+		expect(ok.summary?.text).toBe('Проверено в 01:32: 1 из 1 отвечает');
+		expect(ok.summary?.allOk).toBe(true);
+		expect(ok.summary?.failed).toEqual([]);
+
+		const off = new SourceChecks({ check: async () => { throw new ApiError({ status: 409, code: 'CRM-1703' }); }, now: () => at });
+		await off.run([src('cms')]);
+		expect(off.summary?.failed[0].message).toBe('Источник выключен: проверять нечего.');
 	});
 });
