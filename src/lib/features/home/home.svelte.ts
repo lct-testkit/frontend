@@ -49,6 +49,11 @@ export class HomeData {
 			.sort((a, b) => (a.due_at ?? '9999').localeCompare(b.due_at ?? '9999'));
 	}
 
+	/** задача изменена из списка на главной (выполнена): остальное перечитывается при следующей загрузке */
+	patchTask(next: Task): void {
+		this.tasks = this.tasks.map((t) => (t.id === next.id ? next : t));
+	}
+
 	get overdueTasks(): Task[] {
 		const now = Date.now();
 		return this.openTasks.filter((t) => t.due_at && new Date(t.due_at).getTime() < now);

@@ -173,6 +173,7 @@
 
 	const TAB_LABELS: [TabKey, string][] = [
 		['all', 'Все'],
+		['open', 'В работе'],
 		['mine', 'Мои'],
 		['warning', 'Под угрозой'],
 		['breached', 'Просрочены'],
@@ -225,7 +226,7 @@
 {/snippet}
 
 {#snippet trailing()}
-	<!-- a phone: the header row belongs to the tabs (all five must be seen), so the view is one button in the filter row: it shows what a tap switches to -->
+	<!-- a phone: the header row belongs to the tabs (all six must be seen), so the view is one button in the filter row: it shows what a tap switches to -->
 	{#if bp.isMobile && canRead}
 		<IconBtn icon={f.view === 'board' ? Table : GridColumns3} label={f.view === 'board' ? 'Показать таблицей' : 'Показать доской'} variant="secondary" onclick={() => switchView(f.view !== 'board')} data-testid="view-toggle" />
 	{/if}
