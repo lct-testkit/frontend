@@ -10,7 +10,7 @@
 	import TableCell from '$lib/ui/TableCell.svelte';
 	import StatusChip from '$lib/ui/StatusChip.svelte';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
-	import { auditActionLabel, auditResultMeta, entityTypeLabel } from '../labels';
+	import { auditActionLabel, auditActionTitle, auditResultMeta, entityTypeLabel } from '../labels';
 	import { AUDIT_RESULT_HINTS } from '../hints';
 	import { entityLabel, ensureAuditEntities } from '../audit';
 	import type { AuditEntry } from '../types';
@@ -112,7 +112,7 @@
 
 {#snippet time(e: AuditEntry)}<TableCell><DateText value={occurredAt(e).event} time /></TableCell>{/snippet}
 {#snippet actor(e: AuditEntry)}<TableCell><span class="truncate">{e.actor_id ? people.name(e.actor_id) : 'Система'}</span></TableCell>{/snippet}
-{#snippet action(e: AuditEntry)}<TableCell><span class="block truncate py-1.5" title={e.action}>{auditActionLabel(e.action)}</span></TableCell>{/snippet}
+{#snippet action(e: AuditEntry)}<TableCell><span class="block truncate py-1.5" title={auditActionTitle(e.action)}>{auditActionLabel(e.action)}</span></TableCell>{/snippet}
 {#snippet entity(e: AuditEntry)}
 	<TableCell>
 		{@const label = entityLabel(e.entity_type, e.entity_id, e)}
@@ -134,7 +134,7 @@
 	{@const meta = auditResultMeta(e.result)}
 	<div class="flex flex-col gap-1 p-1">
 		<div class="flex items-start gap-2">
-			<span class="t-body-m-strong min-w-0 flex-1 break-words">{auditActionLabel(e.action)}</span>
+			<span class="t-body-m-strong min-w-0 flex-1 break-words" title={auditActionTitle(e.action)}>{auditActionLabel(e.action)}</span>
 			<StatusChip label={meta.label} tone={meta.tone} hint={AUDIT_RESULT_HINTS[e.result as keyof typeof AUDIT_RESULT_HINTS]} />
 		</div>
 		<span class="t-desc-l text-muted">{e.actor_id ? people.name(e.actor_id) : 'Система'} · <DateText value={occurredAt(e).event} time /></span>
