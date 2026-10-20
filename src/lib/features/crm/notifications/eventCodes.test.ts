@@ -35,7 +35,7 @@ describe('eventCodeInfo', () => {
 const ID = '01a15176-078f-7000-97a2-8df34227f575';
 const LINKS: Record<string, { entity: string | null; href: string | null }> = {
 	ACCESS_REQUEST_CREATED: { entity: 'organization', href: '/access-requests?box=inbox' },
-	ACCESS_REQUEST_APPROVED: { entity: 'organization', href: `/organizations/${ID}` },
+	ACCESS_REQUEST_APPROVED: { entity: 'organization', href: '/access-requests?box=mine' },
 	ACCESS_REQUEST_REJECTED: { entity: 'organization', href: '/access-requests?box=mine' },
 	DEAL_DELETED: { entity: 'deal', href: `/deals/${ID}` },
 	DEAL_EVENT: { entity: 'deal', href: `/deals/${ID}` },
@@ -101,11 +101,15 @@ describe('notificationHref', () => {
 });
 
 describe('notificationHref: запрос доступа ведёт к своей строке', () => {
-	it('id заявки в payload или в объекте уведомления — переход подсвечивает её строку', () => {
-		expect(notificationHref({ template_code: 'ACCESS_REQUEST_CREATED', entity_type: 'organization', entity_id: ID, payload: { request_id: 'req-1' } })).toBe('/access-requests?box=inbox&highlight=req-1');
-		expect(notificationHref({ template_code: 'ACCESS_REQUEST_CREATED', entity_type: 'access_request', entity_id: 'req-2' })).toBe('/access-requests?box=inbox&highlight=req-2');
+	const make = (code: string, payload?: Record<string, unknown>) => ({ template_code: code, entity_type: 'organization', entity_id: ID, payload });
+	it('id заявки в payload.access_request_id — переход подсвечивает её строку', () => {
+		expect(notificationHref(make('ACCESS_REQUEST_CREATED', { access_request_id: 'req-1' }))).toBe('/access-requests?box=inbox&highlight=req-1');
+		expect(notificationHref(make('ACCESS_REQUEST_APPROVED', { access_request_id: 'req-2' }))).toBe('/access-requests?box=mine&highlight=req-2');
+		expect(notificationHref(make('ACCESS_REQUEST_REJECTED', { access_request_id: 'req-3' }))).toBe('/access-requests?box=mine&highlight=req-3');
 	});
-	it('id нет — просто «Входящие»', () => {
-		expect(notificationHref({ template_code: 'ACCESS_REQUEST_CREATED', entity_type: 'organization', entity_id: ID })).toBe('/access-requests?box=inbox');
+	it('старые уведомления без id — тот же список без подсветки', () => {
+		expect(notificationHref(make('ACCESS_REQUEST_CREATED'))).toBe('/access-requests?box=inbox');
+		expect(notificationHref(make('ACCESS_REQUEST_APPROVED', {}))).toBe('/access-requests?box=mine');
+		expect(notificationHref(make('ACCESS_REQUEST_REJECTED', { access_request_id: 5 }))).toBe('/access-requests?box=mine');
 	});
 });
