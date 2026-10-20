@@ -19,7 +19,7 @@
 	import type { Attachment, AvailableTransition, Deal, WorkflowGraph } from '../../types';
 	import { currentText, describeCondition, type ConditionLike } from '../conditions';
 	import { roleHint, roleList, statusName, statusTone, transitionKind } from '../statusUtils';
-	import { buildTransitionForm, fileLeaf, fileRequirements, isOtherReason, lossReasonHint, missingFileFields, serializeTransitionFields, unmetAlternatives, type TransitionFormField } from '../transitionForm';
+	import { blockedHint, buildTransitionForm, fileLeaf, fileRequirements, isOtherReason, lossReasonHint, missingFileFields, serializeTransitionFields, unmetAlternatives, type TransitionFormField } from '../transitionForm';
 	import TransitionFileZone from './TransitionFileZone.svelte';
 	import { clearDraft, draftKey, getDraft, setDraft, type DraftFile } from './transitionDrafts';
 
@@ -195,6 +195,27 @@
 	const boolFieldOf = (leaf: ConditionLike) => form.fields.some((f) => f.key === leaf.field && f.input === 'bool');
 	const looseHints = $derived(missingHints.filter((h) => !tr.conditions.some((c) => c.field === h.field)));
 
+	// кнопка «Перейти» недоступна — одна строка над ней: чего не хватает и где это сделать
+	const canSubmit = $derived(!form.blocked && missingFiles.length === 0);
+	const hint = $derived.by(() => {
+		if (canSubmit) return null;
+		const note = blockedHint({
+			blocked: form.blocked,
+			roleAllowed: transition.role_allowed,
+			roleWho: roleHint(transition, graph),
+			missingFiles: [...new Set(missingFiles.map((f) => ATTACHMENT_CATEGORY_LABELS[fileLeaf(f)!.category] ?? f))],
+			hints: form.hints
+		});
+		if (!note) return null;
+		if (note.kind === 'upload') return { text: note.text, actions: [{ label: 'Приложить', onclick: scrollToUpload }] };
+		return { text: note.text, actions: navActions(note.kind) };
+	});
+	/** к первой зоне загрузки, где файла не хватает (окно длинное, на телефоне она может быть за экраном) */
+	function scrollToUpload() {
+		const category = missingFiles.map((f) => fileLeaf(f)?.category).find(Boolean);
+		document.querySelector(`[data-testid="file-req-${category}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+	}
+
 	function validate(): boolean {
 		const next: Record<string, string> = {};
 		for (const f of form.fields) {
@@ -353,7 +374,7 @@
 	{/if}
 {/snippet}
 
-<FormModal {open} size="m" {title} saveLabel={actionLabel} {danger} saveTestId="transition-submit" saving={busy} canSave={!form.blocked && missingFiles.length === 0} dirty={open && inputDirty} {formError} conflict={!!banner?.conflict} conflictText={banner?.text} reloadLabel="Обновить" onReload={refresh} onSave={submit} onClose={close}>
+<FormModal {open} size="m" {title} saveLabel={actionLabel} {danger} saveTestId="transition-submit" saving={busy} canSave={canSubmit} {hint} dirty={open && inputDirty} {formError} conflict={!!banner?.conflict} conflictText={banner?.text} reloadLabel="Обновить" onReload={refresh} onSave={submit} onClose={close}>
 	<!-- откуда и куда — двумя строками: названия шагов длинные, рядом они переносились и один чип оказывался на новой строке -->
 	<div class="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-2 gap-y-1.5" data-testid="transition-route">
 		{#if current}

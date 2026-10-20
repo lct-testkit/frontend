@@ -19,6 +19,8 @@
 		danger?: boolean;
 		/** what went wrong with the whole form; an object adds buttons to the message (a link to the place that fixes it) */
 		formError?: string | { text: string; actions?: { label: string; onclick: () => void }[] } | null;
+		/** why the main button is not available, in one line (a link to the place that fixes it can come with it); shown only while there is no error or banner */
+		hint?: string | { text: string; actions?: { label: string; onclick: () => void }[] } | null;
 		conflict?: boolean;
 		/** the words of the 409 banner (default: the general ones) */
 		conflictText?: string;
@@ -31,7 +33,7 @@
 		extra?: Snippet;
 	}
 
-	let { formId, saveLabel = 'Сохранить', cancelLabel = 'Отмена', saving = false, canSave = true, showSave = true, saveTestId, danger = false, formError = null, conflict = false, conflictText = 'Данные изменил другой пользователь. Ваш ввод сохранён в форме.', reloadLabel = 'Загрузить актуальные', cancelVariant = 'outline', onCancel, onReload, extra }: Props = $props();
+	let { formId, saveLabel = 'Сохранить', cancelLabel = 'Отмена', saving = false, canSave = true, showSave = true, saveTestId, danger = false, formError = null, hint = null, conflict = false, conflictText = 'Данные изменил другой пользователь. Ваш ввод сохранён в форме.', reloadLabel = 'Загрузить актуальные', cancelVariant = 'outline', onCancel, onReload, extra }: Props = $props();
 </script>
 
 <div class="flex w-full min-w-0 flex-col gap-3">
@@ -41,6 +43,10 @@
 	{#if formError}
 		{@const error = typeof formError === 'string' ? { text: formError } : formError}
 		<Notice tone="error" actions={error.actions ?? []}>{error.text}</Notice>
+	{/if}
+	{#if hint && !formError && !conflict}
+		{@const note = typeof hint === 'string' ? { text: hint } : hint}
+		<Notice tone="warning" actions={note.actions ?? []} data-testid="footer-hint">{note.text}</Notice>
 	{/if}
 	<div class="flex flex-wrap items-center gap-3 max-md:flex-col-reverse max-md:items-stretch max-md:[&_button]:w-full">
 		{#if showSave}<Btn label={saveLabel} type="submit" form={formId} loading={saving} {danger} disabled={!canSave} data-testid={saveTestId} />{/if}

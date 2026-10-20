@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	alternativeGroups,
 	anyGroupFields,
+	blockedHint,
 	fileLeaf,
 	fileRequirements,
 	missingFileFields,
@@ -372,5 +373,25 @@ describe('lossReasonHint (T-3)', () => {
 	});
 	it('неизвестная категория — как есть', () => {
 		expect(lossReasonHint('Что-то', 'weird')).toBe('weird');
+	});
+});
+
+describe('blockedHint — одна строка над недоступной кнопкой «Перейти»', () => {
+	const base = { blocked: false, roleAllowed: true, roleWho: null, missingFiles: [], hints: [] };
+	it('кнопка доступна — строки нет', () => {
+		expect(blockedHint(base)).toBeNull();
+	});
+	it('не хватает файла: «Приложите файл «Договор»» с действием «приложить здесь»', () => {
+		expect(blockedHint({ ...base, missingFiles: ['Договор'] })).toEqual({ text: 'Приложите файл «Договор»', kind: 'upload' });
+		expect(blockedHint({ ...base, missingFiles: ['Договор', 'Акт'] })).toEqual({ text: 'Приложите файлы «Договор», «Акт»', kind: 'upload' });
+	});
+	it('роль не подходит — говорит, кому можно', () => {
+		expect(blockedHint({ ...base, blocked: true, roleAllowed: false, roleWho: 'Руководитель, Администратор' })).toEqual({ text: 'Переход недоступен вашей роли. Доступно: Руководитель, Администратор', kind: 'role' });
+		expect(blockedHint({ ...base, blocked: true, roleAllowed: false })?.text).toBe('Переход недоступен вашей роли');
+	});
+	it('условие, которое в диалоге не закрыть, — его текст и вид действия (подпись, задачи…)', () => {
+		const hints = [{ kind: 'signature' as const, field: 'signature.completed', satisfied: false, text: 'Нужен подписанный документ' }];
+		expect(blockedHint({ ...base, blocked: true, hints })).toEqual({ text: 'Нужен подписанный документ', kind: 'signature' });
+		expect(blockedHint({ ...base, blocked: true })).toEqual({ text: 'Сначала выполните условия перехода', kind: 'other' });
 	});
 });

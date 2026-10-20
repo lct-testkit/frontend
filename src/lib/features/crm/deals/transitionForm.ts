@@ -447,6 +447,29 @@ export function buildTransitionForm({ transition, conditionTree, targetStatus, d
 	};
 }
 
+/** Что мешает кнопке перехода: одна строка для подвала окна; `kind` — какое действие предложить рядом (`upload` — приложить файл здесь же). */
+export interface BlockedHint {
+	text: string;
+	kind: TransitionHintKind | 'upload';
+}
+
+/**
+ * Одна строка над недоступной кнопкой «Перейти»: роль → первое невыполненное условие, которое в диалоге не закрыть (подпись, задачи, поле в карточке…)
+ * → файлы, которых не хватает («Приложите файл «Договор»»). `null` — кнопка доступна.
+ */
+export function blockedHint(input: { blocked: boolean; roleAllowed: boolean; roleWho: string | null; missingFiles: readonly string[]; hints: readonly TransitionHint[] }): BlockedHint | null {
+	if (!input.roleAllowed) return { text: `Переход недоступен вашей роли${input.roleWho ? `. Доступно: ${input.roleWho}` : ''}`, kind: 'role' };
+	if (input.blocked) {
+		const unmet = input.hints.find((h) => !h.satisfied && h.kind !== 'role');
+		return unmet ? { text: unmet.text, kind: unmet.kind } : { text: 'Сначала выполните условия перехода', kind: 'other' };
+	}
+	if (input.missingFiles.length) {
+		const names = input.missingFiles.map((n) => `«${n}»`).join(', ');
+		return { text: `${input.missingFiles.length > 1 ? 'Приложите файлы' : 'Приложите файл'} ${names}`, kind: 'upload' };
+	}
+	return null;
+}
+
 /** Тело `fields` для `POST /transition`: только заполненные значения, даты и числа — в формате API. */
 export function serializeTransitionFields(values: Record<string, unknown>, fields: TransitionFormField[]): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
