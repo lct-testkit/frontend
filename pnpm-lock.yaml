@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@lct-testkit/rt-ui':
-        specifier: 0.1.2
-        version: 0.1.2(svelte@5.57.1(@typescript-eslint/types@8.70.0))
+        specifier: 0.1.3
+        version: 0.1.3(svelte@5.57.1(@typescript-eslint/types@8.70.0))
       '@xyflow/svelte':
         specifier: ^1.0.0
         version: 1.6.6(svelte@5.57.1(@typescript-eslint/types@8.70.0))
@@ -430,8 +430,8 @@ packages:
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
-  '@lct-testkit/rt-ui@0.1.2':
-    resolution: {integrity: sha512-0bgp6ev9nIEW/WUM8tK+8c6efT/zee4/7d5SBQ8lt+eaXaqRaSQvjnBqiZvMUdnxoN6YTvRgqRVDoLlmBtg8lg==, tarball: https://npm.pkg.github.com/download/@lct-testkit/rt-ui/0.1.2/6a4b9a54fdd3fc1d3624db04b45bf740ef76f112}
+  '@lct-testkit/rt-ui@0.1.3':
+    resolution: {integrity: sha512-UZXnojqv2pR8sY4sfcB1AzVgfenX04X9tVD3W43ZdOQnVQ8PWwo8vC7ZeOWJ5JaKVNAgwO69iI5CwGQ8Dg9E9Q==, tarball: https://npm.pkg.github.com/download/@lct-testkit/rt-ui/0.1.3/b1ad30d265d94759e48c8adc7de6915a90f274ca}
     peerDependencies:
       svelte: ^5.0.0
 
@@ -2770,7 +2770,7 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
-  '@lct-testkit/rt-ui@0.1.2(svelte@5.57.1(@typescript-eslint/types@8.70.0))':
+  '@lct-testkit/rt-ui@0.1.3(svelte@5.57.1(@typescript-eslint/types@8.70.0))':
     dependencies:
       '@popperjs/core': 2.11.8
       attr-accept: 2.2.5
