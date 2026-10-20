@@ -14,13 +14,14 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Refresh } from '@lct-testkit/rt-ui/icons';
-	import { ApiError, api, errorTextWithCode, ifMatch, unwrap } from '$lib/api';
+	import { ApiError, api, errorMessage, errorTextWithCode, ifMatch, unwrap } from '$lib/api';
 	import { people } from '$lib/api/people.svelte';
 	import { session } from '$lib/auth/session.svelte';
 	import { Avatar, Btn, DateText, ErrorState, IconBtn, Notice, Page, PageHeader, Skeleton, StatusChip, TabsBar, Term, UserName, toast } from '$lib/ui';
 	import Card from '$lib/ui/Card.svelte';
 	import { formatDate } from '$lib/utils/format';
 	import { setQuery } from '$lib/utils/query-state.svelte';
+	import AccessRequestModal from '../access/AccessRequestModal.svelte';
 	import OrgNoAccess from '../access/OrgNoAccess.svelte';
 	import Attachments from '../files/Attachments.svelte';
 	import { pushRecent } from '../recent/localRecent';
@@ -59,6 +60,11 @@
 	const setTab = (t: string) => setQuery({ tab: t === 'reqs' ? null : t }, { push: true });
 
 	const canWrite = $derived(session.can('organization:write'));
+	/** сервер отказал в правке именно этого вуза (403: правит ответственный, руководитель его команды или администратор) — реквизиты только для чтения, можно запросить доступ */
+	let denied = $state<string | null>(null);
+	const editable = $derived(canWrite && denied === null);
+	let askingAccess = $state(false);
+	let accessRequested = $state(false);
 	const canOwner = $derived(canAssignOwner((p) => session.can(p)));
 	let ownerModal = $state<'change' | 'remove' | null>(null);
 	let ownerLog = $state<OwnerChangeEntry[] | null>(null);
@@ -128,7 +134,11 @@
 			adopt(await unwrap(api.PATCH('/api/organizations/{organization_id}', { params: { path: { organization_id: id } }, headers: ifMatch(org.version), body: toPatchBody(base, values) })));
 			toast.success('Реквизиты сохранены');
 		} catch (e) {
-			if (e instanceof ApiError && e.isConflict) banner = { text: 'Организация изменена другим пользователем. Обновите данные — введённое сохранится.', conflict: true };
+			if (e instanceof ApiError && e.isForbidden) {
+				denied = errorMessage(e).replace(/[.!]?\s*$/, '.');
+				values = { ...base };
+				errors = {};
+			} else if (e instanceof ApiError && e.isConflict) banner = { text: 'Организация изменена другим пользователем. Обновите данные — введённое сохранится.', conflict: true };
 			else if (e instanceof ApiError && e.isValidation && Object.keys(e.fieldErrors()).length) errors = e.fieldErrors();
 			else banner = { text: errorTextWithCode(e), conflict: false };
 		} finally {
@@ -208,11 +218,22 @@
 		{#if tab === 'reqs'}
 			<Card>
 				<div class="flex max-w-3xl flex-col gap-4">
+					{#if denied !== null}
+						<Notice
+							class="shrink-0"
+							tone="warning"
+							role="alert"
+							actions={accessRequested ? [{ label: 'Мои запросы', onclick: () => goto('/access-requests?box=mine') }] : [{ label: 'Запросить доступ', onclick: () => (askingAccess = true) }]}
+							data-testid="org-readonly"
+						>
+							{denied} {accessRequested ? 'Запрос доступа отправлен — ответ придёт уведомлением.' : 'Реквизиты можно только смотреть; чтобы править, запросите доступ.'}
+						</Notice>
+					{/if}
 					{#if banner}
 						<Notice class="shrink-0" tone={banner.conflict ? 'warning' : 'error'} role="alert" actions={banner.conflict ? [{ label: 'Обновить', onclick: () => ((banner = null), load(true)) }] : []}>{banner.text}</Notice>
 					{/if}
-					<OrgForm bind:values {errors} {org} innReadonly canOwner={false} disabled={!canWrite || saving} onReveal={reveal} onEnter={save} />
-					{#if canWrite && dirty}
+					<OrgForm bind:values {errors} {org} innReadonly canOwner={false} disabled={!editable || saving} onReveal={reveal} onEnter={save} />
+					{#if editable && dirty}
 						<div class="flex justify-end gap-2">
 							<Btn label="Отмена" variant="ghost" colorScheme="neutral" onclick={reset} />
 							<Btn label="Сохранить" loading={saving} onclick={save} data-testid="org-save" />
@@ -247,6 +268,8 @@
 		{/if}
 	{/if}
 </Page>
+
+{#if org}<AccessRequestModal open={askingAccess} orgId={org.id} onClose={() => (askingAccess = false)} onSent={() => ((accessRequested = true), (askingAccess = false))} />{/if}
 
 {#if org && canOwner}
 	<OwnerModal
