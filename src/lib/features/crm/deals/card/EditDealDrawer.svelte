@@ -5,6 +5,7 @@
 	import { ApiError, errorTextWithCode } from '$lib/api';
 	import { CheckField, FormDrawer, FormRow, FormSection, toast } from '$lib/ui';
 	import DateField from '$lib/ui/fields/DateField.svelte';
+	import { isPastDay } from '$lib/ui/fields/date-past';
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import MultiPick from '$lib/ui/fields/MultiPick.svelte';
@@ -127,6 +128,11 @@
 			errors = { title: 'Введите название' };
 			return;
 		}
+		// сервер не принимает новую плановую дату закрытия в прошлом (422 CRM-1001); прежнюю, не тронутую, не проверяем
+		if (v.close !== base.close && isPastDay(v.close)) {
+			errors = { expected_close_date: 'Плановая дата закрытия уже прошла' };
+			return;
+		}
 		const body = diff();
 		if (!Object.keys(body).length) {
 			onClose();
@@ -182,7 +188,7 @@
 	<FormSection title="Стоимость и сроки" class="mt-2">
 		<FormRow>
 			<NumberField label="Сумма, ₽" min={0} maxInt={12} decimals={2} value={v.amount} error={errors.amount} onChange={(x) => (v.amount = x)} />
-			<DateField label="Плановая дата закрытия" warnPast={v.close !== base.close ? 'Дата уже прошла' : undefined} value={v.close} error={errors.expected_close_date} onChange={(x) => (v.close = x)} />
+			<DateField label="Плановая дата закрытия" value={v.close} error={errors.expected_close_date} onChange={(x) => (v.close = x)} />
 		</FormRow>
 	</FormSection>
 

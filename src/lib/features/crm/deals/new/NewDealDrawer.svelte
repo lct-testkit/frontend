@@ -11,6 +11,7 @@
 	import ContactCreateDrawer from '../../contacts/ContactCreateDrawer.svelte';
 	import OrgCreateDrawer from '../../organizations/OrgCreateDrawer.svelte';
 	import DateField from '$lib/ui/fields/DateField.svelte';
+	import { isPastDay } from '$lib/ui/fields/date-past';
 	import NumberField from '$lib/ui/fields/NumberField.svelte';
 	import Pick from '$lib/ui/fields/Pick.svelte';
 	import TextField from '$lib/ui/fields/TextField.svelte';
@@ -91,6 +92,8 @@
 		if (!title.trim()) next.title = 'Введите название';
 		if (type === 'b2b' && !orgId) next.organization_id = 'Выберите организацию';
 		if (type === 'b2c' && !contactId) next.contact_id = 'Выберите клиента';
+		// сервер не принимает плановую дату закрытия в прошлом (422 CRM-1001): говорим об этом до отправки, теми же словами
+		if (isPastDay(closeDate)) next.expected_close_date = 'Плановая дата закрытия уже прошла';
 		errors = next;
 		return Object.keys(next).length === 0;
 	}
@@ -183,7 +186,7 @@
 
 	<FormRow>
 		<NumberField label="Сумма, ₽" min={0} maxInt={12} decimals={2} value={amount} error={errors.amount} onChange={(v) => (amount = v)} />
-		<DateField label="Плановая дата закрытия" warnPast="Дата уже прошла" value={closeDate} onChange={(v) => (closeDate = v)} />
+		<DateField label="Плановая дата закрытия" error={errors.expected_close_date} value={closeDate} onChange={(v) => (closeDate = v)} />
 	</FormRow>
 
 	{#if canPickOwner}<UserPicker label="Ответственный" roles={['KAM', 'HEAD']} value={owner} onChange={(id) => (owner = id)} hint="По умолчанию — вы" />{/if}
