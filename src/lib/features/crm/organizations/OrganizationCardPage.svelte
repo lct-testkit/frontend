@@ -60,9 +60,12 @@
 	const setTab = (t: string) => setQuery({ tab: t === 'reqs' ? null : t }, { push: true });
 
 	const canWrite = $derived(session.can('organization:write'));
-	/** сервер отказал в правке именно этого вуза (403: правит ответственный, руководитель его команды или администратор) — реквизиты только для чтения, можно запросить доступ */
+	/** сервер отказал в правке именно этого вуза (403 CRM-1102: правит ответственный, руководитель его команды, администратор или тот, кому одобрен доступ) —
+	 * реквизиты только для чтения, можно запросить доступ; `can_edit: false` в ответе даёт то же сразу при открытии карточки */
 	let denied = $state<string | null>(null);
-	const editable = $derived(canWrite && denied === null);
+	const READONLY_TEXT = 'Менять реквизиты вуза может ответственный за него или руководитель. Запросите доступ.';
+	const readonlyText = $derived(denied ?? (canWrite && org?.can_edit === false ? READONLY_TEXT : null));
+	const editable = $derived(canWrite && readonlyText === null);
 	let askingAccess = $state(false);
 	let accessRequested = $state(false);
 	const canOwner = $derived(canAssignOwner((p) => session.can(p)));
@@ -210,7 +213,7 @@
 			</Notice>
 		{/if}
 		{#if org.requisites_drift && !hideDrift}
-			<DriftBanner {org} canApply={canWrite} canDismiss={!risk} onApplied={(o) => adopt(o, true)} onConflict={() => load(true)} onHide={() => (hideDrift = true)} />
+			<DriftBanner {org} canApply={editable} canDismiss={!risk} onApplied={(o) => adopt(o, true)} onConflict={() => load(true)} onHide={() => (hideDrift = true)} />
 		{/if}
 
 		<TabsBar items={ORG_TABS} value={tab} onChange={setTab} label="Разделы организации" />
@@ -218,7 +221,7 @@
 		{#if tab === 'reqs'}
 			<Card>
 				<div class="flex max-w-3xl flex-col gap-4">
-					{#if denied !== null}
+					{#if readonlyText !== null}
 						<Notice
 							class="shrink-0"
 							tone="warning"
@@ -226,7 +229,7 @@
 							actions={accessRequested ? [{ label: 'Мои запросы', onclick: () => goto('/access-requests?box=mine') }] : [{ label: 'Запросить доступ', onclick: () => (askingAccess = true) }]}
 							data-testid="org-readonly"
 						>
-							{denied} {accessRequested ? 'Запрос доступа отправлен — ответ придёт уведомлением.' : 'Реквизиты можно только смотреть; чтобы править, запросите доступ.'}
+							{readonlyText}{accessRequested ? ' Запрос отправлен — ответ придёт уведомлением.' : ''}
 						</Notice>
 					{/if}
 					{#if banner}
