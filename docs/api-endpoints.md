@@ -382,6 +382,12 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/reports/{report_id}/download` | Ссылка на файл отчёта |
 | POST | `/api/reports/preview` | Сколько строк будет в отчёте |
 
+## search
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/api/search` | Общий поиск |
+
 ## signing
 
 | Метод | Путь | Описание |

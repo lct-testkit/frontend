@@ -94,7 +94,7 @@
 			const saved = await unwrap(
 				api.PATCH('/api/admin/integrations/sources/{code}', {
 					params: { path: { code: source.code } },
-					body: { name: name.trim(), base_url: baseUrl.trim() || null, auth_type: authType, credentials_ref: credentialsRef.trim() || null, config, ...(pullable ? { pull_enabled: pullEnabled, pull_interval_seconds: Math.round((pullMinutes ?? 5) * 60) } : {}) }
+					body: { name: name.trim(), base_url: baseUrl.trim() || null, auth_type: authType as 'basic' | 'hmac' | 'bearer' | 'none' | null, credentials_ref: credentialsRef.trim() || null, config, ...(pullable ? { pull_enabled: pullEnabled, pull_interval_seconds: Math.round((pullMinutes ?? 5) * 60) } : {}) }
 				})
 			);
 			toast.success('Источник сохранён');

@@ -3800,6 +3800,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Общий поиск
+         * @description Сделки (название, номер, вуз), организации (название, ИНН) и контакты (ФИО) одним запросом; в каждой группе не больше `limit` записей, видимость — как в списках. Группа, на которую у роли нет права чтения, пуста. Если по набранной строке ничего не нашлось ни в одной группе, поиск повторяется со строкой в другой раскладке (`gge` → «ппу», «ппу» → `gge`): тогда `corrected_query` — та строка, по которой показаны результаты, иначе он `null`. Роль: любая с правом чтения сделок, организаций или контактов.
+         */
+        get: operations["search_api_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/signature-documents": {
         parameters: {
             query?: never;
@@ -7778,7 +7798,7 @@ export type components = {
         /** IntegrationSourceUpdateRequest */
         IntegrationSourceUpdateRequest: {
             /** Auth Type */
-            auth_type?: string | null;
+            auth_type?: ("hmac" | "bearer" | "basic" | "none") | null;
             /** Base Url */
             base_url?: string | null;
             /** Config */
@@ -8900,6 +8920,11 @@ export type components = {
             /** Actual Address */
             actual_address?: string | null;
             /**
+             * Can Edit
+             * @default true
+             */
+            can_edit: boolean;
+            /**
              * Created At
              * Format: date-time
              */
@@ -9000,6 +9025,11 @@ export type components = {
             accreditation_until?: string | null;
             /** Actual Address */
             actual_address?: string | null;
+            /**
+             * Can Edit
+             * @default true
+             */
+            can_edit: boolean;
             /**
              * Created At
              * Format: date-time
@@ -10038,6 +10068,63 @@ export type components = {
              * @enum {string}
              */
             severity: "error" | "warning";
+        };
+        /** SearchContactOut */
+        SearchContactOut: {
+            /** First Name */
+            first_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Name */
+            last_name: string;
+            /** Position */
+            position?: string | null;
+        };
+        /** SearchDealOut */
+        SearchDealOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number: string;
+            /** Title */
+            title: string;
+        };
+        /** SearchOrganizationOut */
+        SearchOrganizationOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Inn */
+            inn?: string | null;
+            /** Name */
+            name: string;
+            /** Short Name */
+            short_name?: string | null;
+        };
+        /**
+         * SearchResponse
+         * @description Результат общего поиска. `corrected_query` пуст, если ищется ровно то, что набрано;
+         *     иначе по набранному строке не нашлось, и показаны результаты для строки в другой раскладке.
+         */
+        SearchResponse: {
+            /** Contacts */
+            contacts: components["schemas"]["SearchContactOut"][];
+            /** Corrected Query */
+            corrected_query?: string | null;
+            /** Deals */
+            deals: components["schemas"]["SearchDealOut"][];
+            /** Organizations */
+            organizations: components["schemas"]["SearchOrganizationOut"][];
+            /** Query */
+            query: string;
         };
         /** SecurityEventListResponse */
         SecurityEventListResponse: {
@@ -11908,7 +11995,7 @@ export type components = {
                  *         {
                  *           "code": "missing",
                  *           "field": "title",
-                 *           "reason": "Field required"
+                 *           "reason": "Обязательное поле"
                  *         }
                  *       ],
                  *       "instance": "/api/deals",
@@ -19993,6 +20080,37 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    search_api_search_get: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             422: components["responses"]["UnprocessableEntity"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalServerError"];
