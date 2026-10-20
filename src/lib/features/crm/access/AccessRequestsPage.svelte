@@ -2,7 +2,7 @@
 	// Запросы доступа к чужому вузу. «Входящие» — то, что решает пользователь (владелец вуза, руководитель его команды, администратор):
 	// одобрить на срок, отклонить с причиной, снять выданный доступ. «Мои запросы» — то, что отправил он сам: можно отменить, пока ждёт.
 	// Название вуза видно только тем, кому он доступен: в своём ещё не одобренном запросе его нет.
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { CheckLarge, CloseLarge, Refresh } from '@lct-testkit/rt-ui/icons';
@@ -22,7 +22,10 @@
 		{ key: 'mine', label: 'Мои запросы' }
 	];
 	const box = $derived((page.url.searchParams.get('box') === 'mine' ? 'mine' : 'inbox') as 'inbox' | 'mine');
-	const statusKey = $derived(REQUEST_STATUS_FILTERS.find((f) => f.key === page.url.searchParams.get('status'))?.key ?? 'pending');
+	/** заявка, к которой привело уведомление («Запросили доступ к моему вузу»): строка подсвечена и показана на экране */
+	const highlight = $derived(page.url.searchParams.get('highlight'));
+	// заявку из уведомления могли уже решить: без своего фильтра статуса показываем все, иначе строки в списке не будет
+	const statusKey = $derived(REQUEST_STATUS_FILTERS.find((f) => f.key === page.url.searchParams.get('status'))?.key ?? (highlight ? 'all' : 'pending'));
 
 	const pager = createPager<AccessRequest>(async (cursor, signal) =>
 		unwrap(api.GET('/api/access-requests', { params: { query: { box, status: statusKey === 'all' ? undefined : statusKey, limit: 50, cursor: cursor ?? undefined } }, signal })).then((res) => ({ ...res, items: res.items.filter((r) => matchesStatus(r, statusKey)) }))
@@ -33,6 +36,18 @@
 		void pager.reload();
 	});
 	onMount(() => () => pager.abort());
+	// нужная заявка может быть не на первой странице: подгружаем следующие (не больше пяти раз), потом прокручиваем к ней
+	let extraPages = 0;
+	$effect(() => {
+		const id = highlight;
+		if (!id || pager.loading || pager.loadingMore) return;
+		if (pager.items.some((r) => r.id === id)) {
+			void tick().then(() => document.querySelector(`[data-access-request="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+		} else if (pager.hasMore && extraPages < 5) {
+			extraPages += 1;
+			void pager.loadMore();
+		}
+	});
 	// названия вузов и имена просящих догружаются по мере появления строк
 	$effect(() => {
 		orgCache.ensure(pager.items.map((r) => r.entity_id));
@@ -85,13 +100,15 @@
 
 {#snippet orgLink(r: AccessRequest)}
 	{@const org = orgCache.get(r.entity_id)}
-	{#if org}
-		<a href="/organizations/{r.entity_id}" class="truncate font-medium text-fg" title={orgTitle(org)}>{orgTitle(org)}</a>
-	{:else if org === undefined}
-		<span class="inline-block min-w-24 animate-pulse text-muted">…</span>
-	{:else}
-		<span class="truncate text-muted" title="Название скрыто, пока доступ не выдан">Вуз, название скрыто</span>
-	{/if}
+	<span class={['flex min-w-0 items-center', r.id === highlight && '-mx-2 rounded-sm bg-warning-soft px-2 py-1 ring-1 ring-warning']} data-access-request={r.id} data-highlighted={r.id === highlight || undefined}>
+		{#if org}
+			<a href="/organizations/{r.entity_id}" class="truncate font-medium text-fg" title={orgTitle(org)}>{orgTitle(org)}</a>
+		{:else if org === undefined}
+			<span class="inline-block min-w-24 animate-pulse text-muted">…</span>
+		{:else}
+			<span class="truncate text-muted" title="Название скрыто, пока доступ не выдан">Вуз, название скрыто</span>
+		{/if}
+	</span>
 {/snippet}
 {#snippet orgCell(r: AccessRequest)}<TableCell>{@render orgLink(r)}</TableCell>{/snippet}
 {#snippet whoCell(r: AccessRequest)}<TableCell><span class="truncate"><UserName id={r.requester_id} /></span></TableCell>{/snippet}

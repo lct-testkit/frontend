@@ -99,3 +99,13 @@ describe('notificationHref', () => {
 		expect(notificationHref({ template_code: 'NEW_CODE', entity_type: null, entity_id: null })).toBeNull();
 	});
 });
+
+describe('notificationHref: запрос доступа ведёт к своей строке', () => {
+	it('id заявки в payload или в объекте уведомления — переход подсвечивает её строку', () => {
+		expect(notificationHref({ template_code: 'ACCESS_REQUEST_CREATED', entity_type: 'organization', entity_id: ID, payload: { request_id: 'req-1' } })).toBe('/access-requests?box=inbox&highlight=req-1');
+		expect(notificationHref({ template_code: 'ACCESS_REQUEST_CREATED', entity_type: 'access_request', entity_id: 'req-2' })).toBe('/access-requests?box=inbox&highlight=req-2');
+	});
+	it('id нет — просто «Входящие»', () => {
+		expect(notificationHref({ template_code: 'ACCESS_REQUEST_CREATED', entity_type: 'organization', entity_id: ID })).toBe('/access-requests?box=inbox');
+	});
+});
