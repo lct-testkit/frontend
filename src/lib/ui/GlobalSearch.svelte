@@ -1,5 +1,6 @@
 <script lang="ts">
-	// Search across deals, organizations and contacts (top bar). Desktop: inline field + dropdown, Ctrl/⌘+K focuses it.
+	// Search across deals, organizations and contacts (top bar): ONE call, `GET /api/search`; when nothing is found as typed the server tries the other keyboard
+	// layout (`gge` ↔ «ппу») and says so in `corrected_query` — shown above the results. Desktop: inline field + dropdown, Ctrl/⌘+K focuses it.
 	// Phone: an icon that opens a full-width dialog with the same field and results. ↑ ↓ Enter Esc work everywhere.
 	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -11,25 +12,16 @@
 	import { debounce } from '$lib/utils/debounce';
 	import AppModal from './AppModal.svelte';
 	import SearchInput from './SearchInput.svelte';
-
-	interface Row {
-		id: string;
-		href: string;
-		primary: string;
-		secondary?: string;
-	}
-	interface Group {
-		key: string;
-		title: string;
-		rows: Row[];
-	}
+	import { correctedNote, searchGroups, searchText, type SearchGroup, type SearchRow } from './global-search';
 
 	const bp = useBreakpoint();
 	let q = $state('');
 	let open = $state(false);
 	let dialog = $state(false);
 	let loading = $state(false);
-	let groups = $state<Group[]>([]);
+	let groups = $state<SearchGroup[]>([]);
+	/** по набранному ничего нет, показаны результаты для строки в другой раскладке */
+	let corrected = $state<string | null>(null);
 	let active = $state(0);
 	let input = $state<HTMLInputElement | null>(null);
 	let root = $state<HTMLElement | null>(null);
@@ -38,39 +30,28 @@
 	const flat = $derived(groups.flatMap((g) => g.rows));
 	const canSearch = $derived(session.canAny('deal:read', 'organization:read', 'contact:read'));
 
-	async function run(text: string) {
+	async function run(raw: string) {
 		ctrl?.abort();
-		if (text.trim().length < 2) {
+		const text = searchText(raw);
+		if (!text) {
 			groups = [];
+			corrected = null;
 			loading = false;
 			return;
 		}
 		const my = (ctrl = new AbortController());
 		loading = true;
 		try {
-			const query = { q: text.trim(), limit: 5 };
-			const [deals, orgs, contacts] = await Promise.all([
-				session.can('deal:read') ? unwrap(api.GET('/api/deals', { params: { query }, signal: my.signal })) : null,
-				session.can('organization:read') ? unwrap(api.GET('/api/organizations', { params: { query }, signal: my.signal })) : null,
-				session.can('contact:read') ? unwrap(api.GET('/api/contacts', { params: { query }, signal: my.signal })) : null
-			]);
+			const res = await unwrap(api.GET('/api/search', { params: { query: { q: text, limit: 5 } }, signal: my.signal }));
 			if (my.signal.aborted) return;
-			groups = [
-				{ key: 'deals', title: 'Сделки', rows: (deals?.items ?? []).map((d) => ({ id: d.id, href: `/deals/${d.id}`, primary: d.title, secondary: d.number })) },
-				{
-					key: 'orgs',
-					title: 'Организации',
-					rows: (orgs?.items ?? []).map((o) => ({ id: o.id, href: `/organizations/${o.id}`, primary: o.short_name || o.name, secondary: o.inn ? `ИНН ${o.inn}` : undefined }))
-				},
-				{
-					key: 'contacts',
-					title: 'Контакты',
-					rows: (contacts?.items ?? []).map((c) => ({ id: c.id, href: `/contacts/${c.id}`, primary: [c.last_name, c.first_name].filter(Boolean).join(' '), secondary: c.position ?? undefined }))
-				}
-			].filter((g) => g.rows.length > 0);
+			groups = searchGroups(res);
+			corrected = res.corrected_query ?? null;
 			active = 0;
 		} catch {
-			if (!my.signal.aborted) groups = [];
+			if (!my.signal.aborted) {
+				groups = [];
+				corrected = null;
+			}
 		} finally {
 			if (!my.signal.aborted) loading = false;
 		}
@@ -80,20 +61,22 @@
 	function change(value: string) {
 		q = value;
 		open = true;
-		if (value.trim().length < 2) {
+		if (!searchText(value)) {
 			ctrl?.abort();
 			groups = [];
+			corrected = null;
 			loading = false;
 		}
 		search(value);
 	}
 
-	function pick(row: Row | undefined) {
+	function pick(row: SearchRow | undefined) {
 		if (!row) return;
 		open = false;
 		dialog = false;
 		q = '';
 		groups = [];
+		corrected = null;
 		void goto(row.href);
 	}
 
@@ -173,6 +156,7 @@
 				{:else if groups.length === 0}
 					<p class="t-body-s p-4 text-muted">Ничего не найдено</p>
 				{:else}
+					{#if correctedNote(corrected)}<p class="t-desc-l m-0 border-b border-line px-4 py-2 text-muted" data-testid="search-corrected">{correctedNote(corrected)}</p>{/if}
 					{#each groups as group (group.key)}
 						<div class="border-b border-line py-1 last:border-b-0">
 							<p class="t-desc-m px-4 pt-2 pb-1 text-soft">{group.title}</p>
