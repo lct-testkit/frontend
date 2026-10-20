@@ -2,4 +2,4 @@ allowBuilds:
   esbuild: true
   core-js-pure: false
 minimumReleaseAgeExclude:
-  - '@lct-testkit/rt-ui@0.1.1'
+  - '@lct-testkit/rt-ui@0.1.2'
