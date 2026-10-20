@@ -40,6 +40,12 @@
 
 	const bp = useBreakpoint();
 	let panel = $state(false);
+	// «Сбросить» собирает поля заново: набранный и не принятый текст (период `31.02 - …`) родителю не виден, значит, сброс значений его не стёр бы
+	let resetKey = $state(0);
+	const reset = () => {
+		resetKey += 1;
+		onReset?.();
+	};
 	let drawer = $state(false);
 	// the open panel reaches the bottom of the screen: the floating create-button would sit on its «Готово»
 	$effect(() => {
@@ -47,10 +53,7 @@
 		untrack(() => fabState.hidden++);
 		return () => untrack(() => fabState.hidden--);
 	});
-	// filters that arrive switched on (a shared link) are visible at once on a phone
-	$effect(() => {
-		if (untrack(() => active) > 0) panel = true;
-	});
+	// filters that arrive switched on (a shared link) do NOT open the panel by themselves: it would cover the list; the number on «Фильтры» says they are on
 </script>
 
 {#if bp.isMobile}
@@ -68,10 +71,9 @@
 		{#if primary}<PrimaryAction {primary} />{/if}
 		{#if (filters || more) && panel}
 			<div class="flex flex-col gap-3 rounded-md border border-line bg-surface p-3" data-testid="filters-panel">
-				{@render filters?.()}
-				{@render more?.()}
+				{#key resetKey}{@render filters?.()}{@render more?.()}{/key}
 				<div class="flex gap-3 *:flex-1">
-					{#if onReset}<Btn label="Сбросить" variant="outline" colorScheme="neutral" size="l" onclick={onReset} />{/if}
+					{#if onReset}<Btn label="Сбросить" variant="outline" colorScheme="neutral" size="l" onclick={reset} />{/if}
 					<Btn label={found === undefined ? 'Готово' : `Показать: ${found}`} size="l" onclick={() => (panel = false)} />
 				</div>
 			</div>
@@ -80,11 +82,11 @@
 {:else}
 	<div class="flex min-w-0 flex-wrap items-center gap-3" role="search">
 		{#if onSearch}<div class="min-w-56 flex-[1.6_1_14rem]"><SearchField value={search} {placeholder} {onSearch} size="m" /></div>{/if}
-		{#if filters}<div class="contents *:max-w-72 *:min-w-36 *:flex-[1_1_9rem]"><FilterRow>{@render filters()}</FilterRow></div>{/if}
+		{#if filters}<div class="contents *:max-w-72 *:min-w-36 *:flex-[1_1_9rem]">{#key resetKey}<FilterRow>{@render filters()}</FilterRow>{/key}</div>{/if}
 		{#if more}
 			<Btn label="Фильтры" icon={Filter} count={moreActive} variant="outline" colorScheme="neutral" onclick={() => (drawer = true)} data-testid="filters-more" />
 		{/if}
-		{#if onReset && active > 0}<Btn label="Сбросить" variant="ghost" colorScheme="neutral" onclick={onReset} data-testid="filters-reset" />{/if}
+		{#if onReset && active > 0}<Btn label="Сбросить" variant="ghost" colorScheme="neutral" onclick={reset} data-testid="filters-reset" />{/if}
 		{#if trailing || primary}
 			<div class="ml-auto flex flex-none items-center gap-2">
 				{@render trailing?.()}
@@ -95,10 +97,10 @@
 
 	{#if more}
 		<AppDrawer open={drawer} title="Фильтры" width={480} onClose={() => (drawer = false)}>
-			{@render more()}
+			{#key resetKey}{@render more()}{/key}
 			{#snippet footer()}
 				<Btn label="Готово" onclick={() => (drawer = false)} />
-				{#if onReset}<Btn label="Сбросить" variant="outline" colorScheme="neutral" disabled={active === 0} onclick={onReset} />{/if}
+				{#if onReset}<Btn label="Сбросить" variant="outline" colorScheme="neutral" disabled={active === 0} onclick={reset} />{/if}
 			{/snippet}
 		</AppDrawer>
 	{/if}
