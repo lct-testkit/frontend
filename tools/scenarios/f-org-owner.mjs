@@ -1,4 +1,5 @@
-// F3-8: ответственный за вуз: Руководитель меняет, снимает и назначает (карточка и список), видит историю смен; у КАМ ввода нет и прямой запрос даёт 403.
+// F3-8: ответственный за вуз: Руководитель меняет, снимает и назначает (карточка и список), видит историю смен; у КАМ ввода нет и прямой запрос даёт 403;
+// Q-3: КАМ не правит реквизиты чужого вуза (403 CRM-1102, can_edit=false, в карточке — только чтение).
 // Вузы берутся из стенда и в конце возвращаются прежнему ответственному.
 //   APP_URL=http://localhost:5275 node tools/scenarios/f-org-owner.mjs [--shots dir]
 import { join } from 'node:path';
@@ -73,8 +74,19 @@ try {
 	expect((await kamPage.locator('input[type=checkbox], [role=checkbox]').count()) === 0, 'у КАМ нет чекбоксов в списке');
 	const direct = await kam(`/api/organizations/${a.id}/owner`, { method: 'PUT', headers: { 'If-Match': '"1"' }, body: JSON.stringify({ owner_id: kamMe.id, reason: 'пробую напрямую' }) });
 	expect(direct.status === 403, `прямой PUT от КАМ → ${direct.status}`);
-	const patch = await kam(`/api/organizations/${a.id}`, { method: 'PATCH', headers: { 'If-Match': `"${(await head(`/api/organizations/${a.id}`)).body.version}"` }, body: JSON.stringify({ owner_id: kamMe.id }) });
-	console.log(`  (справочно) прямой PATCH owner_id от КАМ → ${patch.status}`);
+	// Q-3: реквизиты вуза правит ответственный, руководитель его команды, ADMIN или тот, кому одобрен доступ (у вуза без ответственного — любой, кто его видит).
+	// Вуз `a` снова за Руководителем: КАМ его по-прежнему видит (его сделки), но править не вправе — 403 CRM-1102, в карточке только чтение
+	const before = (await head(`/api/organizations/${a.id}`)).body;
+	await head(`/api/organizations/${a.id}/owner`, { method: 'PUT', headers: { 'If-Match': `"${before.version}"` }, body: JSON.stringify({ owner_id: me.id, reason: 'проверка прав на реквизиты' }) });
+	const version = (await head(`/api/organizations/${a.id}`)).body.version;
+	const patch = await kam(`/api/organizations/${a.id}`, { method: 'PATCH', headers: { 'If-Match': `"${version}"` }, body: JSON.stringify({ website: 'https://example.org' }) });
+	expect(patch.status === 403, `прямой PATCH реквизитов от КАМ чужого вуза → ${patch.status}`);
+	expect(patch.body?.type?.endsWith('crm-1102'), `код ошибки CRM-1102: ${patch.body?.type}`);
+	const asKam = (await kam(`/api/organizations/${a.id}`)).body;
+	expect(asKam.can_edit === false, `can_edit для КАМ чужого вуза: ${asKam.can_edit}`);
+	await kamPage.goto(`${BASE}/organizations/${a.id}`, { waitUntil: 'load' });
+	await kamPage.getByTestId('org-readonly').waitFor({ timeout: 8000 });
+	expect(true, 'у КАМ в карточке чужого вуза реквизиты только для чтения и есть «Запросить доступ»');
 	console.log('problems', JSON.stringify(page.__problems));
 } catch (e) {
 	console.log('FAIL', e.message.slice(0, 600));
