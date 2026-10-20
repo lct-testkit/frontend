@@ -62,6 +62,10 @@
 			"tier": "full"
 		},
 		{
+			"file": "b-reports-preview.mjs",
+			"tier": "full"
+		},
+		{
 			"file": "b-reports-params.mjs",
 			"tier": "full"
 		},

@@ -1,4 +1,4 @@
-# Эндпоинты бэкенда (285)
+# Эндпоинты бэкенда (286)
 
 _Сгенерировано tools/gen-api.mjs._
 
@@ -380,6 +380,7 @@ _Сгенерировано tools/gen-api.mjs._
 | GET | `/api/reports/{report_id}` | Статус отчёта |
 | GET | `/api/reports/{report_id}/data` | Данные отчёта в JSON |
 | GET | `/api/reports/{report_id}/download` | Ссылка на файл отчёта |
+| POST | `/api/reports/preview` | Сколько строк будет в отчёте |
 
 ## signing
 

@@ -12,6 +12,7 @@
 	import { count, formatDate } from '$lib/utils/format';
 	import type { ReportTemplate } from '../types';
 	import ParamsForm from './ParamsForm.svelte';
+	import ReportPreviewLine from './ReportPreviewLine.svelte';
 	import { WorkflowList } from './workflows.svelte';
 	import { REPORT_SPECS, canDownloadJson, defaultFormat, describeTemplate, formatHint, formatLabel, formatsFor, normalizeParams, paramsFor, validateParams } from './params';
 	import { downloadReportJson } from './api';
@@ -117,6 +118,13 @@
 	}
 
 	const inForm = $derived(run.phase === 'form' || run.phase === 'failed');
+	/** параметры для предпросмотра числа строк: только когда форма без ошибок (иначе считать нечего — «Запустить» её и так не пустит) */
+	const previewParams = $derived.by(() => {
+		if (!template || !inForm) return null;
+		const workflowTypes = Object.fromEntries(workflows.items.map((w) => [w.id, w.deal_type]));
+		if (Object.keys(validateParams(defs, values, { workflowTypes })).length) return null;
+		return normalizeParams(defs, values);
+	});
 	const queued = $derived(run.jobStatus === 'queued');
 </script>
 
@@ -148,6 +156,7 @@
 					</div>
 				{/if}
 				<ParamsForm {defs} bind:values {errors} workflows={workflows.items} workflowsFailed={workflows.failed} onRetryWorkflows={() => void workflows.load()} />
+				<ReportPreviewLine code={template.code} params={previewParams} />
 				{#if run.phase === 'failed'}<Notice class="shrink-0" tone="error" title="Не удалось сформировать отчёт">{run.message}</Notice>{/if}
 			</div>
 		{:else if run.phase === 'running'}
