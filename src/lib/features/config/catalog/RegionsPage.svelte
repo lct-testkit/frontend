@@ -4,6 +4,7 @@
 	import { api, unwrap } from '$lib/api';
 	import { type Col, TableCell } from '$lib/ui';
 	import { readQuery, setQuery } from '$lib/utils/query-state.svelte';
+	import { timezoneHuman } from '$lib/features/identity/timezones';
 	import type { Region } from '../types';
 	import { createResource } from '../shared/resource.svelte';
 	import FilterBar from '$lib/ui/FilterBar.svelte';
@@ -31,7 +32,7 @@
 {#snippet codeCell(r: Region)}<TableCell><span class="t-body-s font-mono text-muted">{r.code}</span></TableCell>{/snippet}
 {#snippet nameCell(r: Region)}<TableCell><span class="t-body-m-strong">{r.name}</span></TableCell>{/snippet}
 {#snippet districtCell(r: Region)}<TableCell><span class="t-body-s text-muted">{r.federal_district ?? '—'}</span></TableCell>{/snippet}
-{#snippet tzCell(r: Region)}<TableCell><span class="t-body-s text-muted">{r.timezone ?? '—'}</span></TableCell>{/snippet}
+{#snippet tzCell(r: Region)}<TableCell><span class="t-body-s text-muted">{timezoneHuman(r.timezone)}</span></TableCell>{/snippet}
 
 {#snippet card(r: Region)}
 	<div class="flex min-w-0 flex-col gap-0.5">
