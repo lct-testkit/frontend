@@ -29,7 +29,8 @@
 
 	let { sections, isActive, counters = {}, attention = {}, expanded, onNavigate, onToggle, brand, footer, class: className = '' }: Props = $props();
 
-	// `SideMenuItem` is a button, not an `<a>` (`onNavigate` calls `goto()`): SvelteKit's own hover-preload never
+	// `SideMenuItem` has a real `<a href>` laid over the row (rt-ui ≥ 0.1.3: middle click / Ctrl-click / Enter work natively; the plain click still goes
+	// to `onNavigate` and `goto()`). SvelteKit's own hover-preload does not know our `data-nav` rows and never
 	// fires for it. `data-nav` already identifies each item's DOM node (see below), so one delegated `pointerover`
 	// on the whole menu preloads whichever item's href the pointer is over — cheaper than an action per item and
 	// immune to `SideMenuItem`'s own root element ever changing.
@@ -49,7 +50,7 @@
 			{#each section.items as item (item.id)}
 				{@const count = counters[item.id] ?? 0}
 				{@const look = attention[item.id] ?? false}
-				<SideMenuItem class="cursor-pointer" selected={isActive(item)} title={item.label} onclick={(e: MouseEvent) => onNavigate(item.href, e)} data-nav={item.id}>
+				<SideMenuItem class="cursor-pointer" href={item.href} selected={isActive(item)} title={item.label} onclick={(e: MouseEvent) => onNavigate(item.href, e)} data-nav={item.id}>
 					{#snippet prefix()}
 						<!-- collapsed menu shows the icon alone: the dot sits on its corner (expanded: it is the suffix below); other items keep the bare icon -->
 						{#if look && !expanded}
