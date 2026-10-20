@@ -203,3 +203,19 @@ describe('waitForReport', () => {
 		await expect(waitForReport(job({ status: 'failed' }))).rejects.toBeInstanceOf(ReportFailed);
 	});
 });
+
+describe('previewReport', () => {
+	it('шлёт код шаблона и параметры, отдаёт число строк', async () => {
+		post.mockResolvedValue(ok({ row_count: 12, exact: true }));
+		const { previewReport } = await load();
+		const ctl = new AbortController();
+		await expect(previewReport('deal_register', { limit: 5 }, ctl.signal)).resolves.toEqual({ row_count: 12, exact: true });
+		expect(post).toHaveBeenCalledWith('/api/reports/preview', { body: { template_code: 'deal_register', params: { limit: 5 } }, signal: ctl.signal });
+	});
+
+	it('429 приходит как ApiError с Retry-After', async () => {
+		post.mockResolvedValue({ data: undefined, error: { detail: 'Слишком много запросов' }, response: new Response(null, { status: 429, headers: { 'retry-after': '12' } }) });
+		const { previewReport } = await load();
+		await expect(previewReport('x', {})).rejects.toMatchObject({ status: 429, retryAfter: 12 });
+	});
+});
