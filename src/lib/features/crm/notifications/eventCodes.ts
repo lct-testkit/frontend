@@ -118,8 +118,11 @@ export interface NotificationLinkContext {
 export function notificationHref(n: NotificationLinkSource, ctx: NotificationLinkContext = {}): string | null {
 	switch (n.template_code) {
 		// решение принимает владелец вуза/руководитель — во входящих запросах, а не в карточке вуза
-		case 'ACCESS_REQUEST_CREATED':
-			return '/access-requests?box=inbox';
+		case 'ACCESS_REQUEST_CREATED': {
+			// id заявки — в `payload.request_id` или в самом объекте уведомления (`access_request`); пока бэкенд его не кладёт, ведём просто во «Входящие»
+			const id = typeof n.payload?.request_id === 'string' ? n.payload.request_id : n.entity_type === 'access_request' ? n.entity_id : null;
+			return id ? `/access-requests?box=inbox&highlight=${encodeURIComponent(id)}` : '/access-requests?box=inbox';
+		}
 		case 'ACCESS_REQUEST_REJECTED':
 			return '/access-requests?box=mine';
 		// кандидатов может быть несколько — открываем список кандидатов; по сроку — карточку инцидента
