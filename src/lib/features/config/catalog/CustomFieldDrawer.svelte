@@ -14,7 +14,7 @@
 	import TextField from '$lib/ui/fields/TextField.svelte';
 	import Toggle from '$lib/ui/fields/Toggle.svelte';
 	import { toFormFailure } from '../shared/form-errors';
-	import { buildOptions, buildValidation, choicesOf, validationOf } from './custom-fields';
+	import { buildOptions, buildValidation, choicesOf, maxLengthError, validationOf } from './custom-fields';
 
 	type EntityType = 'deal' | 'organization' | 'contact' | 'product';
 	type FieldType = 'string' | 'number' | 'date' | 'bool' | 'select' | 'multiselect' | 'file';
@@ -86,6 +86,10 @@
 		if (!label.trim()) next.label = 'Укажите подпись';
 		if (listType && choices.length === 0) next.options = 'Добавьте хотя бы один вариант';
 		if (type === 'number' && min !== null && max !== null && min > max) next.max = 'Меньше минимума';
+		if (type === 'string') {
+			const lengthError = maxLengthError(maxLength);
+			if (lengthError) next.max_length = lengthError;
+		}
 		if (type === 'string' && pattern) {
 			try {
 				new RegExp(pattern);
@@ -207,7 +211,7 @@
 			<NumberField allowNegative label="Максимум" bind:value={max} error={errors.max} />
 		</div>
 	{:else if type === 'string'}
-		<NumberField label="Максимальная длина" bind:value={maxLength} integer min={0} />
+		<NumberField label="Максимальная длина" bind:value={maxLength} integer min={1} error={errors.max_length} hint="Целое число от 1; пусто — без ограничения" />
 		<TextField label="Шаблон (регулярное выражение)" bind:value={pattern} error={errors.pattern} placeholder="^[0-9]{6}$" />
 	{/if}
 

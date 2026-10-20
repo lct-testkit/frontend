@@ -21,6 +21,7 @@
 	import CustomFieldsInputs from './CustomFieldsInputs.svelte';
 	import ProductContacts from './ProductContacts.svelte';
 	import { checkCustomValues } from './custom-fields';
+	import { currencyItems, DEFAULT_CURRENCY } from './currencies';
 	import { directionOptions } from './directions';
 	import { directions, ensureDirections } from './directions.svelte';
 
@@ -42,7 +43,7 @@
 	let price = $state<number | null>(null);
 	let description = $state('');
 	let duration = $state<number | null>(null);
-	let currency = $state('RUB');
+	let currency = $state<string | null>(DEFAULT_CURRENCY);
 	let validFrom = $state<string | null>(null);
 	let validTo = $state<string | null>(null);
 	/** организация-вендор продукта (файл «Вендоры»); пусто — вендор не указан */
@@ -76,7 +77,7 @@
 			price = p?.base_price != null ? Number(p.base_price) : null;
 			description = p?.description ?? '';
 			duration = p?.duration_hours ?? null;
-			currency = p?.currency ?? 'RUB';
+			currency = p?.currency ?? DEFAULT_CURRENCY;
 			validFrom = p?.valid_from ?? null;
 			validTo = p?.valid_to ?? null;
 			isActive = p?.is_active ?? true;
@@ -107,7 +108,7 @@
 		if (price !== null && price < 0) next.base_price = 'Цена не может быть отрицательной';
 		if (duration !== null && duration < 0) next.duration_hours = 'Не меньше нуля';
 		if (validFrom && validTo && validFrom > validTo) next.valid_to = 'Раньше даты начала';
-		if (!/^[A-Za-z]{3}$/.test(currency)) next.currency = 'Три буквы, например RUB';
+		if (!currency) next.currency = 'Выберите валюту';
 		Object.assign(next, checkCustomValues(defs, custom));
 		errors = next;
 		return Object.keys(next).length === 0;
@@ -126,7 +127,7 @@
 				duration_hours: duration,
 				format: (format as 'online' | 'offline' | 'blended' | null) ?? null,
 				base_price: price,
-				currency: currency.toUpperCase(),
+				currency: (currency ?? DEFAULT_CURRENCY).toUpperCase(),
 				valid_from: validFrom,
 				valid_to: validTo,
 				is_active: isActive,
@@ -206,7 +207,7 @@
 		<AreaField label="Описание" bind:value={description} />
 		<FormRow>
 			<NumberField label="Длительность, ч" bind:value={duration} integer min={0} error={errors.duration_hours} />
-			<TextField label="Валюта" required bind:value={currency} error={errors.currency} maxlength={3} />
+			<Pick label="Валюта" required bind:value={currency} items={currencyItems(currency)} error={errors.currency} />
 		</FormRow>
 		<FormRow>
 			<DateField label="Действует с" bind:value={validFrom} error={errors.valid_from} />

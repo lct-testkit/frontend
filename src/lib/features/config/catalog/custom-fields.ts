@@ -18,6 +18,12 @@ export function validationOf(def: Pick<CustomFieldDef, 'validation'>): FieldVali
 	return def.validation && typeof def.validation === 'object' ? (def.validation as FieldValidation) : {};
 }
 
+/** Ошибка «Максимальной длины» текстового поля: целое число не меньше 1 (пусто — без ограничения). */
+export function maxLengthError(value: number | null): string | null {
+	if (value === null) return null;
+	return Number.isInteger(value) && value >= 1 ? null : 'Целое число, не меньше 1';
+}
+
 /** Тело `options` / `validation` для API из значений формы; пустое → null. */
 export function buildOptions(type: string, choices: readonly string[]): Record<string, unknown> | null {
 	return (type === 'select' || type === 'multiselect') && choices.length ? { choices: [...choices] } : null;
