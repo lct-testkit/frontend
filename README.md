@@ -79,7 +79,7 @@ pnpm dev
 | Сборка | `vite` · `@sveltejs/vite-plugin-svelte` | ^8.0.16 · ^7.1.2 |
 | Язык | `typescript` (`strict`) · `svelte-check` | ^6.0.3 · ^4.6.0 |
 | Стили | `tailwindcss` · `@tailwindcss/vite` · `@tailwindcss/typography` | ^4.3.3 · ^4.3.3 · ^0.5.20 |
-| Дизайн-система | `@lct-testkit/rt-ui` (порт на Svelte, [`../rt-ui`](https://github.com/lct-testkit/rt-ui#readme)) | `0.1.1` из GitHub Packages (`.npmrc`) |
+| Дизайн-система | `@lct-testkit/rt-ui` (порт на Svelte, [`../rt-ui`](https://github.com/lct-testkit/rt-ui#readme)) | `0.1.3` из GitHub Packages (`.npmrc`) |
 | API | `openapi-fetch` · `openapi-typescript` (генерация типов) | ^0.14.0 · ^7.9.0 |
 | Граф воронки, PDF | `@xyflow/svelte` · `pdfjs-dist` | ^1.0.0 · ^6.3.289 |
 | Markdown | `marked` · `dompurify` (комментарии и справка без raw HTML) | ^16.0.0 · ^3.2.6 |
@@ -503,5 +503,5 @@ Rostelecom Basis и пакет `@lct-testkit/rt-ui` — материалы Ро�
 | [`docs/REBUILD-PLAN.md`](docs/REBUILD-PLAN.md) | замечания заказчика, блоки B1–B15 и критерии приёмки, правила раскладки (§9), что принято |
 | [`docs/USERFLOWS.md`](docs/USERFLOWS.md) | пользовательские потоки по ролям: задача, экраны, блоки, обязательные состояния |
 | [`docs/backend-issues.md`](docs/backend-issues.md) | проблемы и несоответствия бэкенда, обходы (в том числе про сиды отчётов, уведомлений и интеграций) |
-| [`docs/openapi.json`](docs/openapi.json), [`docs/api-endpoints.md`](docs/api-endpoints.md) | схема и индекс операций (284 на 19.10.2026); генерируются `pnpm gen:api` |
+| [`docs/openapi.json`](docs/openapi.json), [`docs/api-endpoints.md`](docs/api-endpoints.md) | схема и индекс операций (287 на 20.10.2026); генерируются `pnpm gen:api` |
 | [`../README.md`](https://github.com/lct-testkit/.github#readme) · [`../backend/README.md`](https://github.com/lct-testkit/backend#readme) · [`../rt-ui/README.md`](https://github.com/lct-testkit/rt-ui#readme) | продукт целиком и стенд · бэкенд · дизайн-система |
