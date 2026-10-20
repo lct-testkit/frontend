@@ -23,9 +23,15 @@
 		size?: 's' | 'm' | 'l';
 		/** ids that must not be offered (e.g. the person being replaced) */
 		exclude?: string[];
+		/** the list opens at once (the picker appears because the person asked for it) */
+		defaultOpened?: boolean;
+		/** a search text that comes from outside (the name typed after «@» in a comment): the list is filtered by it */
+		query?: string;
+		/** where the list opens (`top` keeps a field below the picker visible) */
+		placement?: 'bottom' | 'top';
 	}
 
-	let { value = null, onChange, label, placeholder = 'Начните вводить имя', roles, error, hint, disabled = false, required = false, clearable = true, size, exclude = [] }: Props = $props();
+	let { value = null, onChange, label, placeholder = 'Начните вводить имя', roles, error, hint, disabled = false, required = false, clearable = true, size, exclude = [], defaultOpened = false, query, placement = 'bottom' }: Props = $props();
 
 	const bp = useBreakpoint();
 
@@ -59,6 +65,9 @@
 	$effect(() => {
 		untrack(() => void run(''));
 	});
+	$effect(() => {
+		if (query !== undefined) search(query);
+	});
 
 	function pick(key: string | number) {
 		const id = key === '' || key === null ? null : String(key);
@@ -78,8 +87,9 @@
 	{required}
 	{clearable}
 	{items}
+	{defaultOpened}
 	value={value ?? null}
-	placement="bottom"
+	{placement}
 	emptyText={loading ? 'Поиск…' : 'Никого не найдено'}
 	autocomplete={{ enabled: true, filterOptions: (_text, options) => options, onChange: (text) => search(text) }}
 	onChange={pick}

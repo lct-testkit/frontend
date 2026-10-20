@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { modifierText } from '$lib/utils/platform';
 	// Вкладка «Обсуждение»: комментарии деревом (ответы под родителем), системные записи серым, форма внизу.
-	// Ctrl/⌘+Enter отправляет; «@» вставляет упоминание; «внутренний» скрыт от внешних ролей (замок).
+	// Ctrl/⌘+Enter отправляет; «@» (кнопка или набранный в тексте) открывает выбор коллеги и вставляет упоминание; «внутренний» — только пометка:
+	// бэкенд не прячет такой комментарий ни от кого, кто видит сделку.
 	import { untrack } from 'svelte';
+	import { useBreakpoint } from '@lct-testkit/rt-ui/ext';
 	import { CloseSmall, Send } from '@lct-testkit/rt-ui/icons';
 	import { api, unwrap } from '$lib/api';
 	import { people } from '$lib/api/people.svelte';
@@ -11,6 +13,7 @@
 	import CheckField from '$lib/ui/fields/CheckField.svelte';
 	import type { Comment } from '../types';
 	import CommentItem from './CommentItem.svelte';
+	import { insertMention, mentionQuery, mentionsInText } from './mention';
 
 	interface Props {
 		dealId: string;
@@ -31,7 +34,11 @@
 	let replyTo = $state<Comment | null>(null);
 	let mentions = $state<string[]>([]);
 	let picking = $state(false);
+	/** выбор коллеги открыт набранной «@», а не кнопкой: закрывается, когда «@» стёрли */
+	let pickingByAt = $state(false);
+	const atQuery = $derived(mentionQuery(text));
 	let busy = $state(false);
+	const bp = useBreakpoint();
 
 	async function load() {
 		error = null;
@@ -74,7 +81,7 @@
 			const created = await unwrap(
 				api.POST('/api/deals/{deal_id}/comments', {
 					params: { path: { deal_id: dealId } },
-					body: { body, body_format: 'plain', parent_id: replyTo?.id ?? null, is_internal: internal, mentions: [...new Set(mentions)] }
+					body: { body, body_format: 'markdown', parent_id: replyTo?.id ?? null, is_internal: internal, mentions: mentionsInText(body, mentions, (id) => people.name(id)) }
 				})
 			);
 			items = [...items, created];
@@ -82,6 +89,7 @@
 			replyTo = null;
 			mentions = [];
 			picking = false;
+			pickingByAt = false;
 		} catch (e) {
 			toast.error(e);
 		} finally {
@@ -92,8 +100,21 @@
 	function mention(id: string | null) {
 		if (!id) return;
 		mentions = [...mentions, id];
-		text = `${text}${text && !text.endsWith(' ') ? ' ' : ''}@${people.name(id)} `;
+		text = insertMention(text, people.name(id));
 		picking = false;
+		pickingByAt = false;
+	}
+
+	/** текст поля: набранная «@» открывает выбор коллеги, стёртая — закрывает (если открыла она) */
+	function onText(v: string) {
+		text = v;
+		if (mentionQuery(v) !== null) {
+			picking = true;
+			pickingByAt = true;
+		} else if (pickingByAt) {
+			picking = false;
+			pickingByAt = false;
+		}
 	}
 
 	const changed = (c: Comment) => (items = items.map((x) => (x.id === c.id ? c : x)));
@@ -139,11 +160,11 @@
 					<IconBtn icon={CloseSmall} label="Отменить ответ" size="s" onclick={() => (replyTo = null)} />
 				</div>
 			{/if}
-			{#if picking}<UserPicker label="Кого упомянуть" value={null} clearable={false} onChange={(id) => mention(id)} />{/if}
-			<AreaField placeholder="Комментарий (Markdown, {modifierText()}+Enter — отправить)" value={text} rows={2} maxRows={6} onInput={(v) => (text = v)} onSubmit={send} />
+			{#if picking}<UserPicker label="Кого упомянуть" value={null} clearable={false} defaultOpened={pickingByAt} placement="top" query={atQuery ?? undefined} onChange={(id) => mention(id)} />{/if}
+			<AreaField placeholder={bp.isMobile ? 'Комментарий (Markdown; @ — упомянуть коллегу)' : `Комментарий (Markdown; @ — упомянуть коллегу; ${modifierText()}+Enter — отправить)`} value={text} rows={2} maxRows={6} onInput={onText} onSubmit={send} />
 			<div class="flex flex-wrap items-center gap-3">
-				<CheckField label="Внутренний" checked={internal} onChange={(v) => (internal = v)} />
-				<Btn label="@" variant="ghost" colorScheme="neutral" size="s" aria-label="Упомянуть коллегу" onclick={() => (picking = !picking)} />
+				<CheckField label="Внутренний" hint="Только пометка (жёлтый фон): комментарий видят все, у кого есть доступ к сделке." checked={internal} onChange={(v) => (internal = v)} />
+				<Btn label="@" variant="ghost" colorScheme="neutral" size="s" aria-label="Упомянуть коллегу" onclick={() => ((picking = !picking), (pickingByAt = false))} />
 				<Btn class="ml-auto" label="Отправить" icon={Send} type="submit" loading={busy} disabled={!text.trim()} data-testid="comment-send" />
 			</div>
 		</form>
