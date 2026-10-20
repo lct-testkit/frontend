@@ -27,7 +27,7 @@
 		"@lct-testkit/rt-ui": "0.1.2",
 		"@xyflow/svelte": "^1.0.0",
 		"dayjs": "^1.11.13",
-		"dompurify": "^3.2.6",
+		"dompurify": "^3.4.16",
 		"marked": "^16.0.0",
 		"openapi-fetch": "^0.14.0",
 		"pdfjs-dist": "^6.3.289"
