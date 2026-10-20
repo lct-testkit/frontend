@@ -25,6 +25,8 @@
 		/** a red main button (a destructive action) */
 		danger?: boolean;
 		formError?: string | { text: string; actions?: { label: string; onclick: () => void }[] } | null;
+		/** why the main button is not available (one line, with a link to the place that fixes it) */
+		hint?: string | { text: string; actions?: { label: string; onclick: () => void }[] } | null;
 		conflict?: boolean;
 		/** the words of the 409 banner (default: the general ones) */
 		conflictText?: string;
@@ -40,7 +42,7 @@
 		header?: Snippet;
 	}
 
-	let { open, title, size = 'm', saving = false, saveLabel = 'Сохранить', cancelLabel = 'Отмена', canSave = true, showSave = true, danger = false, dirty = undefined, saveTestId, formError = null, conflict = false, conflictText = undefined, reloadLabel = undefined, dismissible = true, onSave, onClose, onReload, children, extra, header }: Props = $props();
+	let { open, title, size = 'm', saving = false, saveLabel = 'Сохранить', cancelLabel = 'Отмена', canSave = true, showSave = true, danger = false, dirty = undefined, saveTestId, formError = null, hint = null, conflict = false, conflictText = undefined, reloadLabel = undefined, dismissible = true, onSave, onClose, onReload, children, extra, header }: Props = $props();
 
 	const formId = `fm-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -86,6 +88,6 @@
 		{@render children()}
 	</form>
 	{#snippet footer()}
-		<FormFooter {formId} {saveLabel} {cancelLabel} {saving} {canSave} {showSave} {danger} {saveTestId} formError={shownError} {conflict} {conflictText} {reloadLabel} cancelVariant="secondary" onCancel={close} {onReload} {extra} />
+		<FormFooter {formId} {saveLabel} {cancelLabel} {saving} {canSave} {showSave} {danger} {saveTestId} formError={shownError} {hint} {conflict} {conflictText} {reloadLabel} cancelVariant="secondary" onCancel={close} {onReload} {extra} />
 	{/snippet}
 </AppModal>
